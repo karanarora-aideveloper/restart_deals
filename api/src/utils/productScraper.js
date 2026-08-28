@@ -4,6 +4,64 @@ import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 /**
  * Parse HTML and extract structured product details across all supported merchants.
  */
+/**
+ * Price helpers — kept in sync with backend/src/listener/verifier.js.
+ *
+ * This scraper feeds the daily refresher, which expires deals by comparing a live price
+ * against the stored one. A wrong or missing price here doesn't just skip a deal, it can
+ * kill a live one, so extraction has to fail closed (null) rather than guess.
+ */
+function parsePriceText(raw) {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/[^\d.]/g, '').replace(/\.$/, '');
+  if (!cleaned) return null;
+  const parsed = parseFloat(cleaned);
+  if (isNaN(parsed) || parsed <= 0 || parsed > 10000000) return null;
+  return Math.round(parsed);
+}
+
+// First parseable price among ALL matches — not `.first()`, whose node is often empty.
+function findPrice($, selectors, root = null) {
+  for (const sel of selectors) {
+    const nodes = root ? root.find(sel) : $(sel);
+    let hit = null;
+    nodes.each((_, el) => {
+      if (hit !== null) return false;
+      const val = parsePriceText($(el).text().trim());
+      if (val !== null) hit = val;
+    });
+    if (hit !== null) return hit;
+  }
+  return null;
+}
+
+// schema.org JSON-LD — the only stable price source on Flipkart's hashed markup.
+function extractJsonLdPrice($) {
+  let result = { price: null, originalPrice: null };
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (result.price !== null) return false;
+    let parsed;
+    try {
+      parsed = JSON.parse($(el).contents().text());
+    } catch {
+      return;
+    }
+    const roots = Array.isArray(parsed) ? parsed : [parsed];
+    for (const root of roots) {
+      for (const node of (root['@graph'] || [root])) {
+        if (!node || !node.offers) continue;
+        const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+        if (!offer) continue;
+        const price = parsePriceText(offer.price ?? offer.lowPrice);
+        if (price === null) continue;
+        result = { price, originalPrice: parsePriceText(offer.highPrice) };
+        return false;
+      }
+    }
+  });
+  return result;
+}
+
 export function parseProductHtml(html, targetUrl) {
   if (!html) return null;
   const $ = cheerio.load(html);
@@ -46,44 +104,39 @@ export function parseProductHtml(html, targetUrl) {
     const ratingMatch = ratingText.match(/([0-9.]+)\s*out\s*of\s*5/i);
     if (ratingMatch) rating = parseFloat(ratingMatch[1]);
 
-    // Amazon Price
-    const priceSelectors = [
+    // Amazon Price — scoped to the main product column. The page carries dozens of
+    // `.a-price` nodes from sponsored carousels and "similar items"; an unscoped match
+    // can pick a neighbouring product and expire a perfectly live deal.
+    const amazonPriceSelectors = [
       '.apexPriceToPay .a-offscreen',
+      '.priceToPay .a-offscreen',
       '#priceblock_dealprice',
       '#priceblock_ourprice',
       '.a-price .a-offscreen',
-      '.a-price-whole'
+      '.a-price-whole',
     ];
-    for (const sel of priceSelectors) {
-      const val = $(sel).first().text().trim();
-      if (val) {
-        const clean = val.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(clean);
-        if (!isNaN(parsed) && parsed > 0) {
-          price = Math.round(parsed);
-          break;
-        }
-      }
-    }
-
-    // Amazon Strike-through MRP
-    const listPriceSelectors = [
-      'span.a-text-strike',
+    const amazonListSelectors = [
       '.basisPrice .a-offscreen',
+      'span.a-text-strike',
       '#listPrice',
-      '#priceblock_listprice'
+      '#priceblock_listprice',
     ];
-    for (const sel of listPriceSelectors) {
-      const val = $(sel).first().text().trim();
-      if (val) {
-        const clean = val.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(clean);
-        if (!isNaN(parsed) && parsed > 0) {
-          originalPrice = Math.round(parsed);
-          break;
-        }
-      }
+    const amazonRoots = ['#corePrice_feature_div', '#corePriceDisplay_desktop_feature_div', '#ppd', '#centerCol'];
+    for (const rootSel of amazonRoots) {
+      const root = $(rootSel);
+      if (!root.length) continue;
+      price = findPrice($, amazonPriceSelectors, root);
+      if (price !== null) break;
     }
+    if (price === null) price = findPrice($, amazonPriceSelectors);
+
+    for (const rootSel of amazonRoots) {
+      const root = $(rootSel);
+      if (!root.length) continue;
+      originalPrice = findPrice($, amazonListSelectors, root);
+      if (originalPrice !== null) break;
+    }
+    if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
 
     // Category detection from breadcrumbs
     const breadcrumbs = $('#wayfinding-breadcrumbs_feature_div').text().toLowerCase();
@@ -108,16 +161,17 @@ export function parseProductHtml(html, targetUrl) {
       if (src && !images.includes(src)) images.push(src);
     });
 
-    // Flipkart Price
-    const dealPriceText = $('._30jeq3, div[class*="_30jeq3"]').first().text().trim();
-    if (dealPriceText) {
-      const parsed = parseFloat(dealPriceText.replace(/[^\d.]/g, ''));
-      if (!isNaN(parsed)) price = Math.round(parsed);
+    // Flipkart Price — JSON-LD first. The hashed class names below rotate and are
+    // already dead against live markup; they stay only as a fallback.
+    const fkLd = extractJsonLdPrice($);
+    if (fkLd.price !== null) {
+      price = fkLd.price;
+      originalPrice = fkLd.originalPrice;
+    } else {
+      price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
     }
-    const listPriceText = $('._3I9_R3, div[class*="_3I9_R3"]').first().text().trim();
-    if (listPriceText) {
-      const parsed = parseFloat(listPriceText.replace(/[^\d.]/g, ''));
-      if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+    if (originalPrice === null) {
+      originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
     }
 
     // Flipkart Rating
