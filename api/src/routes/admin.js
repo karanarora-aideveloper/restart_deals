@@ -1,5 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import { defaultRedis } from '../utils/redis.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Deal from '../db/models/deal.js';
 import Product from '../db/models/product.js';
@@ -491,6 +492,30 @@ router.post('/crawler/run-bestsellers', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Live backend logs — reads from Redis circular list written by the backend service
+router.get('/logs', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '200', 10), 500);
+    const level = req.query.level || 'all'; // 'all' | 'info' | 'warn' | 'error'
+    const since = req.query.since ? new Date(req.query.since) : null;
+
+    // LRANGE 0 -1 = all entries; list is newest-first (LPUSH), so reverse for display
+    const raw = await defaultRedis.lrange('logs:backend', 0, limit * 3);
+    let entries = raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+
+    if (level !== 'all') entries = entries.filter(e => e.level === level);
+    if (since) entries = entries.filter(e => new Date(e.ts) > since);
+
+    // Return oldest-first so admin can append new lines at the bottom
+    entries.reverse();
+    if (entries.length > limit) entries = entries.slice(entries.length - limit);
+
+    res.json({ logs: entries, count: entries.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

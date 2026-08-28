@@ -2,6 +2,10 @@ import { connectDB } from './db/connection.js';
 import { startServer } from './api/server.js';
 import { startTelegramListener } from './listener/telegram.js';
 import { startTokenResetScheduler } from './listener/tokenReset.js';
+import { installSystemLogger } from './utils/systemLogger.js';
+
+// Mirror all console output to Redis so the admin panel can display live logs
+installSystemLogger();
 
 async function main() {
   console.log('==================================================');
