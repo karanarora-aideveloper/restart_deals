@@ -1,0 +1,25 @@
+{
+  "name": "shoppersdeals-backend",
+  "version": "1.0.0",
+  "description": "ShoppersDeals background listener and API aggregator",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "bullmq": "^6.2.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "input": "^1.0.1",
+    "ioredis": "^6.0.0",
+    "mongoose": "^8.2.1",
+    "openai": "^4.28.0",
+    "p-queue": "^8.0.1",
+    "puppeteer-core": "^24.43.1",
+    "telegram": "^2.19.10",
+    "twitter-api-v2": "^1.29.1"
+  }
+}

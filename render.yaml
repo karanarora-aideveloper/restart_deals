@@ -1,0 +1,41 @@
+services:
+  # 1. Express REST API Service (Serves /api/deals, /api/products, /api/alerts, etc.)
+  - type: web
+    name: shoppersdeals-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm --prefix api install
+    startCommand: npm --prefix api start
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://arorakaran6992:FUpX6I53NEB4UhSW@cluster0.zid9f.mongodb.net/shoppers_deals?retryWrites=true&w=majority
+      - key: DEEPSEEK_API_KEY
+        value: sk-c8c1eb9405d5464ab90e47f20f35b079
+      - key: ALGOLIA_APP_ID
+        value: 2PJDY54E3H
+      - key: ALGOLIA_ADMIN_API_KEY
+        value: 6de26203cc83434c3d70165ed58c2b83
+      - key: TWOCAPTCHA_API_KEY
+        value: 00f69cd4eefad8d5ccfe712289733973
+
+  # 2. Background Scraper & Telegram Deal Ingestion Worker
+  - type: worker
+    name: shoppersdeals-backend
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm --prefix backend install
+    startCommand: npm --prefix backend start
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://arorakaran6992:FUpX6I53NEB4UhSW@cluster0.zid9f.mongodb.net/shoppers_deals?retryWrites=true&w=majority
+      - key: TELEGRAM_API_ID
+        value: "7415209"
+      - key: TELEGRAM_API_HASH
+        value: 50a6b3dd64ff2f45b0bc834c3561e83d
+      - key: TELEGRAM_SESSION
+        value: 1BQANOTEuMTA4LjU2LjE5MAG7HNleeiJuIqhTAxlunMTh3/CHXt5QVgDWNnHbEI76SwelhyREa9a3feqimKvUclAalbkiD9FVcFo4hnMnZBMRlUKkMoEz0Ol5TAYmc+9wi3bJlX2Ofk8MtMNu6gFZE8m56a5xKcuBvr8M3NInzASDLKnBSOAIieUG5Xbp64hVSTtUboKJh5xSIVQjupFO1vcPQmIXN4WY/LWoMRQAsWJTfhwe6gv84M/WzNhN0B/pGfCoA8lewCWuaBMXEuMAZ1eYijH3UFwY5V5D6kG+PcDCwjdMTyx/O6opMWgoRvab6OnzKLu+NSQXeAI/kvm9BmCaOuan3UaX4LeH3Yj0VrWI1w==
+      - key: DEEPSEEK_API_KEY
+        value: sk-c8c1eb9405d5464ab90e47f20f35b079
