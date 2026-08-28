@@ -10,6 +10,11 @@ import ScrapingLog from '../db/models/scrapingLog.js';
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
 
+// ScrapingAnt browser=true renders routinely take 40-70s. Aborting earlier leaves the
+// remote browser running and holding the account's concurrency slot, which 409s the
+// next request — so this must stay comfortably above their worst-case render time.
+const SCRAPE_TIMEOUT_MS = 90000;
+
 function detectMerchant(url) {
   if (!url) return 'unknown';
   if (url.includes('amazon.')) return 'amazon';
@@ -94,25 +99,37 @@ export async function executeScrapingAntJob(url, source = 'other') {
     return null;
   }
 
-  const tokenRecord = activeTokens[0];
-  const token = tokenRecord.token;
-
   const isUs = url.includes('amazon.com') || url.includes('.us');
   const countryParam = isUs ? '&country=US' : '&country=IN';
-  const apiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=true${countryParam}`;
+  const buildApiUrl = (t) =>
+    `https://api.scrapingant.com/v2/general?x-api-key=${t}&url=${encodeURIComponent(url)}&browser=true${countryParam}`;
+
+  // Lease the least-recently-used token and stamp it immediately. Stamping on lease
+  // (rather than only on success) is what makes rotation work: a token left holding a
+  // hung remote browser drops to the back of the queue instead of being re-picked.
+  let token = activeTokens[0].token;
+  await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date() }).catch(() => {});
 
   let response = null;
   let durationMs = 0;
 
   try {
-    response = await fetch(apiUrl, { signal: AbortSignal.timeout(30000) });
+    response = await fetch(buildApiUrl(token), { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
     durationMs = Date.now() - startTime;
 
     if (response.status === 409) {
-      console.warn(`[ScraperWorker] ScrapingAnt 409 concurrency on ${url.slice(0, 45)}. Waiting 8s for cloud slot release...`);
-      await new Promise(r => setTimeout(r, 8000));
-      // Single retry after 8s cooldown
-      response = await fetch(apiUrl, { signal: AbortSignal.timeout(30000) });
+      // The slot is held by a still-running remote browser, so retrying the same token
+      // just 409s again. Rotate to a different active token instead.
+      const nextToken = activeTokens.find(t => t.token !== token)?.token;
+      if (nextToken) {
+        console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. Rotating to next token...`);
+        token = nextToken;
+        await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date() }).catch(() => {});
+      } else {
+        console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. No spare token, waiting 8s...`);
+        await new Promise(r => setTimeout(r, 8000));
+      }
+      response = await fetch(buildApiUrl(token), { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
       durationMs = Date.now() - startTime;
     }
   } catch (fetchErr) {

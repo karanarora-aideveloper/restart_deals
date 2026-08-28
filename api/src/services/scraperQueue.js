@@ -70,7 +70,9 @@ class DistributedScraperQueue {
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
       // issues on Valkey/Render where completion events are never received.
-      const TIMEOUT = 70000;
+      // Must exceed the worker's worst case: a 90s render, then a rotate/backoff and a
+      // second 90s render. Timing out first would orphan a job that is still running.
+      const TIMEOUT = 200000;
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 
