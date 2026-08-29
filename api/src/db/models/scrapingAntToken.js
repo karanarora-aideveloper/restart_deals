@@ -46,7 +46,7 @@ const scrapingAntTokenSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+}, { timestamps: true });
 
 scrapingAntTokenSchema.index({ status: 1, lastUsedAt: 1 });
 

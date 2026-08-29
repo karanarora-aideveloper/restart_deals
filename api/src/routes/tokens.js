@@ -476,6 +476,18 @@ router.post('/sync', async (req, res) => {
       tokenRecord.lastCheckedAt = new Date();
 
       if (usage.valid) {
+        // BUG (fixed 2026-08-29): usageCount — our own lifetime-request
+        // counter, incremented every time the scraper worker actually uses
+        // this token — was being zeroed on EVERY sync, just for a token
+        // still being confirmed active with credits remaining. That wiped
+        // real usage history on every routine "Sync Tokens" click, not only
+        // when ScrapingAnt actually refilled the plan. Only reset it when
+        // this sync detects a genuine refill: remainedCredits went UP
+        // (impossible from ordinary usage, which only decreases it) or the
+        // renewal date advanced.
+        const previousRemainedCredits = tokenRecord.remainedCredits;
+        const previousRenewalTime = tokenRecord.renewalDate ? new Date(tokenRecord.renewalDate).getTime() : null;
+
         tokenRecord.planName = usage.planName;
         tokenRecord.planTotalCredits = usage.planTotalCredits;
         tokenRecord.remainedCredits = usage.remainedCredits;
@@ -483,10 +495,17 @@ router.post('/sync', async (req, res) => {
           tokenRecord.renewalDate = new Date(usage.renewalDate);
         }
 
+        const newRenewalTime = usage.renewalDate ? new Date(usage.renewalDate).getTime() : null;
+        const renewalAdvanced = previousRenewalTime != null && newRenewalTime != null && newRenewalTime > previousRenewalTime;
+        const creditsRefilled = previousRemainedCredits != null && usage.remainedCredits > previousRemainedCredits;
+        const isActualReset = renewalAdvanced || creditsRefilled;
+
         if (usage.remainedCredits > 0) {
           tokenRecord.status = 'active';
           tokenRecord.exhaustedAt = null;
-          tokenRecord.usageCount = 0;
+          if (isActualReset) {
+            tokenRecord.usageCount = 0;
+          }
           reactivatedCount++;
         } else {
           tokenRecord.status = 'exhausted';
