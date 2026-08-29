@@ -509,10 +509,20 @@ async function generateTempEmail(page) {
   //     at all. An earlier fix mistook one coincidental render for the other.
   // The reliable fix: clear every active email first so "Create" always
   // starts from the zero-active state that opens the real config modal.
+  // BUG (fixed 2026-08-29): the very first check here used a bare, instant
+  // isVisible() — confirmed live it fires before the auto-restored active
+  // email (created moments earlier by simply loading the page while logged
+  // in) has actually rendered into the sidebar list, so it wrongly concludes
+  // "nothing to delete" and heads straight to Create with one about to
+  // exist. Give the first check a real wait; the list has settled by the
+  // time later iterations run, so a quick check is fine for those.
   let deleteGuard = 0;
   while (deleteGuard < 10) {
     const itemDeleteBtn = page.locator("li button:has-text('Delete')").first();
-    if (!(await itemDeleteBtn.isVisible().catch(() => false))) break;
+    const hasActiveEmail = deleteGuard === 0
+      ? await waitVisible(itemDeleteBtn, 8_000)
+      : await itemDeleteBtn.isVisible().catch(() => false);
+    if (!hasActiveEmail) break;
     await itemDeleteBtn.click();
     await randomDelay(300, 600);
     const confirmDeleteBtn = page.locator('[role="dialog"] button:has-text("Delete")').first();
