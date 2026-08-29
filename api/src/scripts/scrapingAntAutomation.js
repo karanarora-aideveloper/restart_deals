@@ -490,34 +490,30 @@ async function generateTempEmail(page) {
   // Count existing emails before generation
   const countBefore = await page.locator("ul.max-h-\\[38rem\\] li:visible").count().catch(() => 0);
 
-  // Click Create button.
-  // BUG (fixed): every isVisible() check in this function used to be bare
-  // (no wait) — same class of bug fixed elsewhere in this file. Right after
-  // a click that triggers a modal open/transition, the target often isn't
-  // rendered yet, so an unwaited isVisible() reports false and the whole
-  // block silently no-ops. That's the likely reason Real Account / premium
-  // server selection never visibly stuck even though the selectors
-  // themselves are correct (confirmed live 2026-08-19 against the real
-  // DOM — `button:has-text('Real Account')` and
-  // `select[x-model='query.server']` both genuinely exist and match).
-  // BUG (fixed): none of these matched — confirmed live 2026-08-19 the real
-  // element is a <button> (not <div>) with class "...bg-green-600..." (not
-  // 700). Tailwind shade and tag both drifted from whatever these were
-  // written against. `button:has-text('Create')` is unique pre-modal (the
-  // only other "Create..." text, "Create new profile", only exists after
-  // the modal is already open).
+  // Open the Create-email config modal via the Settings (gear) button, NOT
+  // the plain "Create" button.
+  //
+  // BUG (fixed 2026-08-29): the plain "Create" button (`@click="openCreate()"`)
+  // now does INSTANT one-click random Gmail generation — confirmed live,
+  // and matches smailpro.com's own FAQ copy ("Click 'Create' and get a
+  // temporary Gmail address in under 5 seconds"). It no longer opens any
+  // modal, so every downstream selector search (provider/account-type/
+  // server) was hunting for elements that were never rendered — the
+  // earlier "Microsoft"/"Outlook" rename theory was a red herring. The
+  // configuration modal (provider choice, Real Account, premium server —
+  // everything this automation actually needs) now only opens via the
+  // gear icon: `<button title="Settings" @click="$store.modals.open('modalSetting')">`.
+  // Confirmed live 2026-08-29 against the real DOM.
   const createSelectors = [
-    "button:has-text('Create')",
-    "div.bg-green-700:has-text('Create')",
-    "div.bg-green-700",
-    "div.cursor-pointer:has-text('Create')",
+    "button[title='Settings']",
+    "button:has-text('Create')", // legacy fallback, kept in case this ever reverts
   ];
 
   for (const sel of createSelectors) {
     const btn = page.locator(sel).first();
     if (await waitVisible(btn, 10_000)) {
       await btn.click();
-      console.log('[Smail] Create button clicked');
+      console.log(`[Smail] Create-modal opener clicked (selector: ${sel})`);
       break;
     }
   }
@@ -527,35 +523,22 @@ async function generateTempEmail(page) {
   // Wait for modal
   await page.locator("h3:has-text('Create temporary email')").waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
 
-  // Select the Microsoft/Outlook provider. The Account Type / Server sections
-  // below only render once a provider (Google/Microsoft) is actually active —
+  // Select the Microsoft provider. The Account Type / Server sections below
+  // only render once a provider (Google/Microsoft) is actually active —
   // flaky clicks here (confirmed live: intermittent, 2 of ~8 real runs)
   // surface downstream as "Real Account button not found," which is
   // misleading. Verify the active state, retrying the click a couple of
   // times, instead of a single click + fixed delay.
   //
-  // BUG (fixed 2026-08-29): smailpro.com's own marketing copy consistently
-  // brands this provider "Outlook" now (never "Microsoft" anywhere on the
-  // site) — a live batch run confirmed the "Microsoft" text selectors no
-  // longer match anything in the Create-email modal. Try "Outlook" first,
-  // keep "Microsoft" as a fallback in case the in-app label lags the site
-  // copy or reverts, and log which text actually matched.
-  const providerSelectors = [
-    "button:has-text('Outlook')", "span:has-text('Outlook')",
-    "button:has-text('Microsoft')", "span:has-text('Microsoft')",
-  ];
-  let providerBtn = null;
-  let providerLabel = null;
-  for (const sel of providerSelectors) {
-    const btn = page.locator(sel).first();
-    if (await waitVisible(btn, 10_000)) {
-      providerBtn = btn;
-      providerLabel = sel.includes('Outlook') ? 'Outlook' : 'Microsoft';
-      break;
-    }
-  }
-  if (!providerBtn) {
-    throw new Error('Could not find the "Outlook"/"Microsoft" provider button in the Create-email modal — page structure may have changed');
+  // NOTE 2026-08-29: an earlier fix here wrongly guessed the button had been
+  // renamed "Outlook" (based on smailpro.com's marketing copy) — confirmed
+  // live against the real modal that it's still literally "Microsoft".
+  // The real bug was the Create-button click above never opening this modal
+  // at all, so there was nothing for either text to match. Reverted to
+  // "Microsoft" only.
+  const providerBtn = page.locator("button:has-text('Microsoft')").first();
+  if (!(await waitVisible(providerBtn, 10_000))) {
+    throw new Error('Could not find the "Microsoft" provider button in the Create-email modal — page structure may have changed');
   }
   let providerActive = false;
   for (let attempt = 0; attempt < 3 && !providerActive; attempt++) {
@@ -563,9 +546,9 @@ async function generateTempEmail(page) {
     await randomDelay(700, 1200);
     providerActive = await providerBtn.evaluate(el => el.className.includes('border-blue')).catch(() => false);
   }
-  console.log(`[Smail] ${providerLabel} provider clicked (active state detected: ${providerActive})`);
+  console.log(`[Smail] Microsoft provider clicked (active state detected: ${providerActive})`);
   if (!providerActive) {
-    throw new Error(`${providerLabel} provider selection did not stick after 3 attempts`);
+    throw new Error('Microsoft provider selection did not stick after 3 attempts');
   }
   await randomDelay(500, 900);
 
