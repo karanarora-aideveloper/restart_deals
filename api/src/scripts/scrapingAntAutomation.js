@@ -697,21 +697,37 @@ async function generateTempEmail(page) {
     }
   } catch { /* ok */ }
 
-  // Extract the generated email address
+  // Extract the generated email address.
+  //
+  // BUG (fixed 2026-08-29): the last selector here, `span.font-semibold:has-
+  // text('@')`, is too broad — it can match the modal's rename-field example
+  // text (e.g. "random[real]@outlook.com-2", the placeholder hint shown for
+  // a Microsoft+Real-Account combo) instead of the actual generated address.
+  // Confirmed live: that exact malformed string got passed to ScrapingAnt's
+  // signup, which correctly rejected it with HTTP 422 "value is not a valid
+  // email address" — wasting a full cycle (email create + signup + captcha
+  // solve) on a value that could never have worked. A strict format check
+  // now guards every candidate regardless of which selector produced it, so
+  // a placeholder/hint string can never be mistaken for a real address.
   const emailSelectors = [
     "[x-text='selectedEmail.address']",
     "ul.max-h-\\[38rem\\] li:visible:first-child span.font-semibold.text-gray-800",
     "span.font-semibold:has-text('@')",
   ];
+  const isPlausibleEmail = (s) =>
+    /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(s);
 
   for (const sel of emailSelectors) {
     try {
       const el = page.locator(sel).first();
       const text = await el.textContent();
-      if (text && text.includes('@') && text.split('@').length === 2) {
-        const email = text.trim();
+      const email = text?.trim();
+      if (email && isPlausibleEmail(email)) {
         console.log(`[Smail] ✓ Generated email: ${email}`);
         return email;
+      }
+      if (email) {
+        console.log(`[Smail] Selector "${sel}" matched non-email text, skipping: "${email}"`);
       }
     } catch { /* try next */ }
   }
