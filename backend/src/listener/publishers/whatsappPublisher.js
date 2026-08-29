@@ -113,11 +113,18 @@ async function publishViaWebhook(deal, channelDoc) {
   const { webhookUrl } = channelDoc.credentials || {};
   try {
     console.log(`[Publisher:WhatsApp] Sending deal to webhook for "${channelDoc.name}"...`);
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: formatWhatsAppMessage(deal), deal })
     });
+    // Unlike the WAHA/Meta paths below, this never checked res.ok — a webhook returning
+    // 4xx/5xx, or unreachable behind a since-changed URL, still reported success and
+    // incremented stats.dealsPublished.
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Webhook ${res.status}: ${errBody}`);
+    }
     await OutputChannel.findByIdAndUpdate(channelDoc._id, {
       $inc: { 'stats.dealsPublished': 1 },
       $set: { 'stats.lastPublishedAt': new Date() }
