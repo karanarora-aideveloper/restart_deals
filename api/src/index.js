@@ -1,6 +1,9 @@
+import { installSystemLogger } from './utils/systemLogger.js';
 import { connectDB } from './db/connection.js';
 import { startServer } from './server.js';
 import { startAlgoliaSync } from './algolia/sync.js';
+
+installSystemLogger();
 
 async function main() {
   console.log('==================================================');

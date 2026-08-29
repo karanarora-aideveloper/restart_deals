@@ -34,7 +34,7 @@ function push(level, args) {
   const r = getRedis();
   if (!r) return;
   const msg = stripAnsi(args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
-  const entry = JSON.stringify({ ts: new Date().toISOString(), level, msg });
+  const entry = JSON.stringify({ ts: new Date().toISOString(), level, msg, source: 'listener' });
   r.lpush(LOG_KEY, entry)
     .then(() => r.ltrim(LOG_KEY, 0, MAX_LOGS - 1))
     .catch(() => {}); // non-blocking, never throws
