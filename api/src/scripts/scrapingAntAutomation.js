@@ -1489,7 +1489,7 @@ export async function runBatchAutomation({ count, captchaApiKey, headless = true
  * @param {string} [opts.captchaApiKey]
  * @param {boolean} [opts.headless] - default false (headed, so it's visible)
  */
-export async function runLoginTest({ captchaApiKey, headless = false, timeoutMs = 3 * 60 * 1000 } = {}) {
+export async function runLoginTest({ captchaApiKey, headless = false, timeoutMs = 6 * 60 * 1000 } = {}) {
   if (automationState.running) {
     throw new Error('An automation run is already in progress');
   }
