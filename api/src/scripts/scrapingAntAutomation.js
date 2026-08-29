@@ -688,11 +688,14 @@ async function generateTempEmail(page) {
     await randomDelay(2000, 3000);
   }
 
-  // Click first email in list to select it
+  // Click first email in list to select it. The actual `@click="selectEmail(
+  // ...)"` handler lives on the inner `.p-3.cursor-pointer` div, not the
+  // <li> itself — target that div directly rather than relying on the click
+  // landing inside it.
   try {
-    const firstLi = page.locator("ul.max-h-\\[38rem\\] li:visible").first();
-    if (await firstLi.isVisible()) {
-      await firstLi.click();
+    const firstItem = page.locator("ul.max-h-\\[38rem\\] li:visible .p-3.cursor-pointer").first();
+    if (await firstItem.isVisible()) {
+      await firstItem.click();
       await randomDelay(1000, 2000);
     }
   } catch { /* ok */ }
@@ -709,9 +712,16 @@ async function generateTempEmail(page) {
   // solve) on a value that could never have worked. A strict format check
   // now guards every candidate regardless of which selector produced it, so
   // a placeholder/hint string can never be mistaken for a real address.
+  // BUG (fixed 2026-08-29, real fix): the second selector below looked for a
+  // `span.font-semibold.text-gray-800` — confirmed live via a full DOM dump
+  // that the real markup is a `<div class="font-semibold text-gray-800
+  // truncate" x-text="email.address">`, not a span. That mismatch meant this
+  // selector NEVER matched, silently falling through every time to the last,
+  // overly broad selector — which is what was grabbing the placeholder text
+  // above. Fixed to match the real element.
   const emailSelectors = [
     "[x-text='selectedEmail.address']",
-    "ul.max-h-\\[38rem\\] li:visible:first-child span.font-semibold.text-gray-800",
+    "ul.max-h-\\[38rem\\] li:visible:first-child div.font-semibold.text-gray-800",
     "span.font-semibold:has-text('@')",
   ];
   const isPlausibleEmail = (s) =>
