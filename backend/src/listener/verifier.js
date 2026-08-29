@@ -339,11 +339,74 @@ export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant
  * @param {string} targetUrl 
  * @returns {Promise<{ images: string[], rating: number, reviews: Array }>}
  */
+// Parse an Indian-format price string ("₹1,299.00", "1,299.") into a number. Returns null for
+// anything that isn't a sane product price. Not `.first()`-based like the raw selector fallbacks
+// below — see findPrice() — because Amazon's first matching node for a given selector is often
+// empty (the real value sits in a later sibling), silently reporting no price on pages that
+// plainly had one.
+function parsePriceText(raw) {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/[^\d.]/g, '').replace(/\.$/, '');
+  if (!cleaned) return null;
+  const parsed = parseFloat(cleaned);
+  if (isNaN(parsed) || parsed <= 0 || parsed > 10000000) return null;
+  return Math.round(parsed);
+}
+
+// First parseable price among ALL matches of the given selectors, in order — scoped to `root`
+// when given (a product page can carry dozens of `.a-price` nodes from sponsored carousels and
+// "similar items"; unscoped, `.first()` can silently return a neighbouring product's price).
+function findPrice($, selectors, root = null) {
+  for (const sel of selectors) {
+    const nodes = root ? root.find(sel) : $(sel);
+    let hit = null;
+    nodes.each((_, el) => {
+      if (hit !== null) return false;
+      const val = parsePriceText($(el).text().trim());
+      if (val !== null) hit = val;
+    });
+    if (hit !== null) return hit;
+  }
+  return null;
+}
+
+// Price/MRP from schema.org JSON-LD — the stable extraction point on sites (Flipkart) whose CSS
+// class names are hashed and rotate on every rebuild.
+function extractJsonLdPrice($) {
+  let result = { price: null, originalPrice: null, inStock: null };
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (result.price !== null) return false;
+    let parsed;
+    try {
+      parsed = JSON.parse($(el).contents().text());
+    } catch {
+      return; // Malformed blocks are common; just skip them.
+    }
+    const roots = Array.isArray(parsed) ? parsed : [parsed];
+    for (const root of roots) {
+      for (const node of (root['@graph'] || [root])) {
+        if (!node || !node.offers) continue;
+        const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+        if (!offer) continue;
+        const price = parsePriceText(offer.price ?? offer.lowPrice);
+        if (price === null) continue;
+        result = {
+          price,
+          originalPrice: parsePriceText(offer.highPrice),
+          inStock: typeof offer.availability === 'string' ? /InStock/i.test(offer.availability) : null,
+        };
+        return false;
+      }
+    }
+  });
+  return result;
+}
+
 export async function scrapeProductDetails(targetUrl) {
   try {
     const html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
     if (!html) {
-      return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, breadcrumbText: null };
+      return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, categoryHint: null, couponRawText: null };
     }
 
     // Parse HTML with cheerio
@@ -354,20 +417,24 @@ export async function scrapeProductDetails(targetUrl) {
     let rating = null;
     let price = null;
     let originalPrice = null;
-    // Feeds deriveCategory()/deriveSubcategory() — the non-AI replacement for what used to be
-    // DeepSeek reading the category off the Telegram message text. Amazon exposes a clean
-    // breadcrumb trail; Flipkart doesn't reliably expose one on product pages (checked against
-    // live markup: no BreadcrumbList JSON-LD, no breadcrumb microdata), so it stays null there.
-    let breadcrumbText = null;
+    // Feeds deriveCategory() — the non-AI replacement for what used to be DeepSeek reading the
+    // category off the Telegram message text. Amazon: breadcrumb trail text. Flipkart: the
+    // schema.org JSON-LD Product.category field (a bare word like "mouse" — no breadcrumb is
+    // exposed on Flipkart product pages, checked against live markup: no BreadcrumbList JSON-LD,
+    // no breadcrumb microdata, so this is the only signal available there).
+    let categoryHint = null;
+    // Amazon-only — see parseAmazonCoupon()'s docblock.
+    let couponRawText = null;
 
     const hostname = new URL(targetUrl).hostname.toLowerCase();
 
     if (hostname.includes('amazon.')) {
-      breadcrumbText = $('#wayfinding-breadcrumbs_feature_div').text().replace(/\s+/g, ' ').trim() || null;
+      categoryHint = $('#wayfinding-breadcrumbs_feature_div').text().replace(/\s+/g, ' ').trim() || null;
+      couponRawText = $('#couponsInBuybox_feature_div').text().replace(/\s+/g, ' ').trim() || null;
 
       // Amazon Title
       title = $('#productTitle').text().trim() || $('meta[name="title"]').attr('content');
-      
+
       // 1. Title/Meta image fallback
       $('meta[property="og:image"]').each((_, el) => {
         const src = $(el).attr('content');
@@ -400,47 +467,37 @@ export async function scrapeProductDetails(targetUrl) {
         }
       });
 
-      // Amazon Price Extraction
-      let priceText = '';
-      const priceSelectors = [
+      // Amazon Price Extraction — scoped to the main product column first (see findPrice()).
+      const amazonPriceSelectors = [
         '.apexPriceToPay .a-offscreen',
+        '.priceToPay .a-offscreen',
         '#priceblock_dealprice',
         '#priceblock_ourprice',
         '.a-price .a-offscreen',
-        '.a-price-whole'
+        '.a-price-whole',
       ];
-      for (const sel of priceSelectors) {
-        const val = $(sel).first().text().trim();
-        if (val) {
-          priceText = val;
-          break;
-        }
-      }
-      if (priceText) {
-        const cleanPrice = priceText.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed)) price = Math.round(parsed);
-      }
-
-      let listPriceText = '';
-      const listPriceSelectors = [
-        'span.a-text-strike',
+      const amazonListSelectors = [
         '.basisPrice .a-offscreen',
+        'span.a-text-strike',
         '#listPrice',
-        '#priceblock_listprice'
+        '#priceblock_listprice',
       ];
-      for (const sel of listPriceSelectors) {
-        const val = $(sel).first().text().trim();
-        if (val) {
-          listPriceText = val;
-          break;
-        }
+      const amazonRoots = ['#corePrice_feature_div', '#corePriceDisplay_desktop_feature_div', '#ppd', '#centerCol'];
+      for (const rootSel of amazonRoots) {
+        const root = $(rootSel);
+        if (!root.length) continue;
+        price = findPrice($, amazonPriceSelectors, root);
+        if (price !== null) break;
       }
-      if (listPriceText) {
-        const cleanPrice = listPriceText.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+      if (price === null) price = findPrice($, amazonPriceSelectors);
+
+      for (const rootSel of amazonRoots) {
+        const root = $(rootSel);
+        if (!root.length) continue;
+        originalPrice = findPrice($, amazonListSelectors, root);
+        if (originalPrice !== null) break;
       }
+      if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
 
     } else if (hostname.includes('flipkart.com')) {
       // Flipkart Title
@@ -458,19 +515,35 @@ export async function scrapeProductDetails(targetUrl) {
         if (src && !images.includes(src)) images.push(src);
       });
 
-      // Flipkart Price Extraction
-      const dealPriceText = $('._30jeq3, div[class*="_30jeq3"]').first().text().trim();
-      if (dealPriceText) {
-        const cleanPrice = dealPriceText.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed)) price = Math.round(parsed);
+      // Flipkart Price Extraction — JSON-LD first. Flipkart's class names are hashed and rotate
+      // (._30jeq3/._3I9_R3 below are already dead against live markup); the schema.org
+      // Product.offers block has stayed stable, and its Product.category field (e.g. "mouse")
+      // doubles as the categoryHint Flipkart has no breadcrumb equivalent for.
+      const fkLd = extractJsonLdPrice($);
+      if (fkLd.price !== null) {
+        price = fkLd.price;
+        if (fkLd.originalPrice !== null) originalPrice = fkLd.originalPrice;
+      } else {
+        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
       }
-      const listPriceText = $('._3I9_R3, div[class*="_3I9_R3"]').first().text().trim();
-      if (listPriceText) {
-        const cleanPrice = listPriceText.replace(/[^\d.]/g, '');
-        const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+      if (originalPrice === null) {
+        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
       }
+
+      $('script[type="application/ld+json"]').each((_, el) => {
+        if (categoryHint) return;
+        try {
+          const parsed = JSON.parse($(el).contents().text());
+          const arr = Array.isArray(parsed) ? parsed : [parsed];
+          for (const node of arr) {
+            for (const g of (node['@graph'] || [node])) {
+              if (g && g['@type'] === 'Product' && typeof g.category === 'string' && g.category.trim()) {
+                categoryHint = g.category.trim();
+              }
+            }
+          }
+        } catch { /* malformed/unrelated JSON-LD block — try the next script tag */ }
+      });
 
       // Flipkart Rating
       const ratingText = $('._3LWZlK').first().text();
@@ -655,7 +728,7 @@ export async function scrapeProductDetails(targetUrl) {
       });
     }
 
-    return { title, images, rating, reviews, price, originalPrice, breadcrumbText };
+    return { title, images, rating, reviews, price, originalPrice, categoryHint, couponRawText };
   } catch (err) {
     console.error(`[Scraper Error] Scraping failed for ${targetUrl}:`, err.message);
     // Return empty fallback instead of crashing the pipeline
@@ -669,69 +742,190 @@ export function calculateDiscount(original, deal) {
 }
 
 /**
- * Category/subcategory classification with no LLM involved — this used to be DeepSeek's job
- * (parsing the Telegram message text), which meant every deal's category depended on an
- * external API call, and a failed/empty parse ("Price: Rs. N/A") could sink an otherwise-good
- * deal. Both category and subcategory stay Master-collection-driven (no hardcoded enum, same
- * as before) so adding a new category in the admin still works without touching this code.
+ * Product-type keyword → (category, subcategory) table. Exists because a category "hint" string
+ * frequently does NOT contain a Master category/subcategory label's own text verbatim — Flipkart's
+ * JSON-LD Product.category is a bare word like "mouse", which contains neither "electronics" nor
+ * "Mobile Accessories"; even Amazon's own breadcrumb trail says "Computers & Accessories", not
+ * "electronics" or "Laptops & Computers". Label-substring matching alone was silently landing
+ * most non-Amazon-with-a-lucky-breadcrumb deals on 'general'.
  *
- * Priority: the source channel's own admin-configured category wins outright when set (these
- * aggregator channels are almost always topic-focused — "Fitness Deals India" only ever posts
- * fitness products — so this is a strong, free, zero-latency signal). Falls back to matching
- * the merchant page's breadcrumb trail against the Master taxonomy when the channel is 'auto'.
- * Amazon exposes a clean breadcrumb div; Flipkart currently doesn't expose one reliably on
- * product pages, so Flipkart deals from an 'auto' channel land on 'general' until that channel
- * gets a category set in admin.
+ * Deliberately a plain keyword table, not an attempt at exhaustive synonym coverage — extend it
+ * as gaps show up in production ([Verifier] Category log lines landing on 'general' for a hint
+ * that clearly named a real product type). Ordered specific-before-general within each category
+ * so e.g. "smartwatch" (wearables) is checked before a hypothetical bare "watch" catch-all would
+ * misroute it to men's/women's watches.
  */
-export async function deriveCategory(channelCategory, breadcrumbText) {
-  let categoryDocs = [];
-  try {
-    categoryDocs = await Master.find({ type: 'category', isActive: true }).lean();
-  } catch (err) {
-    console.error('[Verifier] Failed to fetch master categories:', err.message);
-  }
-  const validCategories = categoryDocs.length ? categoryDocs.map(c => c.value) : ['fitness', 'general'];
+const CATEGORY_KEYWORDS = [
+  // electronics
+  [/\b(mouse|keyboard|laptop|notebook|desktop|monitor|webcam|motherboard|graphics card|\bssd\b|\bram\b|hard ?disk|pen ?drive|memory card)\b/i, 'electronics', 'laptops'],
+  [/\b(smartphone|mobile phone|\bmobile\b|\btablet\b|\bipad\b)\b/i, 'electronics', 'mobiles'],
+  [/\b(camera|dslr|\blens\b|tripod|action cam|gopro)\b/i, 'electronics', 'cameras'],
+  [/\b(\btv\b|television|home theatre|soundbar|projector)\b/i, 'electronics', 'tv'],
+  [/\b(earphone|earbud|headphone|neckband|bluetooth speaker|\bspeaker\b)\b/i, 'electronics', 'audio'],
+  [/\b(smartwatch|fitness band|wearable)\b/i, 'electronics', 'wearables'],
+  [/\b(charger|\bcable\b|power ?bank|adapter|\busb\b)\b/i, 'electronics', 'accessories'],
+  [/\b(gaming|game console|joystick|controller|playstation|xbox)\b/i, 'electronics', 'gaming'],
+  // beauty
+  [/\b(shampoo|conditioner|hair oil|hair serum)\b/i, 'beauty', 'haircare'],
+  [/\b(soap|body wash|body lotion|moisturi[sz]er|sunscreen|shower gel)\b/i, 'beauty', 'bath-body'],
+  [/\b(face wash|cleanser|face serum|toner|face cream)\b/i, 'beauty', 'skincare'],
+  [/\b(lipstick|makeup|foundation|kajal|mascara|eyeliner|compact|concealer)\b/i, 'beauty', 'makeup'],
+  [/\b(perfume|deodorant|\bdeo\b|fragrance|body spray)\b/i, 'beauty', 'fragrance'],
+  [/\b(trimmer|shaver|razor|hair dryer|hair straightener)\b/i, 'beauty', 'appliances'],
+  [/\b(nail polish|manicure|nail art)\b/i, 'beauty', 'nailcare'],
+  // fitness
+  [/\b(protein|\bwhey\b|supplement|creatine|multivitamin|\bbcaa\b)\b/i, 'fitness', 'nutrition'],
+  [/\b(dumbbell|treadmill|resistance band|kettlebell|gym equipment)\b/i, 'fitness', 'gym-equipment'],
+  [/\b(yoga mat|\byoga\b)\b/i, 'fitness', 'yoga'],
+  [/\b(cricket|badminton|football|\bracket\b|sports gear)\b/i, 'fitness', 'sports-gear'],
+  // home
+  [/\b(cookware|kadai|\btawa\b|pressure cooker|mixer grinder|induction|cooker)\b/i, 'home', 'kitchen'],
+  [/\b(bedsheet|\bpillow\b|blanket|\bquilt\b|mattress)\b/i, 'home', 'bedding'],
+  [/\b(curtain|cushion|wall art|showpiece|home decor)\b/i, 'home', 'decor'],
+  [/\b(\bsofa\b|dining table|office chair|furniture|wardrobe)\b/i, 'home', 'furniture'],
+  [/\b(refrigerator|washing machine|air conditioner|\bgeyser\b)\b/i, 'home', 'appliances-large'],
+  [/\b(storage box|organizer|storage rack)\b/i, 'home', 'storage'],
+  [/\b(\bdrill\b|screwdriver|tool ?kit)\b/i, 'home', 'tools'],
+  [/\b(cleaning|\bmop\b|detergent|\bbroom\b)\b/i, 'home', 'cleaning'],
+];
 
-  if (channelCategory && channelCategory !== 'auto' && validCategories.includes(channelCategory)) {
-    return { category: channelCategory, categoryDocs };
-  }
+// A men's/women's garment word alone (e.g. "trouser") is gender-neutral — the actual signal for
+// which fashion category it belongs to is almost always right next to it ("Men's Slim Fit
+// Trouser"). Checked against the combined hint+title text; defaults to men-fashion only because
+// that happens to be this pipeline's larger existing category — genuinely ambiguous either way.
+function inferFashionGender(text) {
+  if (/\b(women'?s?|girls?|ladies)\b/i.test(text)) return 'women-fashion';
+  return 'men-fashion';
+}
 
-  if (breadcrumbText) {
-    const lower = breadcrumbText.toLowerCase();
-    for (const c of categoryDocs) {
-      const label = (c.label || c.value || '').toLowerCase();
-      if (label && lower.includes(label)) return { category: c.value, categoryDocs };
-    }
-    for (const val of validCategories) {
-      if (lower.includes(val.toLowerCase())) return { category: val, categoryDocs };
-    }
-  }
+// Fashion subcategory VALUES are inconsistently named in Master — men's footwear/bags/watches
+// are bare ("footwear", "bags", "watches") while women's are gender-prefixed ("women-footwear",
+// "women-bags", "women-watches"), and men's has a topwear/bottomwear split while women's has an
+// ethnic/western split instead (no "women-topwear"/"women-bottomwear" exists at all). A single
+// shared value per product type — what CATEGORY_KEYWORDS uses for every other category — can't
+// express this, so fashion is resolved separately, after gender is already known, against an
+// explicit per-gender table instead.
+const FASHION_KEYWORDS = [
+  [/\b(footwear|\bshoes\b|sandals|sneakers|slippers)\b/i, { 'men-fashion': 'footwear', 'women-fashion': 'women-footwear' }],
+  [/\b(handbag|\bpurse\b|\bwallet\b|\bbag\b)\b/i, { 'men-fashion': 'bags', 'women-fashion': 'women-bags' }],
+  [/\b(watch)\b/i, { 'men-fashion': 'watches', 'women-fashion': 'women-watches' }],
+  [/\b(innerwear|lingerie|sleepwear|nightwear)\b/i, { 'men-fashion': 'innerwear', 'women-fashion': 'women-innerwear' }],
+  [/\b(\bkurta\b|saree|\bsari\b|ethnic|salwar|lehenga)\b/i, { 'men-fashion': 'men-topwear', 'women-fashion': 'women-ethnic' }],
+  [/\b(trouser|jeans|\bpants?\b|bottomwear)\b/i, { 'men-fashion': 'men-bottomwear', 'women-fashion': 'women-western' }],
+  [/\b(\bshirt\b|t-?shirt|topwear)\b/i, { 'men-fashion': 'men-topwear', 'women-fashion': 'women-western' }],
+];
 
-  return { category: 'general', categoryDocs };
+function deriveFashion(combined) {
+  const gender = inferFashionGender(combined);
+  for (const [pattern, byGender] of FASHION_KEYWORDS) {
+    if (pattern.test(combined)) return { category: gender, subcategory: byGender[gender] };
+  }
+  return { category: gender, subcategory: '' };
 }
 
 /**
- * Best-effort subcategory match against the breadcrumb trail, scoped to the already-chosen
- * category (a breadcrumb segment matching a label that belongs to a different category is not
- * a valid match — same non-guessing rule the old AI prompt used). Empty string, not a guess,
- * when nothing matches; a deal simply having no subcategory is normal and expected here, the
- * same as it was when the AI declined to force one.
+ * Category/subcategory classification with no LLM involved — this used to be DeepSeek's job
+ * (parsing the Telegram message text), which meant every deal's category depended on an
+ * external API call, and a failed/empty parse ("Price: Rs. N/A") could sink an otherwise-good
+ * deal. Category/subcategory stay Master-collection-driven (no hardcoded enum, same as before)
+ * so adding a new one in the admin still works without touching this code — CATEGORY_KEYWORDS
+ * above only maps existing Master values, it doesn't invent new ones.
+ *
+ * Priority: (1) the source channel's own admin-configured category wins outright when set —
+ * these aggregator channels are almost always topic-focused, so this is a strong, free,
+ * zero-latency signal. (2) An exact label/value match against the scraped category hint (Amazon's
+ * breadcrumb trail, or Flipkart's JSON-LD Product.category). (3) The keyword table above, against
+ * the hint AND the product title combined — this is what actually classifies most deals now,
+ * since neither site's hint text usually contains a Master label verbatim. (4) 'general'.
+ *
+ * Returns { category, subcategory } together — the keyword table pairs them, so deriving
+ * subcategory separately afterward would throw away a match this already found.
  */
-export async function deriveSubcategory(category, breadcrumbText) {
-  if (!breadcrumbText) return '';
-  let subcats = [];
+export async function deriveCategory(channelCategory, categoryHint, titleText) {
+  let categoryDocs = [];
+  let subcategoryDocs = [];
   try {
-    subcats = await Master.find({ type: 'subcategory', isActive: true, 'metadata.parentCategory': category }).lean();
+    [categoryDocs, subcategoryDocs] = await Promise.all([
+      Master.find({ type: 'category', isActive: true }).lean(),
+      Master.find({ type: 'subcategory', isActive: true }).lean(),
+    ]);
   } catch (err) {
-    console.error('[Verifier] Failed to fetch master subcategories:', err.message);
-    return '';
+    console.error('[Verifier] Failed to fetch master taxonomy:', err.message);
   }
-  const lower = breadcrumbText.toLowerCase();
-  for (const s of subcats) {
-    const label = (s.label || '').toLowerCase();
-    if (label && lower.includes(label)) return s.value;
+  const validCategories = categoryDocs.length ? categoryDocs.map(c => c.value) : ['fitness', 'general'];
+  const subcatValues = new Set(subcategoryDocs.map(s => s.value));
+
+  if (channelCategory && channelCategory !== 'auto' && validCategories.includes(channelCategory)) {
+    return { category: channelCategory, subcategory: '' };
   }
-  return '';
+
+  const combined = [categoryHint, titleText].filter(Boolean).join(' ');
+  const lower = combined.toLowerCase();
+
+  if (lower) {
+    for (const c of categoryDocs) {
+      const label = (c.label || c.value || '').toLowerCase();
+      if (label && lower.includes(label)) return { category: c.value, subcategory: '' };
+    }
+    for (const val of validCategories) {
+      if (lower.includes(val.toLowerCase())) return { category: val, subcategory: '' };
+    }
+
+    for (const [pattern, category, subcategory] of CATEGORY_KEYWORDS) {
+      if (!pattern.test(combined)) continue;
+      const resolvedSubcategory = subcatValues.has(subcategory) ? subcategory : '';
+      return { category, subcategory: resolvedSubcategory };
+    }
+
+    const fashionMatch = FASHION_KEYWORDS.some(([pattern]) => pattern.test(combined))
+      || /\b(fashion|apparel|clothing|wear)\b/i.test(combined);
+    if (fashionMatch) {
+      const { category, subcategory } = deriveFashion(combined);
+      const resolvedSubcategory = subcatValues.has(subcategory) ? subcategory : '';
+      return { category, subcategory: resolvedSubcategory };
+    }
+  }
+
+  return { category: 'general', subcategory: '' };
+}
+
+/**
+ * Amazon-only for now (see verifier.js's scrapeProductDetails — Flipkart's page structure hasn't
+ * been checked for an equivalent). Extracted from #couponsInBuybox_feature_div, a real container
+ * confirmed present in live scraped Amazon markup, whose raw text is empty when no coupon is
+ * currently active on that listing (checked against several live products with none) — this
+ * parses it if and when it's non-empty. Note: I was not able to confirm the exact wording Amazon
+ * renders inside it for an actually-active coupon against live markup this session (none of the
+ * sampled products currently had one) — this covers the phrasings Amazon.in is documented to use
+ * ("apply coupon", "% off coupon", a flat ₹ amount) but should be double-checked against the
+ * first few real matches in production logs (search for "[Verifier] Amazon coupon detected").
+ */
+function parseAmazonCoupon(rawText) {
+  if (!rawText) return null;
+  const text = rawText.replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+
+  const percentMatch = text.match(/(\d{1,2}(?:\.\d+)?)\s*%\s*(?:off|coupon)/i) || text.match(/coupon.*?(\d{1,2}(?:\.\d+)?)\s*%/i);
+  if (percentMatch) {
+    const value = parseFloat(percentMatch[1]);
+    if (value > 0 && value <= 100) {
+      return { type: 'percent', value, code: null, label: `Apply ${value}% coupon` };
+    }
+  }
+
+  const flatMatch = text.match(/(?:₹|rs\.?\s*)\s*([\d,]+)\s*(?:off|coupon)/i) || text.match(/coupon.*?(?:₹|rs\.?\s*)\s*([\d,]+)/i);
+  if (flatMatch) {
+    const value = parseFloat(flatMatch[1].replace(/,/g, ''));
+    if (value > 0) {
+      return { type: 'flat', value, code: null, label: `Apply ₹${value} coupon` };
+    }
+  }
+
+  if (/coupon/i.test(text)) {
+    return { type: 'code', value: null, code: null, label: 'Apply coupon on Amazon' };
+  }
+
+  return null;
 }
 
 /**
@@ -852,11 +1046,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     console.log(`[Verifier] ✓ Live price for ${cleanUrl}: ₹${liveScrapedPrice}.`);
   }
 
-  // 8. Category/Subcategory — channel default first, breadcrumb match second, 'general' last.
-  // No message-text parsing involved (see deriveCategory()'s docblock for why).
-  const { category } = await deriveCategory(channelCategory, scrapedData.breadcrumbText);
-  const subcategory = await deriveSubcategory(category, scrapedData.breadcrumbText);
-  console.log(`[Verifier] Category: "${category}"${subcategory ? ` / "${subcategory}"` : ''} (channel="${channelCategory}"${scrapedData.breadcrumbText ? ', breadcrumb-assisted' : ''}).`);
+  // 8. Category/Subcategory — channel default first, then the scraped category hint (Amazon
+  // breadcrumb / Flipkart JSON-LD category) matched against Master labels or CATEGORY_KEYWORDS,
+  // 'general' last. No message-text parsing involved (see deriveCategory()'s docblock for why).
+  const { category, subcategory } = await deriveCategory(channelCategory, scrapedData.categoryHint, scrapedData.title);
+  console.log(`[Verifier] Category: "${category}"${subcategory ? ` / "${subcategory}"` : ''} (channel="${channelCategory}"${scrapedData.categoryHint ? `, hint="${scrapedData.categoryHint.slice(0, 60)}"` : ''}).`);
 
   // Handle Images
   let dealFallbackImageUrl = null;
@@ -957,6 +1151,13 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   // No AI-generated summary any more — a plain templated line covers what the field is for
   // (a one-line blurb under the deal card) without depending on a text-parsing call.
   const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;
+  // A real coupon scraped directly off the merchant page — see parseAmazonCoupon()'s docblock
+  // for what this replaces (Telegram-text coupon parsing) and its one open caveat (unconfirmed
+  // exact wording for an active coupon, since none of the products sampled this session had one).
+  const dealCoupon = merchant === 'amazon' ? parseAmazonCoupon(scrapedData.couponRawText) : null;
+  if (dealCoupon) {
+    console.log(`[Verifier] Amazon coupon detected for ${cleanUrl}: ${dealCoupon.label} (raw: "${(scrapedData.couponRawText || '').slice(0, 100)}")`);
+  }
 
   try {
     let productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
@@ -1094,7 +1295,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.originalPrice = canonicalMRP;
       deal.dealPrice = verifiedDealPrice;
       deal.discountPercentage = discountPercentage;
-      deal.coupon = null;
+      deal.coupon = dealCoupon;
       deal.priceSource = priceSource;
       if (genuinePriceDrop != null) deal.previousPrice = genuinePriceDrop;
       deal.category = category;
@@ -1126,7 +1327,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         dealPrice: verifiedDealPrice,
         previousPrice: genuinePriceDrop,
         discountPercentage: discountPercentage,
-        coupon: null,
+        coupon: dealCoupon,
         priceSource,
         category,
         subcategory,
