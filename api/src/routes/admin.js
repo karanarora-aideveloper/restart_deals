@@ -361,10 +361,6 @@ router.delete('/products/:id', async (req, res) => {
   }
 });
 
-router.get('/logs', (req, res) => {
-  res.json({ logs: [] });
-});
-
 router.get('/deals', async (req, res) => {
   try {
     const deals = await Deal.find().sort({ createdAt: -1 }).limit(20);
