@@ -3,7 +3,6 @@ import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
 import PriceAlert from '../db/models/priceAlert.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
-import { computePriceStats } from '../utils/priceAnalytics.js';
 import { apiCache } from '../utils/cache.js';
 
 let isRefreshing = false;
@@ -88,6 +87,11 @@ export async function refreshStaleProductBatch(batchSize = 10) {
         if (scraped && scraped.price) {
           const livePrice = scraped.price;
           const canonicalMRP = product.originalPrice || scraped.originalPrice || livePrice;
+          // Captured BEFORE product.price is overwritten below — this, not MRP or a historical
+          // average, is the only base a genuine price-drop deal can be synthesized against (see
+          // the deal-synthesis block further down). Read once, up front, precisely so that
+          // capture can't accidentally happen after the overwrite.
+          const priorTrackedPrice = product.price ?? null;
           const priceChanged = product.price !== livePrice;
 
           // 2. Normalized Daily Checkpoint Logic
@@ -169,12 +173,17 @@ export async function refreshStaleProductBatch(batchSize = 10) {
                 dealUpdated = true;
               }
               deal.lastVerifiedAt = now;
-              // If price dropped even lower, update deal price
+              // If price dropped even lower, update deal price. discountPercentage is
+              // recomputed against the deal's OWN previous price, same rule as everywhere
+              // else in this pipeline — not canonicalMRP, which would silently switch an
+              // existing price-history-qualified deal over to an MRP-based percentage the
+              // moment it happened to drop again.
               if (livePrice < deal.dealPrice) {
+                const priorDealPrice = deal.dealPrice;
                 deal.dealPrice = livePrice;
-                if (canonicalMRP && canonicalMRP > livePrice) {
-                  deal.discountPercentage = Math.round(((canonicalMRP - livePrice) / canonicalMRP) * 100);
-                }
+                deal.discountPercentage = Math.round(((priorDealPrice - livePrice) / priorDealPrice) * 100);
+                deal.previousPrice = priorDealPrice;
+                deal.priceSource = 'price_history';
                 dealUpdated = true;
                 console.log(`[Daily Refresher] 🔥 Deal Price Dropped Further: "${deal.title}" ➔ ₹${livePrice}`);
               }
@@ -184,35 +193,45 @@ export async function refreshStaleProductBatch(batchSize = 10) {
           }
 
           // 3b. Autonomous Deal Synthesis for Catalog Products without prior deal
-          if (matchingDeals.length === 0 && product.title && product.cleanUrl) {
-            const priceStats = computePriceStats(product);
-            const isSignificantDrop =
-              (product.previousPrice && livePrice <= product.previousPrice * 0.90) ||
-              (priceStats && priceStats.averagePrice > 0 && livePrice <= priceStats.averagePrice * 0.88) ||
-              (canonicalMRP && livePrice <= canonicalMRP * 0.80 && priceStats?.isAllTimeLow);
+          //
+          // This is the "later pass" mechanism verifier.js's comments refer to: a product added
+          // to the catalog (via Telegram OR the bestseller crawler OR anything else) with no
+          // qualifying deal yet becomes one here, once — and only once — a genuine drop against
+          // its OWN previously tracked price is actually observed.
+          //
+          // The three-way OR this replaced used MRP (`canonicalMRP * 0.80`) and a historical
+          // average (`priceStats.averagePrice * 0.88`) as alternate qualifying bases, and
+          // fabricated a flat 15% "discount" when no MRP existed at all to compute one from. Both
+          // MRP and a historical average are exactly the kind of "not a real observed drop" basis
+          // ruled out for this pipeline (a page's MRP is routinely inflated by the seller purely
+          // to make the discount look bigger) — same rule as verifier.js's price-history path,
+          // now applied consistently here too. A brand-new product with no prior tracked price
+          // (priorTrackedPrice is null) cannot synthesize a deal on this first check, matching
+          // verifier.js exactly — it starts price tracking now and can qualify on a later cycle.
+          const PRICE_DROP_MIN_PERCENT = 5;
+          if (matchingDeals.length === 0 && product.title && product.cleanUrl && priorTrackedPrice != null && priorTrackedPrice > livePrice) {
+            const genuineDiscount = Math.round(((priorTrackedPrice - livePrice) / priorTrackedPrice) * 100);
 
-            if (isSignificantDrop) {
-              const discountPercentage = canonicalMRP && canonicalMRP > livePrice
-                ? Math.round(((canonicalMRP - livePrice) / canonicalMRP) * 100)
-                : 15;
-
+            if (genuineDiscount >= PRICE_DROP_MIN_PERCENT) {
               const synthesizedDeal = new Deal({
                 sourceChannelId: 'catalog_engine',
                 sourceMessageId: `${product.productId}_${Date.now()}`,
                 sourceChannelName: 'ShoppersDeals Price Drop Engine',
                 originalText: `Autonomous Price Drop Detected: ${product.title} at ₹${livePrice}`,
                 title: product.title,
-                description: `Live price drop detected on ${product.merchant || 'Amazon'}. Current deal price ₹${livePrice} (down from ${canonicalMRP ? `MRP ₹${canonicalMRP}` : 'historical average'}).`,
+                description: `Live price drop detected on ${product.merchant || 'Amazon'}. Price fell from ₹${priorTrackedPrice} to ₹${livePrice}.`,
                 imageUrl: product.imageUrl || (product.images && product.images[0]) || null,
                 images: product.images || (product.imageUrl ? [product.imageUrl] : []),
                 rating: product.rating || 4.2,
                 dealUrl: product.cleanUrl,
                 productId: product.productId,
                 merchant: product.merchant || 'amazon',
-                originalPrice: canonicalMRP || livePrice,
+                // Auxiliary display info only, when a real MRP is on file — never what qualified
+                // this as a deal or what discountPercentage below is computed from.
+                originalPrice: canonicalMRP || null,
                 dealPrice: livePrice,
-                previousPrice: product.previousPrice || null,
-                discountPercentage,
+                previousPrice: priorTrackedPrice,
+                discountPercentage: genuineDiscount,
                 priceSource: 'price_history',
                 category: product.category || 'general',
                 subcategory: product.subcategory || '',
@@ -226,7 +245,7 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
               await synthesizedDeal.save();
               stats.dealsActive++;
-              console.log(`[Daily Refresher] 🚀 NEW DEAL SYNTHESIZED from Catalog: "${synthesizedDeal.title}" at ₹${livePrice} (${discountPercentage}% OFF)`);
+              console.log(`[Daily Refresher] 🚀 NEW DEAL SYNTHESIZED from Catalog: "${synthesizedDeal.title}" — price-history drop ₹${priorTrackedPrice} -> ₹${livePrice} (${genuineDiscount}% OFF)`);
               apiCache.invalidatePattern('/api/deals');
             }
           }
