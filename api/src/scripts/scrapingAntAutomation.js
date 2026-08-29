@@ -490,32 +490,46 @@ async function generateTempEmail(page) {
   // Count existing emails before generation
   const countBefore = await page.locator("ul.max-h-\\[38rem\\] li:visible").count().catch(() => 0);
 
-  // Open the Create-email config modal via the Settings (gear) button, NOT
-  // the plain "Create" button.
+  // Delete any already-active email(s) FIRST.
   //
-  // BUG (fixed 2026-08-29): the plain "Create" button (`@click="openCreate()"`)
-  // now does INSTANT one-click random Gmail generation — confirmed live,
-  // and matches smailpro.com's own FAQ copy ("Click 'Create' and get a
-  // temporary Gmail address in under 5 seconds"). It no longer opens any
-  // modal, so every downstream selector search (provider/account-type/
-  // server) was hunting for elements that were never rendered — the
-  // earlier "Microsoft"/"Outlook" rename theory was a red herring. The
-  // configuration modal (provider choice, Real Account, premium server —
-  // everything this automation actually needs) now only opens via the
-  // gear icon: `<button title="Settings" @click="$store.modals.open('modalSetting')">`.
-  // Confirmed live 2026-08-29 against the real DOM.
-  const createSelectors = [
-    "button[title='Settings']",
-    "button:has-text('Create')", // legacy fallback, kept in case this ever reverts
-  ];
-
-  for (const sel of createSelectors) {
-    const btn = page.locator(sel).first();
-    if (await waitVisible(btn, 10_000)) {
-      await btn.click();
-      console.log(`[Smail] Create-modal opener clicked (selector: ${sel})`);
-      break;
+  // BUG (fixed 2026-08-29): the real behavior of the "Create" button
+  // (`@click="openCreate()"`) is STATE-DEPENDENT, not renamed/relocated as
+  // two earlier fixes here wrongly guessed:
+  //   - With ZERO active emails, "Create" opens the full "Create temporary
+  //     email" config modal (provider choice, Real Account, premium server —
+  //     everything this automation needs). Confirmed live 2026-08-29.
+  //   - With ONE OR MORE active emails already present — which is the
+  //     NORMAL state, since simply loading /temporary-email while logged in
+  //     auto-restores/creates one — "Create" does something else entirely
+  //     (instant-generate with last-used settings, or a limit-reached
+  //     prompt), skipping the modal outright. That's why every previous
+  //     selector fix here failed: there was no modal to search inside.
+  //   - The gear icon (`title="Settings"`) is an unrelated, newer feature
+  //     (an "auto-delete oldest email" toggle) — not a path to this modal
+  //     at all. An earlier fix mistook one coincidental render for the other.
+  // The reliable fix: clear every active email first so "Create" always
+  // starts from the zero-active state that opens the real config modal.
+  let deleteGuard = 0;
+  while (deleteGuard < 10) {
+    const itemDeleteBtn = page.locator("li button:has-text('Delete')").first();
+    if (!(await itemDeleteBtn.isVisible().catch(() => false))) break;
+    await itemDeleteBtn.click();
+    await randomDelay(300, 600);
+    const confirmDeleteBtn = page.locator('[role="dialog"] button:has-text("Delete")').first();
+    if (await waitVisible(confirmDeleteBtn, 3_000)) {
+      await confirmDeleteBtn.click();
+      await randomDelay(500, 900);
     }
+    deleteGuard++;
+  }
+  if (deleteGuard > 0) {
+    console.log(`[Smail] Cleared ${deleteGuard} existing active email(s) before creating a fresh one`);
+  }
+
+  const createBtn = page.locator("button:has-text('Create')").first();
+  if (await waitVisible(createBtn, 10_000)) {
+    await createBtn.click();
+    console.log('[Smail] Create button clicked');
   }
 
   await randomDelay(1000, 2000);
