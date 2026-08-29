@@ -546,7 +546,19 @@ async function generateTempEmail(page) {
       console.log(`[Smail] Cleared ${cleared} existing active email(s) before creating a fresh one (attempt ${attempt})`);
     }
 
-    const createBtn = page.locator("button:has-text('Create')").first();
+    // BUG (fixed 2026-08-29 — the ACTUAL root cause of every attempt at this
+    // file since): "button:has-text('Create')" is not unique. It ALSO
+    // matches a hidden `confirmLimitPrompt()` button whose label is "Remove
+    // & create" (part of the "Active email limit reached" dialog's markup,
+    // present in the DOM — just hidden — once that dialog has ever been
+    // instantiated). `.first()` was resolving to THAT hidden button, so
+    // waitVisible() correctly timed out waiting for an element that could
+    // never become visible, while the real, visible "Create" button sat
+    // right there unused. Confirmed live via Playwright's own timeout log:
+    // "24 × locator resolved to hidden <button ... @click=\"confirmLimitPrompt()\">".
+    // getByRole with exact:true matches only the literal "Create" accessible
+    // name, sidestepping the substring collision entirely.
+    const createBtn = page.getByRole('button', { name: 'Create', exact: true }).first();
     if (await waitVisible(createBtn, 10_000)) {
       await createBtn.click();
       console.log(`[Smail] Create button clicked (attempt ${attempt})`);
