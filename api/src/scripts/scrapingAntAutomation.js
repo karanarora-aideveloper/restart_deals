@@ -538,6 +538,25 @@ async function generateTempEmail(page) {
   // "Microsoft" only.
   const providerBtn = page.locator("button:has-text('Microsoft')").first();
   if (!(await waitVisible(providerBtn, 10_000))) {
+    // TEMPORARY diagnostic (added 2026-08-29, remove once this is diagnosed):
+    // the Settings-button fix opens *something* (confirmed via its own log
+    // line above) but "Microsoft" still isn't found in production's headless
+    // stealth browser, despite working reliably in a visible/headed Chrome
+    // session against the same account. Log the page URL, every currently-
+    // OPEN dialog's heading, and a short excerpt of body text so the next
+    // real run shows what's actually rendered (a slow-loading modal, a bot
+    // check, a different dialog like "Active email limit reached", etc.)
+    // instead of another blind guess.
+    try {
+      const url = page.url();
+      const dialogHeadings = await page.locator('dialog:visible, [role="dialog"]:visible').locator('h3, h2').allInnerTexts().catch(() => []);
+      const bodyExcerpt = (await page.locator('body').innerText().catch(() => '')).slice(0, 800);
+      console.log('[Smail Diagnostic] url:', url);
+      console.log('[Smail Diagnostic] visible dialog headings:', JSON.stringify(dialogHeadings));
+      console.log('[Smail Diagnostic] body text excerpt:', JSON.stringify(bodyExcerpt));
+    } catch (diagErr) {
+      console.log('[Smail Diagnostic] Failed to dump page state:', diagErr.message);
+    }
     throw new Error('Could not find the "Microsoft" provider button in the Create-email modal — page structure may have changed');
   }
   let providerActive = false;
