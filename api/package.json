@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "worker:scraper": "node src/services/scraperWorker.js",
-    "postinstall": "playwright install --with-deps chromium chromium-headless-shell || playwright install chromium chromium-headless-shell || true"
+    "postinstall": "playwright install chromium chromium-headless-shell || echo '[postinstall] Playwright browser install failed — Auto-Scrape Tokens will not work until this is resolved.'"
   },
   "dependencies": {
     "algoliasearch": "^5.56.0",
