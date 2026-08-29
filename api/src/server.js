@@ -26,13 +26,13 @@ const app = express();
 // Mount SEO routes at root level (handles /sitemap.xml and /deal/:id)
 app.use('/', seoRouter);
 
-// Enable CORS conditionally: skip if request comes from Cloudflare (which already injects CORS)
-app.use((req, res, next) => {
-  if (req.headers['cf-connecting-ip'] || req.headers['cf-ray']) {
-    return next();
-  }
-  return cors({ origin: true, credentials: true })(req, res, next);
-});
+// Always CORS-enable. Plain Cloudflare proxying does NOT inject
+// Access-Control-Allow-Origin on its own (confirmed: proxied responses carry no CORS
+// headers), so skipping here for cf-ray/cf-connecting-ip requests — i.e. every request
+// that reaches this domain, since it's always proxied — disabled CORS for all browser
+// traffic in production. The admin panel's earlier CORS errors were this, not a
+// same-origin quirk; pointing it at localhost only avoided hitting the bug.
+app.use(cors({ origin: true, credentials: true }));
 app.use(compression());
 app.use(express.json());
 
