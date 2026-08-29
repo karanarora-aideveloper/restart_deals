@@ -527,23 +527,35 @@ async function generateTempEmail(page) {
   // Wait for modal
   await page.locator("h3:has-text('Create temporary email')").waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
 
-  // Select Microsoft provider. The Account Type / Server sections below only
-  // render once a provider (Google/Microsoft) is actually active — flaky
-  // clicks here (confirmed live: intermittent, 2 of ~8 real runs) surface
-  // downstream as "Real Account button not found," which is misleading.
-  // Verify the active state, retrying the click a couple of times, instead
-  // of a single click + fixed delay.
-  const providerSelectors = ["button:has-text('Microsoft')", "span:has-text('Microsoft')"];
+  // Select the Microsoft/Outlook provider. The Account Type / Server sections
+  // below only render once a provider (Google/Microsoft) is actually active —
+  // flaky clicks here (confirmed live: intermittent, 2 of ~8 real runs)
+  // surface downstream as "Real Account button not found," which is
+  // misleading. Verify the active state, retrying the click a couple of
+  // times, instead of a single click + fixed delay.
+  //
+  // BUG (fixed 2026-08-29): smailpro.com's own marketing copy consistently
+  // brands this provider "Outlook" now (never "Microsoft" anywhere on the
+  // site) — a live batch run confirmed the "Microsoft" text selectors no
+  // longer match anything in the Create-email modal. Try "Outlook" first,
+  // keep "Microsoft" as a fallback in case the in-app label lags the site
+  // copy or reverts, and log which text actually matched.
+  const providerSelectors = [
+    "button:has-text('Outlook')", "span:has-text('Outlook')",
+    "button:has-text('Microsoft')", "span:has-text('Microsoft')",
+  ];
   let providerBtn = null;
+  let providerLabel = null;
   for (const sel of providerSelectors) {
     const btn = page.locator(sel).first();
     if (await waitVisible(btn, 10_000)) {
       providerBtn = btn;
+      providerLabel = sel.includes('Outlook') ? 'Outlook' : 'Microsoft';
       break;
     }
   }
   if (!providerBtn) {
-    throw new Error('Could not find the "Microsoft" provider button in the Create-email modal — page structure may have changed');
+    throw new Error('Could not find the "Outlook"/"Microsoft" provider button in the Create-email modal — page structure may have changed');
   }
   let providerActive = false;
   for (let attempt = 0; attempt < 3 && !providerActive; attempt++) {
@@ -551,9 +563,9 @@ async function generateTempEmail(page) {
     await randomDelay(700, 1200);
     providerActive = await providerBtn.evaluate(el => el.className.includes('border-blue')).catch(() => false);
   }
-  console.log(`[Smail] Microsoft provider clicked (active state detected: ${providerActive})`);
+  console.log(`[Smail] ${providerLabel} provider clicked (active state detected: ${providerActive})`);
   if (!providerActive) {
-    throw new Error('Microsoft provider selection did not stick after 3 attempts');
+    throw new Error(`${providerLabel} provider selection did not stick after 3 attempts`);
   }
   await randomDelay(500, 900);
 
