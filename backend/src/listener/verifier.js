@@ -1038,6 +1038,26 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     return null;
   }
 
+  // Cross-listing duplicate guard: some sellers relist the identical product under multiple
+  // ASINs at the identical price — confirmed live (two different Amazon ASINs, same title,
+  // same ₹287 price, same 84% discount, 6 minutes apart, both posted to the same channel). A
+  // subscriber sees that as the same deal posted twice regardless of which listing backs it,
+  // so title+price+merchant is the dedup key here — dealUrl/productId are already handled by
+  // the findOne() just below, which is exactly why this couldn't catch it: they're genuinely
+  // different products by that identity, just not by the identity that actually matters to
+  // someone reading the channel.
+  const crossListingDuplicate = await Deal.findOne({
+    title: actualTitle,
+    dealPrice: verifiedDealPrice,
+    merchant,
+    isExpired: { $ne: true },
+    productId: { $ne: productId },
+  });
+  if (crossListingDuplicate) {
+    console.log(`[Verifier] Skipping ${productId} — "${actualTitle}" at ₹${verifiedDealPrice} is already an active deal under a different listing (${crossListingDuplicate.productId}). Treating as a duplicate relisting.`);
+    return null;
+  }
+
   // 10. Database Save (Deals Collection)
   try {
     let deal = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, merchant }] });
