@@ -787,6 +787,16 @@ const CATEGORY_KEYWORDS = [
   [/\b(storage box|organizer|storage rack)\b/i, 'home', 'storage'],
   [/\b(\bdrill\b|screwdriver|tool ?kit)\b/i, 'home', 'tools'],
   [/\b(cleaning|\bmop\b|detergent|\bbroom\b)\b/i, 'home', 'cleaning'],
+  // general — Master's own category list has no top-level "auto"/"books"/etc.; these are
+  // subcategories *of* general (confirmed live: general|auto|"Car & Bike Accessories" etc.), so
+  // without an explicit entry here a clear hint like "Motorbike Accessories & Parts" still fell
+  // through to general with no subcategory at all (confirmed live: a bike cover did exactly this).
+  [/\b(bike cover|motorbike|scooter|car cover|car accessories|helmet|riding gear|dashboard camera)\b/i, 'general', 'auto'],
+  [/\b(book\b|novel|stationery|notebook set|pen set)\b/i, 'general', 'books-stationery'],
+  [/\b(grocery|groceries|gourmet|snacks pack|spices)\b/i, 'general', 'groceries'],
+  [/\b(pet food|dog collar|cat litter|pet supplies|aquarium)\b/i, 'general', 'pet-supplies'],
+  [/\b(baby toy|kids toy|action figure|board game|stroller|diaper)\b/i, 'general', 'baby-toys'],
+  [/\b(guitar|keyboard piano|violin|drum kit|musical instrument)\b/i, 'general', 'musical'],
 ];
 
 // A men's/women's garment word alone (e.g. "trouser") is gender-neutral — the actual signal for
