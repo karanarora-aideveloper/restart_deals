@@ -34,6 +34,7 @@ let client;
 const resolvedChannelIds = new Set(); // Fast lookup set for active channel IDs/handles
 const channelTitlesMap = new Map();   // Maps channel ID -> Channel Title for clean logs
 const channelCountryMap = new Map();  // Maps channel ID -> Country Code
+const channelCategoryMap = new Map(); // Maps channel ID -> admin-configured category ('auto' if unset)
 const dialogEntitiesMap = new Map();  // Cached GramJS entity objects from getDialogs()
 
 /**
@@ -177,6 +178,7 @@ async function handleNewMessage(event) {
     ).catch(() => {});
 
     const country = channelCountryMap.get(matchedId) || 'IN';
+    const category = channelCategoryMap.get(matchedId) || 'auto';
     const sourceChannelName = channelTitlesMap.get(matchedId) || channelId;
 
     // Push the deal verification process to the sequential queue
@@ -184,7 +186,7 @@ async function handleNewMessage(event) {
       try {
         // Lazy — only actually downloads if the verifier needs a fallback image
         const getTelegramPhotoUrl = () => downloadMessagePhoto(client, message);
-        const deal = await verifyAndProcessMessage(channelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl);
+        const deal = await verifyAndProcessMessage(channelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category);
         if (deal) {
           await publishToTelegram(client, deal);
           Channel.updateOne(
@@ -360,10 +362,11 @@ function startChannelPoller() {
           queue.add(async () => {
             try {
               const country = channelCountryMap.get(rawId) || 'IN';
+              const category = channelCategoryMap.get(rawId) || 'auto';
               const sourceChannelName = channelTitlesMap.get(rawId) || rawId;
               // Lazy — only actually downloads if the verifier needs a fallback image
               const getTelegramPhotoUrl = () => downloadMessagePhoto(client, msg);
-              const deal = await verifyAndProcessMessage(rawId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl);
+              const deal = await verifyAndProcessMessage(rawId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category);
               if (deal) {
                 await publishToTelegram(client, deal);
                 Channel.updateOne(
@@ -467,6 +470,11 @@ export async function refreshMonitoredChannels() {
       channelCountryMap.set('-100' + rawId, chanCountry);
       channelCountryMap.set(channel.channelId, chanCountry);
 
+      const chanCategory = channel.category || 'auto';
+      channelCategoryMap.set(rawId, chanCategory);
+      channelCategoryMap.set('-100' + rawId, chanCategory);
+      channelCategoryMap.set(channel.channelId, chanCategory);
+
       if (channel.username) {
         const cleanUsername = channel.username.replace('@', '').trim().toLowerCase();
         if (/^[a-zA-Z0-9_]{3,32}$/.test(cleanUsername)) {
@@ -476,6 +484,8 @@ export async function refreshMonitoredChannels() {
           channelTitlesMap.set('@' + cleanUsername, chanName);
           channelCountryMap.set(cleanUsername, chanCountry);
           channelCountryMap.set('@' + cleanUsername, chanCountry);
+          channelCategoryMap.set(cleanUsername, chanCategory);
+          channelCategoryMap.set('@' + cleanUsername, chanCategory);
         }
       }
     }

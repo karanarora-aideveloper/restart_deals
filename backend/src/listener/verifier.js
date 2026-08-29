@@ -1,18 +1,10 @@
 import * as cheerio from 'cheerio';
-import { OpenAI } from 'openai';
-import config from '../config.js';
 import Deal from '../db/models/deal.js';
 import VerifiedLink from '../db/models/verifiedLink.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Product from '../db/models/product.js';
 import Master from '../db/models/master.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
-
-// Initialize OpenAI client for DeepSeek (OpenAI compatible API)
-const openai = new OpenAI({
-  apiKey: config.deepseek.apiKey || 'placeholder',
-  baseURL: 'https://api.deepseek.com/v1',
-});
 
 /**
  * Extract all HTTP/HTTPS links from text using a Regex pattern
@@ -343,80 +335,6 @@ export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant
 }
 
 /**
- * Parse an Indian-format price string ("₹1,299.00", "1,299.") into a number.
- * Returns null for anything that isn't a sane product price.
- */
-function parsePriceText(raw) {
-  if (!raw) return null;
-  const cleaned = String(raw).replace(/[^\d.]/g, '').replace(/\.$/, '');
-  if (!cleaned) return null;
-  const parsed = parseFloat(cleaned);
-  if (isNaN(parsed) || parsed <= 0 || parsed > 10000000) return null;
-  return Math.round(parsed);
-}
-
-/**
- * First parseable price among ALL matches of the given selectors, in order.
- *
- * Deliberately not `.first()`: Amazon renders price containers whose first matching
- * node has empty text (the visible value lives in a later sibling), so `.first()`
- * yields "" and the old code fell through to the next *selector* instead of the next
- * *element* — reporting no price on pages that plainly had one.
- */
-function findPrice($, selectors, root = null) {
-  for (const sel of selectors) {
-    const nodes = root ? root.find(sel) : $(sel);
-    let hit = null;
-    nodes.each((_, el) => {
-      if (hit !== null) return false;
-      const val = parsePriceText($(el).text().trim());
-      if (val !== null) hit = val;
-    });
-    if (hit !== null) return hit;
-  }
-  return null;
-}
-
-/**
- * Price/MRP from schema.org JSON-LD.
- *
- * Preferred over CSS wherever it exists: Flipkart ships hashed class names that rotate
- * (._30jeq3 -> v1zwn21m -> ...), so every hardcoded selector eventually dies, while its
- * JSON-LD Product.offers block has stayed put.
- */
-function extractJsonLdPrice($) {
-  let result = { price: null, originalPrice: null, inStock: null };
-  $('script[type="application/ld+json"]').each((_, el) => {
-    if (result.price !== null) return false;
-    let parsed;
-    try {
-      parsed = JSON.parse($(el).contents().text());
-    } catch {
-      return; // Malformed blocks are common; just skip them.
-    }
-    const roots = Array.isArray(parsed) ? parsed : [parsed];
-    for (const root of roots) {
-      for (const node of (root['@graph'] || [root])) {
-        if (!node || !node.offers) continue;
-        const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
-        if (!offer) continue;
-        const price = parsePriceText(offer.price ?? offer.lowPrice);
-        if (price === null) continue;
-        result = {
-          price,
-          originalPrice: parsePriceText(offer.highPrice) ,
-          inStock: typeof offer.availability === 'string'
-            ? /InStock/i.test(offer.availability)
-            : null,
-        };
-        return false;
-      }
-    }
-  });
-  return result;
-}
-
-/**
  * Fetch and extract product details using Distributed BullMQ Scraping Queue
  * @param {string} targetUrl 
  * @returns {Promise<{ images: string[], rating: number, reviews: Array }>}
@@ -425,7 +343,7 @@ export async function scrapeProductDetails(targetUrl) {
   try {
     const html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
     if (!html) {
-      return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null };
+      return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, breadcrumbText: null };
     }
 
     // Parse HTML with cheerio
@@ -436,10 +354,17 @@ export async function scrapeProductDetails(targetUrl) {
     let rating = null;
     let price = null;
     let originalPrice = null;
+    // Feeds deriveCategory()/deriveSubcategory() — the non-AI replacement for what used to be
+    // DeepSeek reading the category off the Telegram message text. Amazon exposes a clean
+    // breadcrumb trail; Flipkart doesn't reliably expose one on product pages (checked against
+    // live markup: no BreadcrumbList JSON-LD, no breadcrumb microdata), so it stays null there.
+    let breadcrumbText = null;
 
     const hostname = new URL(targetUrl).hostname.toLowerCase();
 
     if (hostname.includes('amazon.')) {
+      breadcrumbText = $('#wayfinding-breadcrumbs_feature_div').text().replace(/\s+/g, ' ').trim() || null;
+
       // Amazon Title
       title = $('#productTitle').text().trim() || $('meta[name="title"]').attr('content');
       
@@ -476,41 +401,46 @@ export async function scrapeProductDetails(targetUrl) {
       });
 
       // Amazon Price Extraction
-      //
-      // Scoped to the main product column first. The page carries ~44 `.a-price` nodes —
-      // sponsored carousels, "bought together", similar items — so an unscoped `.first()`
-      // can silently report a neighbouring product's price as this deal's price.
-      const amazonPriceSelectors = [
+      let priceText = '';
+      const priceSelectors = [
         '.apexPriceToPay .a-offscreen',
-        '.priceToPay .a-offscreen',
         '#priceblock_dealprice',
         '#priceblock_ourprice',
         '.a-price .a-offscreen',
-        '.a-price-whole',
+        '.a-price-whole'
       ];
-      const amazonRoots = ['#corePrice_feature_div', '#corePriceDisplay_desktop_feature_div', '#ppd', '#centerCol'];
-      for (const rootSel of amazonRoots) {
-        const root = $(rootSel);
-        if (!root.length) continue;
-        price = findPrice($, amazonPriceSelectors, root);
-        if (price !== null) break;
+      for (const sel of priceSelectors) {
+        const val = $(sel).first().text().trim();
+        if (val) {
+          priceText = val;
+          break;
+        }
       }
-      // Last resort: whole document, accepting the sponsored-price risk over no price at all.
-      if (price === null) price = findPrice($, amazonPriceSelectors);
+      if (priceText) {
+        const cleanPrice = priceText.replace(/[^\d.]/g, '');
+        const parsed = parseFloat(cleanPrice);
+        if (!isNaN(parsed)) price = Math.round(parsed);
+      }
 
-      const amazonListSelectors = [
-        '.basisPrice .a-offscreen',
+      let listPriceText = '';
+      const listPriceSelectors = [
         'span.a-text-strike',
+        '.basisPrice .a-offscreen',
         '#listPrice',
-        '#priceblock_listprice',
+        '#priceblock_listprice'
       ];
-      for (const rootSel of amazonRoots) {
-        const root = $(rootSel);
-        if (!root.length) continue;
-        originalPrice = findPrice($, amazonListSelectors, root);
-        if (originalPrice !== null) break;
+      for (const sel of listPriceSelectors) {
+        const val = $(sel).first().text().trim();
+        if (val) {
+          listPriceText = val;
+          break;
+        }
       }
-      if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
+      if (listPriceText) {
+        const cleanPrice = listPriceText.replace(/[^\d.]/g, '');
+        const parsed = parseFloat(cleanPrice);
+        if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+      }
 
     } else if (hostname.includes('flipkart.com')) {
       // Flipkart Title
@@ -529,19 +459,13 @@ export async function scrapeProductDetails(targetUrl) {
       });
 
       // Flipkart Price Extraction
-      //
-      // JSON-LD first, and by a wide margin: Flipkart's class names are hashed and rotate
-      // (._30jeq3 and ._3I9_R3 below are long dead — they matched nothing on live markup),
-      // whereas its schema.org Product.offers block has remained stable. The class
-      // selectors are kept only as a fallback in case a layout ships without JSON-LD.
-      const fkLd = extractJsonLdPrice($);
-      if (fkLd.price !== null) {
-        price = fkLd.price;
-        if (fkLd.originalPrice !== null) originalPrice = fkLd.originalPrice;
-      } else {
-        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
+      const dealPriceText = $('._30jeq3, div[class*="_30jeq3"]').first().text().trim();
+      if (dealPriceText) {
+        const cleanPrice = dealPriceText.replace(/[^\d.]/g, '');
+        const parsed = parseFloat(cleanPrice);
+        if (!isNaN(parsed)) price = Math.round(parsed);
       }
-      const listPriceText = originalPrice !== null ? '' : $('._3I9_R3, div[class*="_3I9_R3"], .yRaY8j, ._3auQ3N').first().text().trim();
+      const listPriceText = $('._3I9_R3, div[class*="_3I9_R3"]').first().text().trim();
       if (listPriceText) {
         const cleanPrice = listPriceText.replace(/[^\d.]/g, '');
         const parsed = parseFloat(cleanPrice);
@@ -731,214 +655,12 @@ export async function scrapeProductDetails(targetUrl) {
       });
     }
 
-    return { title, images, rating, reviews, price, originalPrice };
+    return { title, images, rating, reviews, price, originalPrice, breadcrumbText };
   } catch (err) {
     console.error(`[Scraper Error] Scraping failed for ${targetUrl}:`, err.message);
     // Return empty fallback instead of crashing the pipeline
-    return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null };
+    return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, breadcrumbText: null };
   }
-}
-
-/**
- * Call DeepSeek AI to parse original text and product details into a structured deal schema
- * @param {string} originalText 
- * @param {object} productDetails 
- * @returns {Promise<object>}
- */
-export async function extractDealWithDeepSeek(originalText, productDetails) {
-  if (!config.deepseek.apiKey) {
-    console.warn('[DeepSeek Warning] DEEPSEEK_API_KEY is not defined. Using regex fallbacks.');
-    return fallbackParseDeal(originalText, productDetails);
-  }
-
-  let categoryString = '"fitness", "general"'; // Fallback
-  let validCategories = ['fitness', 'general'];
-  try {
-    const categories = await Master.find({ type: 'category', isActive: true });
-    if (categories.length > 0) {
-      categoryString = categories.map(c => `"${c.value}"`).join(', ');
-      validCategories = categories.map(c => c.value);
-    }
-  } catch (err) {
-    console.error('[Verifier] Failed to fetch master categories:', err.message);
-  }
-
-  // subcategoryLabelsByCategory: { electronics: ['Mobiles & Tablets', ...], ... } — labels, for
-  // the prompt (a bare id like "kitchen" is a much weaker signal than "Kitchen & Dining", e.g. a
-  // cast-iron Dutch oven doesn't obviously read as "kitchen" without that fuller framing).
-  // subcategoryLabelToValue maps a returned label back to its stored value, keyed
-  // "category::label" since the same label text could theoretically recur under a different
-  // category.
-  let subcategoryLabelsByCategory = {};
-  const subcategoryLabelToValue = new Map();
-  try {
-    const subcats = await Master.find({ type: 'subcategory', isActive: true });
-    for (const s of subcats) {
-      const parent = s.metadata?.parentCategory;
-      if (!parent) continue;
-      if (!subcategoryLabelsByCategory[parent]) subcategoryLabelsByCategory[parent] = [];
-      subcategoryLabelsByCategory[parent].push(s.label);
-      subcategoryLabelToValue.set(`${parent}::${s.label}`, s.value);
-    }
-  } catch (err) {
-    console.error('[Verifier] Failed to fetch master subcategories:', err.message);
-  }
-  const subcategoryTaxonomyString = JSON.stringify(subcategoryLabelsByCategory);
-
-  const systemMessage = `You are a shopping deal analyzer. Your task is to analyze the original Telegram deal message and any scraped product webpage details.
-Respond ONLY with a valid JSON object matching this schema. Do not write any markdown code blocks, explanations, or text outside the JSON object.
-
-JSON Schema:
-{
-  "title": "Clean concise product name",
-  "description": "Short summary of the deal features",
-  "originalPrice": 1299.00,
-  "dealPrice": 599.00,
-  "discountPercentage": 54,
-  "category": "one of the available categories",
-  "subcategory": "the label (not an id/slug) of one of the available subcategories for the chosen category, or empty string",
-  "coupon": null
-}
-Ensure all prices are returned as clean numbers. The "previously recorded price" data below is from our own database, NOT a fresh scrape of this listing — it could be days old or wrong. Extract dealPrice/originalPrice from the Telegram message text FIRST; only fall back to the previously recorded price if the message itself states no price at all. If the message's stated price differs from the previously recorded one, trust the message — it's describing what's happening right now. If you cannot extract originalPrice or dealPrice from either source, set them to null.
-For category, YOU MUST select the most relevant category strictly from this list: [${categoryString}]. If none fit perfectly, pick the closest match or default to "general".
-For subcategory, once you've picked a category, select the single best-fitting subcategory LABEL strictly from that category's own list in this map (keyed by category): ${subcategoryTaxonomyString}. Return the label text exactly as written there (e.g. "Kitchen & Dining"), not a made-up id. Only choose one if it is a clear, confident match for what the product actually is — do not force the closest-sounding option onto a product that doesn't really belong there (e.g. a yoga mat is not "Home Decor" just because its category happens to be "home"; a light bulb is not a "Large Appliance"). If nothing in that category's list is a genuinely good fit, set subcategory to an empty string "" — do NOT invent a new value or borrow one from a different category's list.
-
-COUPON EXTRACTION:
-Deal messages often mention an extra coupon the shopper must click/apply on the merchant page for a further saving ON TOP of the deal price. If the message mentions one, set "coupon" to an object; otherwise set "coupon" to null. Schema:
-{ "type": "percent" | "flat" | "code", "value": 2, "code": "SAVE20", "label": "Apply 2% coupon" }
-- "percent": a percentage-off coupon. Put the number in "value" (e.g. "Apply 2% coupon" -> type "percent", value 2).
-- "flat": a fixed currency amount off. Put the amount in "value" (e.g. "Apply ₹50 coupon" -> type "flat", value 50).
-- "code": a promo/voucher code the shopper types in. Put the code in "code" (e.g. "Use code SAVE20" -> type "code", code "SAVE20"). If the code also states a percent or amount, ALSO fill type-appropriate "value" and prefer type "percent"/"flat" with "code" set alongside.
-- "value" must be null when unknown; "code" must be null when there is no literal code.
-- "label" is a short human-readable instruction (max 40 chars) taken from the message, e.g. "Apply 2% coupon" or "Use code SAVE20".
-- The same coupon is often repeated twice in a message — return it ONCE.
-- Do NOT treat the deal's own discount/MRP as a coupon. Only count an explicit extra coupon/voucher/promo the user has to apply.
-- Bank/card offers ("10% off on HDFC cards") are NOT coupons — set coupon to null for those.`;
-
-  const cachedImages = productDetails?.images || [];
-  const cachedRating = productDetails?.rating || 'N/A';
-  const cachedPrice = productDetails?.price || 'not found';
-  const cachedMRP = productDetails?.originalPrice || 'not found';
-  const cachedReviews = productDetails?.reviews ? productDetails.reviews.map(r => r.text) : [];
-
-  const userMessage = `Telegram Message:
-"${originalText}"
-
-Previously recorded product images (our database, not a fresh scrape): ${JSON.stringify(cachedImages)}
-Previously recorded rating: ${cachedRating}
-Previously recorded deal price (may be outdated — prefer the message text above): ${cachedPrice}
-Previously recorded MRP/original price (may be outdated — prefer the message text above): ${cachedMRP}
-Previously recorded reviews sample: ${JSON.stringify(cachedReviews)}`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage }
-      ],
-      response_format: { type: 'json_object' }
-    });
-
-    const parsedData = JSON.parse(completion.choices[0].message.content);
-    // Trust whatever DeepSeek picked from the list we gave it in the prompt above — validate
-    // against that same list rather than silently collapsing everything except "fitness" to
-    // "general" (that used to happen here and discarded electronics/fashion/home/beauty/etc.
-    // even when the AI correctly returned them).
-    const finalCategory = validCategories.includes(parsedData.category) ? parsedData.category : 'general';
-    // The AI returns a label ("Kitchen & Dining"); map it back to the stored value ("kitchen").
-    // Scoped to the CHOSEN category specifically — a label valid under a different category (or
-    // one the AI invented) is discarded rather than trusted blind.
-    const finalSubcategory = subcategoryLabelToValue.get(`${finalCategory}::${parsedData.subcategory}`) || '';
-
-    return {
-      title: parsedData.title,
-      description: parsedData.description,
-      originalPrice: parsedData.originalPrice,
-      dealPrice: parsedData.dealPrice,
-      discountPercentage: parsedData.discountPercentage || calculateDiscount(parsedData.originalPrice, parsedData.dealPrice),
-      coupon: normalizeCoupon(parsedData.coupon),
-      category: finalCategory,
-      subcategory: finalSubcategory
-    };
-  } catch (err) {
-    console.error('[DeepSeek Error] Call failed, using regex fallback:', err.message);
-    return fallbackParseDeal(originalText, productDetails);
-  }
-}
-
-/**
- * Fallback parser using regex if DeepSeek fails or API key is not configured
- */
-function fallbackParseDeal(text, productDetails) {
-  // Simple regex attempts for prices
-  const priceRegex = /(?:rs\.?|₹|inr)\s*([0-9,]+)/gi;
-  const matches = [...text.matchAll(priceRegex)].map(m => parseFloat(m[1].replace(/,/g, '')));
-  
-  let dealPrice = null;
-  let originalPrice = null;
-
-  if (matches.length > 0) {
-    // Usually the lower price is the deal price, higher is MRP
-    if (matches.length > 1) {
-      dealPrice = Math.min(...matches);
-      originalPrice = Math.max(...matches);
-    } else {
-      dealPrice = matches[0];
-    }
-  }
-
-  // Fallback title is first line of text
-  const title = text.split('\n')[0]?.substring(0, 80) || 'Verified Online Deal';
-
-  // Simple category classification fallback
-  const fitnessKeywords = ['protein', 'whey', 'supplement', 'gym', 'fitness', 'creatine', 'multivitamin', 'workout', 'nutrition', 'dumbbell'];
-  const lowercaseText = text.toLowerCase();
-  const category = fitnessKeywords.some(keyword => lowercaseText.includes(keyword)) ? 'fitness' : 'general';
-
-  return {
-    title,
-    description: text.substring(0, 300),
-    originalPrice,
-    dealPrice,
-    discountPercentage: calculateDiscount(originalPrice, dealPrice),
-    coupon: fallbackParseCoupon(text),
-    category,
-    // This regex fallback only fires when DeepSeek is unavailable — not worth building a second
-    // keyword classifier for subcategory here too; it'll pick one up on the next successful pass.
-    subcategory: ''
-  };
-}
-
-/**
- * Regex coupon extraction, used only when DeepSeek is unavailable/failed. Deliberately
- * conservative — it only matches phrasings that explicitly say "coupon"/"code", so it won't
- * mistake the deal's own "54% off" headline for an extra coupon.
- */
-function fallbackParseCoupon(text) {
-  if (!text) return null;
-
-  // "Apply 2% coupon" / "2% coupon" / "coupon 2%" / "extra 5% coupon"
-  const percentMatch = text.match(/(?:coupon\s*(?:of\s*)?(\d{1,2}(?:\.\d+)?)\s*%)|(?:(\d{1,2}(?:\.\d+)?)\s*%\s*(?:off\s*)?coupon)/i);
-  if (percentMatch) {
-    const value = parseFloat(percentMatch[1] || percentMatch[2]);
-    return normalizeCoupon({ type: 'percent', value, label: `Apply ${value}% coupon` });
-  }
-
-  // "Apply ₹50 coupon" / "coupon of Rs 50" / "₹50 off coupon"
-  const flatMatch = text.match(/(?:coupon\s*(?:of\s*)?(?:₹|rs\.?\s*)(\d[\d,]*))|(?:(?:₹|rs\.?\s*)(\d[\d,]*)\s*(?:off\s*)?coupon)/i);
-  if (flatMatch) {
-    const value = parseFloat((flatMatch[1] || flatMatch[2]).replace(/,/g, ''));
-    return normalizeCoupon({ type: 'flat', value, label: `Apply ₹${value} coupon` });
-  }
-
-  // "Use code SAVE20" / "coupon code: SAVE20" / "promo code ABC123"
-  const codeMatch = text.match(/(?:coupon\s*code|promo\s*code|use\s*code|code)\s*[:\-]?\s*([A-Z0-9][A-Z0-9_-]{2,19})\b/i);
-  if (codeMatch) {
-    return normalizeCoupon({ type: 'code', code: codeMatch[1], label: `Use code ${codeMatch[1].toUpperCase()}` });
-  }
-
-  return null;
 }
 
 export function calculateDiscount(original, deal) {
@@ -947,45 +669,76 @@ export function calculateDiscount(original, deal) {
 }
 
 /**
- * Validate + clean the AI's `coupon` output before it's persisted or shown to a user.
- * The AI is free-form enough to return a half-filled object (a type with no value, a "percent"
- * of 250, an empty-string code), and this ends up rendered in the app as an instruction the user
- * acts on — so anything that isn't actually actionable is dropped rather than displayed.
+ * Category/subcategory classification with no LLM involved — this used to be DeepSeek's job
+ * (parsing the Telegram message text), which meant every deal's category depended on an
+ * external API call, and a failed/empty parse ("Price: Rs. N/A") could sink an otherwise-good
+ * deal. Both category and subcategory stay Master-collection-driven (no hardcoded enum, same
+ * as before) so adding a new category in the admin still works without touching this code.
  *
- * @param {any} raw
- * @returns {{type: string, value: number|null, code: string|null, label: string}|null}
+ * Priority: the source channel's own admin-configured category wins outright when set (these
+ * aggregator channels are almost always topic-focused — "Fitness Deals India" only ever posts
+ * fitness products — so this is a strong, free, zero-latency signal). Falls back to matching
+ * the merchant page's breadcrumb trail against the Master taxonomy when the channel is 'auto'.
+ * Amazon exposes a clean breadcrumb div; Flipkart currently doesn't expose one reliably on
+ * product pages, so Flipkart deals from an 'auto' channel land on 'general' until that channel
+ * gets a category set in admin.
  */
-export function normalizeCoupon(raw) {
-  if (!raw || typeof raw !== 'object') return null;
+export async function deriveCategory(channelCategory, breadcrumbText) {
+  let categoryDocs = [];
+  try {
+    categoryDocs = await Master.find({ type: 'category', isActive: true }).lean();
+  } catch (err) {
+    console.error('[Verifier] Failed to fetch master categories:', err.message);
+  }
+  const validCategories = categoryDocs.length ? categoryDocs.map(c => c.value) : ['fitness', 'general'];
 
-  const type = ['percent', 'flat', 'code'].includes(raw.type) ? raw.type : null;
-  if (!type) return null;
-
-  let value = typeof raw.value === 'number' && isFinite(raw.value) && raw.value > 0 ? raw.value : null;
-  // A "percent" coupon over 100 is a misparse (usually the deal's own discount or a price), and a
-  // percent of 0 is meaningless — drop the value rather than showing "Apply 250% coupon".
-  if (type === 'percent' && value != null && value > 100) value = null;
-
-  const code = typeof raw.code === 'string' && raw.code.trim() ? raw.code.trim().toUpperCase() : null;
-
-  // Nothing actionable: no amount to expect and no code to enter.
-  if (value == null && !code) return null;
-
-  let label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 40) : '';
-  if (!label) {
-    if (type === 'percent' && value != null) label = `Apply ${value}% coupon`;
-    else if (type === 'flat' && value != null) label = `Apply ₹${value} coupon`;
-    else label = `Use code ${code}`;
+  if (channelCategory && channelCategory !== 'auto' && validCategories.includes(channelCategory)) {
+    return { category: channelCategory, categoryDocs };
   }
 
-  return { type, value, code, label };
+  if (breadcrumbText) {
+    const lower = breadcrumbText.toLowerCase();
+    for (const c of categoryDocs) {
+      const label = (c.label || c.value || '').toLowerCase();
+      if (label && lower.includes(label)) return { category: c.value, categoryDocs };
+    }
+    for (const val of validCategories) {
+      if (lower.includes(val.toLowerCase())) return { category: val, categoryDocs };
+    }
+  }
+
+  return { category: 'general', categoryDocs };
+}
+
+/**
+ * Best-effort subcategory match against the breadcrumb trail, scoped to the already-chosen
+ * category (a breadcrumb segment matching a label that belongs to a different category is not
+ * a valid match — same non-guessing rule the old AI prompt used). Empty string, not a guess,
+ * when nothing matches; a deal simply having no subcategory is normal and expected here, the
+ * same as it was when the AI declined to force one.
+ */
+export async function deriveSubcategory(category, breadcrumbText) {
+  if (!breadcrumbText) return '';
+  let subcats = [];
+  try {
+    subcats = await Master.find({ type: 'subcategory', isActive: true, 'metadata.parentCategory': category }).lean();
+  } catch (err) {
+    console.error('[Verifier] Failed to fetch master subcategories:', err.message);
+    return '';
+  }
+  const lower = breadcrumbText.toLowerCase();
+  for (const s of subcats) {
+    const label = (s.label || '').toLowerCase();
+    if (label && lower.includes(label)) return s.value;
+  }
+  return '';
 }
 
 /**
  * End-to-end verifier processing function called by the sequential queue
- * @param {string} sourceChannelId 
- * @param {string} sourceMessageId 
- * @param {string} messageText 
+ * @param {string} sourceChannelId
+ * @param {string} sourceMessageId
+ * @param {string} messageText
  * @param {string} channelCountry - the posting channel's admin-configured country; only used as a
  *   fallback when the product's country can't be derived from its own merchant URL (see cleanAndParseUrl)
  * @param {string} sourceChannelName
@@ -993,9 +746,12 @@ export function normalizeCoupon(raw) {
  *   message's own photo (if any), used only as a last-resort image fallback when scraping fails
  *   and nothing is cached yet. Only invoked when actually needed, to avoid downloading media for
  *   every message.
+ * @param {string} channelCategory - the posting channel's admin-configured category ('auto' if
+ *   unset). See deriveCategory() — this is the primary category signal now that nothing parses
+ *   the message text.
  * @returns {Promise<object|null>}
  */
-export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, messageText, channelCountry = 'IN', sourceChannelName = 'Unknown', getTelegramPhotoUrl = null) {
+export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, messageText, channelCountry = 'IN', sourceChannelName = 'Unknown', getTelegramPhotoUrl = null, channelCategory = 'auto') {
   console.log(`[Verifier] Processing message ${sourceMessageId} from channel ${sourceChannelId}...`);
 
   // 1. Link Extraction
@@ -1063,16 +819,16 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // 6. AI Parsing First (DeepSeek AI) to detect price, title & category from Telegram message text
-  console.log(`[Verifier] Running AI parsing on message text to check for price & deal details...`);
-  const parsedDeal = await extractDealWithDeepSeek(messageText, productDetails);
-  console.log(`[Verifier] AI Parsed Result -> Title: "${parsedDeal.title}" | Price: Rs. ${parsedDeal.dealPrice || 'N/A'} | Category: ${parsedDeal.category}`);
-
-  // 7. Canonical MRP & Product Cache from MongoDB
+  // 6. Canonical MRP & Product Cache from MongoDB
+  // User Rule: "MRP should only come from my database. If not in DB, use scraped page MRP. Never
+  // trust Telegram AI MRP." — extended to the whole deal-price decision below, not just MRP:
+  // nothing here trusts what a message claims, only what's been directly observed.
   const existingCanonicalMRP = existingProduct?.originalPrice || productDetails?.originalPrice || null;
-  const aiClaimedPrice = parsedDeal.dealPrice != null ? parsedDeal.dealPrice : null;
+  // Our own last tracked price for this exact product, if any — the basis for the price-history
+  // qualification path when no MRP exists anywhere (see the discount calculation further down).
+  const previousTrackedPrice = existingProduct?.price ?? null;
 
-  // 8. MANDATORY Live Scrape for incoming Telegram deals
+  // 7. MANDATORY Live Scrape for incoming Telegram deals
   // We ALWAYS scrape the live merchant URL to verify the current selling price and genuine MRP.
   console.log(`[Verifier] 🔍 Mandatory Live Scrape: Fetching live merchant page for ${cleanUrl}...`);
   const scrapedData = await scrapeProductDetails(cleanUrl);
@@ -1080,27 +836,27 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const liveScrapedPrice = scrapedData.price != null ? scrapedData.price : null;
   const liveScrapedMRP = scrapedData.originalPrice != null ? scrapedData.originalPrice : null;
 
-  // Canonical MRP Decision:
-  // User Rule: "MRP should only come from my database. If not in DB, use scraped page MRP. Never trust Telegram AI MRP."
   const canonicalMRP = existingCanonicalMRP || liveScrapedMRP || null;
 
-  // Live Deal Verification Decision:
-  // User Rule: "Compare scraped price and AI price. If live scraped price > AI claimed price, deal is EXPIRED/INVALID."
+  // Live Deal Verification: purely "did we get a real live price". There is no message-claimed
+  // price to cross-check against any more — whether it's actually a genuine drop is decided
+  // entirely by the MRP/price-history comparison below, which needs nothing but this number.
   let isPriceVerified = false;
   let verifiedDealPrice = null;
 
   if (liveScrapedPrice == null) {
     console.warn(`[Verifier Warning] ⚠️ Failed to extract live price from ${cleanUrl} during scrape. Cannot verify deal.`);
-    isPriceVerified = false;
-  } else if (aiClaimedPrice != null && liveScrapedPrice > aiClaimedPrice) {
-    console.warn(`[Verifier Warning] ❌ Deal Expired/Invalid: Live merchant price (₹${liveScrapedPrice}) is HIGHER than claimed Telegram deal price (₹${aiClaimedPrice}) for ${cleanUrl}. Skipping deal creation.`);
-    isPriceVerified = false;
   } else {
-    // liveScrapedPrice <= aiClaimedPrice (or aiClaimedPrice is null)
     isPriceVerified = true;
     verifiedDealPrice = liveScrapedPrice;
-    console.log(`[Verifier] ✓ Deal Price Verified: Live price ₹${liveScrapedPrice} matches/beats claimed price (₹${aiClaimedPrice || 'N/A'}) for ${cleanUrl}.`);
+    console.log(`[Verifier] ✓ Live price for ${cleanUrl}: ₹${liveScrapedPrice}.`);
   }
+
+  // 8. Category/Subcategory — channel default first, breadcrumb match second, 'general' last.
+  // No message-text parsing involved (see deriveCategory()'s docblock for why).
+  const { category } = await deriveCategory(channelCategory, scrapedData.breadcrumbText);
+  const subcategory = await deriveSubcategory(category, scrapedData.breadcrumbText);
+  console.log(`[Verifier] Category: "${category}"${subcategory ? ` / "${subcategory}"` : ''} (channel="${channelCategory}"${scrapedData.breadcrumbText ? ', breadcrumb-assisted' : ''}).`);
 
   // Handle Images
   let dealFallbackImageUrl = null;
@@ -1114,7 +870,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         cleanUrl,
         productId,
         merchant,
-        title: scrapedData.title || parsedDeal.title || null,
+        title: scrapedData.title || null,
         images: scrapedData.images,
         rating: scrapedData.rating,
         reviews: scrapedData.reviews,
@@ -1152,17 +908,16 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       discountPercentage = calculateDiscount(canonicalMRP, verifiedDealPrice);
       priceSource = 'scraped';
       console.log(`[Verifier] Discount against Canonical MRP: ₹${canonicalMRP} -> ₹${verifiedDealPrice} (${discountPercentage}% OFF).`);
-    } else {
-      // Check price history fallback
-      const cachedPrice = existingProduct?.price ?? null;
-      if (cachedPrice != null && cachedPrice > verifiedDealPrice) {
-        const historyDiscount = calculateDiscount(cachedPrice, verifiedDealPrice);
-        if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
-          discountPercentage = historyDiscount;
-          genuinePriceDrop = cachedPrice;
-          priceSource = 'price_history';
-          console.log(`[Verifier] Price-history drop for ${cleanUrl}: ₹${cachedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}%).`);
-        }
+    } else if (previousTrackedPrice != null && previousTrackedPrice > verifiedDealPrice) {
+      // No MRP anywhere — fall back to comparing against our own price history. With AI text
+      // parsing gone, this is now a co-primary detection path, not a rare fallback: about half
+      // of all deals created recently already come from here rather than a genuine MRP.
+      const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
+      if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
+        discountPercentage = historyDiscount;
+        genuinePriceDrop = previousTrackedPrice;
+        priceSource = 'price_history';
+        console.log(`[Verifier] Price-history drop for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}%).`);
       }
     }
   }
@@ -1187,7 +942,13 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const productRating = productDetails?.rating || scrapedData?.rating || 0;
   const productReviews = productDetails?.reviews || scrapedData?.reviews || [];
   const now = new Date();
-  const actualTitle = productDetails?.title || scrapedData?.title || parsedDeal.title;
+  // Scraped title always wins when available (an actual scrape essentially always returns one,
+  // even for out-of-stock listings) — this generic fallback only fires when the scrape itself
+  // failed outright and nothing was ever cached for this product either.
+  const actualTitle = productDetails?.title || scrapedData?.title || `${merchant} Deal (${productId})`;
+  // No AI-generated summary any more — a plain templated line covers what the field is for
+  // (a one-line blurb under the deal card) without depending on a text-parsing call.
+  const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;
 
   try {
     let productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
@@ -1213,8 +974,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
           originalPrice: canonicalMRP,
           timestamp: now
         }] : [],
-        category: parsedDeal.category,
-        subcategory: parsedDeal.subcategory || '',
+        category,
+        subcategory,
         merchant: merchant,
         country: country,
         sourceChannelName: sourceChannelName,
@@ -1258,9 +1019,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
       if (priceSource) productRecord.priceSource = priceSource;
       if (canonicalMRP) productRecord.originalPrice = canonicalMRP;
-      if (parsedDeal.category) {
-        productRecord.category = parsedDeal.category;
-        productRecord.subcategory = parsedDeal.subcategory || '';
+      if (category) {
+        productRecord.category = category;
+        productRecord.subcategory = subcategory;
       }
       if (isFullyVerified) productRecord.needsEnrichment = false;
       productRecord.lastChecked = now;
@@ -1297,7 +1058,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.dealUrl = cleanUrl;
       deal.productId = productId;
       deal.merchant = merchant;
-      deal.description = parsedDeal.description;
+      deal.description = dealDescription;
       deal.imageUrl = dealMainImageUrl;
       deal.images = dealImages;
       deal.rating = productRating;
@@ -1305,11 +1066,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.originalPrice = canonicalMRP;
       deal.dealPrice = verifiedDealPrice;
       deal.discountPercentage = discountPercentage;
-      deal.coupon = parsedDeal.coupon || null;
+      deal.coupon = null;
       deal.priceSource = priceSource;
       if (genuinePriceDrop != null) deal.previousPrice = genuinePriceDrop;
-      deal.category = parsedDeal.category;
-      deal.subcategory = parsedDeal.subcategory || '';
+      deal.category = category;
+      deal.subcategory = subcategory;
       deal.isVerified = true;
       deal.createdAt = now;
       deal.updatedAt = now;
@@ -1325,7 +1086,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         sourceChannelName: sourceChannelName,
         originalText: messageText,
         title: actualTitle,
-        description: parsedDeal.description,
+        description: dealDescription,
         imageUrl: dealMainImageUrl,
         images: dealImages,
         rating: productRating,
@@ -1337,10 +1098,10 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         dealPrice: verifiedDealPrice,
         previousPrice: genuinePriceDrop,
         discountPercentage: discountPercentage,
-        coupon: parsedDeal.coupon || null,
+        coupon: null,
         priceSource,
-        category: parsedDeal.category,
-        subcategory: parsedDeal.subcategory || '',
+        category,
+        subcategory,
         isVerified: true,
         publishedStatus: {
           mobileApp: false,
