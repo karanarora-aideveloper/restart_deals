@@ -509,43 +509,59 @@ async function generateTempEmail(page) {
   //     at all. An earlier fix mistook one coincidental render for the other.
   // The reliable fix: clear every active email first so "Create" always
   // starts from the zero-active state that opens the real config modal.
-  // BUG (fixed 2026-08-29): the very first check here used a bare, instant
-  // isVisible() — confirmed live it fires before the auto-restored active
-  // email (created moments earlier by simply loading the page while logged
-  // in) has actually rendered into the sidebar list, so it wrongly concludes
-  // "nothing to delete" and heads straight to Create with one about to
-  // exist. Give the first check a real wait; the list has settled by the
-  // time later iterations run, so a quick check is fine for those.
-  let deleteGuard = 0;
-  while (deleteGuard < 10) {
-    const itemDeleteBtn = page.locator("li button:has-text('Delete')").first();
-    const hasActiveEmail = deleteGuard === 0
-      ? await waitVisible(itemDeleteBtn, 8_000)
-      : await itemDeleteBtn.isVisible().catch(() => false);
-    if (!hasActiveEmail) break;
-    await itemDeleteBtn.click();
-    await randomDelay(300, 600);
-    const confirmDeleteBtn = page.locator('[role="dialog"] button:has-text("Delete")').first();
-    if (await waitVisible(confirmDeleteBtn, 3_000)) {
-      await confirmDeleteBtn.click();
-      await randomDelay(500, 900);
+  //
+  // BUG (fixed 2026-08-29, x2): two single-shot timing guesses here both
+  // failed live — a bare instant isVisible() check, then a fixed 8s wait —
+  // because the auto-restored active email doesn't render on any
+  // predictable schedule, AND clicking "Create" from zero-active isn't
+  // 100% guaranteed to open the modal either (confirmed live: it still
+  // sometimes just instant-generates, leaving a fresh active email behind
+  // and no modal). Rather than bet on exact timing/state semantics this
+  // app doesn't document, retry the whole clear-then-create cycle a few
+  // times until the modal genuinely appears.
+  async function clearActiveEmails() {
+    let cleared = 0;
+    while (cleared < 10) {
+      const itemDeleteBtn = page.locator("li button:has-text('Delete')").first();
+      const hasActiveEmail = cleared === 0
+        ? await waitVisible(itemDeleteBtn, 8_000)
+        : await itemDeleteBtn.isVisible().catch(() => false);
+      if (!hasActiveEmail) break;
+      await itemDeleteBtn.click();
+      await randomDelay(300, 600);
+      const confirmDeleteBtn = page.locator('[role="dialog"] button:has-text("Delete")').first();
+      if (await waitVisible(confirmDeleteBtn, 3_000)) {
+        await confirmDeleteBtn.click();
+        await randomDelay(500, 900);
+      }
+      cleared++;
     }
-    deleteGuard++;
-  }
-  if (deleteGuard > 0) {
-    console.log(`[Smail] Cleared ${deleteGuard} existing active email(s) before creating a fresh one`);
+    return cleared;
   }
 
-  const createBtn = page.locator("button:has-text('Create')").first();
-  if (await waitVisible(createBtn, 10_000)) {
-    await createBtn.click();
-    console.log('[Smail] Create button clicked');
+  let modalOpened = false;
+  for (let attempt = 1; attempt <= 3 && !modalOpened; attempt++) {
+    const cleared = await clearActiveEmails();
+    if (cleared > 0) {
+      console.log(`[Smail] Cleared ${cleared} existing active email(s) before creating a fresh one (attempt ${attempt})`);
+    }
+
+    const createBtn = page.locator("button:has-text('Create')").first();
+    if (await waitVisible(createBtn, 10_000)) {
+      await createBtn.click();
+      console.log(`[Smail] Create button clicked (attempt ${attempt})`);
+    }
+
+    await randomDelay(1000, 2000);
+
+    modalOpened = await waitVisible(page.locator("h3:has-text('Create temporary email')"), 6_000);
+    if (!modalOpened) {
+      console.log(`[Smail] Create-email modal did not open on attempt ${attempt} — retrying`);
+    }
   }
-
-  await randomDelay(1000, 2000);
-
-  // Wait for modal
-  await page.locator("h3:has-text('Create temporary email')").waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+  if (!modalOpened) {
+    throw new Error('Create-email config modal never opened after 3 clear-and-click attempts');
+  }
 
   // Select the Microsoft provider. The Account Type / Server sections below
   // only render once a provider (Google/Microsoft) is actually active —
