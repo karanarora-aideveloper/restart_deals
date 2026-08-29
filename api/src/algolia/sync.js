@@ -27,10 +27,16 @@ function dealToRecord(deal) {
     description: deal.description || '',
     merchant: getMerchant(deal.dealUrl),
     category: deal.category || 'general',
+    subcategory: deal.subcategory || '',
     imageUrl: deal.imageUrl,
     dealUrl: deal.dealUrl,
     dealPrice: deal.dealPrice ?? null,
     originalPrice: deal.originalPrice ?? null,
+    // Needed to tell a genuine price-drop deal (no originalPrice by definition — see
+    // verifier.js) apart from an MRP-based one once this record reaches the app; without both,
+    // a price_history deal's discount badge shows with no "was ₹X" context at all.
+    previousPrice: deal.previousPrice ?? null,
+    priceSource: deal.priceSource ?? null,
     discountPercentage: deal.discountPercentage ?? 0,
     couponLabel: deal.coupon?.label || null,
     createdAt: deal.createdAt ? new Date(deal.createdAt).getTime() : 0,
@@ -45,6 +51,7 @@ function productToRecord(product) {
     title: product.title || '',
     merchant: getMerchant(product.merchant),
     category: product.category || 'general',
+    subcategory: product.subcategory || '',
     imageUrl: product.imageUrl,
     cleanUrl: product.cleanUrl,
     price: product.price ?? null,
@@ -85,7 +92,7 @@ async function configureIndexSettings() {
     indexName: DEALS_INDEX,
     indexSettings: {
       searchableAttributes: ['title', 'description', 'merchant', 'category'],
-      attributesForFaceting: ['category', 'merchant'],
+      attributesForFaceting: ['category', 'subcategory', 'merchant'],
       customRanking: ['desc(discountPercentage)', 'desc(createdAt)'],
     },
   });
@@ -93,7 +100,7 @@ async function configureIndexSettings() {
     indexName: PRODUCTS_INDEX,
     indexSettings: {
       searchableAttributes: ['title', 'merchant', 'category'],
-      attributesForFaceting: ['category', 'merchant'],
+      attributesForFaceting: ['category', 'subcategory', 'merchant'],
       customRanking: ['desc(lastChecked)'],
     },
   });

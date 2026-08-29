@@ -1102,36 +1102,28 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // Calculate Authentic Discount — price-history drop first, MRP only as a cold-start fallback.
+  // Calculate Authentic Discount — price-history drop ONLY. MRP is never used as a base any
+  // more, full stop — not even as a cold-start fallback.
   //
-  // A page's "MRP" is routinely set by the seller purely to inflate the shown discount — it was
-  // often never a real selling price. A genuine drop against a price WE ourselves already
-  // observed for this exact product doesn't have that problem, so it's preferred outright
-  // whenever we have one: if we've tracked this product before and its price didn't genuinely
-  // fall, that's the end of it — this is not a deal, even if the page's MRP alone would suggest
-  // a large discount. MRP is used only when there's no prior tracked price to compare against at
-  // all (a product we're seeing for the first time ever) — worth using rather than rejecting
-  // every brand-new product outright, but it's a weaker signal than an observed drop.
+  // A page's "MRP" is routinely set by the seller purely to inflate the shown discount; it was
+  // often never a real selling price. The only base that means anything is a price WE ourselves
+  // already observed for this exact product. A direct consequence: a product scraped for the
+  // FIRST time can never be a deal, no matter how large its page's MRP claims the discount is —
+  // there is nothing yet to compare it against. It's still recorded as a Product below (with
+  // needsEnrichment) so we start tracking it, and it can become a real deal on a LATER pass once
+  // we've actually observed its price fall.
   let discountPercentage = null;
   let priceSource = null;
   let genuinePriceDrop = null;
   const PRICE_DROP_MIN_PERCENT = 5;
 
-  if (verifiedDealPrice != null) {
-    if (previousTrackedPrice != null) {
-      if (previousTrackedPrice > verifiedDealPrice) {
-        const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
-        if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
-          discountPercentage = historyDiscount;
-          genuinePriceDrop = previousTrackedPrice;
-          priceSource = 'price_history';
-          console.log(`[Verifier] Price-history drop for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}%).`);
-        }
-      }
-    } else if (canonicalMRP != null && canonicalMRP > verifiedDealPrice) {
-      discountPercentage = calculateDiscount(canonicalMRP, verifiedDealPrice);
-      priceSource = 'scraped';
-      console.log(`[Verifier] Cold start (no price history) — discount against MRP: ₹${canonicalMRP} -> ₹${verifiedDealPrice} (${discountPercentage}% OFF).`);
+  if (verifiedDealPrice != null && previousTrackedPrice != null && previousTrackedPrice > verifiedDealPrice) {
+    const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
+    if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
+      discountPercentage = historyDiscount;
+      genuinePriceDrop = previousTrackedPrice;
+      priceSource = 'price_history';
+      console.log(`[Verifier] Price-history drop for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}%).`);
     }
   }
 
