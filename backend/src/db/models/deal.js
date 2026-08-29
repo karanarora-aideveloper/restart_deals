@@ -125,7 +125,15 @@ const dealSchema = new mongoose.Schema({
     mobileApp: { type: Boolean, default: false },
     webApp: { type: Boolean, default: false },
     telegram: { type: Boolean, default: false },
-    whatsapp: { type: Boolean, default: false }
+    twitter: { type: Boolean, default: false },
+    whatsapp: { type: Boolean, default: false },
+    // Per-channel publish record, used by publisher.js to skip channels a deal was already
+    // sent to when the same deal gets re-verified later (e.g. re-posted from a second source
+    // channel, or re-seen after the 60-min in-process dedup window). This field was missing
+    // from this copy of the schema even though publisher.js has always written to it — under
+    // Mongoose's default strict mode an update to a path the schema doesn't define is silently
+    // dropped, so every publish's $addToSet here was a no-op and nothing was ever tracked.
+    outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }]
   },
   createdAt: { 
     type: Date, 

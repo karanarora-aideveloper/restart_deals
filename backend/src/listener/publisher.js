@@ -44,6 +44,18 @@ export async function publishToTelegram(client, deal) {
 
     // Fallback: If DB output_channels collection is empty, publish to default Telegram channel from .env
     if (activeOutputChannels.length === 0) {
+      // Idempotency: verifyAndProcessMessage() returns a deal both when it creates a NEW
+      // one and when it re-verifies and UPDATES an existing one (the same product re-seen
+      // more than 60min after last processing — e.g. reposted from a different source
+      // channel, or just seen again later). The caller in telegram.js publishes on any
+      // truthy return, with no distinction between the two, so without this check every
+      // re-verification re-sent the deal here — and this fallback channel has no
+      // configurable rate limit at all to catch it.
+      if (deal.publishedStatus?.telegram) {
+        console.log(`[Publisher] Deal "${deal.title}" already published via default channel fallback. Skipping re-publish.`);
+        return true;
+      }
+
       console.log('[Publisher] No custom OutputChannels found in DB. Falling back to default .env Telegram channel configuration.');
       const fallbackUsername = dealCategory === 'fitness'
         ? config.telegram.fitnessChannel
@@ -66,11 +78,28 @@ export async function publishToTelegram(client, deal) {
       return success;
     }
 
+    // Idempotency, per matching channel: skip any channel this deal was already sent to
+    // (tracked in publishedStatus.outputChannels — same re-verification issue as above).
+    // This also means a channel added *after* a deal's first publish still gets it, since
+    // only channels actually recorded as sent-to are excluded.
+    const alreadyPublishedIds = new Set(
+      (deal.publishedStatus?.outputChannels || []).map(id => id.toString())
+    );
+    const channelsToPublish = activeOutputChannels.filter(c => !alreadyPublishedIds.has(c._id.toString()));
+
+    if (channelsToPublish.length === 0) {
+      console.log(`[Publisher] Deal "${deal.title}" already published to all ${activeOutputChannels.length} matching channel(s). Skipping re-publish.`);
+      return true;
+    }
+    if (channelsToPublish.length < activeOutputChannels.length) {
+      console.log(`[Publisher] Deal "${deal.title}" already published to ${activeOutputChannels.length - channelsToPublish.length} channel(s); publishing to ${channelsToPublish.length} new match(es) only.`);
+    }
+
     let anySuccess = false;
     const publishedChannelIds = [];
 
-    // Publish to all matching channels concurrently
-    for (const channelDoc of activeOutputChannels) {
+    // Publish to all matching, not-yet-published channels
+    for (const channelDoc of channelsToPublish) {
       let success = false;
 
       if (isRateLimited(channelDoc)) {
