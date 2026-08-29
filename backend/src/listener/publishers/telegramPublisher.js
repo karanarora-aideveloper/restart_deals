@@ -7,8 +7,14 @@ export function formatTelegramMessage(deal, channelUsername) {
     ? `₹${deal.dealPrice.toLocaleString('en-IN')}` 
     : 'Special Price';
 
+  // A price_history deal has no originalPrice (that's precisely why it took this path — see
+  // verifier.js) so this used to render nothing at all: a bare price with zero drop context,
+  // even though we know exactly what it fell from (deal.previousPrice). Show that instead.
   let originalPriceLine = '';
-  if (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice) {
+  if (deal.priceSource === 'price_history' && deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice) {
+    const priorPriceStr = `₹${deal.previousPrice.toLocaleString('en-IN')}`;
+    originalPriceLine = `📉 Price Dropped: <s>${priorPriceStr}</s> (<b>${deal.discountPercentage}% OFF</b>)\n`;
+  } else if (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice) {
     const origPriceStr = `₹${deal.originalPrice.toLocaleString('en-IN')}`;
     originalPriceLine = `❌ Original Price: <s>${origPriceStr}</s> (<b>${deal.discountPercentage}% OFF</b>)\n`;
   }
