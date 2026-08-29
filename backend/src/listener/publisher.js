@@ -21,11 +21,34 @@ function isRateLimited(channelDoc) {
 }
 
 /**
+ * A stable identity for "where this deal was actually sent", independent of which code
+ * path sent it or whether a real OutputChannel document exists for it.
+ *
+ * This is the dedup key idempotency is built on, rather than OutputChannel._id, because
+ * the fallback .env channel (used when zero DB channels match) has no _id at all — and,
+ * critically, can point at the exact same physical Telegram channel a real OutputChannel
+ * doc also points at (that's the normal case here: the fallback username and the "General
+ * Deals" channel's username are the same handle). An admin editing a channel's country/
+ * category to match more deals — the ordinary, expected kind of config change — otherwise
+ * makes every deal that channel is a coincidental fallback-match for start matching it for
+ * real, and an ID-only check can't see they already reached the same destination.
+ */
+function destinationKey(platform, channelDoc) {
+  if (platform === 'telegram') {
+    const handle = (channelDoc.credentials?.channelUsername || '').toLowerCase().replace(/^@/, '');
+    return `telegram:${handle}`;
+  }
+  // Twitter/WhatsApp have no fallback path (see below), so a real OutputChannel doc always
+  // exists for them and its _id is a stable, sufficient identity.
+  return `${platform}:${channelDoc._id}`;
+}
+
+/**
  * Publish deal to all active OutputChannels matching the deal's country and category.
  * Falls back to default .env config if no OutputChannels exist in DB.
- * 
- * @param {TelegramClient} client 
- * @param {object} deal 
+ *
+ * @param {TelegramClient} client
+ * @param {object} deal
  * @returns {Promise<boolean>}
  */
 export async function publishToTelegram(client, deal) {
@@ -42,20 +65,18 @@ export async function publishToTelegram(client, deal) {
 
     console.log(`[Publisher] Found ${activeOutputChannels.length} active output channels matching Country="${dealCountry}", Category="${dealCategory}".`);
 
+    // Idempotency: verifyAndProcessMessage() returns a deal both when it creates a NEW one
+    // and when it re-verifies and UPDATES an existing one (the same product re-seen more
+    // than 60min after last processing — e.g. reposted from a different source channel, or
+    // just seen again later, or newly matching a channel whose country/category an admin
+    // just edited). The caller in telegram.js publishes on any truthy return, with no
+    // distinction between the two, so without this every re-verification re-sent the deal
+    // to every destination it resolves to — see destinationKey() above for why that has to
+    // be checked by actual destination, not by OutputChannel._id or a single boolean.
+    const alreadySent = new Set(deal.publishedStatus?.publishedTo || []);
+
     // Fallback: If DB output_channels collection is empty, publish to default Telegram channel from .env
     if (activeOutputChannels.length === 0) {
-      // Idempotency: verifyAndProcessMessage() returns a deal both when it creates a NEW
-      // one and when it re-verifies and UPDATES an existing one (the same product re-seen
-      // more than 60min after last processing — e.g. reposted from a different source
-      // channel, or just seen again later). The caller in telegram.js publishes on any
-      // truthy return, with no distinction between the two, so without this check every
-      // re-verification re-sent the deal here — and this fallback channel has no
-      // configurable rate limit at all to catch it.
-      if (deal.publishedStatus?.telegram) {
-        console.log(`[Publisher] Deal "${deal.title}" already published via default channel fallback. Skipping re-publish.`);
-        return true;
-      }
-
       console.log('[Publisher] No custom OutputChannels found in DB. Falling back to default .env Telegram channel configuration.');
       const fallbackUsername = dealCategory === 'fitness'
         ? config.telegram.fitnessChannel
@@ -67,38 +88,42 @@ export async function publishToTelegram(client, deal) {
         platform: 'telegram',
         credentials: { channelUsername: fallbackUsername }
       };
+      const key = destinationKey('telegram', fallbackDoc);
+
+      if (alreadySent.has(key)) {
+        console.log(`[Publisher] Deal "${deal.title}" already published to ${key}. Skipping re-publish.`);
+        return true;
+      }
 
       const success = await publishTelegram(client, deal, fallbackDoc);
       if (success) {
         await Deal.findByIdAndUpdate(deal._id, {
           'publishedStatus.telegram': true,
+          $addToSet: { 'publishedStatus.publishedTo': key },
           updatedAt: new Date()
         });
       }
       return success;
     }
 
-    // Idempotency, per matching channel: skip any channel this deal was already sent to
-    // (tracked in publishedStatus.outputChannels — same re-verification issue as above).
-    // This also means a channel added *after* a deal's first publish still gets it, since
-    // only channels actually recorded as sent-to are excluded.
-    const alreadyPublishedIds = new Set(
-      (deal.publishedStatus?.outputChannels || []).map(id => id.toString())
+    const channelsToPublish = activeOutputChannels.filter(
+      c => !alreadySent.has(destinationKey(c.platform, c))
     );
-    const channelsToPublish = activeOutputChannels.filter(c => !alreadyPublishedIds.has(c._id.toString()));
 
     if (channelsToPublish.length === 0) {
-      console.log(`[Publisher] Deal "${deal.title}" already published to all ${activeOutputChannels.length} matching channel(s). Skipping re-publish.`);
+      console.log(`[Publisher] Deal "${deal.title}" already published to all ${activeOutputChannels.length} matching destination(s). Skipping re-publish.`);
       return true;
     }
     if (channelsToPublish.length < activeOutputChannels.length) {
-      console.log(`[Publisher] Deal "${deal.title}" already published to ${activeOutputChannels.length - channelsToPublish.length} channel(s); publishing to ${channelsToPublish.length} new match(es) only.`);
+      console.log(`[Publisher] Deal "${deal.title}" already published to ${activeOutputChannels.length - channelsToPublish.length} destination(s); publishing to ${channelsToPublish.length} new match(es) only.`);
     }
 
     let anySuccess = false;
+    let anyTelegramSuccess = false;
     const publishedChannelIds = [];
+    const publishedKeys = [];
 
-    // Publish to all matching, not-yet-published channels
+    // Publish to all matching, not-yet-published destinations
     for (const channelDoc of channelsToPublish) {
       let success = false;
 
@@ -118,16 +143,19 @@ export async function publishToTelegram(client, deal) {
 
       if (success) {
         anySuccess = true;
+        if (channelDoc.platform === 'telegram') anyTelegramSuccess = true;
         publishedChannelIds.push(channelDoc._id);
+        publishedKeys.push(destinationKey(channelDoc.platform, channelDoc));
       }
     }
 
     // Mark published status in Deal record
     if (anySuccess) {
       await Deal.findByIdAndUpdate(deal._id, {
-        'publishedStatus.telegram': true,
+        ...(anyTelegramSuccess ? { 'publishedStatus.telegram': true } : {}),
         $addToSet: {
-          'publishedStatus.outputChannels': { $each: publishedChannelIds }
+          'publishedStatus.outputChannels': { $each: publishedChannelIds },
+          'publishedStatus.publishedTo': { $each: publishedKeys }
         },
         updatedAt: new Date()
       });

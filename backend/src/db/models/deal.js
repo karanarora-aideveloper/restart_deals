@@ -133,7 +133,13 @@ const dealSchema = new mongoose.Schema({
     // from this copy of the schema even though publisher.js has always written to it — under
     // Mongoose's default strict mode an update to a path the schema doesn't define is silently
     // dropped, so every publish's $addToSet here was a no-op and nothing was ever tracked.
-    outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }]
+    outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }],
+    // The actual dedup key publisher.js checks before sending — e.g. "telegram:amazondeallovers".
+    // Keyed by destination, not by OutputChannel._id, because the .env fallback channel (used
+    // when zero DB channels match) has no _id, and can point at the exact same physical
+    // Telegram channel a real OutputChannel doc also points at. outputChannels above can't
+    // catch that overlap; this can, and is what idempotency actually relies on.
+    publishedTo: [{ type: String }]
   },
   createdAt: { 
     type: Date, 

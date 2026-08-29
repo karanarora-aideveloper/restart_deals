@@ -124,7 +124,12 @@ const dealSchema = new mongoose.Schema({
     telegram: { type: Boolean, default: false },
     twitter: { type: Boolean, default: false },
     whatsapp: { type: Boolean, default: false },
-    outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }]
+    outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }],
+    // Mirrors backend/src/db/models/deal.js — the actual dedup key publisher.js checks
+    // before sending, e.g. "telegram:amazondeallovers". Keyed by destination rather than
+    // OutputChannel._id because the .env fallback channel has no _id and can point at the
+    // exact same physical channel a real OutputChannel doc also points at.
+    publishedTo: [{ type: String }]
   },
   createdAt: { 
     type: Date, 
