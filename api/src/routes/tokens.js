@@ -80,8 +80,9 @@ router.get('/logs', async (req, res) => {
 
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [stats24h, queueState] = await Promise.all([
+    const [stats24h, stats7d, queueState] = await Promise.all([
       ScrapingLog.aggregate([
         { $match: { createdAt: { $gte: last24h } } },
         {
@@ -96,6 +97,22 @@ router.get('/logs', async (req, res) => {
           },
         },
       ]),
+      // 7-day window feeds Capacity Planning on /settings/tokens — a
+      // trailing week is far less noisy than a single day for "what's our
+      // real non-amazon.in scrape share and daily volume", which is what
+      // actually determines the residential-vs-standard credit mix and how
+      // many tokens the pool needs. Derived from real traffic, not an
+      // admin guess.
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: last7d } } },
+        {
+          $group: {
+            _id: null,
+            totalScrapes: { $sum: 1 },
+            amazonInScrapes: { $sum: { $cond: [{ $regexMatch: { input: '$domain', regex: /amazon\.in/ } }, 1, 0] } },
+          },
+        },
+      ]),
       scraperQueue.getStatus(),
     ]);
 
@@ -107,6 +124,12 @@ router.get('/logs', async (req, res) => {
       avgDuration: 0,
       concurrency409: 0,
     };
+
+    const cap7d = stats7d[0] || { totalScrapes: 0, amazonInScrapes: 0 };
+    const scrapesPerDay7dAvg = cap7d.totalScrapes / 7;
+    const nonAmazonInSharePercent7d = cap7d.totalScrapes > 0
+      ? Math.round(((cap7d.totalScrapes - cap7d.amazonInScrapes) / cap7d.totalScrapes) * 100)
+      : 0;
 
     res.json({
       success: true,
@@ -125,6 +148,9 @@ router.get('/logs', async (req, res) => {
         avgDurationMs: Math.round(metrics.avgDuration || 0),
         concurrency409Avoided: metrics.concurrency409,
         queue: queueState,
+        scrapesPerDay7dAvg,
+        nonAmazonInSharePercent7d,
+        totalScrapes7d: cap7d.totalScrapes,
       },
     });
   } catch (error) {
