@@ -62,6 +62,60 @@ function extractJsonLdPrice($) {
   return result;
 }
 
+// Flipkart's schema.org JSON-LD Offer has NO standard MRP field — confirmed live 2026-08-30
+// against a real product with an active 52% discount: offer.highPrice simply doesn't exist,
+// so extractJsonLdPrice()'s originalPrice is structurally always null there, not a parsing miss.
+// This is the second "connector": Flipkart's rendered strikethrough MRP element carries
+// `text-decoration-line: line-through` as an INLINE style attribute (confirmed live) — a
+// hash-independent signal that survives even though the CSS-in-JS class names rotate build to
+// build (the old ._30jeq3/._3I9_R3 selectors are dead for exactly that reason).
+//
+// A raw scan for this alone isn't safe to trust directly, though — confirmed live on the SAME
+// page: the main buybox sits above several "similar products" carousels, each with its own
+// price/strikethrough/discount triplet, and a naive "first strikethrough found" grabbed a
+// CAROUSEL item's price, not the product being scraped. And Flipkart shows more than one kind of
+// "X% off" badge on a page (bank/coupon offers alongside the actual MRP-vs-price discount), so
+// blindly trusting the first one found isn't safe either — it can be the wrong kind entirely.
+//
+// The fix: treat a strikethrough value as real MRP ONLY when it's cross-validated — some
+// discount percentage found elsewhere on the page, applied to the live price
+// (round(price / (1-discount%))), actually reconciles with that specific candidate. Every
+// {candidate, discount} pair is checked, not just the first of each, since the correct pairing
+// isn't guaranteed to be the first instance of either in document order. No confirmed match
+// means an honest null, not a guess — consistent with this pipeline's "fail closed" rule
+// (see this file's top docblock): a plausible-but-wrong MRP is worse than a missing one.
+function extractFlipkartMRP($, livePrice) {
+  if (!livePrice) return null;
+
+  const strikeCandidates = [];
+  $('*').each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length > 0) return; // leaf nodes only — avoid double-counting containers
+    const style = $el.attr('style') || '';
+    if (!/line-through/.test(style)) return;
+    const val = parsePriceText($el.text());
+    if (val !== null && val > livePrice) strikeCandidates.push(val);
+  });
+  if (strikeCandidates.length === 0) return null;
+
+  const discountPercents = new Set();
+  $('*').each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length > 0) return;
+    const m = $el.text().trim().match(/^(\d{1,2})%\s*off$/i);
+    if (m) discountPercents.add(parseInt(m[1], 10));
+  });
+  if (discountPercents.size === 0) return null;
+
+  for (const candidate of strikeCandidates) {
+    for (const discount of discountPercents) {
+      const derived = Math.round(livePrice / (1 - discount / 100));
+      if (Math.abs(candidate - derived) <= Math.max(2, derived * 0.02)) return candidate;
+    }
+  }
+  return null;
+}
+
 export function parseProductHtml(html, targetUrl) {
   if (!html) return null;
   const $ = cheerio.load(html);
@@ -161,15 +215,18 @@ export function parseProductHtml(html, targetUrl) {
       if (src && !images.includes(src)) images.push(src);
     });
 
-    // Flipkart Price — JSON-LD first. The hashed class names below rotate and are
-    // already dead against live markup; they stay only as a fallback.
+    // Flipkart Price — JSON-LD first for the live price. The hashed class-name selectors
+    // below are already dead against live markup; they stay only as a last-resort fallback.
     const fkLd = extractJsonLdPrice($);
     if (fkLd.price !== null) {
       price = fkLd.price;
-      originalPrice = fkLd.originalPrice;
     } else {
       price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
     }
+    // MRP never comes from JSON-LD on Flipkart (see extractFlipkartMRP()'s docblock — the
+    // field structurally doesn't exist there); this is the real extraction path, once `price`
+    // is known.
+    if (price !== null) originalPrice = extractFlipkartMRP($, price);
     if (originalPrice === null) {
       originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
     }

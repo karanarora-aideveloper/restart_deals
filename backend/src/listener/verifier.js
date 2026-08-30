@@ -402,6 +402,61 @@ function extractJsonLdPrice($) {
   return result;
 }
 
+// Flipkart's schema.org JSON-LD Offer has NO standard MRP field — confirmed live 2026-08-30
+// against a real product with an active 52% discount: offer.highPrice simply doesn't exist,
+// so extractJsonLdPrice()'s originalPrice is structurally always null there, not a parsing miss
+// (see api/src/utils/productScraper.js's matching function for the full investigation). This is
+// the second "connector": Flipkart's rendered strikethrough MRP element carries
+// `text-decoration-line: line-through` as an INLINE style attribute — a hash-independent signal
+// that survives even though the CSS-in-JS class names rotate build to build (the old
+// ._30jeq3/._3I9_R3 selectors are dead for exactly that reason).
+//
+// A raw scan for this alone isn't safe to trust directly, though — confirmed live on the SAME
+// page: the main buybox sits above several "similar products" carousels, each with its own
+// price/strikethrough/discount triplet, and a naive "first strikethrough found" grabbed a
+// CAROUSEL item's price, not the product being scraped. And Flipkart shows more than one kind of
+// "X% off" badge on a page (bank/coupon offers alongside the actual MRP-vs-price discount), so
+// blindly trusting the first one found isn't safe either — it can be the wrong kind entirely.
+//
+// The fix: treat a strikethrough value as real MRP ONLY when it's cross-validated — some
+// discount percentage found elsewhere on the page, applied to the live price
+// (round(price / (1-discount%))), actually reconciles with that specific candidate. Every
+// {candidate, discount} pair is checked, not just the first of each, since the correct pairing
+// isn't guaranteed to be the first instance of either in document order. No confirmed match
+// means an honest null, not a guess — this pipeline's whole design principle is that MRP must
+// come from real page data, never inferred/guessed (see the price-history docblock further down).
+function extractFlipkartMRP($, livePrice) {
+  if (!livePrice) return null;
+
+  const strikeCandidates = [];
+  $('*').each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length > 0) return; // leaf nodes only — avoid double-counting containers
+    const style = $el.attr('style') || '';
+    if (!/line-through/.test(style)) return;
+    const val = parsePriceText($el.text());
+    if (val !== null && val > livePrice) strikeCandidates.push(val);
+  });
+  if (strikeCandidates.length === 0) return null;
+
+  const discountPercents = new Set();
+  $('*').each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length > 0) return;
+    const m = $el.text().trim().match(/^(\d{1,2})%\s*off$/i);
+    if (m) discountPercents.add(parseInt(m[1], 10));
+  });
+  if (discountPercents.size === 0) return null;
+
+  for (const candidate of strikeCandidates) {
+    for (const discount of discountPercents) {
+      const derived = Math.round(livePrice / (1 - discount / 100));
+      if (Math.abs(candidate - derived) <= Math.max(2, derived * 0.02)) return candidate;
+    }
+  }
+  return null;
+}
+
 export async function scrapeProductDetails(targetUrl) {
   try {
     const html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
@@ -515,17 +570,19 @@ export async function scrapeProductDetails(targetUrl) {
         if (src && !images.includes(src)) images.push(src);
       });
 
-      // Flipkart Price Extraction — JSON-LD first. Flipkart's class names are hashed and rotate
-      // (._30jeq3/._3I9_R3 below are already dead against live markup); the schema.org
-      // Product.offers block has stayed stable, and its Product.category field (e.g. "mouse")
-      // doubles as the categoryHint Flipkart has no breadcrumb equivalent for.
+      // Flipkart Price Extraction — JSON-LD first for the live price. Flipkart's class names
+      // are hashed and rotate (._30jeq3/._3I9_R3 below are already dead against live markup);
+      // the schema.org Product.offers block has stayed stable for `price`, and its
+      // Product.category field (e.g. "mouse") doubles as the categoryHint Flipkart has no
+      // breadcrumb equivalent for. MRP never comes from JSON-LD here — see
+      // extractFlipkartMRP()'s docblock — that's the real extraction path below.
       const fkLd = extractJsonLdPrice($);
       if (fkLd.price !== null) {
         price = fkLd.price;
-        if (fkLd.originalPrice !== null) originalPrice = fkLd.originalPrice;
       } else {
         price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
       }
+      if (price !== null) originalPrice = extractFlipkartMRP($, price);
       if (originalPrice === null) {
         originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
       }
