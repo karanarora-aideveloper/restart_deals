@@ -482,11 +482,12 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-// TEMPORARY — incident diagnostic for the 2026-08-30 Redis memory investigation. Removes
-// the guesswork: reports Redis's own INFO memory stats plus the actual largest keys in the
-// keyspace right now, since the aggregate memory_usage metric alone can't say WHAT is large.
-// Safe to leave mounted (read-only, admin-auth-protected) but should be deleted once the
-// investigation concludes — see /architecture's Pipeline Diagram tab or ask Claude for status.
+// Redis health/memory diagnostic — built during the 2026-08-30 memory-leak incident
+// (bull:scraper-queue:events was silently eating 96% of the Redis budget; see
+// scraperQueue.js's streams.events.maxLen comment for the full writeup) and kept
+// permanently rather than deleted: with another scraper worker planned, this is the
+// fastest way to check "is anything ballooning again" without re-deriving the diagnosis
+// from scratch. Read-only, admin-auth-protected.
 router.get('/redis-debug', async (req, res) => {
   try {
     const infoRaw = await defaultRedis.info('memory');
