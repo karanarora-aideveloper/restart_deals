@@ -482,4 +482,66 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+// TEMPORARY — incident diagnostic for the 2026-08-30 Redis memory investigation. Removes
+// the guesswork: reports Redis's own INFO memory stats plus the actual largest keys in the
+// keyspace right now, since the aggregate memory_usage metric alone can't say WHAT is large.
+// Safe to leave mounted (read-only, admin-auth-protected) but should be deleted once the
+// investigation concludes — see /architecture's Pipeline Diagram tab or ask Claude for status.
+router.get('/redis-debug', async (req, res) => {
+  try {
+    const infoRaw = await defaultRedis.info('memory');
+    const info = {};
+    infoRaw.split('\r\n').forEach(line => {
+      if (!line || line.startsWith('#')) return;
+      const [k, v] = line.split(':');
+      if (k) info[k] = v;
+    });
+
+    const dbsize = await defaultRedis.dbsize();
+
+    // Sample the keyspace (capped at 2000 keys so this can't itself become a slow/expensive
+    // scan on a busy instance) and rank by MEMORY USAGE — the actual per-key footprint.
+    const keys = [];
+    let cursor = '0';
+    do {
+      const [nextCursor, batch] = await defaultRedis.scan(cursor, 'COUNT', 500);
+      cursor = nextCursor;
+      keys.push(...batch);
+    } while (cursor !== '0' && keys.length < 2000);
+
+    const sized = await Promise.all(
+      keys.slice(0, 2000).map(async (key) => {
+        try {
+          const [bytes, type] = await Promise.all([
+            defaultRedis.memory('USAGE', key),
+            defaultRedis.type(key),
+          ]);
+          let extra = null;
+          if (type === 'list') extra = await defaultRedis.llen(key).catch(() => null);
+          else if (type === 'hash') extra = await defaultRedis.hlen(key).catch(() => null);
+          else if (type === 'zset') extra = await defaultRedis.zcard(key).catch(() => null);
+          else if (type === 'set') extra = await defaultRedis.scard(key).catch(() => null);
+          return { key, type, bytes: bytes || 0, length: extra };
+        } catch {
+          return { key, type: 'unknown', bytes: 0, length: null };
+        }
+      })
+    );
+
+    sized.sort((a, b) => b.bytes - a.bytes);
+
+    res.json({
+      usedMemoryHuman: info.used_memory_human,
+      usedMemoryBytes: parseInt(info.used_memory || '0', 10),
+      maxmemoryHuman: info.maxmemory_human,
+      fragmentationRatio: info.mem_fragmentation_ratio,
+      dbsize,
+      keysScanned: keys.length,
+      topKeysByMemory: sized.slice(0, 25),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
