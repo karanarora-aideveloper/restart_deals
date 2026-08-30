@@ -103,12 +103,15 @@ export async function executeScrapingAntJob(url, source = 'other') {
   const isUs = url.includes('amazon.com') || url.includes('.us');
   const countryParam = isUs ? '&country=US' : '&country=IN';
 
-  // Proxy tier: amazon.in works fine on ScrapingAnt's standard/datacenter
-  // proxies (10 credits/scrape) — everything else (Flipkart, Myntra, Nykaa,
-  // etc.) gets blocked on standard and needs residential (125 credits/scrape,
-  // 12.5x the cost). This is a real, deliberate cost/reliability tradeoff —
-  // see the Capacity Planning panel on /settings/tokens for the credit math.
-  const proxyType = url.includes('amazon.in') ? 'datacenter' : 'residential';
+  // Proxy tier: all amazon.* marketplaces (amazon.in, amazon.com, amazon.co.uk,
+  // etc.) work fine on ScrapingAnt's standard/datacenter proxies (10
+  // credits/scrape) — everything else (Flipkart, Myntra, Nykaa, etc.) gets
+  // blocked on standard and needs residential (125 credits/scrape, 12.5x the
+  // cost). Keyed off the domain (not just amazon.in) so this keeps working as
+  // we expand to more amazon marketplaces globally. This is a real, deliberate
+  // cost/reliability tradeoff — see the Capacity Planning panel on
+  // /settings/tokens for the credit math.
+  const proxyType = /amazon\./.test(url) ? 'datacenter' : 'residential';
 
   const buildApiUrl = (t) =>
     `https://api.scrapingant.com/v2/general?x-api-key=${t}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;

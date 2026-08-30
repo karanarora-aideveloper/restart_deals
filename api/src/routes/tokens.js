@@ -99,17 +99,19 @@ router.get('/logs', async (req, res) => {
       ]),
       // 7-day window feeds Capacity Planning on /settings/tokens — a
       // trailing week is far less noisy than a single day for "what's our
-      // real non-amazon.in scrape share and daily volume", which is what
+      // real non-amazon scrape share and daily volume", which is what
       // actually determines the residential-vs-standard credit mix and how
       // many tokens the pool needs. Derived from real traffic, not an
-      // admin guess.
+      // admin guess. Matches any amazon.* marketplace (amazon.in, .com,
+      // .co.uk, etc.) — scraperWorker.js gives standard/datacenter proxy
+      // to all of them as we expand to more marketplaces globally.
       ScrapingLog.aggregate([
         { $match: { createdAt: { $gte: last7d } } },
         {
           $group: {
             _id: null,
             totalScrapes: { $sum: 1 },
-            amazonInScrapes: { $sum: { $cond: [{ $regexMatch: { input: '$domain', regex: /amazon\.in/ } }, 1, 0] } },
+            amazonScrapes: { $sum: { $cond: [{ $regexMatch: { input: '$domain', regex: /amazon\./ } }, 1, 0] } },
           },
         },
       ]),
@@ -125,10 +127,10 @@ router.get('/logs', async (req, res) => {
       concurrency409: 0,
     };
 
-    const cap7d = stats7d[0] || { totalScrapes: 0, amazonInScrapes: 0 };
+    const cap7d = stats7d[0] || { totalScrapes: 0, amazonScrapes: 0 };
     const scrapesPerDay7dAvg = cap7d.totalScrapes / 7;
-    const nonAmazonInSharePercent7d = cap7d.totalScrapes > 0
-      ? Math.round(((cap7d.totalScrapes - cap7d.amazonInScrapes) / cap7d.totalScrapes) * 100)
+    const nonAmazonSharePercent7d = cap7d.totalScrapes > 0
+      ? Math.round(((cap7d.totalScrapes - cap7d.amazonScrapes) / cap7d.totalScrapes) * 100)
       : 0;
 
     res.json({
@@ -149,7 +151,7 @@ router.get('/logs', async (req, res) => {
         concurrency409Avoided: metrics.concurrency409,
         queue: queueState,
         scrapesPerDay7dAvg,
-        nonAmazonInSharePercent7d,
+        nonAmazonSharePercent7d,
         totalScrapes7d: cap7d.totalScrapes,
       },
     });
