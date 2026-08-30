@@ -22,6 +22,43 @@ function getTodayDateString() {
 }
 
 /**
+ * Save a product, retrying once against a freshly-fetched copy on a Mongoose VersionError.
+ *
+ * BUG (fixed): confirmed live — "No matching document found for id ... version 0 ...".
+ * A single scrape here (scrapeProductUrl, through the shared distributed queue) can take
+ * 90-200s, and the Product document is fetched once at the top of the batch and held in
+ * memory for that whole time. If verifier.js or bestsellerCrawler.js touches the SAME
+ * product in that window (very plausible — a Telegram post or crawler hit for a product
+ * already mid-refresh), this document's version has moved on by the time we .save(), and
+ * Mongoose's optimistic-concurrency check rejects the whole write.
+ *
+ * The previous behavior silently discarded the whole iteration's real work (price update,
+ * price-history checkpoint, deal expiry/synthesis) on that rejection, then tried a fallback
+ * `product.save()` using the SAME stale in-memory document — which fails with the identical
+ * VersionError every time, swallowed by `.catch(() => {})`. Net effect: lastChecked never
+ * advanced, so a product contended by two pipelines could keep losing to this race on every
+ * subsequent cycle without ever making progress.
+ *
+ * Fix: on VersionError, re-fetch the current document and replay only OUR modified paths
+ * onto it — preserving whatever the concurrent writer changed for paths we didn't touch,
+ * rather than blindly overwriting or blindly giving up.
+ */
+async function saveWithRetry(doc) {
+  try {
+    await doc.save();
+  } catch (err) {
+    if (err.name !== 'VersionError') throw err;
+    const changedPaths = doc.modifiedPaths();
+    const fresh = await Product.findById(doc._id);
+    if (!fresh) throw err; // deleted out from under us — nothing to retry against
+    for (const path of changedPaths) {
+      fresh.set(path, doc.get(path));
+    }
+    await fresh.save();
+  }
+}
+
+/**
  * Refresh a batch of stale products (lastChecked < 24h ago).
  * Prioritizes products attached to active deals and price alerts.
  * 
@@ -76,8 +113,10 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
       try {
         if (!product.cleanUrl) {
-          product.lastChecked = now;
-          await product.save();
+          // Atomic single-field bump, not a full versioned save — nothing else in this
+          // branch touched the document, so there's no work to lose to a version conflict
+          // and no reason to risk one.
+          await Product.updateOne({ _id: product._id }, { $set: { lastChecked: now } });
           continue;
         }
 
@@ -143,7 +182,7 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
           product.lastChecked = now;
           product.updatedAt = now;
-          await product.save();
+          await saveWithRetry(product);
 
           // 3. Evaluate Attached Deals for Expiration
           const matchingDeals = await Deal.find({
@@ -267,9 +306,9 @@ export async function refreshStaleProductBatch(batchSize = 10) {
           }
 
         } else {
-          // Scrape failed or product unreachable, mark lastChecked so we move on to next
-          product.lastChecked = now;
-          await product.save();
+          // Scrape failed or product unreachable, mark lastChecked so we move on to next —
+          // atomic, same reasoning as the no-cleanUrl branch above.
+          await Product.updateOne({ _id: product._id }, { $set: { lastChecked: now } });
         }
 
         // Pacing delay between product requests (1 second) to be gentle on servers & proxies
@@ -277,8 +316,12 @@ export async function refreshStaleProductBatch(batchSize = 10) {
       } catch (prodErr) {
         console.error(`[Daily Refresher Error] Failed for product ${product.productId}:`, prodErr.message);
         stats.errors++;
-        product.lastChecked = now;
-        await product.save().catch(() => {});
+        // Atomic, not a re-save of the stale in-memory doc — the previous version's fallback
+        // re-tried .save() on the exact same object that just failed (often from a
+        // VersionError, see saveWithRetry()'s docblock above), which fails identically every
+        // time and was silently swallowed, leaving lastChecked stuck and this product
+        // eligible for immediate re-selection next cycle regardless of what actually failed.
+        await Product.updateOne({ _id: product._id }, { $set: { lastChecked: now } }).catch(() => {});
       }
     }
 
