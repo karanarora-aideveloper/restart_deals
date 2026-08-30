@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "worker:scraper": "node src/services/scraperWorker.js",
+    "keep-warm": "node src/scripts/keepWorkersWarm.js",
     "postinstall": "playwright install chromium chromium-headless-shell || echo '[postinstall] Playwright browser install failed — Auto-Scrape Tokens will not work until this is resolved.'"
   },
   "dependencies": {
