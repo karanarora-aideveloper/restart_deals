@@ -105,15 +105,22 @@ export async function executeScrapingAntJob(url, source = 'other') {
   const isUs = url.includes('amazon.com') || url.includes('.us');
   const countryParam = isUs ? '&country=US' : '&country=IN';
 
-  // Proxy tier: all amazon.* marketplaces (amazon.in, amazon.com, amazon.co.uk,
-  // etc.) work fine on ScrapingAnt's standard/datacenter proxies (10
-  // credits/scrape) — everything else (Flipkart, Myntra, Nykaa, etc.) gets
-  // blocked on standard and needs residential (125 credits/scrape, 12.5x the
-  // cost). Keyed off the domain (not just amazon.in) so this keeps working as
-  // we expand to more amazon marketplaces globally. This is a real, deliberate
-  // cost/reliability tradeoff — see the Capacity Planning panel on
-  // /settings/tokens for the credit math.
-  const proxyType = /amazon\./.test(url) ? 'datacenter' : 'residential';
+  // Proxy tier: amazon.in works fine on ScrapingAnt's standard/datacenter proxies (10
+  // credits/scrape). amazon.com does NOT — confirmed live 2026-08-30 by pulling 500 recent
+  // ScrapingLog entries: amazon.com on datacenter succeeded only 36% of the time (117/500
+  // hit Amazon's own 423 "Anti-scraping protection" block, another 188/500 hung until
+  // ScrapingAnt's own gateway gave up around ~30s — consistent with Amazon serving a slow
+  // CAPTCHA/verification challenge to a datacenter IP that never resolves) vs amazon.in on
+  // the IDENTICAL proxy tier succeeding 91% of the time. Same code, same proxy type, same
+  // worker fleet — the only variable was which Amazon marketplace, which isolates the cause
+  // to Amazon's US bot detection being measurably more aggressive than India's against
+  // non-residential IPs. This was briefly widened to "any amazon.* marketplace" to support
+  // expanding to more marketplaces; that assumption held for amazon.in but not amazon.com,
+  // so it's back to naming amazon.in specifically — extend to another TLD only once it's
+  // been confirmed live the same way, not by assumption. Everything else (Flipkart, Myntra,
+  // Nykaa, amazon.com, etc.) uses residential (125 credits/scrape, 12.5x the cost) — see the
+  // Capacity Planning panel on /settings/tokens for the credit math.
+  const proxyType = url.includes('amazon.in') ? 'datacenter' : 'residential';
 
   const buildApiUrl = (t) =>
     `https://api.scrapingant.com/v2/general?x-api-key=${t}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;

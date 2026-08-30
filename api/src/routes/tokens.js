@@ -99,19 +99,21 @@ router.get('/logs', async (req, res) => {
       ]),
       // 7-day window feeds Capacity Planning on /settings/tokens — a
       // trailing week is far less noisy than a single day for "what's our
-      // real non-amazon scrape share and daily volume", which is what
+      // real non-amazon.in scrape share and daily volume", which is what
       // actually determines the residential-vs-standard credit mix and how
       // many tokens the pool needs. Derived from real traffic, not an
-      // admin guess. Matches any amazon.* marketplace (amazon.in, .com,
-      // .co.uk, etc.) — scraperWorker.js gives standard/datacenter proxy
-      // to all of them as we expand to more marketplaces globally.
+      // admin guess. Matches amazon.in specifically, not every amazon.*
+      // marketplace — confirmed live 2026-08-30 that amazon.com does NOT get
+      // the cheap standard/datacenter tier (see scraperWorker.js's matching
+      // comment: it fails there 64% of the time), so counting it here would
+      // overstate how much traffic actually gets the 10-credit tier.
       ScrapingLog.aggregate([
         { $match: { createdAt: { $gte: last7d } } },
         {
           $group: {
             _id: null,
             totalScrapes: { $sum: 1 },
-            amazonScrapes: { $sum: { $cond: [{ $regexMatch: { input: '$domain', regex: /amazon\./ } }, 1, 0] } },
+            amazonScrapes: { $sum: { $cond: [{ $regexMatch: { input: '$domain', regex: /amazon\.in/ } }, 1, 0] } },
           },
         },
       ]),
