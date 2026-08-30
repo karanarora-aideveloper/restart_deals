@@ -32,6 +32,20 @@ class DistributedScraperQueue {
       const redisConnection = createRedisConnection();
       this.queue = new Queue('scraper-queue', {
         connection: redisConnection,
+        // ACTUAL root cause of the 2026-08-30 incident (the removeOnComplete fix below and
+        // the gzip fix in scraperWorker.js were real bugs worth fixing but were NOT this):
+        // BullMQ auto-logs every job lifecycle event (added/active/completed/failed/...) to
+        // a Redis Stream at `bull:scraper-queue:events`, written by the Queue/Worker
+        // regardless of whether anything (e.g. QueueEvents) is listening to it — and nothing
+        // in this codebase does; QueueEvents was removed from both scraperQueue.js copies in
+        // an earlier fix. BullMQ's own default cap for this stream is 10,000 entries, and
+        // confirmed live via a one-off diagnostic (GET /api/admin/redis-debug) that default
+        // alone reached 22MB — 96% of this instance's 25MB total, dwarfing every job hash
+        // combined (<1KB each). THAT's what was actually climbing to the cap and getting
+        // evicted every ~10 minutes, completely independent of job payload size or count.
+        // Since nothing ever reads this stream, there's no reason to keep 10,000 of anything
+        // — capped far tighter, generous only for a quick manual peek if ever needed.
+        streams: { events: { maxLen: 500 } },
         defaultJobOptions: {
           // BUG (fixed): a completed job's returnvalue is the FULL scraped HTML page
           // (scraperWorker.js's executeScrapingAntJob returns { html, ... }) — a
@@ -55,6 +69,15 @@ class DistributedScraperQueue {
       });
 
       console.log('[Scraper Queue] Initialized BullMQ Distributed Queue on "scraper-queue".');
+
+      // The streams.events.maxLen option above only bounds FUTURE growth — it does nothing
+      // to the ~22MB already sitting in bull:scraper-queue:events from before this fix
+      // existed (confirmed via GET /api/admin/redis-debug). Trim it once, actively, on every
+      // boot: harmless/no-op once already trimmed, and self-healing across restarts/deploys
+      // without needing a one-off manual script.
+      this.queue.trimEvents(500)
+        .then(() => console.log('[Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
+        .catch((err) => console.warn('[Scraper Queue] trimEvents failed (non-fatal):', err.message));
     } catch (err) {
       console.error('[Scraper Queue Init Error]:', err.message);
     }

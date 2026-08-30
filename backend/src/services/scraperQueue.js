@@ -28,6 +28,13 @@ class DistributedScraperQueue {
       const redisConnection = createRedisConnection();
       this.queue = new Queue('scraper-queue', {
         connection: redisConnection,
+        // ACTUAL root cause of the 2026-08-30 incident — see the matching comment in
+        // api/src/services/scraperQueue.js. BullMQ's events stream (bull:scraper-queue:events,
+        // shared across both services since it's keyed by queue name) defaults to a 10,000-
+        // entry cap that alone reached 22MB (96% of this instance's 25MB total) — nothing
+        // reads this stream (QueueEvents was removed from both copies), so it's capped far
+        // tighter here.
+        streams: { events: { maxLen: 500 } },
         defaultJobOptions: {
           // See api/src/services/scraperQueue.js's matching comment — a completed
           // job's returnvalue is the full scraped HTML (300KB-1MB+ per page).
@@ -41,6 +48,12 @@ class DistributedScraperQueue {
       });
 
       console.log('[Backend Scraper Queue] Connected to BullMQ Distributed Queue "scraper-queue".');
+
+      // See api/src/services/scraperQueue.js's matching comment — actively trims the
+      // pre-existing bloated stream on every boot, not just future growth.
+      this.queue.trimEvents(500)
+        .then(() => console.log('[Backend Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
+        .catch((err) => console.warn('[Backend Scraper Queue] trimEvents failed (non-fatal):', err.message));
     } catch (err) {
       console.error('[Backend Scraper Queue Init Error]:', err.message);
     }
