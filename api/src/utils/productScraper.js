@@ -62,13 +62,30 @@ function extractJsonLdPrice($) {
   return result;
 }
 
-// Flipkart's schema.org JSON-LD Offer has NO standard MRP field — confirmed live 2026-08-30
-// against a real product with an active 52% discount: offer.highPrice simply doesn't exist,
-// so extractJsonLdPrice()'s originalPrice is structurally always null there, not a parsing miss.
-// This is the second "connector": Flipkart's rendered strikethrough MRP element carries
-// `text-decoration-line: line-through` as an INLINE style attribute (confirmed live) — a
-// hash-independent signal that survives even though the CSS-in-JS class names rotate build to
-// build (the old ._30jeq3/._3I9_R3 selectors are dead for exactly that reason).
+// Both Flipkart and Shopsy (Flipkart-owned, same commerce platform) show their MRP as a real
+// discount relationship, but neither carries it in JSON-LD's schema.org Offer — confirmed live
+// 2026-08-30 against real products on both: offer.highPrice simply doesn't exist. This is the
+// second "connector" for both: cross-validate a rupee number found near a genuine "X% off" badge
+// against the live price, since the badge's own percentage IS how the site itself describes that
+// exact relationship. A candidate is only ever trusted when this reconciles — no match means an
+// honest null, never a guess (see this file's top docblock: a plausible-but-wrong MRP is worse
+// than a missing one).
+//
+// Confirmed live that Flipkart and Shopsy FLOOR the displayed percentage rather than round it
+// (e.g. an actual 76.85% discount displays as "76% off", not "77%") — so validation checks
+// Math.floor((candidate-price)/candidate*100) against the exact displayed integer, not a fuzzy
+// numeric tolerance on a reverse-derived price. That exact check is what the site itself computes
+// forward, so it's the correct match condition, not an approximation of one.
+function matchesDisplayedDiscount(candidate, livePrice, discountPercent) {
+  if (candidate <= livePrice) return false;
+  const actualPercent = ((candidate - livePrice) / candidate) * 100;
+  return Math.floor(actualPercent) === discountPercent;
+}
+
+// Flipkart: the rendered strikethrough MRP element carries `text-decoration-line: line-through`
+// as an INLINE style attribute (confirmed live) — a hash-independent signal that survives even
+// though the CSS-in-JS class names rotate build to build (the old ._30jeq3/._3I9_R3 selectors
+// are dead for exactly that reason).
 //
 // A raw scan for this alone isn't safe to trust directly, though — confirmed live on the SAME
 // page: the main buybox sits above several "similar products" carousels, each with its own
@@ -76,14 +93,9 @@ function extractJsonLdPrice($) {
 // CAROUSEL item's price, not the product being scraped. And Flipkart shows more than one kind of
 // "X% off" badge on a page (bank/coupon offers alongside the actual MRP-vs-price discount), so
 // blindly trusting the first one found isn't safe either — it can be the wrong kind entirely.
-//
-// The fix: treat a strikethrough value as real MRP ONLY when it's cross-validated — some
-// discount percentage found elsewhere on the page, applied to the live price
-// (round(price / (1-discount%))), actually reconciles with that specific candidate. Every
-// {candidate, discount} pair is checked, not just the first of each, since the correct pairing
-// isn't guaranteed to be the first instance of either in document order. No confirmed match
-// means an honest null, not a guess — consistent with this pipeline's "fail closed" rule
-// (see this file's top docblock): a plausible-but-wrong MRP is worse than a missing one.
+// Every {candidate, discount} pair is checked against matchesDisplayedDiscount(), not just the
+// first of each, since the correct pairing isn't guaranteed to be the first instance of either in
+// document order.
 function extractFlipkartMRP($, livePrice) {
   if (!livePrice) return null;
 
@@ -109,11 +121,48 @@ function extractFlipkartMRP($, livePrice) {
 
   for (const candidate of strikeCandidates) {
     for (const discount of discountPercents) {
-      const derived = Math.round(livePrice / (1 - discount / 100));
-      if (Math.abs(candidate - derived) <= Math.max(2, derived * 0.02)) return candidate;
+      if (matchesDisplayedDiscount(candidate, livePrice, discount)) return candidate;
     }
   }
   return null;
+}
+
+// Shopsy: unlike Flipkart, there is NO strikethrough styling anywhere — confirmed live against
+// two real products (checked inline style, computed style, and <del>/<s> tags: none present).
+// Instead the discount%, MRP, and live price render as three adjacent plain-text leaf nodes
+// inside one small widget (confirmed live: "70% off" + "399" + "₹117" all siblings within the
+// same tight container, no other markup distinguishing which number is which). So candidates here
+// are "any bare number within a couple of DOM levels of a discount badge", validated the exact
+// same way as Flipkart — only ever trusted when matchesDisplayedDiscount() actually reconciles.
+function extractShopsyMRP($, livePrice) {
+  if (!livePrice) return null;
+
+  let result = null;
+  $('*').each((_, el) => {
+    if (result !== null) return false;
+    const $el = $(el);
+    if ($el.children().length > 0) return;
+    const m = $el.text().trim().match(/^(\d{1,2})%\s*off$/i);
+    if (!m) return;
+    const discount = parseInt(m[1], 10);
+
+    for (const ancestor of [$el.parent(), $el.parent().parent()]) {
+      if (!ancestor || ancestor.length === 0) continue;
+      let found = null;
+      ancestor.find('*').each((_, leafEl) => {
+        if (found !== null) return false;
+        const $leaf = $(leafEl);
+        if ($leaf.children().length > 0) return;
+        const val = parsePriceText($leaf.text());
+        if (val !== null && matchesDisplayedDiscount(val, livePrice, discount)) found = val;
+      });
+      if (found !== null) {
+        result = found;
+        return false;
+      }
+    }
+  });
+  return result;
 }
 
 export function parseProductHtml(html, targetUrl) {
@@ -292,6 +341,47 @@ export function parseProductHtml(html, targetUrl) {
       if (!isNaN(parsed)) price = Math.round(parsed);
     }
     category = 'beauty';
+
+  } else if (hostname.includes('shopsy.in')) {
+    // Shopsy (Flipkart-owned, same commerce platform) had NO branch here at all before this —
+    // any Shopsy product refreshed via the daily refresher fell through to the generic fallback
+    // below, which extracts no price at all. That meant a Shopsy product's price/MRP, even if
+    // correctly captured on its first Telegram sighting (verifier.js), would just go stale
+    // forever after — see verifier.js's matching Shopsy branch for why JSON-LD is used for price
+    // (Shopsy's own __NEXT_DATA__ price is buried in an undocumented, per-A/B-bucket internal
+    // payload, confirmed live LESS stable than a hashed CSS class) and extractShopsyMRP()'s
+    // docblock for the MRP connector.
+    let ldProduct = null;
+    $('script[type="application/ld+json"]').each((_, el) => {
+      if (ldProduct) return;
+      try {
+        const parsed = JSON.parse($(el).contents().text());
+        const candidate = Array.isArray(parsed) ? parsed.find(p => p['@type'] === 'Product') : parsed;
+        if (candidate && candidate['@type'] === 'Product') ldProduct = candidate;
+      } catch { /* malformed/unrelated JSON-LD block */ }
+    });
+
+    if (ldProduct) {
+      title = typeof ldProduct.name === 'string' ? ldProduct.name.trim() : null;
+      const ldImages = Array.isArray(ldProduct.image) ? ldProduct.image : (ldProduct.image ? [ldProduct.image] : []);
+      ldImages.forEach(src => { if (src && !images.includes(src)) images.push(src); });
+      const offer = Array.isArray(ldProduct.offers) ? ldProduct.offers[0] : ldProduct.offers;
+      if (offer && offer.price != null) price = parsePriceText(offer.price);
+      const ratingValue = ldProduct.aggregateRating?.ratingValue;
+      if (ratingValue != null) {
+        const parsed = parseFloat(ratingValue);
+        if (!isNaN(parsed)) rating = parsed;
+      }
+    }
+    if (price !== null) originalPrice = extractShopsyMRP($, price);
+
+    if (!title) title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
+    if (images.length === 0) {
+      $('meta[property="og:image"]').each((_, el) => {
+        const src = $(el).attr('content');
+        if (src && !images.includes(src)) images.push(src);
+      });
+    }
 
   } else {
     title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();

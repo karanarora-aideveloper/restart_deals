@@ -402,14 +402,30 @@ function extractJsonLdPrice($) {
   return result;
 }
 
-// Flipkart's schema.org JSON-LD Offer has NO standard MRP field — confirmed live 2026-08-30
-// against a real product with an active 52% discount: offer.highPrice simply doesn't exist,
-// so extractJsonLdPrice()'s originalPrice is structurally always null there, not a parsing miss
-// (see api/src/utils/productScraper.js's matching function for the full investigation). This is
-// the second "connector": Flipkart's rendered strikethrough MRP element carries
-// `text-decoration-line: line-through` as an INLINE style attribute — a hash-independent signal
-// that survives even though the CSS-in-JS class names rotate build to build (the old
-// ._30jeq3/._3I9_R3 selectors are dead for exactly that reason).
+// Both Flipkart and Shopsy (Flipkart-owned, same commerce platform) show their MRP as a real
+// discount relationship, but neither carries it in JSON-LD's schema.org Offer — confirmed live
+// 2026-08-30 against real products on both: offer.highPrice simply doesn't exist. This is the
+// second "connector" for both: cross-validate a rupee number found near a genuine "X% off" badge
+// against the live price, since the badge's own percentage IS how the site itself describes that
+// exact relationship. A candidate is only ever trusted when this reconciles — no match means an
+// honest null, never a guess (this pipeline's whole design principle is that MRP must come from
+// real page data, never inferred/guessed — see the price-history docblock further down).
+//
+// Confirmed live that Flipkart and Shopsy FLOOR the displayed percentage rather than round it
+// (e.g. an actual 76.85% discount displays as "76% off", not "77%") — so validation checks
+// Math.floor((candidate-price)/candidate*100) against the exact displayed integer, not a fuzzy
+// numeric tolerance on a reverse-derived price. That exact check is what the site itself computes
+// forward, so it's the correct match condition, not an approximation of one.
+function matchesDisplayedDiscount(candidate, livePrice, discountPercent) {
+  if (candidate <= livePrice) return false;
+  const actualPercent = ((candidate - livePrice) / candidate) * 100;
+  return Math.floor(actualPercent) === discountPercent;
+}
+
+// Flipkart: the rendered strikethrough MRP element carries `text-decoration-line: line-through`
+// as an INLINE style attribute (confirmed live) — a hash-independent signal that survives even
+// though the CSS-in-JS class names rotate build to build (the old ._30jeq3/._3I9_R3 selectors
+// are dead for exactly that reason).
 //
 // A raw scan for this alone isn't safe to trust directly, though — confirmed live on the SAME
 // page: the main buybox sits above several "similar products" carousels, each with its own
@@ -417,14 +433,9 @@ function extractJsonLdPrice($) {
 // CAROUSEL item's price, not the product being scraped. And Flipkart shows more than one kind of
 // "X% off" badge on a page (bank/coupon offers alongside the actual MRP-vs-price discount), so
 // blindly trusting the first one found isn't safe either — it can be the wrong kind entirely.
-//
-// The fix: treat a strikethrough value as real MRP ONLY when it's cross-validated — some
-// discount percentage found elsewhere on the page, applied to the live price
-// (round(price / (1-discount%))), actually reconciles with that specific candidate. Every
-// {candidate, discount} pair is checked, not just the first of each, since the correct pairing
-// isn't guaranteed to be the first instance of either in document order. No confirmed match
-// means an honest null, not a guess — this pipeline's whole design principle is that MRP must
-// come from real page data, never inferred/guessed (see the price-history docblock further down).
+// Every {candidate, discount} pair is checked against matchesDisplayedDiscount(), not just the
+// first of each, since the correct pairing isn't guaranteed to be the first instance of either in
+// document order.
 function extractFlipkartMRP($, livePrice) {
   if (!livePrice) return null;
 
@@ -450,11 +461,48 @@ function extractFlipkartMRP($, livePrice) {
 
   for (const candidate of strikeCandidates) {
     for (const discount of discountPercents) {
-      const derived = Math.round(livePrice / (1 - discount / 100));
-      if (Math.abs(candidate - derived) <= Math.max(2, derived * 0.02)) return candidate;
+      if (matchesDisplayedDiscount(candidate, livePrice, discount)) return candidate;
     }
   }
   return null;
+}
+
+// Shopsy: unlike Flipkart, there is NO strikethrough styling anywhere — confirmed live against
+// two real products (checked inline style, computed style, and <del>/<s> tags: none present).
+// Instead the discount%, MRP, and live price render as three adjacent plain-text leaf nodes
+// inside one small widget (confirmed live: "70% off" + "399" + "₹117" all siblings within the
+// same tight container, no other markup distinguishing which number is which). So candidates here
+// are "any bare number within a couple of DOM levels of a discount badge", validated the exact
+// same way as Flipkart — only ever trusted when matchesDisplayedDiscount() actually reconciles.
+function extractShopsyMRP($, livePrice) {
+  if (!livePrice) return null;
+
+  let result = null;
+  $('*').each((_, el) => {
+    if (result !== null) return false;
+    const $el = $(el);
+    if ($el.children().length > 0) return;
+    const m = $el.text().trim().match(/^(\d{1,2})%\s*off$/i);
+    if (!m) return;
+    const discount = parseInt(m[1], 10);
+
+    for (const ancestor of [$el.parent(), $el.parent().parent()]) {
+      if (!ancestor || ancestor.length === 0) continue;
+      let found = null;
+      ancestor.find('*').each((_, leafEl) => {
+        if (found !== null) return false;
+        const $leaf = $(leafEl);
+        if ($leaf.children().length > 0) return;
+        const val = parsePriceText($leaf.text());
+        if (val !== null && matchesDisplayedDiscount(val, livePrice, discount)) found = val;
+      });
+      if (found !== null) {
+        result = found;
+        return false;
+      }
+    }
+  });
+  return result;
 }
 
 export async function scrapeProductDetails(targetUrl) {
@@ -726,12 +774,10 @@ export async function scrapeProductDetails(targetUrl) {
       // incentive to stay well-formed, present in the raw SSR HTML so plain Cheerio sees it with
       // no JS execution needed. It reliably has name/price/rating/images (full-res, off
       // Flipkart's rukmini*.flixcart.com CDN — better than og:image's single 300x300 thumbnail),
-      // but schema.org's Offer type has no standard "original/strike price" field, so MRP is
-      // still not available here (the marketing description text sometimes reads "for Rs.<N>
-      // online" where N looks like it could be the MRP, but that's an unverified content
-      // convention, not a data field — not safe to regex out as ground truth). See the
-      // price-history fallback (verifyAndProcessMessage) for how a deal can still verify without
-      // a scraped MRP.
+      // but schema.org's Offer type has no standard "original/strike price" field — confirmed
+      // live 2026-08-30, offer.highPrice simply doesn't exist here either, same as Flipkart. MRP
+      // instead comes from extractShopsyMRP() below, the same discount-badge cross-validation
+      // connector as Flipkart's, adapted for Shopsy's plain-text (non-strikethrough) rendering.
       let ldProduct = null;
       $('script[type="application/ld+json"]').each((_, el) => {
         if (ldProduct) return; // already found one
@@ -760,6 +806,8 @@ export async function scrapeProductDetails(targetUrl) {
           if (!isNaN(parsed)) rating = parsed;
         }
       }
+
+      if (price !== null) originalPrice = extractShopsyMRP($, price);
 
       // Defensive fallback if JSON-LD was absent/malformed this run — og:title/og:image are still
       // reliable even then (Shopsy sets them properly).
