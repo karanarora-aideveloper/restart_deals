@@ -9,14 +9,18 @@
  *
  * Key: logs:backend
  * Format: JSON { ts, level, msg, source }
- * Max entries: 500 total across both services (oldest auto-removed) — each
+ * Max entries: 3000 total across both services (oldest auto-removed) — each
  * push trims to the cap, so whichever service pushes last keeps the list
- * from growing unbounded even with two writers.
+ * from growing unbounded even with two writers. Raised from 500 (was only
+ * a few seconds/minutes of history once 3 scraper workers' worth of
+ * traffic started sharing this key) — confirmed cheap: each entry runs
+ * ~150-300 bytes, so even 3000 is well under 1MB on a Redis instance with
+ * plenty of headroom post the 2026-08-30 memory-leak fix.
  */
 import { defaultRedis } from './redis.js';
 
 const LOG_KEY = 'logs:backend';
-const MAX_LOGS = 500;
+const MAX_LOGS = 3000;
 
 function stripAnsi(str) {
   return str.replace(/\[[0-9;]*m/g, '');

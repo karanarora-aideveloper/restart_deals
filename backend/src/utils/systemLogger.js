@@ -5,12 +5,13 @@
  *
  * Key: logs:backend
  * Format: JSON { ts, level, msg }
- * Max entries: 500 (oldest auto-removed)
+ * Max entries: 3000 (oldest auto-removed) — see api/src/utils/systemLogger.js's matching
+ * comment for why this was raised from 500.
  */
 import { createRedisConnection } from './redis.js';
 
 const LOG_KEY = 'logs:backend';
-const MAX_LOGS = 500;
+const MAX_LOGS = 3000;
 
 let redis = null;
 

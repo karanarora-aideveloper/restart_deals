@@ -461,7 +461,7 @@ router.post('/refresh-batch', async (req, res) => {
 // Live backend logs — reads from Redis circular list written by the backend service
 router.get('/logs', async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit || '200', 10), 500);
+    const limit = Math.min(parseInt(req.query.limit || '500', 10), 3000);
     const level = req.query.level || 'all'; // 'all' | 'info' | 'warn' | 'error'
     const since = req.query.since ? new Date(req.query.since) : null;
 
