@@ -5,9 +5,13 @@
 // only to satisfy Render's web-service requirement), so without this they
 // go to sleep after their first 15 idle minutes and stop picking up jobs.
 //
-// Deployed as its own Render Cron Job running every 10 minutes (safely
-// under the 15-min window). Add a new worker's URL to WORKER_URLS below
-// when scaling out further — no other change needed.
+// The actual scheduled pinging runs via a free GitHub Actions workflow
+// (.github/workflows/keep-workers-warm.yml, every 10 minutes — safely
+// under the 15-min window) instead of a Render Cron Job, since Render
+// Cron Jobs have no free tier. This script does the same thing in Node
+// and is kept around for local/manual testing (`npm run keep-warm`).
+// Add a new worker's URL to WORKER_URLS below AND to the workflow file
+// when scaling out further.
 const WORKER_URLS = [
   'https://shoppersdeals-scraper-1.onrender.com',
   'https://shoppersdeals-scraper-2.onrender.com',

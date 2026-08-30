@@ -1,0 +1,25 @@
+name: Keep scraper workers warm
+
+# The independent scraper worker services (shoppersdeals-scraper-1, -2) get
+# no organic inbound HTTP traffic — they're pure BullMQ queue consumers,
+# and their health-check server exists only to satisfy Render's web-service
+# requirement. On Render's free plan that means they'd spin down after
+# ~15 minutes idle and stop picking up jobs. This pings both every 10
+# minutes (comfortably under that window) at zero cost, instead of paying
+# for a Render Cron Job just to do the same thing.
+#
+# Add a new worker's URL to the curl steps below when scaling out further.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping shoppersdeals-scraper-1
+        run: curl -sS -o /dev/null -w "scraper-1 -> %{http_code} (%{time_total}s)\n" --max-time 15 https://shoppersdeals-scraper-1.onrender.com || echo "scraper-1 -> ping failed"
+      - name: Ping shoppersdeals-scraper-2
+        run: curl -sS -o /dev/null -w "scraper-2 -> %{http_code} (%{time_total}s)\n" --max-time 15 https://shoppersdeals-scraper-2.onrender.com || echo "scraper-2 -> ping failed"
