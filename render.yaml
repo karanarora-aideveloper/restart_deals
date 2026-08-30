@@ -20,7 +20,38 @@ services:
       - key: TWOCAPTCHA_API_KEY
         value: 00f69cd4eefad8d5ccfe712289733973
 
-  # 2. Background Scraper & Telegram Deal Ingestion Worker
+  # 2. Independent Scraper Workers (horizontally scalable — add more of
+  # these to add scraping throughput, without touching the api service).
+  # Each pulls jobs from the same BullMQ "scraper-queue" in Redis and
+  # self-throttles to 1 job/2.5s, so N workers = N times the aggregate
+  # throughput. See api/src/services/scraperWorker.js.
+  - type: web
+    name: shoppersdeals-scraper-1
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm --prefix api install
+    startCommand: npm --prefix api run worker:scraper
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://arorakaran6992:FUpX6I53NEB4UhSW@cluster0.zid9f.mongodb.net/shoppers_deals?retryWrites=true&w=majority
+      - key: REDIS_URL
+        value: redis://red-da8mgqoae00c73dcksk0:6379
+
+  - type: web
+    name: shoppersdeals-scraper-2
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm --prefix api install
+    startCommand: npm --prefix api run worker:scraper
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://arorakaran6992:FUpX6I53NEB4UhSW@cluster0.zid9f.mongodb.net/shoppers_deals?retryWrites=true&w=majority
+      - key: REDIS_URL
+        value: redis://red-da8mgqoae00c73dcksk0:6379
+
+  # 3. Background Scraper & Telegram Deal Ingestion Worker
   - type: worker
     name: shoppersdeals-backend
     runtime: node

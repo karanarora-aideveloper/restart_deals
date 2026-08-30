@@ -18,7 +18,6 @@ import alertsRouter from './routes/alerts.js';
 import xBotRouter from './routes/xBot.js';
 import { startXBotScheduler } from './jobs/xBotScheduler.js';
 import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
-import { initScraperWorker } from './services/scraperWorker.js';
 import { requireAdminAuth } from './middleware/adminAuth.js';
 
 const app = express();
@@ -84,9 +83,14 @@ app.use('/x-bot', requireAdminAuth, xBotRouter);
 
 export function startServer() {
   return new Promise((resolve) => {
+    // Scraper worker no longer runs in-process here — it's now its own
+    // independent, horizontally-scalable service(s) (shoppersdeals-scraper-1,
+    // -2, ...), each pulling from the same BullMQ queue. That decouples
+    // scraping throughput from the api web service's single instance: adding
+    // more scraping capacity now means deploying another worker instance,
+    // not scaling the whole API. See src/services/scraperWorker.js.
     const server = app.listen(config.port, () => {
       console.log(`[API Service] Express REST server running on port ${config.port}`);
-      initScraperWorker();
       startXBotScheduler();
       startDailyProductRefresher();
       resolve(server);
