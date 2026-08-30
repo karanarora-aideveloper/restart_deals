@@ -1,6 +1,6 @@
 name: Keep scraper workers warm
 
-# The independent scraper worker services (shoppersdeals-scraper-1, -2) get
+# The independent scraper worker services (shoppersdeals-scraper-1, -2, -3) get
 # no organic inbound HTTP traffic — they're pure BullMQ queue consumers,
 # and their health-check server exists only to satisfy Render's web-service
 # requirement. On Render's free plan that means they'd spin down after
@@ -23,3 +23,5 @@ jobs:
         run: curl -sS -o /dev/null -w "scraper-1 -> %{http_code} (%{time_total}s)\n" --max-time 15 https://shoppersdeals-scraper-1.onrender.com || echo "scraper-1 -> ping failed"
       - name: Ping shoppersdeals-scraper-2
         run: curl -sS -o /dev/null -w "scraper-2 -> %{http_code} (%{time_total}s)\n" --max-time 15 https://shoppersdeals-scraper-2.onrender.com || echo "scraper-2 -> ping failed"
+      - name: Ping shoppersdeals-scraper-3
+        run: curl -sS -o /dev/null -w "scraper-3 -> %{http_code} (%{time_total}s)\n" --max-time 15 https://shoppersdeals-scraper-3.onrender.com || echo "scraper-3 -> ping failed"
