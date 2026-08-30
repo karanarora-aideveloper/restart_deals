@@ -1013,7 +1013,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   }
 
   // 5. Query Existing Product Details in MongoDB ("products" & "verified_links" collections)
-  let existingProduct = await Product.findOne({ $or: [{ productId }, { cleanUrl }], "images.0": { $exists: true } });
+  //
+  // BUG (fixed): existingProduct used to carry the same "images.0": { $exists: true } filter as
+  // the VerifiedLink lookup below. That's the right gate for VerifiedLink (a display-image cache
+  // — no point returning an entry with nothing to show), but existingProduct's OTHER job is
+  // seeding previousTrackedPrice/existingCanonicalMRP just below, which has nothing to do with
+  // images. A product whose first scrape got a price but no image (any merchant image-selector
+  // miss, transient scrape hiccup) would come back null here forever until an image scrape
+  // happened to succeed — silently resetting its price history to "none" on every single
+  // verification in between, even though Product.price was being tracked correctly the whole
+  // time (confirmed live: 0 of 1,051 needsEnrichment:true products had ever recorded a
+  // previousPrice — this filter, not lack of real price data, was why).
+  let existingProduct = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
   let productDetails = await VerifiedLink.findOne({ $or: [{ cleanUrl }, { productId, merchant }], "images.0": { $exists: true } });
 
   if (!productDetails && existingProduct) {
