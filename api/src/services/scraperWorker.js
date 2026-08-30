@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
+import http from 'http';
 import { createRedisConnection } from '../utils/redis.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
@@ -263,10 +264,29 @@ export function initScraperWorker() {
 }
 
 // Support running as standalone process: `node src/services/scraperWorker.js`
+//
+// This is deployed as its own Render service (independent of the api web
+// service) so scraping throughput can scale horizontally — each instance
+// pulls from the same BullMQ queue with its own 1-job/2.5s self-throttle,
+// so N instances = N times the aggregate scraping throughput, without any
+// single instance exceeding ScrapingAnt's per-request pacing.
+//
+// Render's web-service health check requires binding to $PORT, even though
+// this process is really a queue consumer with nothing to serve — a tiny
+// HTTP server that always answers 200 satisfies that without pulling in a
+// full framework dependency just for a health check.
 if (process.argv[1]?.endsWith('scraperWorker.js')) {
   console.log('==================================================');
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
   console.log('==================================================\n');
+
+  const port = process.env.PORT || 10000;
+  http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('scraper worker: ok');
+  }).listen(port, () => {
+    console.log(`[Scraper Worker] Health check server listening on port ${port}`);
+  });
 
   mongoose.connect(process.env.MONGODB_URI).then(() => {
     console.log('[DB] Connected to MongoDB Atlas.');
