@@ -17,6 +17,7 @@ const WORKER_URLS = [
   'https://shoppersdeals-scraper-2.onrender.com',
   'https://shoppersdeals-scraper-3.onrender.com',
   'https://shoppersdeals-scraper-4.onrender.com',
+  'https://shoppersdeals-scraper-5.onrender.com',
 ];
 
 async function ping(url) {
