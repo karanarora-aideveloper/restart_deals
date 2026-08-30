@@ -1,4 +1,5 @@
 import { Queue, Job } from 'bullmq';
+import zlib from 'zlib';
 import { createRedisConnection } from '../utils/redis.js';
 
 export const PRIORITY = {
@@ -96,7 +97,19 @@ class DistributedScraperQueue {
         const fresh = await Job.fromId(this.queue, job.id);
         if (!fresh) break; // Removed by removeOnComplete before we could read it — treat as done
         const state = await fresh.getState();
-        if (state === 'completed') return fresh.returnvalue?.html || null;
+        if (state === 'completed') {
+          // Worker gzips the page before returning it (see scraperWorker.js) — decompress
+          // here so every caller (verifier.js, productScraper.js, bestsellerCrawler.js)
+          // keeps getting a plain HTML string back, unaware this ever changed.
+          const gz = fresh.returnvalue?.htmlGzip;
+          if (!gz) return null;
+          try {
+            return zlib.gunzipSync(Buffer.from(gz, 'base64')).toString('utf-8');
+          } catch (err) {
+            console.error(`[Scraper Queue Error] Failed to decompress result for ${url.slice(0, 45)}:`, err.message);
+            return null;
+          }
+        }
         if (state === 'failed') throw new Error(fresh.failedReason || 'Job failed');
       }
 

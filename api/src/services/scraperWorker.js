@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import http from 'http';
+import zlib from 'zlib';
 import { createRedisConnection } from '../utils/redis.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
@@ -218,7 +219,16 @@ export async function executeScrapingAntJob(url, source = 'other') {
       extractedData: extracted,
     });
 
-    return { html, extractedData: extracted, durationMs };
+    // The BullMQ job result is the cross-process handoff — the enqueuing service (a
+    // different machine/process from this worker) polls Redis and reads it back. That
+    // means `html` has to sit in Redis at least briefly regardless of how few completed
+    // jobs are retained. A ScrapingAnt browser=true render runs 300KB-1MB+ raw; gzip
+    // brings that down 70-90% (HTML/JS/JSON compress extremely well) — real, measured
+    // headroom on a Redis instance capped at 25MB, on top of (not instead of) the
+    // removeOnComplete reduction in scraperQueue.js. See that file's comment for the
+    // full incident writeup.
+    const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+    return { htmlGzip, extractedData: extracted, durationMs };
   }
 
   // Other HTTP error
