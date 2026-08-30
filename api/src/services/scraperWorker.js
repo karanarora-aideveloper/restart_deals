@@ -6,6 +6,7 @@ import path from 'path';
 import http from 'http';
 import zlib from 'zlib';
 import { createRedisConnection } from '../utils/redis.js';
+import { installSystemLogger } from '../utils/systemLogger.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
 
@@ -278,7 +279,11 @@ export function initScraperWorker() {
   });
 
   workerInstance.on('failed', (job, err) => {
-    console.error(`[Scraper Worker] ✕ Job #${job?.id} Failed:`, err.message);
+    // Job data/url so the admin panel's per-worker log view actually shows WHAT failed,
+    // not just an opaque job id — the previous version left "what's failing" unanswerable
+    // without cross-referencing BullMQ directly.
+    const urlHint = job?.data?.url ? job.data.url.slice(0, 60) : 'unknown url';
+    console.error(`[Scraper Worker] ✕ Job #${job?.id} Failed (${urlHint}):`, err.message);
   });
 
   return workerInstance;
@@ -297,6 +302,12 @@ export function initScraperWorker() {
 // HTTP server that always answers 200 satisfies that without pulling in a
 // full framework dependency just for a health check.
 if (process.argv[1]?.endsWith('scraperWorker.js')) {
+  // Each of the 5 scraper-N Render services runs this exact same file — tagging by
+  // RENDER_SERVICE_NAME (set automatically by Render on every service) instead of a
+  // fixed 'api' source is what lets the admin panel's live logs show which specific
+  // worker a job failed on, not just an undifferentiated merged stream.
+  installSystemLogger(process.env.RENDER_SERVICE_NAME || 'scraper-unknown');
+
   console.log('==================================================');
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
   console.log('==================================================\n');

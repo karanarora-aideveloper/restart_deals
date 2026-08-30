@@ -458,28 +458,70 @@ router.post('/refresh-batch', async (req, res) => {
 // (mounted at /api/crawler) — DB-backed seeds + admin-controlled frequency, replacing this
 // file's old hardcoded CATEGORY_SEEDS + fixed maxCategories trigger.
 
-// Live backend logs — reads from Redis circular list written by the backend service
+// Live backend logs — reads from Redis circular list written by every service
+// (api, listener, and each scraper-N worker — see utils/systemLogger.js's `source` param).
 router.get('/logs', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit || '500', 10), 3000);
     const level = req.query.level || 'all'; // 'all' | 'info' | 'warn' | 'error'
+    const source = req.query.source || 'all'; // 'all' | 'api' | 'listener' | 'shoppersdeals-scraper-1' | ...
     const since = req.query.since ? new Date(req.query.since) : null;
 
-    // LRANGE 0 -1 = all entries; list is newest-first (LPUSH), so reverse for display
-    const raw = await defaultRedis.lrange('logs:backend', 0, limit * 3);
-    let entries = raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+    // Fetch the whole circular list (capped at 3000 by systemLogger.js) rather than a
+    // limit-scaled slice — `sources` below needs to see everything currently retained to
+    // report which workers actually have log history right now, not just whatever fits
+    // within this one request's limit.
+    const raw = await defaultRedis.lrange('logs:backend', 0, -1);
+    const all = raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
 
+    const sources = [...new Set(all.map(e => e.source).filter(Boolean))].sort();
+
+    let entries = all;
     if (level !== 'all') entries = entries.filter(e => e.level === level);
+    if (source !== 'all') entries = entries.filter(e => e.source === source);
     if (since) entries = entries.filter(e => new Date(e.ts) > since);
 
     // Return oldest-first so admin can append new lines at the bottom
     entries.reverse();
     if (entries.length > limit) entries = entries.slice(entries.length - limit);
 
-    res.json({ logs: entries, count: entries.length });
+    res.json({ logs: entries, count: entries.length, sources });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Scraper worker fleet status — pings each known scraper-N service's health-check
+// endpoint directly (they don't share a DB row or registry; the URL list is the only
+// thing identifying them) so the admin panel can show "N / 5 online" and per-worker
+// latency without depending on BullMQ's own (less reliable — see the confirmed-live
+// eviction incident) internal bookkeeping.
+const SCRAPER_WORKER_URLS = [
+  'https://shoppersdeals-scraper-1.onrender.com',
+  'https://shoppersdeals-scraper-2.onrender.com',
+  'https://shoppersdeals-scraper-3.onrender.com',
+  'https://shoppersdeals-scraper-4.onrender.com',
+  'https://shoppersdeals-scraper-5.onrender.com',
+];
+
+router.get('/scrapers/status', async (req, res) => {
+  const results = await Promise.all(
+    SCRAPER_WORKER_URLS.map(async (url) => {
+      const name = url.match(/https:\/\/([^.]+)\.onrender\.com/)?.[1] || url;
+      const start = Date.now();
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        return { name, url, online: r.ok, latencyMs: Date.now() - start };
+      } catch (err) {
+        return { name, url, online: false, latencyMs: Date.now() - start, error: err.message };
+      }
+    })
+  );
+  res.json({
+    total: results.length,
+    online: results.filter(r => r.online).length,
+    workers: results,
+  });
 });
 
 // Redis health/memory diagnostic — built during the 2026-08-30 memory-leak incident
