@@ -11,8 +11,9 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log('Connected.');
 
-  // Run crawler across top 4 categories
-  const stats = await runCategoryBestsellerCrawl(4);
+  // Runs every currently-enabled seed (admin-controlled via Settings → Bestseller Crawler /
+  // CrawlerSeed collection) — pass { seedIds: [...] } to test just a few specific seeds instead.
+  const stats = await runCategoryBestsellerCrawl();
   console.log('Result Stats:', stats);
 
   await mongoose.disconnect();

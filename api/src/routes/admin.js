@@ -6,7 +6,6 @@ import Deal from '../db/models/deal.js';
 import Product from '../db/models/product.js';
 import User from '../db/models/user.js';
 import { getRefresherStatus, refreshStaleProductBatch } from '../jobs/dailyProductRefresher.js';
-import { runCategoryBestsellerCrawl, CATEGORY_SEEDS } from '../jobs/bestsellerCrawler.js';
 
 const router = express.Router();
 
@@ -455,41 +454,9 @@ router.post('/refresh-batch', async (req, res) => {
   }
 });
 
-// Get Bestseller Crawler info and seed categories
-router.get('/crawler/status', async (req, res) => {
-  try {
-    const totalEnrolled = await Product.countDocuments({ isActive: true });
-    const categoryCounts = await Product.aggregate([
-      { $match: { isActive: true } },
-      { $group: { _id: '$category', count: { $sum: 1 } } }
-    ]);
-    res.json({
-      success: true,
-      totalEnrolled,
-      categoriesCount: categoryCounts,
-      configuredSeeds: CATEGORY_SEEDS.length,
-      seeds: CATEGORY_SEEDS,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Trigger immediate Bestseller crawl
-router.post('/crawler/run-bestsellers', async (req, res) => {
-  try {
-    const maxCategories = parseInt(req.body.maxCategories || '5', 10);
-    runCategoryBestsellerCrawl(maxCategories).catch(err => {
-      console.error('[Admin Crawler Trigger Error]:', err.message);
-    });
-    res.json({
-      success: true,
-      message: `Bestseller crawl started in background for ${maxCategories} categories.`,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// Bestseller Crawler admin/config/status endpoints moved to routes/crawler.js
+// (mounted at /api/crawler) — DB-backed seeds + admin-controlled frequency, replacing this
+// file's old hardcoded CATEGORY_SEEDS + fixed maxCategories trigger.
 
 // Live backend logs — reads from Redis circular list written by the backend service
 router.get('/logs', async (req, res) => {

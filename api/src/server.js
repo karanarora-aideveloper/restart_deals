@@ -16,8 +16,10 @@ import seoRouter from './routes/seo.js';
 import notificationsRouter from './routes/notifications.js';
 import alertsRouter from './routes/alerts.js';
 import xBotRouter from './routes/xBot.js';
+import crawlerRouter from './routes/crawler.js';
 import { startXBotScheduler } from './jobs/xBotScheduler.js';
 import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
+import { startBestsellerCrawlerScheduler } from './jobs/bestsellerCrawler.js';
 import { requireAdminAuth } from './middleware/adminAuth.js';
 
 const app = express();
@@ -81,6 +83,9 @@ app.use('/x-accounts', requireAdminAuth, xAccountsRouter);
 app.use('/api/x-bot', requireAdminAuth, xBotRouter);
 app.use('/x-bot', requireAdminAuth, xBotRouter);
 
+app.use('/api/crawler', requireAdminAuth, crawlerRouter);
+app.use('/crawler', requireAdminAuth, crawlerRouter);
+
 export function startServer() {
   return new Promise((resolve) => {
     // Scraper worker no longer runs in-process here — it's now its own
@@ -93,6 +98,7 @@ export function startServer() {
       console.log(`[API Service] Express REST server running on port ${config.port}`);
       startXBotScheduler();
       startDailyProductRefresher();
+      startBestsellerCrawlerScheduler();
       resolve(server);
     });
   });
