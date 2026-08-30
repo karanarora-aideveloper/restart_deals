@@ -32,7 +32,22 @@ class DistributedScraperQueue {
       this.queue = new Queue('scraper-queue', {
         connection: redisConnection,
         defaultJobOptions: {
-          removeOnComplete: 200,
+          // BUG (fixed): a completed job's returnvalue is the FULL scraped HTML page
+          // (scraperWorker.js's executeScrapingAntJob returns { html, ... }) — a
+          // ScrapingAnt browser=true render of Amazon/Flipkart typically runs
+          // 300KB-1MB+. Retaining 200 of these on this Redis instance's 25MB free-tier
+          // cap (confirmed via Render metrics: usage climbing to ~25-30MB then
+          // crashing to a flat ~3.3MB — a maxmemory/eviction reset, not a graceful
+          // trim) blew well past capacity. With maxmemory-policy=allkeys_lru, Redis
+          // then evicts keys indiscriminately once full — including BullMQ's OWN
+          // bookkeeping, not just old completed jobs — which is what actually caused
+          // the mass "Job wait scrape timed out" failures across Telegram
+          // verification, the daily refresher, AND the bestseller crawler
+          // simultaneously: the Job.fromId/getState poll below couldn't get a clean
+          // read while Redis was flapping. Once the caller has read a completed job's
+          // html (within ~1s via the poll loop), there's no reason to keep it around —
+          // a handful of recent completions is plenty for manual debugging.
+          removeOnComplete: 5,
           removeOnFail: 500,
           attempts: 1, // Worker handles internal token retry logic
         },

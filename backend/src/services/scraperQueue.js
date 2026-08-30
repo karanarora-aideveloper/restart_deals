@@ -28,7 +28,12 @@ class DistributedScraperQueue {
       this.queue = new Queue('scraper-queue', {
         connection: redisConnection,
         defaultJobOptions: {
-          removeOnComplete: 200,
+          // See api/src/services/scraperQueue.js's matching comment — a completed
+          // job's returnvalue is the full scraped HTML (300KB-1MB+ per page).
+          // Retaining 200 of those blew past this Redis instance's 25MB free-tier
+          // cap and triggered LRU eviction of BullMQ's own bookkeeping, causing the
+          // mass "Job wait scrape timed out" failures across the whole pipeline.
+          removeOnComplete: 5,
           removeOnFail: 500,
           attempts: 1,
         },
