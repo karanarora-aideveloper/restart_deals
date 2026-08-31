@@ -3,7 +3,7 @@
  */
 
 const SUPPORTED_MERCHANT_DOMAINS = [
-  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in'
+  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com'
 ];
 
 export function isSupportedMerchantUrl(url) {
@@ -123,6 +123,13 @@ export function parseProductUrl(url) {
       if (idMatch) {
         productId = idMatch[1];
         cleanUrl = `https://www.ajio.com${urlObj.pathname.replace(/\/$/, '')}`;
+      }
+    } else if (hostname.includes('meesho.com')) {
+      merchant = 'meesho';
+      const idMatch = urlObj.pathname.match(/\/p\/([a-z0-9]+)/i);
+      if (idMatch) {
+        productId = idMatch[1];
+        cleanUrl = `https://www.meesho.com${urlObj.pathname.replace(/\/$/, '')}`;
       }
     }
 
