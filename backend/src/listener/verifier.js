@@ -27,7 +27,7 @@ export function extractUrls(text) {
 // India-only regardless of their TLD — myntra.com, nykaa.com, and ajio.com are NOT US/generic
 // sites despite the .com, they simply never registered a .in domain (shopsy.in already is .in).
 // See cleanAndParseUrl()'s derivedCountry handling for each merchant.
-const SUPPORTED_MERCHANT_DOMAINS = ['amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in'];
+const SUPPORTED_MERCHANT_DOMAINS = ['amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com'];
 
 function isSupportedMerchantUrl(url) {
   return SUPPORTED_MERCHANT_DOMAINS.some(domain => url.includes(domain));
@@ -36,7 +36,7 @@ function isSupportedMerchantUrl(url) {
 // The merchant *names* cleanAndParseUrl() can produce, once a URL is actually parsed rather than
 // just pattern-matched by domain — used by verifyAndProcessMessage's candidate-URL loop to decide
 // which resolved URL to treat as the deal's product link.
-const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy'];
+const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho'];
 
 /**
  * Extract embedded target merchant URLs from tracking/redirect parameter wrappers
@@ -293,6 +293,24 @@ export function cleanAndParseUrl(url) {
 
       const cleanSearch = pidMatch ? `?pid=${pidMatch}` : '';
       cleanUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}${cleanSearch}`;
+    } else if (hostname.includes('meesho.com')) {
+      merchant = 'meesho';
+      derivedCountry = 'IN'; // Meesho is India-only despite the .com TLD — see the comment above SUPPORTED_MERCHANT_DOMAINS
+      // Meesho product URLs look like:
+      //   meesho.com/casual-contrast-collar-tshirt-trending-catalog-no-03/p/8z871m
+      // — a short alphanumeric product code right after "/p/" (confirmed live: 6-7 lowercase
+      // alphanumeric chars, e.g. "8z871m", "915x27").
+      const idMatch = urlObj.pathname.match(/\/p\/([a-z0-9]+)/i);
+      if (idMatch) {
+        productId = idMatch[1];
+        cleanUrl = `https://www.meesho.com${urlObj.pathname.replace(/\/$/, '')}`;
+        isProductUrl = true;
+      } else {
+        // No /p/<id> path — search/listing/category page, not a product.
+        cleanUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+        productId = null;
+        isProductUrl = false;
+      }
     } else {
       // For general merchants, strip standard tracking parameters
       const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'];
@@ -811,6 +829,55 @@ export async function scrapeProductDetails(targetUrl) {
 
       // Defensive fallback if JSON-LD was absent/malformed this run — og:title/og:image are still
       // reliable even then (Shopsy sets them properly).
+      if (!title) title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
+      if (images.length === 0) {
+        $('meta[property="og:image"]').each((_, el) => {
+          const src = $(el).attr('content');
+          if (src && !images.includes(src)) images.push(src);
+        });
+      }
+    } else if (hostname.includes('meesho.com')) {
+      // Meesho is a Next.js app that embeds its ENTIRE product payload — price, real MRP, images,
+      // rating, category breadcrumb, stock status — as plain JSON in the standard
+      // `<script id="__NEXT_DATA__" type="application/json">` tag, present in the raw SSR HTML
+      // with no JS execution needed (confirmed live against two real, unrelated products). Unlike
+      // Flipkart/Shopsy, Meesho's own MRP IS a first-class structured field here
+      // (mrp_details.mrp) — no cross-validation/guessing connector needed, since this isn't a
+      // guess at what the page display implies, it's the literal field the page itself renders
+      // from.
+      try {
+        const nextDataRaw = $('script#__NEXT_DATA__').contents().text();
+        if (nextDataRaw) {
+          const nextData = JSON.parse(nextDataRaw);
+          const pd = nextData?.props?.pageProps?.initialState?.product?.details?.data;
+          if (pd) {
+            title = typeof pd.name === 'string' ? pd.name.trim() : null;
+            if (Array.isArray(pd.images)) {
+              pd.images.forEach(src => { if (src && !images.includes(src)) images.push(src); });
+            }
+            if (pd.price != null) {
+              const parsed = parseFloat(pd.price);
+              if (!isNaN(parsed)) price = Math.round(parsed);
+            }
+            if (pd.mrp_details?.mrp != null) {
+              const parsed = parseFloat(pd.mrp_details.mrp);
+              if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+            }
+            const avgRating = pd.review_summary?.data?.average_rating;
+            if (avgRating != null) {
+              const parsed = parseFloat(avgRating);
+              if (!isNaN(parsed)) rating = parsed;
+            }
+            if (Array.isArray(pd.breadcrumb) && pd.breadcrumb.length > 0) {
+              categoryHint = pd.breadcrumb.map(b => b.title).filter(Boolean).join(' > ');
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`[Scraper Warning] Failed to parse Meesho __NEXT_DATA__ for ${targetUrl}:`, e.message);
+      }
+
+      // Defensive fallback if __NEXT_DATA__ was absent/malformed this run.
       if (!title) title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
       if (images.length === 0) {
         $('meta[property="og:image"]').each((_, el) => {

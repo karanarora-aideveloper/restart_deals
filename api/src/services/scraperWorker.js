@@ -24,6 +24,9 @@ function detectMerchant(url) {
   if (url.includes('flipkart.')) return 'flipkart';
   if (url.includes('myntra.')) return 'myntra';
   if (url.includes('nykaa.')) return 'nykaa';
+  if (url.includes('ajio.')) return 'ajio';
+  if (url.includes('shopsy.')) return 'shopsy';
+  if (url.includes('meesho.')) return 'meesho';
   return 'unknown';
 }
 

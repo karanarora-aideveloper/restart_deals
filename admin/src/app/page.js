@@ -14,6 +14,7 @@ const COUNTRY_NAMES = {
 export default function DashboardPage() {
   const [statusData, setStatusData] = useState({});
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [loadingMetrics, setLoadingMetrics] = useState(true);
 
   // Products Explorer State
@@ -58,9 +59,10 @@ export default function DashboardPage() {
     async (endpoint, options = {}) => {
       const base = apiBase.replace(/\/+$/, '');
       const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-      return fetch(url, options);
+      const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+      return fetch(url, { ...options, headers });
     },
-    [apiBase]
+    [apiBase, adminApiKey]
   );
 
   // Fetch Dashboard High-Level Metrics
@@ -937,6 +939,7 @@ export default function DashboardPage() {
                 <option value="myntra">Myntra</option>
                 <option value="shopsy">Shopsy</option>
                 <option value="ajio">Ajio</option>
+                <option value="meesho">Meesho</option>
                 <option value="vijaysales">Vijay Sales</option>
                 <option value="cashify">Cashify</option>
               </select>

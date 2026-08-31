@@ -383,6 +383,64 @@ export function parseProductHtml(html, targetUrl) {
       });
     }
 
+  } else if (hostname.includes('meesho.com')) {
+    // Meesho is a Next.js app that embeds its ENTIRE product payload — price, real MRP, images,
+    // rating, category breadcrumb, stock status — as plain JSON in the standard
+    // `<script id="__NEXT_DATA__" type="application/json">` tag, present in the raw SSR HTML with
+    // no JS execution needed (confirmed live against two real, unrelated products). Unlike
+    // Flipkart/Shopsy, Meesho's own MRP IS a first-class structured field here
+    // (mrp_details.mrp) — no cross-validation/guessing connector needed, since this isn't a guess
+    // at what the page display implies, it's the literal field the page itself renders from.
+    try {
+      const nextDataRaw = $('script#__NEXT_DATA__').contents().text();
+      if (nextDataRaw) {
+        const nextData = JSON.parse(nextDataRaw);
+        const pd = nextData?.props?.pageProps?.initialState?.product?.details?.data;
+        if (pd) {
+          title = typeof pd.name === 'string' ? pd.name.trim() : null;
+          if (Array.isArray(pd.images)) {
+            pd.images.forEach(src => { if (src && !images.includes(src)) images.push(src); });
+          }
+          if (pd.price != null) {
+            const parsed = parseFloat(pd.price);
+            if (!isNaN(parsed)) price = Math.round(parsed);
+          }
+          if (pd.mrp_details?.mrp != null) {
+            const parsed = parseFloat(pd.mrp_details.mrp);
+            if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+          }
+          const avgRating = pd.review_summary?.data?.average_rating;
+          if (avgRating != null) {
+            const parsed = parseFloat(avgRating);
+            if (!isNaN(parsed)) rating = parsed;
+          }
+          if (Array.isArray(pd.breadcrumb) && pd.breadcrumb.length > 0) {
+            // Same keyword-matching scheme as Amazon's breadcrumb detection above — `category`
+            // here is a normalized slug this codebase expects (e.g. 'beauty'), not a raw
+            // breadcrumb string.
+            const crumbs = pd.breadcrumb.map(b => b.title).filter(Boolean).join(' ').toLowerCase();
+            if (crumbs.includes('phone') || crumbs.includes('mobile') || crumbs.includes('electronics')) category = 'electronics';
+            else if (crumbs.includes('laptop') || crumbs.includes('computer') || crumbs.includes('headphone')) category = 'electronics';
+            else if (crumbs.includes('kitchen') || crumbs.includes('home')) category = 'kitchen';
+            else if (crumbs.includes('women')) category = 'women-fashion';
+            else if (crumbs.includes('men') || crumbs.includes('clothing') || crumbs.includes('fashion') || crumbs.includes('shoes')) category = 'men-fashion';
+            else if (crumbs.includes('health') || crumbs.includes('fitness')) category = 'fitness';
+            else if (crumbs.includes('beauty') || crumbs.includes('skin')) category = 'beauty';
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to parse Meesho __NEXT_DATA__ for ${targetUrl}:`, e.message);
+    }
+
+    if (!title) title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
+    if (images.length === 0) {
+      $('meta[property="og:image"]').each((_, el) => {
+        const src = $(el).attr('content');
+        if (src && !images.includes(src)) images.push(src);
+      });
+    }
+
   } else {
     title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
     $('meta[property="og:image"]').each((_, el) => {
