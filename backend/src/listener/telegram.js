@@ -16,6 +16,33 @@ export function getQueueLength() {
   return queue.size + queue.pending;
 }
 
+// Root cause of the 2026-08-30 incident: this queue is strictly sequential (concurrency: 1), and
+// every task ultimately calls scraperQueue.enqueue() (backend/src/services/scraperQueue.js), whose
+// Redis client is configured with maxRetriesPerRequest: null and no connect/command timeout
+// (required by BullMQ for blocking commands — see utils/redis.js). Confirmed live: a single
+// in-flight Redis command stalled and never settled, and because nothing here ever raced it
+// against a deadline, that one task blocked EVERY message behind it, forever — the whole listener
+// sat frozen (no crash, no restart, just silence) for ~14.5 hours until manually restarted, since
+// this service also has no Render healthCheckPath configured to catch a hang like this.
+//
+// This wraps every queued task in a hard ceiling so a single stuck task can never do that again.
+// 240s is chosen to sit safely above scraperQueue.enqueue()'s own internal 200s poll-timeout (the
+// normal way a slow-but-alive scrape already resolves) — so this only ever fires for a task that
+// bypassed that internal timeout entirely, i.e. exactly the Redis-hang scenario above, not a
+// merely slow one. A task that blows past this is abandoned here (PQueue's concurrency slot frees
+// up immediately) — its underlying work may still be running in the background and simply gets
+// its result discarded when it eventually settles, which is a fair trade for guaranteeing the
+// pipeline can never wedge again.
+const MESSAGE_PROCESSING_TIMEOUT_MS = 240000;
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms waiting for ${label}`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 /**
  * Normalize any Telegram channel ID variant (bare "123", MTProto "-100123", or
  * bot-API "-123") to the bare digit-string form that Channel.channelId is stored
@@ -186,9 +213,13 @@ async function handleNewMessage(event) {
       try {
         // Lazy — only actually downloads if the verifier needs a fallback image
         const getTelegramPhotoUrl = () => downloadMessagePhoto(client, message);
-        const deal = await verifyAndProcessMessage(channelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category);
+        const deal = await withTimeout(
+          verifyAndProcessMessage(channelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category),
+          MESSAGE_PROCESSING_TIMEOUT_MS,
+          `verifyAndProcessMessage(${messageId})`
+        );
         if (deal) {
-          await publishToTelegram(client, deal);
+          await withTimeout(publishToTelegram(client, deal), 30000, `publishToTelegram(${messageId})`);
           Channel.updateOne(
             { channelId: channelKey },
             { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
@@ -366,9 +397,13 @@ function startChannelPoller() {
               const sourceChannelName = channelTitlesMap.get(rawId) || rawId;
               // Lazy — only actually downloads if the verifier needs a fallback image
               const getTelegramPhotoUrl = () => downloadMessagePhoto(client, msg);
-              const deal = await verifyAndProcessMessage(rawId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category);
+              const deal = await withTimeout(
+                verifyAndProcessMessage(rawId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category),
+                MESSAGE_PROCESSING_TIMEOUT_MS,
+                `verifyAndProcessMessage(${messageId})`
+              );
               if (deal) {
-                await publishToTelegram(client, deal);
+                await withTimeout(publishToTelegram(client, deal), 30000, `publishToTelegram(${messageId})`);
                 Channel.updateOne(
                   { channelId: toBareChannelId(rawId) },
                   { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
