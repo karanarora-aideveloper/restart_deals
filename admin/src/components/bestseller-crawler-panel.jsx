@@ -37,7 +37,7 @@ export default function BestsellerCrawlerPanel() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSeed, setEditingSeed] = useState(null);
-  const [seedForm, setSeedForm] = useState({ category: '', subcategory: '', keywords: '', topN: 20 });
+  const [seedForm, setSeedForm] = useState({ category: '', subcategory: '', keywords: '', topN: 20, frequencyHours: 24 });
   const [formError, setFormError] = useState('');
 
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
@@ -170,14 +170,14 @@ export default function BestsellerCrawlerPanel() {
 
   const handleOpenAdd = () => {
     setEditingSeed(null);
-    setSeedForm({ category: '', subcategory: '', keywords: '', topN: 20 });
+    setSeedForm({ category: '', subcategory: '', keywords: '', topN: 20, frequencyHours: intervalInput || 24 });
     setFormError('');
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (seed) => {
     setEditingSeed(seed);
-    setSeedForm({ category: seed.category, subcategory: seed.subcategory, keywords: seed.keywords, topN: seed.topN });
+    setSeedForm({ category: seed.category, subcategory: seed.subcategory, keywords: seed.keywords, topN: seed.topN, frequencyHours: seed.frequencyHours || 24 });
     setFormError('');
     setIsModalOpen(true);
   };
@@ -252,8 +252,10 @@ export default function BestsellerCrawlerPanel() {
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 680 }}>
             Scrapes Amazon.in search pages for each keyword seed below and enrolls the top-ranked products
             into the catalog — one seed per Master subcategory by default, but fully editable: change
-            keywords, add new seeds, or disable ones you don&apos;t want tracked. Runs automatically on the
-            schedule below.
+            keywords, add new seeds, or disable ones you don&apos;t want tracked. Each seed runs on its own
+            <strong> Frequency</strong> (edit per-row) — a fast-moving keyword can re-check more often than a
+            slow one, instead of everything sharing one global schedule. Due seeds dispatch concurrently, so
+            how fast they actually clear depends on how many scraper workers are online.
           </p>
         </div>
       </div>
@@ -298,7 +300,7 @@ export default function BestsellerCrawlerPanel() {
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              Run every (hours)
+              Default frequency for new seeds (hours)
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
@@ -372,6 +374,7 @@ export default function BestsellerCrawlerPanel() {
                 <TableHead>Category / Subcategory</TableHead>
                 <TableHead>Keywords</TableHead>
                 <TableHead>Top N</TableHead>
+                <TableHead>Frequency</TableHead>
                 <TableHead>Enabled</TableHead>
                 <TableHead>Last Run</TableHead>
                 <TableHead>Last Result</TableHead>
@@ -390,6 +393,7 @@ export default function BestsellerCrawlerPanel() {
                       <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{seed.keywords}</span>
                     </TableCell>
                     <TableCell>{seed.topN}</TableCell>
+                    <TableCell style={{ fontSize: '0.85rem' }}>every {seed.frequencyHours || 24}h</TableCell>
                     <TableCell>
                       <Switch checked={seed.isEnabled} onCheckedChange={() => handleToggleSeedEnabled(seed)} />
                     </TableCell>
@@ -436,7 +440,7 @@ export default function BestsellerCrawlerPanel() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  <TableCell colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: '3rem', opacity: 0.2, marginBottom: 12 }}>search_off</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>
                       {search ? `No seeds match "${search}"` : 'No seeds configured yet'}
@@ -507,17 +511,34 @@ export default function BestsellerCrawlerPanel() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>Top N Products</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={60}
-                  className="filter-input"
-                  style={{ width: 120, padding: '10px 12px' }}
-                  value={seedForm.topN}
-                  onChange={(e) => setSeedForm({ ...seedForm, topN: parseInt(e.target.value, 10) || 20 })}
-                />
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>Top N Products</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={60}
+                    className="filter-input"
+                    style={{ width: 120, padding: '10px 12px' }}
+                    value={seedForm.topN}
+                    onChange={(e) => setSeedForm({ ...seedForm, topN: parseInt(e.target.value, 10) || 20 })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>Frequency (hours)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={168}
+                    className="filter-input"
+                    style={{ width: 120, padding: '10px 12px' }}
+                    value={seedForm.frequencyHours}
+                    onChange={(e) => setSeedForm({ ...seedForm, frequencyHours: parseInt(e.target.value, 10) || 24 })}
+                  />
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                    How often THIS keyword re-checks, independent of other seeds.
+                  </div>
+                </div>
               </div>
 
               {formError && (

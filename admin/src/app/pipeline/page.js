@@ -401,7 +401,7 @@ function OverviewContent({ nodeId, apiFetch, live }) {
                         <span style={{ color: '#64748b', fontSize: '0.7rem', textTransform: 'capitalize' }}>{s.store}</span>
                       </div>
                       <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 3 }}>
-                        subcategory: {s.subcategory || '—'} · top {s.topN || 20}
+                        subcategory: {s.subcategory || '—'} · top {s.topN || 20} · every {s.frequencyHours || 24}h
                       </div>
                       {s.url && (
                         <a href={s.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.65rem', color: '#60a5fa', wordBreak: 'break-all', display: 'block', marginTop: 3 }}>

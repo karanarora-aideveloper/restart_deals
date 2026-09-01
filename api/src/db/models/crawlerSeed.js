@@ -42,6 +42,18 @@ const crawlerSeedSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // Per-keyword cadence — how many hours must pass since this seed's own lastRunAt before
+  // it's due again. Previously the whole crawler ran on ONE global CrawlerConfig.intervalHours
+  // (default 24h) for every seed regardless of how fast that category actually turns over — a
+  // fast-moving keyword (e.g. mobiles) got the same cadence as a slow one. Each seed now owns
+  // its own frequency; CrawlerConfig.intervalHours remains only as the default for newly
+  // created seeds and the value shown in the admin's "Run every (hours)" quick-add control.
+  frequencyHours: {
+    type: Number,
+    default: 24,
+    min: 1,
+    max: 168
+  },
   lastRunAt: {
     type: Date,
     default: null

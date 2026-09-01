@@ -73,7 +73,7 @@ router.get('/seeds', async (req, res) => {
 // or a second, narrower keyword within an existing subcategory.
 router.post('/seeds', async (req, res) => {
   try {
-    const { category, subcategory, keywords, topN, store } = req.body;
+    const { category, subcategory, keywords, topN, store, frequencyHours } = req.body;
     if (!category || !subcategory || !keywords) {
       return res.status(400).json({ success: false, error: 'category, subcategory, and keywords are required.' });
     }
@@ -85,6 +85,7 @@ router.post('/seeds', async (req, res) => {
       url: buildAmazonSearchUrl(keywords),
       topN: topN ? Math.max(1, Math.min(60, parseInt(topN, 10))) : 20,
       isEnabled: true,
+      frequencyHours: frequencyHours ? Math.max(1, Math.min(168, parseInt(frequencyHours, 10))) : undefined,
     });
     res.json({ success: true, seed });
   } catch (error) {
@@ -105,6 +106,7 @@ router.put('/seeds/:id', async (req, res) => {
       update.url = buildAmazonSearchUrl(req.body.keywords);
     }
     if (req.body.topN !== undefined) update.topN = Math.max(1, Math.min(60, parseInt(req.body.topN, 10)));
+    if (req.body.frequencyHours !== undefined) update.frequencyHours = Math.max(1, Math.min(168, parseInt(req.body.frequencyHours, 10)));
     if (req.body.isEnabled !== undefined) update.isEnabled = !!req.body.isEnabled;
     if (req.body.category !== undefined) update.category = req.body.category;
     if (req.body.subcategory !== undefined) update.subcategory = req.body.subcategory;

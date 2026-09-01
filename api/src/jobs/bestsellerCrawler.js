@@ -116,6 +116,15 @@ export async function ensureCrawlerDefaults() {
     console.log('[Bestseller Crawler] No config found — creating default (every 24h, enabled).');
     await CrawlerConfig.create({ isEnabled: true, intervalHours: 24 });
   }
+
+  // Backfill for seeds that predate the frequencyHours field (schema default only applies to
+  // NEW documents/saves, not to already-stored rows read back via find/lean) — without this,
+  // the $expr due-check in runCategoryBestsellerCrawl() below would compare against a missing
+  // field for every pre-existing seed. Idempotent and cheap (only touches rows missing it).
+  await CrawlerSeed.updateMany(
+    { frequencyHours: { $exists: false } },
+    { $set: { frequencyHours: (config || {}).intervalHours || 24 } }
+  ).catch(err => console.warn('[Bestseller Crawler] frequencyHours backfill failed (non-fatal):', err.message));
 }
 
 /** Fetches a search page's HTML via the shared scraper queue, at the lowest (Bestseller) priority. */
@@ -184,10 +193,88 @@ export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
 let isCrawling = false;
 
 /**
- * Runs every currently-enabled seed from the DB (admin-controlled — Settings → Bestseller
- * Crawler) and enrolls/updates its top-N ranked products into the "products" collection.
- * @param {{ seedIds?: string[] }} options - pass seedIds to run only specific seeds (e.g. the
- *   admin panel's per-row "Run this one now"); omit to run every enabled seed.
+ * Crawls a single seed: fetch its search page via the shared scraper queue, extract top-N
+ * products, upsert each into the catalog. Split out from runCategoryBestsellerCrawl() so seeds
+ * can be dispatched CONCURRENTLY (see below) instead of one at a time — fetchCategoryHtml()
+ * blocks on scraperQueue.enqueue(), which itself blocks on ONE BullMQ job finishing, so running
+ * this sequentially for N seeds meant only ONE of the 5 scraper workers was ever busy on this
+ * engine's traffic at a time, no matter how many workers existed. Running many of these calls
+ * concurrently lets BullMQ's own priority queue + distributed rate limiter fan them out across
+ * however many scraper-N workers are actually online — genuinely tying this engine's throughput
+ * to worker count, the way it always should have.
+ */
+async function crawlOneSeed(seed, stats) {
+  console.log(`[Bestseller Crawler] Crawling ${seed.store.toUpperCase()} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
+
+  const seedResult = { found: 0, enrolled: 0, updated: 0, error: null };
+  try {
+    const html = await fetchCategoryHtml(seed.url);
+    if (!html) {
+      console.warn(`[Bestseller Crawler] ⚠️ Could not fetch HTML for ${seed.category}/${seed.subcategory}`);
+      stats.errors++;
+      seedResult.error = 'No HTML returned from scraper queue';
+    } else {
+      const products = parseAmazonBestsellerItems(html, seed, seed.topN || 20);
+      seedResult.found = products.length;
+      console.log(`[Bestseller Crawler] Extracted ${products.length} top products for ${seed.subcategory}`);
+
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
+      for (const prodData of products) {
+        const existing = await Product.findOne({ productId: prodData.productId });
+
+        if (existing) {
+          existing.isActive = true;
+          if (!existing.category || existing.category === 'general') existing.category = prodData.category;
+          if (!existing.subcategory) existing.subcategory = prodData.subcategory;
+          if (prodData.imageUrl && !existing.imageUrl) {
+            existing.imageUrl = prodData.imageUrl;
+            existing.images = prodData.images;
+          }
+          await existing.save();
+          stats.productsUpdated++;
+          seedResult.updated++;
+        } else {
+          const newProduct = new Product({
+            ...prodData,
+            priceHistory: [{ date: todayStr, price: prodData.price, originalPrice: prodData.originalPrice, timestamp: now }],
+            lastChecked: now,
+            priceUpdatedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          });
+          await newProduct.save();
+          stats.productsEnrolled++;
+          seedResult.enrolled++;
+          console.log(`  ✓ Enrolled: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
+        }
+      }
+
+      apiCache.invalidatePattern('/api/products');
+    }
+  } catch (err) {
+    console.error(`[Bestseller Crawler Error] Failed for ${seed.category}/${seed.subcategory}:`, err.message);
+    stats.errors++;
+    seedResult.error = err.message;
+  }
+
+  stats.seedsCrawled++;
+  await CrawlerSeed.updateOne({ _id: seed._id }, { lastRunAt: new Date(), lastResult: seedResult }).catch(() => {});
+}
+
+/**
+ * Runs seeds from the DB (admin-controlled — Settings → Bestseller Crawler) and enrolls/updates
+ * their top-N ranked products into the "products" collection. Seeds are dispatched concurrently
+ * (see crawlOneSeed's docblock) — actual throughput is governed by the shared scraper queue's
+ * worker count and rate limiter, not by this function.
+ * @param {{ seedIds?: string[], dueOnly?: boolean }} options
+ *   - seedIds: run only these specific seeds (e.g. admin panel's per-row "Run this one now"),
+ *     ignoring dueOnly — an explicit manual trigger always runs regardless of frequency.
+ *   - dueOnly: only crawl enabled seeds whose OWN frequencyHours has actually elapsed since
+ *     their lastRunAt (or that have never run) — used by the scheduler tick below. Omit (or
+ *     seedIds without dueOnly) to run every enabled seed regardless of cadence, e.g. the admin's
+ *     manual "Run Now (all enabled seeds)" button.
  */
 export async function runCategoryBestsellerCrawl(options = {}) {
   if (isCrawling) {
@@ -208,85 +295,66 @@ export async function runCategoryBestsellerCrawl(options = {}) {
     await CrawlerConfig.updateOne({}, { isRunning: true }, { upsert: true });
 
     const filter = { isEnabled: true };
-    if (options.seedIds && options.seedIds.length > 0) filter._id = { $in: options.seedIds };
+    if (options.seedIds && options.seedIds.length > 0) {
+      filter._id = { $in: options.seedIds };
+    } else if (options.dueOnly) {
+      // Per-seed due-check at the Mongo level: no lastRunAt yet, OR more hours have passed
+      // since lastRunAt than that seed's own frequencyHours calls for. $expr is required here
+      // since the comparison is between two fields on the SAME document, not against a fixed
+      // value — a plain filter object can't express "field A vs field B * 3600000".
+      filter.$expr = {
+        $or: [
+          { $eq: ['$lastRunAt', null] },
+          {
+            $gte: [
+              { $subtract: [new Date(), '$lastRunAt'] },
+              { $multiply: ['$frequencyHours', 60 * 60 * 1000] },
+            ],
+          },
+        ],
+      };
+    }
     const seeds = await CrawlerSeed.find(filter).lean();
 
-    for (const seed of seeds) {
-      stats.seedsCrawled++;
-      console.log(`\n[Bestseller Crawler] [${stats.seedsCrawled}/${seeds.length}] Crawling ${seed.store.toUpperCase()} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
-
-      const seedResult = { found: 0, enrolled: 0, updated: 0, error: null };
-      try {
-        const html = await fetchCategoryHtml(seed.url);
-        if (!html) {
-          console.warn(`[Bestseller Crawler] ⚠️ Could not fetch HTML for ${seed.category}/${seed.subcategory}`);
-          stats.errors++;
-          seedResult.error = 'No HTML returned from scraper queue';
-        } else {
-          const products = parseAmazonBestsellerItems(html, seed, seed.topN || 20);
-          seedResult.found = products.length;
-          console.log(`[Bestseller Crawler] Extracted ${products.length} top products for ${seed.subcategory}`);
-
-          const now = new Date();
-          const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-
-          for (const prodData of products) {
-            const existing = await Product.findOne({ productId: prodData.productId });
-
-            if (existing) {
-              existing.isActive = true;
-              if (!existing.category || existing.category === 'general') existing.category = prodData.category;
-              if (!existing.subcategory) existing.subcategory = prodData.subcategory;
-              if (prodData.imageUrl && !existing.imageUrl) {
-                existing.imageUrl = prodData.imageUrl;
-                existing.images = prodData.images;
-              }
-              await existing.save();
-              stats.productsUpdated++;
-              seedResult.updated++;
-            } else {
-              const newProduct = new Product({
-                ...prodData,
-                priceHistory: [{ date: todayStr, price: prodData.price, originalPrice: prodData.originalPrice, timestamp: now }],
-                lastChecked: now,
-                priceUpdatedAt: now,
-                createdAt: now,
-                updatedAt: now,
-              });
-              await newProduct.save();
-              stats.productsEnrolled++;
-              seedResult.enrolled++;
-              console.log(`  ✓ Enrolled: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
-            }
-          }
-
-          apiCache.invalidatePattern('/api/products');
-        }
-      } catch (err) {
-        console.error(`[Bestseller Crawler Error] Failed for ${seed.category}/${seed.subcategory}:`, err.message);
-        stats.errors++;
-        seedResult.error = err.message;
-      }
-
-      await CrawlerSeed.updateOne({ _id: seed._id }, { lastRunAt: new Date(), lastResult: seedResult }).catch(() => {});
-
-      // Delay between seeds — same courtesy pause the previous version had, independent of the
-      // scraper queue's own rate limiting (this is Amazon's search endpoint, not the product
-      // page endpoint most of the pipeline hits).
-      await new Promise(r => setTimeout(r, 2000));
+    if (seeds.length === 0) {
+      console.log('[Bestseller Crawler] No seeds due right now.');
+    } else {
+      console.log(`[Bestseller Crawler] Dispatching ${seeds.length} seed(s) concurrently...`);
+      // allSettled, not all — one seed's scrape failing (network blip, Amazon block) must not
+      // abort every other seed's already-in-flight job.
+      await Promise.allSettled(seeds.map(seed => crawlOneSeed(seed, stats)));
     }
   } finally {
     const durationMs = Date.now() - startedAt;
-    const config = await CrawlerConfig.findOne({}).catch(() => null);
-    const intervalHours = config?.intervalHours || 24;
     const now = new Date();
+    // Informational "next run due" for the admin dashboard card — the earliest any ENABLED
+    // seed will next become due, computed from each seed's own lastRunAt + frequencyHours (not
+    // a single global interval any more, since due-ness is now per-seed).
+    const nextDueSeed = await CrawlerSeed.aggregate([
+      { $match: { isEnabled: true } },
+      {
+        $addFields: {
+          dueAt: {
+            $cond: [
+              { $eq: ['$lastRunAt', null] },
+              now,
+              { $add: ['$lastRunAt', { $multiply: ['$frequencyHours', 60 * 60 * 1000] }] },
+            ],
+          },
+        },
+      },
+      { $sort: { dueAt: 1 } },
+      { $limit: 1 },
+    ]).catch(() => []);
+    const nextRunAt = nextDueSeed[0]?.dueAt || null;
+
     await CrawlerConfig.updateOne(
       {},
       {
         isRunning: false,
         lastRunAt: now,
         lastRunStats: { ...stats, durationMs },
-        nextRunAt: new Date(now.getTime() + intervalHours * 60 * 60 * 1000),
+        nextRunAt,
       },
       { upsert: true }
     ).catch(() => {});
@@ -301,13 +369,17 @@ export async function runCategoryBestsellerCrawl(options = {}) {
 }
 
 /**
- * Starts the scheduler tick. A fixed cron expression can't be changed live from the admin
- * panel, so instead this ticks every 5 minutes and compares `now` against CrawlerConfig's
- * `nextRunAt` — editing "run every N hours" in Settings → Bestseller Crawler takes effect on the
- * very next tick, no redeploy needed. Call once from server startup.
+ * Starts the scheduler tick. Ticks every 5 minutes and asks runCategoryBestsellerCrawl to run
+ * only whichever seeds are actually due (dueOnly: true — see that function's per-seed $expr
+ * check against each seed's own frequencyHours). This used to gate on ONE global
+ * CrawlerConfig.nextRunAt and, when due, crawl EVERY enabled seed together on the same cadence
+ * — a keyword that turns over daily got the same schedule as one that barely changes. Now each
+ * keyword's own frequency (editable per-seed in Settings → Bestseller Crawler) decides when
+ * it's due; a 5-minute tick just means "due" is noticed within 5 minutes of actually becoming
+ * true, not that everything runs every 5 minutes. Call once from server startup.
  */
 export function startBestsellerCrawlerScheduler() {
-  console.log('[Bestseller Crawler] Initializing scheduler (checks every 5 minutes against admin-configured frequency)...');
+  console.log('[Bestseller Crawler] Initializing scheduler (checks every 5 minutes for seeds due by their own frequency)...');
 
   cron.schedule('*/5 * * * *', async () => {
     try {
@@ -315,11 +387,7 @@ export function startBestsellerCrawlerScheduler() {
       const config = await CrawlerConfig.findOne({});
       if (!config || !config.isEnabled || config.isRunning) return;
 
-      const due = !config.nextRunAt || new Date() >= new Date(config.nextRunAt);
-      if (!due) return;
-
-      console.log('[Bestseller Crawler] Scheduled run is due — starting full crawl across all enabled seeds...');
-      await runCategoryBestsellerCrawl();
+      await runCategoryBestsellerCrawl({ dueOnly: true });
     } catch (err) {
       console.error('[Bestseller Crawler Scheduler Error]:', err.message);
     }
