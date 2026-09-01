@@ -49,6 +49,7 @@ function StatusBanner({ status, apiBase }) {
 
 export default function NotificationsPage() {
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [status, setStatus] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyPage, setHistoryPage] = useState(1);
@@ -67,8 +68,9 @@ export default function NotificationsPage() {
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
-    return fetch(`${base}${endpoint}`, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(`${base}${endpoint}`, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchStatus = useCallback(async () => {
     try {

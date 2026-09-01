@@ -101,6 +101,7 @@ export default function ProductDrawer({
   onSelectProduct,
   onFlagClick,
   onHistoryClick,
+  onScrapeHistoryClick,
   onDeleteClick,
   onCategoryClick,
   onMerchantClick
@@ -117,9 +118,14 @@ export default function ProductDrawer({
     if (activeTab === 'deals' && product?.productId) {
       setLoadingDeals(true);
       fetch(`${apiBase.replace(/\/+$/, '')}/api/deals?q=${encodeURIComponent(product.productId)}&limit=15`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) return { deals: [] };
+          const contentType = res.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) return { deals: [] };
+          return res.json();
+        })
         .then(json => {
-          setAssociatedDeals(json.deals || json.data || []);
+          setAssociatedDeals(json?.deals || json?.data || []);
         })
         .catch(err => console.error('Fetch associated deals error:', err))
         .finally(() => setLoadingDeals(false));
@@ -368,9 +374,23 @@ export default function ProductDrawer({
               </div>
 
               <div style={{ padding: '10px 12px', background: 'var(--bg-panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Last Checked</span>
-                <div style={{ marginTop: 3, fontSize: '0.82rem', fontWeight: 600 }}>
-                  {formatTime(product.updatedAt || product.lastCheckedAt)}
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>First Added</span>
+                <div style={{ marginTop: 3, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }} title={product.createdAt ? new Date(product.createdAt).toLocaleString() : 'N/A'}>
+                  {formatTime(product.createdAt)}
+                </div>
+              </div>
+
+              <div style={{ padding: '10px 12px', background: 'var(--bg-panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Latest Scraped</span>
+                <div style={{ marginTop: 3, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }} title={product.lastChecked || product.updatedAt ? new Date(product.lastChecked || product.updatedAt).toLocaleString() : 'N/A'}>
+                  {formatTime(product.lastChecked || product.updatedAt)}
+                </div>
+              </div>
+
+              <div style={{ padding: '10px 12px', background: 'var(--bg-panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Scrapes / Checkpoints</span>
+                <div style={{ marginTop: 3, fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>
+                  {product.priceHistory?.length || product.priceHistoryCount || 1} Recorded
                 </div>
               </div>
             </div>
@@ -393,12 +413,25 @@ export default function ProductDrawer({
         )}
 
         {/* Drawer Footer */}
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => onScrapeHistoryClick && onScrapeHistoryClick(product)}
+              className="btn"
+              style={{
+                padding: '6px 12px', fontSize: '0.82rem', background: 'rgba(16, 185, 129, 0.08)',
+                color: '#059669', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6
+              }}
+              title="View full scrape audit history and verification status"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>manage_search</span>
+              Scrape History &amp; Logs
+            </button>
+
             <button
               onClick={() => onHistoryClick(product._id)}
               className="btn btn-primary"
-              style={{ padding: '6px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6 }}
+              style={{ padding: '6px 12px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6 }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>show_chart</span>
               Price History

@@ -643,6 +643,7 @@ function XAccountsSection({ apiFetch }) {
 
 export default function ChannelManagementPage() {
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [channels, setChannels] = useState([]);
   const [daemonOnline, setDaemonOnline] = useState(null);
 
@@ -658,8 +659,9 @@ export default function ChannelManagementPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchChannels = useCallback(async () => {
     try {

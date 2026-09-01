@@ -746,7 +746,94 @@ router.get('/scraping-frequency', async (req, res) => {
       ]).then((r) => r[0] || {}),
     ]);
 
-    // Restructure daily data into [{date, sources:{telegram:N, daily_refresh:N, ...}}]
+    // ── Frequency Distribution ──────────────────────────────────────────────
+    // Compute per-product scrape frequency (avg/day) and bucket them.
+    // Buckets: rare (<0.5/day), daily (~0.5–1.5/day), frequent (1.5–3/day), very_frequent (3+/day)
+    const freqDistributionRaw = await ScrapingLog.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: '$url',
+          totalScrapes: { $sum: 1 },
+          merchant: { $first: '$merchant' },
+          successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+          sources: { $addToSet: '$source' },
+          lastScraped: { $max: '$createdAt' },
+        },
+      },
+      // Look up product info (category, title)
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: 'cleanUrl',
+          as: 'product',
+          pipeline: [{ $project: { title: 1, category: 1, variant: 1 } }],
+        },
+      },
+      {
+        $project: {
+          totalScrapes: 1,
+          merchant: 1,
+          successCount: 1,
+          sources: 1,
+          lastScraped: 1,
+          avgPerDay: { $divide: ['$totalScrapes', days] },
+          title: { $ifNull: [{ $arrayElemAt: ['$product.title', 0] }, null] },
+          category: { $ifNull: [{ $arrayElemAt: ['$product.category', 0] }, 'uncategorised'] },
+        },
+      },
+    ]);
+
+    // Assign frequency bucket
+    function freqBucket(avgPerDay) {
+      if (avgPerDay < 0.3) return 'rare';           // less than once every 3 days
+      if (avgPerDay < 0.75) return 'every_few_days'; // roughly every 2nd day
+      if (avgPerDay < 1.5) return 'daily';           // once a day
+      if (avgPerDay < 3) return 'frequent';           // 2× a day
+      return 'very_frequent';                         // 3+× a day
+    }
+
+    const BUCKET_LABEL = {
+      rare: '< every 3d',
+      every_few_days: 'Every 2–3 days',
+      daily: '~1× / day',
+      frequent: '2× / day',
+      very_frequent: '3+× / day',
+    };
+
+    // Aggregate into buckets
+    const buckets = {};
+    for (const p of freqDistributionRaw) {
+      const bucket = freqBucket(p.avgPerDay);
+      if (!buckets[bucket]) {
+        buckets[bucket] = { bucket, label: BUCKET_LABEL[bucket], count: 0, byMerchant: {}, byCategory: {}, bySources: {}, examples: [] };
+      }
+      const b = buckets[bucket];
+      b.count++;
+      b.byMerchant[p.merchant] = (b.byMerchant[p.merchant] || 0) + 1;
+      const cat = (p.category || 'uncategorised').toString().split('>').pop().trim().toLowerCase() || 'uncategorised';
+      b.byCategory[cat] = (b.byCategory[cat] || 0) + 1;
+      for (const src of (p.sources || [])) b.bySources[src] = (b.bySources[src] || 0) + 1;
+      if (b.examples.length < 5) {
+        b.examples.push({ url: p._id, title: p.title, merchant: p.merchant, avgPerDay: Math.round(p.avgPerDay * 100) / 100, totalScrapes: p.totalScrapes });
+      }
+    }
+
+    // Sort each bucket's category/merchant by count desc, top 10
+    const frequencyDistribution = ['very_frequent', 'frequent', 'daily', 'every_few_days', 'rare']
+      .filter((k) => buckets[k])
+      .map((k) => {
+        const b = buckets[k];
+        return {
+          ...b,
+          byMerchant: Object.entries(b.byMerchant).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([m, c]) => ({ merchant: m, count: c })),
+          byCategory: Object.entries(b.byCategory).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c, n]) => ({ category: c, count: n })),
+          bySources: Object.entries(b.bySources).sort((a, b) => b[1] - a[1]).map(([s, c]) => ({ source: s, count: c })),
+        };
+      });
+
+    // ── Restructure daily data ──────────────────────────────────────────────
     const dateMap = {};
     for (const row of bySourceDay) {
       const d = row._id.date;
@@ -773,8 +860,9 @@ router.get('/scraping-frequency', async (req, res) => {
       byStatus,
       dailyBySource,
       dailyByMerchant,
-      topProducts,      // most-scraped (potential over-scraping)
-      bottomProducts,   // stale / under-scraped active products
+      frequencyDistribution,  // NEW: products grouped by scraping frequency
+      topProducts,            // most-scraped (potential over-scraping)
+      bottomProducts,         // stale / under-scraped active products
       tokenConsumption,
     });
   } catch (err) {

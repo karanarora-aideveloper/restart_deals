@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 export default function LogsPage() {
   const [logs, setLogs] = useState([]);
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   useEffect(() => {
   }, []);
@@ -12,8 +13,9 @@ export default function LogsPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchLogs = useCallback(async () => {
     try {

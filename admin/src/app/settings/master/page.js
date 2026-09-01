@@ -41,6 +41,7 @@ export default function MasterPage() {
   const [jsonError, setJsonError] = useState('');
 
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   useEffect(() => {
   }, []);
@@ -48,8 +49,9 @@ export default function MasterPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchMasterData = useCallback(async (type) => {
     try {
@@ -100,7 +102,9 @@ export default function MasterPage() {
   // Handlers
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setMasterForm({ label: '', value: '', metadata: '{\n  \n}', isActive: true });
+    setMasterForm({ label: '', value: '', metadata: '{
+  
+}', isActive: true });
     setJsonError('');
     setIsModalOpen(true);
   };
@@ -110,7 +114,9 @@ export default function MasterPage() {
     setMasterForm({
       label: item.label,
       value: item.value,
-      metadata: Object.keys(item.metadata || {}).length ? JSON.stringify(item.metadata, null, 2) : '{\n  \n}',
+      metadata: Object.keys(item.metadata || {}).length ? JSON.stringify(item.metadata, null, 2) : '{
+  
+}',
       isActive: item.isActive !== undefined ? item.isActive : true
     });
     setJsonError('');
@@ -423,7 +429,9 @@ export default function MasterPage() {
                   <textarea
                     className="filter-input"
                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem', fontFamily: 'monospace', minHeight: 100, resize: 'vertical' }}
-                    placeholder={'{\n  "key": "value"\n}'}
+                    placeholder={'{
+  "key": "value"
+}'}
                     value={masterForm.metadata}
                     onChange={(e) => setMasterForm({ ...masterForm, metadata: e.target.value })}
                   />

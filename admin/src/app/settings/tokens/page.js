@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 
 const formatTime = (isoString) => {
@@ -15,6 +15,21 @@ const formatTime = (isoString) => {
   if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
 
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// "Added On" needs its own formatter, not formatTime: formatTime's fallback
+// text ("Never used") is meant for lastUsedAt and was showing up here too,
+// since old token records (saved before the schema tracked createdAt) have
+// no createdAt at all. N/A is the honest label for those; new tokens (the
+// schema now sets createdAt via { timestamps: true }) get a real DD/MM/YY
+// date.
+const formatAddedOn = (isoString) => {
+  if (!isoString) return 'N/A';
+  const date = new Date(isoString);
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
 };
 
 const maskToken = (token) => {
@@ -32,6 +47,23 @@ export default function TokensPage() {
   const [summary, setSummary] = useState({ total: 0, active: 0, exhausted: 0, totalUsage: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Capacity planning — ScrapingAnt's own pricing (credits/scrape) is fixed,
+  // and the proxy-tier rule is enforced in code (scraperWorker.js: amazon.in
+  // specifically uses standard/datacenter; everything else — Flipkart,
+  // Myntra, Nykaa, amazon.com, etc. — uses residential). This was briefly
+  // "all amazon.* marketplaces" but confirmed live 2026-08-30 that amazon.com
+  // fails 64% of the time on standard proxy (Amazon's US bot detection is
+  // measurably more aggressive than India's) — back to naming amazon.in
+  // specifically until another marketplace is confirmed the same way amazon.in
+  // was, not assumed. The non-amazon.in traffic share and target daily volume
+  // are NOT admin guesses — both are derived from real ScrapingLog activity
+  // over the trailing 7 days (GET /api/tokens/logs' metrics), so the plan
+  // always reflects what the system is actually doing, not a hand-set
+  // assumption.
+  const CREDITS_PER_TOKEN_MONTH = 10000;
+  const STANDARD_CREDITS_PER_SCRAPE = 10;
+  const RESIDENTIAL_CREDITS_PER_SCRAPE = 125;
 
   // Active Tab for Control Deck: 'automation' | 'manual'
   const [activeDeckTab, setActiveDeckTab] = useState('automation');
@@ -72,6 +104,9 @@ export default function TokensPage() {
     avgDurationMs: 0,
     concurrency409Avoided: 0,
     queue: null,
+    scrapesPerDay7dAvg: 0,
+    nonAmazonSharePercent7d: 0,
+    totalScrapes7d: 0,
   });
   const [logsPagination, setLogsPagination] = useState({ total: 0, page: 1, limit: 25, pages: 1 });
   const [logsSearch, setLogsSearch] = useState('');
@@ -82,6 +117,19 @@ export default function TokensPage() {
   const [selectedLogDetail, setSelectedLogDetail] = useState(null);
 
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
+
+  // Distributed scraper worker fleet — live count + per-worker console logs, distinct
+  // from the ScrapingLog-based "Scraping Logs & Activity Tracker" table below (that's
+  // per-request scrape outcomes stored in Mongo; this is raw console output mirrored
+  // from each shoppersdeals-scraper-N Render service via systemLogger.js).
+  const [scraperStatus, setScraperStatus] = useState(null);
+  const [workerLogs, setWorkerLogs] = useState([]);
+  const [workerLogSource, setWorkerLogSource] = useState('all');
+  const [workerLogLevel, setWorkerLogLevel] = useState('all');
+  const [workerLogsExpanded, setWorkerLogsExpanded] = useState(false);
+  const [workerLogsPaused, setWorkerLogsPaused] = useState(false);
+  const workerLogsSinceRef = useRef(null);
 
   const showToast = (msg, duration = 3500) => {
     setToastMessage(msg);
@@ -92,17 +140,34 @@ export default function TokensPage() {
   }, []);
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
     try {
       const base = apiBase ? apiBase.replace(/\/+$/, '') : '';
       const url = endpoint.startsWith('http') ? endpoint : (base ? `${base}${endpoint}` : endpoint);
-      return await fetch(url, options);
+      return await fetch(url, { ...options, headers });
     } catch (err) {
       if (!endpoint.startsWith('http')) {
-        return await fetch(endpoint, options);
+        return await fetch(endpoint, { ...options, headers });
       }
       throw err;
     }
-  }, [apiBase]);
+  }, [apiBase, adminApiKey]);
+
+  // ScrapingAnt's own signup form appears to block Render's datacenter IP —
+  // confirmed live 2026-08-29 (the exact same automation code works every
+  // time from a residential IP, but fails to find the signup form's email
+  // input from Render). Since the admin panel always runs on this machine,
+  // the 5 automation-control calls below go to a small local server
+  // (api/local_admin_server.mjs, `node local_admin_server.mjs`) instead of
+  // the production API — it runs the browser automation right here and
+  // forwards successful tokens to production itself. Everything else on
+  // this page (token list, manual import, sync, logs) still uses apiFetch
+  // above, unaffected.
+  const AUTOMATION_SERVER_URL = process.env.NEXT_PUBLIC_LOCAL_AUTOMATION_URL || 'http://localhost:5057';
+  const automationFetch = useCallback(async (endpoint, options = {}) => {
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(`${AUTOMATION_SERVER_URL}${endpoint}`, { ...options, headers });
+  }, [adminApiKey]);
 
   const fetchTokens = useCallback(async () => {
     try {
@@ -128,7 +193,7 @@ export default function TokensPage() {
   // Fetch Automation Status
   const fetchAutomationStatus = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/tokens/automation-status');
+      const res = await automationFetch('/api/tokens/automation-status');
       const data = await res.json();
       if (data.success) {
         setAutomationStatus(data);
@@ -136,7 +201,7 @@ export default function TokensPage() {
     } catch (err) {
       console.warn('Automation status poll failed:', err.message);
     }
-  }, [apiFetch]);
+  }, [automationFetch]);
 
   // Fetch Scraping Logs
   const fetchLogs = useCallback(async (page = logsPagination.page) => {
@@ -166,10 +231,72 @@ export default function TokensPage() {
     }
   }, [apiFetch, logsPagination.page, logsPagination.limit, logsStatusFilter, logsSourceFilter, logsModeFilter, logsSearch]);
 
+  const fetchScraperStatus = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/admin/scrapers/status');
+      if (!res.ok) return;
+      const data = await res.json();
+      setScraperStatus(data);
+    } catch (err) {
+      console.error('Fetch scraper status error:', err);
+    }
+  }, [apiFetch]);
+
+  const fetchWorkerLogs = useCallback(async (reset = false) => {
+    try {
+      const params = new URLSearchParams({ limit: '500', level: workerLogLevel, source: workerLogSource });
+      if (!reset && workerLogsSinceRef.current) params.set('since', workerLogsSinceRef.current);
+      const res = await apiFetch(`/api/admin/logs?${params}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.sources) setScraperStatus(prev => ({ ...(prev || {}), sources: data.sources }));
+      if (!data.logs?.length) return;
+      setWorkerLogs(prev => {
+        const combined = reset || !workerLogsSinceRef.current ? data.logs : [...prev, ...data.logs];
+        const seen = new Set();
+        const deduped = combined.filter(l => { const k = l.ts + l.msg; if (seen.has(k)) return false; seen.add(k); return true; });
+        const trimmed = deduped.slice(-500);
+        workerLogsSinceRef.current = trimmed[trimmed.length - 1]?.ts || null;
+        return trimmed;
+      });
+    } catch (err) {
+      console.error('Fetch worker logs error:', err);
+    }
+  }, [apiFetch, workerLogLevel, workerLogSource]);
+
   useEffect(() => {
     fetchTokens();
     fetchAutomationStatus();
+    // Capacity Planning (on the 'tokens' tab) needs logsMetrics' 7-day
+    // scrape-volume figures — fetch once on mount so it has real numbers
+    // immediately, not only after the admin happens to open the Logs tab.
+    fetchLogs(1);
+    fetchScraperStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchTokens, fetchAutomationStatus]);
+
+  // Worker fleet status — cheap enough (5 HTTP HEAD-ish pings) to poll regardless of
+  // whether the log panel is open, so the "N / 5 online" count is always current.
+  useEffect(() => {
+    const interval = setInterval(fetchScraperStatus, 15000);
+    return () => clearInterval(interval);
+  }, [fetchScraperStatus]);
+
+  // Reset + reload worker logs when the filter changes or the panel is first expanded.
+  useEffect(() => {
+    if (!workerLogsExpanded) return;
+    workerLogsSinceRef.current = null;
+    setWorkerLogs([]);
+    fetchWorkerLogs(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerLogsExpanded, workerLogSource, workerLogLevel]);
+
+  // Poll worker logs every 3s while the panel is open and not paused.
+  useEffect(() => {
+    if (!workerLogsExpanded || workerLogsPaused) return;
+    const interval = setInterval(() => fetchWorkerLogs(false), 3000);
+    return () => clearInterval(interval);
+  }, [workerLogsExpanded, workerLogsPaused, fetchWorkerLogs]);
 
   // Poll automation status continuously when active or periodically
   useEffect(() => {
@@ -198,7 +325,7 @@ export default function TokensPage() {
   const handleStartAutomation = async () => {
     try {
       setIsStartingAutomation(true);
-      const res = await apiFetch('/api/tokens/generate-scrapingant', {
+      const res = await automationFetch('/api/tokens/generate-scrapingant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count: batchCount, headless: headlessMode }),
@@ -222,7 +349,7 @@ export default function TokensPage() {
   const handleTestLogin = async () => {
     try {
       setIsStartingTest(true);
-      const res = await apiFetch('/api/tokens/test-login', {
+      const res = await automationFetch('/api/tokens/test-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headless: headlessMode }),
@@ -245,7 +372,7 @@ export default function TokensPage() {
   // Stop / Abort Automation Run
   const handleStopAutomation = async () => {
     try {
-      const res = await apiFetch('/api/tokens/stop-automation', { method: 'POST' });
+      const res = await automationFetch('/api/tokens/stop-automation', { method: 'POST' });
       const data = await res.json();
       showToast(data.message || 'Abort requested');
       fetchAutomationStatus();
@@ -260,7 +387,7 @@ export default function TokensPage() {
     if (!otpCode.trim()) return;
     try {
       setIsSubmittingCode(true);
-      const res = await apiFetch('/api/tokens/submit-otp-code', {
+      const res = await automationFetch('/api/tokens/submit-otp-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: otpCode.trim() }),
@@ -289,7 +416,8 @@ export default function TokensPage() {
       let payload;
 
       if (isBulk) {
-        const rawList = tokenInput.split(/[\n,]+/).map((t) => t.trim()).filter(Boolean);
+        const rawList = tokenInput.split(/[
+,]+/).map((t) => t.trim()).filter(Boolean);
         if (rawList.length === 0) return;
         payload = { tokens: rawList };
       } else {
@@ -395,7 +523,8 @@ export default function TokensPage() {
       t.lastUsedAt ? new Date(t.lastUsedAt).toISOString() : '',
       t.createdAt ? new Date(t.createdAt).toISOString() : '',
     ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('
+');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -439,6 +568,61 @@ export default function TokensPage() {
   }, [tokens, statusFilter, search, sortField, sortOrder]);
 
   const activePercent = summary.total > 0 ? Math.round((summary.active / summary.total) * 100) : 0;
+
+  // Capacity planning — non-amazon share and target daily volume both
+  // come from real ScrapingLog activity (trailing 7 days), not an admin
+  // slider. avgCreditsPerScrape blends the two proxy tiers by that real
+  // share; everything else falls out of that number and the 10,000-credit
+  // monthly token budget.
+  const hasScrapeHistory = (logsMetrics.totalScrapes7d || 0) > 0;
+  const residentialPercent = hasScrapeHistory ? logsMetrics.nonAmazonSharePercent7d : 0;
+  const targetScrapesPerDay = hasScrapeHistory ? Math.round(logsMetrics.scrapesPerDay7dAvg) : 0;
+
+  const capacity = useMemo(() => {
+    const avgCreditsPerScrape =
+      (residentialPercent / 100) * RESIDENTIAL_CREDITS_PER_SCRAPE +
+      (1 - residentialPercent / 100) * STANDARD_CREDITS_PER_SCRAPE;
+    const scrapesPerTokenPerMonth = CREDITS_PER_TOKEN_MONTH / avgCreditsPerScrape;
+    const scrapesPerTokenPerDay = scrapesPerTokenPerMonth / 30;
+    const activeTokenCount = summary.active || 0;
+    const currentCapacityPerDay = activeTokenCount * scrapesPerTokenPerDay;
+    const tokensNeededForTarget = scrapesPerTokenPerDay > 0
+      ? Math.ceil(targetScrapesPerDay / scrapesPerTokenPerDay)
+      : 0;
+    const tokenGap = tokensNeededForTarget - activeTokenCount;
+
+    // Real, synced credit balances (from "Sync Tokens" — checkScrapingAntUsage
+    // against ScrapingAnt's actual API) across currently-active tokens. null
+    // for a token that's never been synced, so those are excluded rather than
+    // silently counted as 0.
+    const activeTokens = tokens.filter((t) => t.status === 'active');
+    const syncedActiveTokens = activeTokens.filter((t) => t.remainedCredits != null);
+    const totalRemainedCredits = syncedActiveTokens.reduce((sum, t) => sum + (t.remainedCredits || 0), 0);
+    const totalPlanCredits = syncedActiveTokens.reduce((sum, t) => sum + (t.planTotalCredits || CREDITS_PER_TOKEN_MONTH), 0);
+    const lastSyncedAt = tokens.reduce((latest, t) => {
+      if (!t.lastCheckedAt) return latest;
+      const d = new Date(t.lastCheckedAt);
+      return !latest || d > latest ? d : latest;
+    }, null);
+    const estScrapesLeftInPool = avgCreditsPerScrape > 0 ? Math.floor(totalRemainedCredits / avgCreditsPerScrape) : 0;
+    const estDaysLeftAtTarget = targetScrapesPerDay > 0 ? estScrapesLeftInPool / targetScrapesPerDay : null;
+
+    return {
+      avgCreditsPerScrape,
+      scrapesPerTokenPerMonth,
+      scrapesPerTokenPerDay,
+      activeTokenCount,
+      currentCapacityPerDay,
+      tokensNeededForTarget,
+      tokenGap,
+      syncedActiveCount: syncedActiveTokens.length,
+      totalRemainedCredits,
+      totalPlanCredits,
+      lastSyncedAt,
+      estScrapesLeftInPool,
+      estDaysLeftAtTarget,
+    };
+  }, [residentialPercent, targetScrapesPerDay, summary.active, tokens]);
 
   return (
     <section style={{ padding: '0 0 40px' }}>
@@ -711,6 +895,251 @@ export default function TokensPage() {
             </div>
           </div>
 
+          {/* DISTRIBUTED SCRAPER WORKERS — live fleet status + per-worker console logs.
+              Distinct from ScrapingLog (Scraping Logs & Activity Tracker below): that's
+              per-request outcomes in Mongo; this is raw console output mirrored straight
+              from each shoppersdeals-scraper-N Render service. */}
+          <div className="card glass" style={{ padding: 24, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="material-symbols-outlined" style={{ color: '#3b82f6' }}>dns</span>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>Distributed Scraper Workers</h3>
+                {scraperStatus && (
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700,
+                    background: scraperStatus.online === scraperStatus.total ? '#ecfdf5' : scraperStatus.online > 0 ? '#fffbeb' : '#fef2f2',
+                    color: scraperStatus.online === scraperStatus.total ? '#059669' : scraperStatus.online > 0 ? '#d97706' : '#dc2626',
+                  }}>
+                    {scraperStatus.online} / {scraperStatus.total} Online
+                  </span>
+                )}
+              </div>
+              <button className="btn" onClick={fetchScraperStatus} style={{ padding: '5px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span> Refresh
+              </button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 16px', maxWidth: 720 }}>
+              Each worker is an independent Render service pulling from the same distributed queue — N workers = N&times; scraping
+              throughput. Status is pinged directly against each worker&apos;s own health check, not derived from queue bookkeeping.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              {(scraperStatus?.workers || []).map(w => (
+                <div key={w.name} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10,
+                  border: '1px solid var(--border)', background: w.online ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: w.online ? '#10b981' : '#ef4444',
+                    boxShadow: w.online ? '0 0 6px #10b981' : 'none',
+                  }} />
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)' }}>{w.name}</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{w.online ? `${w.latencyMs}ms` : 'offline'}</span>
+                </div>
+              ))}
+              {!scraperStatus && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Checking worker status…</span>}
+            </div>
+
+            <button
+              onClick={() => setWorkerLogsExpanded(v => !v)}
+              className="btn"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', fontSize: '0.85rem', marginBottom: workerLogsExpanded ? 12 : 0, background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>terminal</span>
+              {workerLogsExpanded ? 'Hide Worker Logs' : "Show Worker Logs — what's failing, per worker"}
+            </button>
+
+            {workerLogsExpanded && (
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                  <select
+                    className="filter-select"
+                    value={workerLogSource}
+                    onChange={(e) => setWorkerLogSource(e.target.value)}
+                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                  >
+                    <option value="all">All Sources</option>
+                    {(scraperStatus?.sources || []).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {['all', 'info', 'warn', 'error'].map(l => (
+                      <button
+                        key={l}
+                        onClick={() => setWorkerLogLevel(l)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 16, border: '1px solid var(--border)', cursor: 'pointer',
+                          background: workerLogLevel === l ? 'var(--accent)' : 'var(--surface)',
+                          color: workerLogLevel === l ? '#fff' : 'var(--text-muted)',
+                          fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px',
+                        }}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setWorkerLogsPaused((p) => !p)}
+                    className="btn"
+                    style={{ padding: '4px 12px', fontSize: '0.78rem', marginLeft: 'auto', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
+                  >
+                    {workerLogsPaused ? '▶ Resume' : '⏸ Pause'}
+                  </button>
+                </div>
+
+                <div style={{
+                  height: 320, overflowY: 'auto', overflowX: 'hidden',
+                  background: '#0f1117', border: '1px solid var(--border)', borderRadius: 8,
+                  fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace', fontSize: '0.75rem', lineHeight: 1.6,
+                }}>
+                  {workerLogs.length === 0 ? (
+                    <div style={{ padding: 30, textAlign: 'center', color: 'rgba(255,255,255,0.35)' }}>
+                      Waiting for worker logs…
+                    </div>
+                  ) : (
+                    workerLogs.map((log, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '2px 12px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0, paddingTop: 1 }}>
+                          {new Date(log.ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                        </span>
+                        <span style={{
+                          flexShrink: 0, fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+                          textTransform: 'uppercase', marginTop: 2,
+                          background: log.source?.startsWith('shoppersdeals-scraper') ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.08)',
+                          color: log.source?.startsWith('shoppersdeals-scraper') ? '#a5b4fc' : '#94a3b8',
+                        }}>
+                          {log.source || '?'}
+                        </span>
+                        <span style={{
+                          color: log.level === 'error' ? '#e74c3c' : log.level === 'warn' ? '#f5a623' : '#cbd5e1',
+                          wordBreak: 'break-all', whiteSpace: 'pre-wrap',
+                        }}>
+                          {log.msg}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* CAPACITY PLANNING — how many tokens do we actually need? */}
+          <div className="card glass" style={{ padding: 24, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <span className="material-symbols-outlined" style={{ color: '#6366f1' }}>calculate</span>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>Capacity Planning</h3>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 20px', maxWidth: 720 }}>
+              ScrapingAnt bills <b>{STANDARD_CREDITS_PER_SCRAPE} credits/scrape</b> on standard proxies, <b>{RESIDENTIAL_CREDITS_PER_SCRAPE} credits/scrape</b> on
+              residential — <b>enforced in code</b>: amazon.in uses standard, everything else (Flipkart, Myntra, Nykaa, amazon.com, etc.) uses residential, since they
+              block standard proxies. Each token gets <b>{CREDITS_PER_TOKEN_MONTH.toLocaleString()} credits/month</b>. The mix and volume below aren&apos;t
+              admin guesses — both come straight from the last 7 days of real scraping activity.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(300px, 1.4fr)', gap: 32 }}>
+              {/* System-derived inputs (read-only) */}
+              <div>
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em', fontWeight: 600 }}>
+                    Non-amazon.in share of scrape volume
+                  </div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#6366f1' }}>{residentialPercent}%</div>
+                  <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', overflow: 'hidden', marginTop: 6 }}>
+                    <div style={{ height: '100%', width: `${residentialPercent}%`, background: '#6366f1' }} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    From real traffic, last 7 days — not admin-set
+                  </span>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em', fontWeight: 600 }}>
+                    Target scrapes / day
+                  </div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{targetScrapesPerDay.toLocaleString()}</div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {hasScrapeHistory
+                      ? `Average of ${logsMetrics.totalScrapes7d?.toLocaleString()} scrapes over the last 7 days`
+                      : 'No scrape activity in the last 7 days yet'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Computed results */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, alignContent: 'start' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4 }}>Avg credits / scrape</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)' }}>{capacity.avgCreditsPerScrape.toFixed(1)}</div>
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4 }}>Scrapes / token / month</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)' }}>{Math.round(capacity.scrapesPerTokenPerMonth).toLocaleString()}</div>
+                </div>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4 }}>Current pool capacity</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)' }}>{Math.round(capacity.currentCapacityPerDay).toLocaleString()}<span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}> /day</span></div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{capacity.activeTokenCount} active token(s)</div>
+                </div>
+                <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 600, marginBottom: 4 }}>Tokens needed for target</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#4338ca' }}>{capacity.tokensNeededForTarget.toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Surplus / deficit banner */}
+            <div style={{
+              marginTop: 20, padding: '10px 14px', borderRadius: 8,
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: capacity.tokenGap > 0 ? '#fef2f2' : '#ecfdf5',
+              border: `1px solid ${capacity.tokenGap > 0 ? '#fecaca' : '#bbf7d0'}`,
+            }}>
+              <span className="material-symbols-outlined" style={{ color: capacity.tokenGap > 0 ? '#dc2626' : '#059669', fontSize: 20 }}>
+                {capacity.tokenGap > 0 ? 'warning' : 'check_circle'}
+              </span>
+              <span style={{ fontSize: '0.85rem', color: capacity.tokenGap > 0 ? '#7f1d1d' : '#065f46' }}>
+                {capacity.tokenGap > 0
+                  ? <>Need <b>{capacity.tokenGap} more active token{capacity.tokenGap === 1 ? '' : 's'}</b> to hit {targetScrapesPerDay.toLocaleString()}/day at this mix.</>
+                  : <>Current pool covers the target, with <b>{Math.abs(capacity.tokenGap)} token{Math.abs(capacity.tokenGap) === 1 ? '' : 's'}</b> to spare.</>}
+              </span>
+            </div>
+
+            {/* Real synced credit balance */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>Real Credit Balance (from last Sync)</h4>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {capacity.lastSyncedAt ? `Last synced ${formatTime(capacity.lastSyncedAt.toISOString())}` : 'Never synced — click "Sync Tokens" above'}
+                </span>
+              </div>
+              {capacity.syncedActiveCount > 0 ? (
+                <>
+                  <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', overflow: 'hidden', marginBottom: 8 }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${capacity.totalPlanCredits > 0 ? Math.min(100, (capacity.totalRemainedCredits / capacity.totalPlanCredits) * 100) : 0}%`,
+                      background: (capacity.totalRemainedCredits / (capacity.totalPlanCredits || 1)) > 0.25 ? '#10b981' : '#ef4444',
+                    }} />
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                    <b>{capacity.totalRemainedCredits.toLocaleString()}</b> / {capacity.totalPlanCredits.toLocaleString()} credits remaining across {capacity.syncedActiveCount} synced active token(s)
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                    ≈ {capacity.estScrapesLeftInPool.toLocaleString()} scrapes left at this mix
+                    {capacity.estDaysLeftAtTarget != null && targetScrapesPerDay > 0 && (
+                      <> — about <b>{Math.floor(capacity.estDaysLeftAtTarget)} day{Math.floor(capacity.estDaysLeftAtTarget) === 1 ? '' : 's'}</b> at {targetScrapesPerDay.toLocaleString()}/day</>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  No synced credit data on active tokens yet — click &quot;Sync Tokens&quot; above to pull real balances from ScrapingAnt.
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* CONTROL DECK: DUAL TAB INTERFACE (AUTOMATED GENERATOR & MANUAL) */}
           <div
             className="card glass"
@@ -955,7 +1384,7 @@ export default function TokensPage() {
                     {automationStatus.errors?.length > 0 && (
                       <div style={{ color: '#f87171', marginTop: 4 }}>
                         {automationStatus.errors.slice(-3).map((err, idx) => (
-                          <div key={idx}>⚠ {err}</div>
+                          <div key={idx}>⚠ {typeof err === 'string' ? err : (err?.error || 'Unknown error')}{err?.cycle ? ` (cycle ${err.cycle})` : ''}</div>
                         ))}
                       </div>
                     )}
@@ -1058,6 +1487,7 @@ export default function TokensPage() {
                     <TableHead>Token Key</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Lifetime Requests</TableHead>
+                    <TableHead>Credits Left</TableHead>
                     <TableHead>Last Used</TableHead>
                     <TableHead>Added On</TableHead>
                     <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
@@ -1066,14 +1496,14 @@ export default function TokensPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                      <TableCell colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                         <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite', fontSize: 24 }}>sync</span>
                         <div>Loading token pool...</div>
                       </TableCell>
                     </TableRow>
                   ) : filteredTokens.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                      <TableCell colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                         No tokens found. Use the Automated Token Scraper above to harvest new tokens.
                       </TableCell>
                     </TableRow>
@@ -1134,8 +1564,26 @@ export default function TokensPage() {
                             </span>
                           </TableCell>
                           <TableCell style={{ fontWeight: 700 }}>{t.usageCount || 0}</TableCell>
+                          <TableCell>
+                            {t.remainedCredits != null ? (
+                              <div style={{ minWidth: 110 }}>
+                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                                  {t.remainedCredits.toLocaleString()} / {(t.planTotalCredits || CREDITS_PER_TOKEN_MONTH).toLocaleString()}
+                                </div>
+                                <div style={{ height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden', marginTop: 3 }}>
+                                  <div style={{
+                                    height: '100%',
+                                    width: `${Math.min(100, (t.remainedCredits / (t.planTotalCredits || CREDITS_PER_TOKEN_MONTH)) * 100)}%`,
+                                    background: t.remainedCredits / (t.planTotalCredits || CREDITS_PER_TOKEN_MONTH) > 0.25 ? '#10b981' : '#ef4444',
+                                  }} />
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Not synced</span>
+                            )}
+                          </TableCell>
                           <TableCell style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatTime(t.lastUsedAt)}</TableCell>
-                          <TableCell style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatTime(t.createdAt)}</TableCell>
+                          <TableCell style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatAddedOn(t.createdAt)}</TableCell>
                           <TableCell style={{ textAlign: 'right' }}>
                             <button
                               onClick={() => handleDeleteToken(t._id)}

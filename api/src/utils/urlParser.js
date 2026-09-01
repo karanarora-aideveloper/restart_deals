@@ -3,7 +3,7 @@
  */
 
 const SUPPORTED_MERCHANT_DOMAINS = [
-  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com'
+  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com'
 ];
 
 export function isSupportedMerchantUrl(url) {
@@ -23,7 +23,7 @@ export function unwrapEmbeddedUrl(url) {
       }
     }
     const decodedRaw = decodeURIComponent(url);
-    const rawMatch = decodedRaw.match(/https?:\/\/(?:www\.)?(?:amazon\.[a-z.]+|flipkart\.com|amzn\.to|fkrt\.it|myntra\.com|nykaa\.com|ajio\.com|shopsy\.in)\/[^\s"'<>]+/i);
+    const rawMatch = decodedRaw.match(/https?:\/\/(?:www\.)?(?:amazon\.[a-z.]+|flipkart\.com|amzn\.to|fkrt\.it|myntra\.com|nykaa\.com|ajio\.com|shopsy\.in|meesho\.com|croma\.com)\/[^\s"'<>]+/i);
     if (rawMatch && !isSupportedMerchantUrl(urlObj.hostname)) {
       return rawMatch[0];
     }
@@ -130,6 +130,13 @@ export function parseProductUrl(url) {
       if (idMatch) {
         productId = idMatch[1];
         cleanUrl = `https://www.meesho.com${urlObj.pathname.replace(/\/$/, '')}`;
+      }
+    } else if (hostname.includes('croma.com')) {
+      merchant = 'croma';
+      const idMatch = urlObj.pathname.match(/\/p\/([a-z0-9_]+)/i);
+      if (idMatch) {
+        productId = idMatch[1];
+        cleanUrl = `https://www.croma.com${urlObj.pathname.replace(/\/$/, '')}`;
       }
     }
 

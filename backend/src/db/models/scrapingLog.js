@@ -13,7 +13,7 @@ const scrapingLogSchema = new mongoose.Schema({
   },
   merchant: {
     type: String,
-    enum: ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'unknown'],
+    enum: ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'croma', 'unknown'],
     default: 'unknown',
     index: true,
   },

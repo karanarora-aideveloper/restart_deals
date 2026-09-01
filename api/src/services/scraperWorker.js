@@ -106,7 +106,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
   }
 
   const isUs = url.includes('amazon.com') || url.includes('.us');
-  const countryParam = isUs ? '&country=US' : '&country=IN';
+  const countryParam = isUs ? '&proxy_country=US' : '&proxy_country=IN';
 
   // Proxy tier: amazon.in works fine on ScrapingAnt's standard/datacenter proxies (10
   // credits/scrape). amazon.com does NOT — confirmed live 2026-08-30 by pulling 500 recent
@@ -320,7 +320,8 @@ if (process.argv[1]?.endsWith('scraperWorker.js')) {
 
   console.log('==================================================');
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
-  console.log('==================================================\n');
+  console.log('==================================================
+');
 
   const port = process.env.PORT || 10000;
   http.createServer((req, res) => {

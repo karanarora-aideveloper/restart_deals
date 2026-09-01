@@ -41,6 +41,7 @@ export default function OutputChannelsPage() {
 
   const [testSendingId, setTestSendingId] = useState(null);
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [masterCategories, setMasterCategories] = useState([]);
 
   // Group/channel picker for WAHA recipients — reuses whichever existing WAHA-connected output
@@ -62,8 +63,9 @@ export default function OutputChannelsPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchMasterCategories = useCallback(async () => {
     try {
@@ -204,7 +206,11 @@ export default function OutputChannelsPage() {
       fetchOutputChannels();
 
       if (failed.length > 0) {
-        alert(`Added ${groups.length - failed.length} of ${groups.length} channels.\n\nFailed:\n` + failed.map(f => f.reason.message).join('\n'));
+        alert(`Added ${groups.length - failed.length} of ${groups.length} channels.
+
+Failed:
+` + failed.map(f => f.reason.message).join('
+'));
       } else {
         alert(`✅ Added ${groups.length} output channel${groups.length > 1 ? 's' : ''}.`);
       }
@@ -288,7 +294,9 @@ export default function OutputChannelsPage() {
   };
 
   const handleResetStats = async (ch) => {
-    if (!window.confirm(`Reset the "Deals Sent" counter for "${ch.name}" back to 0?\n\nUse this when the count includes sends that never actually delivered (e.g. a stuck WhatsApp session).`)) return;
+    if (!window.confirm(`Reset the "Deals Sent" counter for "${ch.name}" back to 0?
+
+Use this when the count includes sends that never actually delivered (e.g. a stuck WhatsApp session).`)) return;
     try {
       const res = await apiFetch(`/api/output-channels/${ch._id}`, {
         method: 'PATCH',

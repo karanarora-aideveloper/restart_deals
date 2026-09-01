@@ -17,6 +17,7 @@ function formatTimestamp(unixSeconds) {
 
 export default function WhatsAppPortalPage() {
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [channelId, setChannelId] = useState(null);
   const [tab, setTab] = useState('overview');
 
@@ -28,8 +29,9 @@ export default function WhatsAppPortalPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   if (channelId === null) {
     return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading…</div>;

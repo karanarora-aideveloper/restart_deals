@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AdminShell from '@/components/admin-shell';
 import SystemFlowDiagram from '@/components/system-flow-diagram';
+import BestsellerCrawlerPanel from '@/components/bestseller-crawler-panel';
+import TelegramChannelsPanel from '@/app/network/input/page';
 
 // Plain-language description shown under the node title in the side panel.
 const DESCRIPTIONS = {
   // Producers
   'producer-telegram': 'GramJS Live Event Handler & 30s Poller: Captures real-time shopping deal posts from monitored Telegram channels. Pushes to Redis BullMQ at Priority 2.',
   'producer-refresher': '24-Hour Autonomous Price Refresher: Regularly queries products in MongoDB whose lastChecked is older than 24 hours. Normalizes daily checkpoints and pushes to BullMQ at Priority 3.',
-  'producer-crawler': 'Category Bestseller Discovery Engine: Scans top 11 e-commerce categories (Mobiles, Audio, Laptops, Wearables, TV, Fashion, Kitchen, etc.) to discover trending products. Pushes to BullMQ at Priority 4.',
+  'producer-crawler': 'Category Bestseller Discovery Engine: Runs on an admin-configurable schedule (default every 24h — Settings → Bestseller Crawler) across every Master subcategory\'s keyword seed, extracting the top-N ranked Amazon search results per seed. Pushes to BullMQ at Priority 4.',
   'producer-interactive': 'On-Demand Interactive Live Re-check: Triggered when a user clicks "Re-check Live Price" or pastes a URL in the search bar. Pushes to BullMQ at Priority 1 (Urgent Head of Line).',
 
   // Normalization & AI
@@ -39,6 +41,23 @@ const DESCRIPTIONS = {
 
 // Known open issues (see the "Backend Flow" diagram) — shown as a callout when present.
 const ISSUE_NOTES = {};
+
+// Implementation status for nodes NOT fully live/autonomous, verified against
+// the actual code 2026-08-29 (see system-flow-diagram.jsx's `implemented`
+// field on these same node ids). Nodes with no entry here are fully
+// implemented and confirmed running.
+const IMPLEMENTATION_NOTES = {
+  'producer-interactive': {
+    kind: 'partial',
+    title: 'Partial — backend ready, no frontend trigger found',
+    text: "PRIORITY.INTERACTIVE is real and wired into 3 call sites in api/src/routes/products.js, so a request hitting those routes does get urgent-priority scraping. But there's no \"Re-check Live Price\" button or URL-paste-to-search flow anywhere in frontend/src — cleanUrl there is only ever used to build the affiliate buy link, never to trigger a re-scrape. The backend capability exists; the user-facing trigger described here doesn't yet.",
+  },
+  'node-subset-gate': {
+    kind: 'partial',
+    title: 'Partial — not an active, enforced gate',
+    text: "Deal.productId is typed as a plain String with no required:true, no ref/foreign-key relationship to Product, and no audit job or validation query anywhere in the codebase (confirmed by grepping for orphan checks and schema constraints). In practice deals are almost always created alongside a product upsert, so the invariant usually holds — but nothing actively checks or guarantees it. It's an emergent property of the code flow, not an enforced gate.",
+  },
+};
 
 // Each entry is an array of {n, text, label?} — label defaults to "Fixed" but a node can carry
 // more than one note (e.g. ai-parser has two separate fixes), and #9 is a "New" capability, not a fix.
@@ -92,6 +111,7 @@ const FIXED_NOTES = {
 export default function ArchitecturePage() {
   const [statusData, setStatusData] = useState({});
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   useEffect(() => {
   }, []);
@@ -99,8 +119,9 @@ export default function ArchitecturePage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -115,11 +136,73 @@ export default function ArchitecturePage() {
 
   const [selectedNode, setSelectedNode] = useState(null);
 
+  // This page is the single home for "manage every source that produces deals" — Telegram
+  // channels and the Bestseller Crawler each get their own sub-tab — plus the existing
+  // pipeline diagram/live-log diagnostic view, kept as a second top-level tab rather than
+  // dropped, since it's still the clearest place to see what's actually implemented.
+  const [mainTab, setMainTab] = useState('sources');
+  const [sourceTab, setSourceTab] = useState('telegram');
+
   useEffect(() => {
     fetchStatus();
     const timer = setInterval(fetchStatus, 5000);
     return () => clearInterval(timer);
   }, [fetchStatus]);
+
+  // Live backend log stream, embedded directly on the diagram so activity in
+  // the pipeline can be watched alongside the nodes it's flowing through —
+  // same Redis-backed feed as the standalone /logs page (GET /api/admin/logs),
+  // just polled here inline instead of on its own page.
+  const [showLiveLogs, setShowLiveLogs] = useState(true);
+  const [liveLogs, setLiveLogs] = useState([]);
+  const [logsConnected, setLogsConnected] = useState(null);
+  const lastLogTsRef = useRef(null);
+  const logsBottomRef = useRef(null);
+  const logsContainerRef = useRef(null);
+
+  const fetchLiveLogs = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ limit: '150' });
+      if (lastLogTsRef.current) params.set('since', lastLogTsRef.current);
+      const res = await apiFetch(`/api/admin/logs?${params}`);
+      if (!res.ok) { setLogsConnected(false); return; }
+      const data = await res.json();
+      setLogsConnected(true);
+      if (!data.logs?.length) return;
+      setLiveLogs((prev) => {
+        const combined = lastLogTsRef.current ? [...prev, ...data.logs] : data.logs;
+        const seen = new Set();
+        const deduped = combined.filter((l) => { const k = l.ts + l.msg; if (seen.has(k)) return false; seen.add(k); return true; });
+        const trimmed = deduped.slice(-300);
+        lastLogTsRef.current = trimmed[trimmed.length - 1]?.ts || null;
+        return trimmed;
+      });
+    } catch {
+      setLogsConnected(false);
+    }
+  }, [apiFetch]);
+
+  useEffect(() => {
+    if (!showLiveLogs) return;
+    fetchLiveLogs();
+    const timer = setInterval(fetchLiveLogs, 2000);
+    return () => clearInterval(timer);
+  }, [showLiveLogs, fetchLiveLogs]);
+
+  useEffect(() => {
+    const el = logsContainerRef.current;
+    if (!el) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 160) {
+      logsBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [liveLogs]);
+
+  const LOG_LEVEL_COLOR = { info: '#cbd5e1', warn: '#f5a623', error: '#e74c3c' };
+
+  function formatLogTs(iso) {
+    try { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); }
+    catch { return iso; }
+  }
 
   const handlePrint = () => {
     window.print();
@@ -131,38 +214,181 @@ export default function ArchitecturePage() {
 
   const issueNote = selectedNode ? ISSUE_NOTES[selectedNode.id] : null;
   const fixedNotes = selectedNode ? FIXED_NOTES[selectedNode.id] : null;
+  const implNote = selectedNode ? IMPLEMENTATION_NOTES[selectedNode.id] : null;
 
   return (
     <AdminShell title="System Architecture">
-      <section className="view-section active-view" style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <section
+        className="view-section active-view"
+        style={mainTab === 'diagram'
+          ? { height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', position: 'relative' }
+          : { position: 'relative' }}
+      >
+        {/* Top-level tabs — this page is the one place to both manage every deal source
+            (Telegram channels, Bestseller Crawler) and inspect the pipeline that processes them. */}
+        <div className="hide-on-print" style={{ display: 'flex', gap: 16, marginBottom: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+          <button
+            onClick={() => setMainTab('sources')}
+            style={{
+              padding: '10px 4px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8,
+              color: mainTab === 'sources' ? 'var(--accent)' : 'var(--text-muted)',
+              borderBottom: mainTab === 'sources' ? '3px solid var(--accent)' : '3px solid transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span className="material-symbols-outlined">hub</span>
+            Deal Sources
+          </button>
+          <button
+            onClick={() => setMainTab('diagram')}
+            style={{
+              padding: '10px 4px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8,
+              color: mainTab === 'diagram' ? 'var(--accent)' : 'var(--text-muted)',
+              borderBottom: mainTab === 'diagram' ? '3px solid var(--accent)' : '3px solid transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span className="material-symbols-outlined">account_tree</span>
+            Pipeline Diagram
+          </button>
+        </div>
 
+        {mainTab === 'sources' && (
+          <div>
+            <div style={{ display: 'flex', gap: 12, marginBottom: '1.25rem' }}>
+              <button
+                onClick={() => setSourceTab('telegram')}
+                className="btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: sourceTab === 'telegram' ? 'var(--foreground)' : 'var(--surface)',
+                  color: sourceTab === 'telegram' ? 'var(--background)' : 'var(--text-muted)',
+                  border: sourceTab === 'telegram' ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>sensors</span>
+                Telegram Channels
+              </button>
+              <button
+                onClick={() => setSourceTab('crawler')}
+                className="btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: sourceTab === 'crawler' ? 'var(--foreground)' : 'var(--surface)',
+                  color: sourceTab === 'crawler' ? 'var(--background)' : 'var(--text-muted)',
+                  border: sourceTab === 'crawler' ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>star</span>
+                Bestseller Crawler
+              </button>
+            </div>
+
+            {sourceTab === 'telegram' ? <TelegramChannelsPanel /> : <BestsellerCrawlerPanel />}
+          </div>
+        )}
+
+        {mainTab === 'diagram' && (
+        <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>Live Data Flow</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
               Telegram capture → link resolution → verification → publish, drawn from the actual listener code.
-              Click any node for detail; nodes with a red badge are known open issues.
+              Click any node for detail — a red badge is a known open issue, an amber/gray dot in the top-left
+              corner means that node is only partially implemented or manual-trigger-only (see the panel for why).
             </p>
           </div>
-          <button
-            onClick={handlePrint}
-            className="btn hide-on-print"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--foreground)',
-              color: 'var(--background)'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>print</span>
-            Print / Save as PDF
-          </button>
+          <div className="hide-on-print" style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowLiveLogs((v) => !v)}
+              className="btn"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: showLiveLogs ? 'var(--foreground)' : 'var(--surface)',
+                color: showLiveLogs ? 'var(--background)' : 'var(--text-muted)',
+                border: showLiveLogs ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
+                background: logsConnected === null ? '#888' : logsConnected ? '#27ae60' : '#e74c3c',
+                boxShadow: logsConnected ? '0 0 6px #27ae60' : 'none',
+              }} />
+              {showLiveLogs ? 'Hide Live Logs' : 'Show Live Logs'}
+            </button>
+            <button
+              onClick={handlePrint}
+              className="btn"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'var(--foreground)',
+                color: 'var(--background)'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>print</span>
+              Print / Save as PDF
+            </button>
+          </div>
         </div>
 
-        <div className="card glass print-canvas" style={{ flex: 1, padding: 0, overflow: 'hidden', minHeight: 500, position: 'relative' }}>
+        <div className="card glass print-canvas" style={{ flex: showLiveLogs ? '1 1 60%' : 1, padding: 0, overflow: 'hidden', minHeight: 300, position: 'relative' }}>
           <SystemFlowDiagram statusData={statusData} onNodeClick={handleNodeClick} />
         </div>
+
+        {showLiveLogs && (
+          <div className="hide-on-print" style={{
+            flex: '0 0 220px',
+            marginTop: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#0f1117',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+              fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', flexShrink: 0,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>terminal</span>
+              Live Backend Logs
+              <span style={{ marginLeft: 'auto' }}>
+                {logsConnected === null ? 'Connecting…' : logsConnected ? 'Live' : 'Disconnected'}
+              </span>
+            </div>
+            <div ref={logsContainerRef} style={{
+              flex: 1, overflowY: 'auto', overflowX: 'hidden',
+              fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, monospace',
+              fontSize: '0.72rem', lineHeight: 1.6,
+            }}>
+              {liveLogs.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.35)' }}>
+                  {logsConnected === false ? 'Cannot reach API.' : 'Waiting for backend logs…'}
+                </div>
+              ) : (
+                liveLogs.map((log, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 0, padding: '1px 12px' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0, marginRight: 10, userSelect: 'none' }}>
+                      {formatLogTs(log.ts)}
+                    </span>
+                    <span style={{ color: LOG_LEVEL_COLOR[log.level] || '#ccc', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                      {log.msg}
+                    </span>
+                  </div>
+                ))
+              )}
+              <div ref={logsBottomRef} />
+            </div>
+          </div>
+        )}
 
         {selectedNode && (
           <div className="hide-on-print" style={{
@@ -191,6 +417,24 @@ export default function ArchitecturePage() {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>
               {DESCRIPTIONS[selectedNode.id] || 'Pipeline endpoint logic is active.'}
             </p>
+
+            {implNote && (
+              <div style={{
+                display: 'flex', gap: 10, alignItems: 'flex-start',
+                background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8,
+                padding: '10px 12px', marginBottom: '20px'
+              }}>
+                <span className="material-symbols-outlined" style={{ color: implNote.kind === 'manual' ? '#94a3b8' : '#f59e0b', fontSize: 20, flex: 'none' }}>
+                  {implNote.kind === 'manual' ? 'pan_tool' : 'warning'}
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+                    {implNote.title}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#78350f' }}>{implNote.text}</div>
+                </div>
+              </div>
+            )}
 
             {issueNote && (
               <div style={{
@@ -232,14 +476,22 @@ export default function ArchitecturePage() {
                   <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '8px' }}>System Prompt</h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     You are a shopping deal analyzer. Analyze the Telegram message and any previously recorded details.
-                    {"\n\n"}
+                    {"
+
+"}
                     Respond ONLY with a valid JSON object matching this schema.
-                    {"\n\n"}
+                    {"
+
+"}
                     <span style={{ color: '#0ea5e9' }}>// Category list is fetched live from Master DB</span>
-                    {"\n"}Extract dealPrice/originalPrice from the message text FIRST.
-                    {"\n"}<span style={{ color: '#10b981' }}>// Fixed #8 — this used to say "prioritize the scraped price," which silently</span>
-                    {"\n"}<span style={{ color: '#10b981' }}>// overrode the message even though nothing was actually scraped this run.</span>
-                    {"\n"}Only fall back to the previously recorded price if the message states none at all.
+                    {"
+"}Extract dealPrice/originalPrice from the message text FIRST.
+                    {"
+"}<span style={{ color: '#10b981' }}>// Fixed #8 — this used to say "prioritize the scraped price," which silently</span>
+                    {"
+"}<span style={{ color: '#10b981' }}>// overrode the message even though nothing was actually scraped this run.</span>
+                    {"
+"}Only fall back to the previously recorded price if the message states none at all.
                   </div>
                 </div>
 
@@ -315,8 +567,14 @@ export default function ArchitecturePage() {
                   </h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     {selectedNode.id === 'upsert-product'
-                      ? `if (dealPrice !== productRecord.price) {\n  productRecord.priceHistory.push({\n    price: dealPrice, originalPrice, timestamp: now\n  });\n}`
-                      : `// existing dealUrl found:\ndeal.createdAt = now; // bumps to top of feed\nawait deal.save();`}
+                      ? `if (dealPrice !== productRecord.price) {
+  productRecord.priceHistory.push({
+    price: dealPrice, originalPrice, timestamp: now
+  });
+}`
+                      : `// existing dealUrl found:
+deal.createdAt = now; // bumps to top of feed
+await deal.save();`}
                   </div>
                 </div>
               </div>
@@ -365,13 +623,20 @@ export default function ArchitecturePage() {
                   </h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     {selectedNode.id === 'loop-resolve'
-                      ? `for (const [param, value] of urlObj.searchParams) {\n  if (value.match(/https?:\\/\\/[^\\s"'<>]+/i)) {\n    return decodeURIComponent(value);\n  }\n}`
-                      : `const dpMatch = pathname.match(/\\/dp\\/([A-Z0-9]{10})/i);\nisProductUrl = !!dpMatch; // false for /s?k=... search pages`}
+                      ? `for (const [param, value] of urlObj.searchParams) {
+  if (value.match(/https?:\/\/[^\s"'<>]+/i)) {
+    return decodeURIComponent(value);
+  }
+}`
+                      : `const dpMatch = pathname.match(/\/dp\/([A-Z0-9]{10})/i);
+isProductUrl = !!dpMatch; // false for /s?k=... search pages`}
                   </div>
                 </div>
               </div>
             )}
           </div>
+        )}
+        </>
         )}
 
       </section>

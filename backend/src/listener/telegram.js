@@ -103,7 +103,9 @@ function extractMessageText(message) {
       const unique = [...new Set(entityUrls)];
       console.log(`[Entities] Found ${unique.length} hidden hyperlink URL(s) in message entities: ${unique.join(', ')}`);
       // Append hidden URLs to the text so extractUrls() in verifier.js picks them up
-      text = text + '\n' + unique.join('\n');
+      text = text + '
+' + unique.join('
+');
     }
   }
 
@@ -174,7 +176,8 @@ async function handleNewMessage(event) {
     }
 
     const displayName = channelName ? `"${channelName}"` : matchedId;
-    const preview = message.message ? message.message.substring(0, 35).replace(/\n/g, ' ') : 'none';
+    const preview = message.message ? message.message.substring(0, 35).replace(/
+/g, ' ') : 'none';
 
     console.log(`[DEBUG] New message captured in [${displayName}] (ID: ${matchedId}) - Preview: ${preview}`);
 
@@ -202,7 +205,7 @@ async function handleNewMessage(event) {
     Channel.updateOne(
       { channelId: channelKey },
       { $inc: { messagesCapturedCount: 1 }, $set: { lastMessageAt: new Date() } }
-    ).catch(() => {});
+    ).catch(err => console.warn(`[Channel Metrics] Failed to update ${channelKey} captured count:`, err.message));
 
     const country = channelCountryMap.get(matchedId) || 'IN';
     const category = channelCategoryMap.get(matchedId) || 'auto';
@@ -223,10 +226,10 @@ async function handleNewMessage(event) {
           Channel.updateOne(
             { channelId: channelKey },
             { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
-          ).catch(() => {});
+          ).catch(err => console.warn(`[Channel Metrics] Failed to update ${channelKey} deals produced count:`, err.message));
         }
       } catch (err) {
-        console.error(`[Queue Error] Processing failed for message ${messageId}:`, err.message);
+        console.error(`[Queue Error] Processing failed for message ${messageId}:`, err);
       }
     });
   } catch (err) {
@@ -264,10 +267,12 @@ export async function startTelegramListener() {
   
   // Output session string
   const currentSession = client.session.save();
-  console.log('\n=================== TELEGRAM SESSION STRING ===================');
+  console.log('
+=================== TELEGRAM SESSION STRING ===================');
   console.log('Copy & paste this updated session string into backend/.env as TELEGRAM_SESSION:');
   console.log(currentSession);
-  console.log('===============================================================\n');
+  console.log('===============================================================
+');
 
   // Pre-fetch all joined dialogs into GramJS entity cache
   await fetchJoinedDialogs();

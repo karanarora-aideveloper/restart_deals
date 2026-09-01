@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminShell from '@/components/admin-shell';
 
-const LEVEL_COLORS = { info: 'var(--text-main)', warn: '#f5a623', error: '#e74c3c' };
+// Fixed contrast bug: info used var(--text-main), a light-theme color (near-black) meant for
+// light backgrounds — nearly invisible on this panel's black terminal background (#0f1117).
+// #cbd5e1 (light slate) matches the convention architecture/page.js's own embedded live-log
+// viewer already uses correctly for the same black-background context.
+const LEVEL_COLORS = { info: '#cbd5e1', warn: '#f5a623', error: '#e74c3c' };
 const LEVEL_BG = { info: 'transparent', warn: 'rgba(245,166,35,0.07)', error: 'rgba(231,76,60,0.09)' };
 const LEVEL_BADGE = {
   info: { background: 'rgba(255,255,255,0.07)', color: 'var(--text-muted)' },
@@ -35,7 +39,7 @@ export default function LogsPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ limit: '200', level });
+      const params = new URLSearchParams({ limit: '3000', level });
       if (lastTsRef.current) params.set('since', lastTsRef.current);
       const res = await apiFetchRef.current(`/api/admin/logs?${params}`);
       if (!res.ok) { setConnected(false); return; }
@@ -46,7 +50,7 @@ export default function LogsPage() {
         const combined = lastTsRef.current ? [...prev, ...data.logs] : data.logs;
         const seen = new Set();
         const deduped = combined.filter(l => { const k = l.ts + l.msg; if (seen.has(k)) return false; seen.add(k); return true; });
-        const trimmed = deduped.slice(-500);
+        const trimmed = deduped.slice(-3000);
         lastTsRef.current = trimmed[trimmed.length - 1]?.ts || null;
         return trimmed;
       });

@@ -64,6 +64,7 @@ export default function ChannelsPage() {
   const [channelsSelectedIds, setChannelsSelectedIds] = useState([]);
   const [masterCategories, setMasterCategories] = useState([]);
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   useEffect(() => {
   }, []);
@@ -71,8 +72,9 @@ export default function ChannelsPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   // Same Master-driven category list the Output Destinations page uses, so input and output
   // sides can never drift onto different vocabularies.
@@ -156,7 +158,9 @@ export default function ChannelsPage() {
     const next = current === verdict ? 'unreviewed' : verdict;
     if (next === 'not_relevant' && c.isActive) {
       const name = c.name || c.username || c.channelId;
-      if (!window.confirm(`Mark "${name}" as not relevant?\n\nThis also switches monitoring OFF so no more scrape/AI budget is spent on it.`)) return;
+      if (!window.confirm(`Mark "${name}" as not relevant?
+
+This also switches monitoring OFF so no more scrape/AI budget is spent on it.`)) return;
     }
     return patchChannel(c._id, 'relevance', { relevance: next }, 'Failed to update relevance');
   }, [patchChannel]);
@@ -179,7 +183,9 @@ export default function ChannelsPage() {
       } else if (action === 'relevance') {
         endpoint = '/api/channels/bulk-relevance';
         if (extraData.relevance === 'not_relevant' &&
-            !window.confirm(`Mark ${channelsSelectedIds.length} channels as not relevant?\n\nThis also switches monitoring OFF for all of them.`)) return;
+            !window.confirm(`Mark ${channelsSelectedIds.length} channels as not relevant?
+
+This also switches monitoring OFF for all of them.`)) return;
       } else if (action === 'delete') {
         endpoint = '/api/channels/bulk-delete';
         if (!window.confirm(`Are you sure you want to delete ${channelsSelectedIds.length} channels?`)) return;

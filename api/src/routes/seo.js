@@ -5,6 +5,42 @@ import Product from '../db/models/product.js';
 const router = express.Router();
 
 /**
+ * GET /api/seo/sitemap-data
+ * Fast, lightweight endpoint for Next.js dynamic sitemap generator.
+ * Returns only necessary fields for URL construction and lastmod.
+ */
+router.get('/sitemap-data', async (req, res) => {
+  try {
+    const [products, deals] = await Promise.all([
+      Product.find(
+        { imageUrl: { $exists: true, $ne: '' } },
+        '_id productId merchant imageUrl updatedAt lastChecked category subcategory'
+      )
+        .sort({ updatedAt: -1 })
+        .limit(10000)
+        .lean(),
+      Deal.find(
+        { imageUrl: { $exists: true, $ne: '' }, isExpired: { $ne: true } },
+        '_id productId merchant imageUrl updatedAt createdAt category subcategory'
+      )
+        .sort({ createdAt: -1 })
+        .limit(5000)
+        .lean(),
+    ]);
+
+    res.json({
+      success: true,
+      products,
+      deals,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[API Error] GET /api/seo/sitemap-data failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch sitemap data' });
+  }
+});
+
+/**
  * GET /sitemap.xml
  * Dynamically generates sitemap from active deals and products.
  */
@@ -14,30 +50,43 @@ router.get('/sitemap.xml', async (req, res) => {
     const deals = await Deal.find({}, '_id updatedAt').sort({ createdAt: -1 }).limit(1000);
     const products = await Product.find({}, '_id updatedAt').sort({ createdAt: -1 }).limit(1000);
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`;
 
     // Static pages
     const baseUrl = 'https://www.shoppersdeals.in';
     const staticPages = ['', '/privacy'];
     
     for (const page of staticPages) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${baseUrl}${page}</loc>\n`;
-      xml += `    <changefreq>daily</changefreq>\n`;
-      xml += `    <priority>${page === '' ? '1.0' : '0.5'}</priority>\n`;
-      xml += `  </url>\n`;
+      xml += `  <url>
+`;
+      xml += `    <loc>${baseUrl}${page}</loc>
+`;
+      xml += `    <changefreq>daily</changefreq>
+`;
+      xml += `    <priority>${page === '' ? '1.0' : '0.5'}</priority>
+`;
+      xml += `  </url>
+`;
     }
 
     // Deals
     for (const deal of deals) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${baseUrl}/deal/${deal._id}</loc>\n`;
+      xml += `  <url>
+`;
+      xml += `    <loc>${baseUrl}/deal/${deal._id}</loc>
+`;
       const date = deal.updatedAt ? new Date(deal.updatedAt).toISOString() : new Date().toISOString();
-      xml += `    <lastmod>${date}</lastmod>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.8</priority>\n`;
-      xml += `  </url>\n`;
+      xml += `    <lastmod>${date}</lastmod>
+`;
+      xml += `    <changefreq>weekly</changefreq>
+`;
+      xml += `    <priority>0.8</priority>
+`;
+      xml += `  </url>
+`;
     }
 
     xml += `</urlset>`;

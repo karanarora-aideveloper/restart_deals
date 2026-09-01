@@ -5,6 +5,7 @@ import AdminShell from '@/components/admin-shell';
 import PriceHistoryModal from '@/components/price-history-modal';
 import FlagProductModal from '@/components/flag-product-modal';
 import ProductDrawer from '@/components/product-drawer';
+import ScrapeHistoryModal from '@/components/scrape-history-modal';
 
 // Time formatting helper
 const formatTime = (isoString) => {
@@ -96,27 +97,7 @@ function StarRating({ rating, reviews }) {
   );
 }
 
-function HistoryBadge({ count, onClick }) {
-  if (!count) {
-    return <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>;
-  }
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
-        background: 'rgba(37, 99, 235, 0.08)', color: '#2563eb', border: '1px solid rgba(37, 99, 235, 0.2)',
-        fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease'
-      }}
-      title={`View ${count} price history point${count === 1 ? '' : 's'}`}
-    >
-      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>show_chart</span>
-      {count.toLocaleString('en-US')}
-    </button>
-  );
-}
-
-// Deals Count Pill Component
+// Unified Deals & Rating Pill Component
 function DealsCountBadge({ count, onClick }) {
   const cnt = count || 0;
   const isMultiple = cnt > 1;
@@ -140,25 +121,87 @@ function DealsCountBadge({ count, onClick }) {
   );
 }
 
-// Current / Deal Price Cell
-function PriceCell({ p }) {
-  const price = p.price ?? p.currentPrice;
-  if (price == null) return <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>N/A</span>;
+// Scrape Status Pill Component
+function ScrapeStatusPill({ p, onClick }) {
+  const isFlagged = p.isFlagged;
+  const isNeedsEnrichment = p.needsEnrichment;
+  const src = p.priceSource || 'scraped';
 
-  const hasMrp = p.originalPrice && p.originalPrice > price;
-  const discount = hasMrp ? Math.round(((p.originalPrice - price) / p.originalPrice) * 100) : null;
+  let label = '200 Scraped';
+  let color = '#059669';
+  let bg = 'rgba(16, 185, 129, 0.1)';
+  let border = 'rgba(16, 185, 129, 0.25)';
+  let icon = 'check_circle';
+
+  if (isFlagged) {
+    label = 'Flagged Issue';
+    color = '#dc2626';
+    bg = 'rgba(239, 68, 68, 0.1)';
+    border = 'rgba(239, 68, 68, 0.25)';
+    icon = 'flag';
+  } else if (isNeedsEnrichment) {
+    label = 'Needs Scrape';
+    color = '#d97706';
+    bg = 'rgba(245, 158, 11, 0.1)';
+    border = 'rgba(245, 158, 11, 0.25)';
+    icon = 'pending';
+  } else if (src === 'ai_text') {
+    label = 'AI Text';
+    color = '#2563eb';
+    bg = 'rgba(37, 99, 235, 0.1)';
+    border = 'rgba(37, 99, 235, 0.25)';
+    icon = 'psychology';
+  } else if (src === 'price_history') {
+    label = 'History Mode';
+    color = '#7c3aed';
+    bg = 'rgba(124, 58, 237, 0.1)';
+    border = 'rgba(124, 58, 237, 0.25)';
+    icon = 'history';
+  }
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
+        background: bg, color: color, border: `1px solid ${border}`,
+        fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap'
+      }}
+      title="Click to view scrape verification logs & audit history"
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+// Unified Price & MRP Cell
+function PriceAndMrpCell({ p }) {
+  const price = p.price ?? p.currentPrice;
+  const mrp = p.originalPrice;
+  if (price == null && mrp == null) return <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>N/A</span>;
+
+  const hasMrp = mrp && mrp > price;
+  const discount = hasMrp ? Math.round(((mrp - price) / mrp) * 100) : null;
   const src = p.priceSource && PRICE_SOURCE_META[p.priceSource];
 
   return (
-    <div style={{ minWidth: 100 }}>
-      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>
-        {formatCurrency(price, p.country)}
+    <div style={{ minWidth: 105 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: '0.94rem', color: 'var(--text-main)', letterSpacing: '-0.2px' }}>
+          {price != null ? formatCurrency(price, p.country) : '—'}
+        </span>
+        {hasMrp && (
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+            {formatCurrency(mrp, p.country)}
+          </span>
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
         {discount != null && discount > 0 && (
           <span style={{
-            fontSize: '0.68rem', fontWeight: 800, padding: '1px 5px', borderRadius: 4,
+            fontSize: '0.66rem', fontWeight: 800, padding: '1px 5px', borderRadius: 4,
             background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.2)'
           }}>
             {discount}% OFF
@@ -169,7 +212,7 @@ function PriceCell({ p }) {
             title={`${src.label} — ${src.hint}`}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 2,
-              fontSize: '0.66rem', fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+              fontSize: '0.64rem', fontWeight: 600, padding: '1px 5px', borderRadius: 4,
               background: src.bg, color: src.color
             }}
           >
@@ -182,26 +225,205 @@ function PriceCell({ p }) {
   );
 }
 
-// MRP Cell
-function MrpCell({ p }) {
-  const price = p.price ?? p.currentPrice;
-  const mrp = p.originalPrice;
-
-  if (!mrp) return <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>;
-
-  const isDiscounted = mrp > price;
+// Unified Deals & Rating Cell
+function DealsAndRatingCell({ p, onDealsClick }) {
+  const cnt = p.dealsCount || 0;
+  const isMultiple = cnt > 1;
 
   return (
-    <div style={{ minWidth: 80 }}>
-      <span style={{
-        fontSize: '0.84rem',
-        fontWeight: isDiscounted ? 500 : 700,
-        color: 'var(--text-muted)',
-        textDecoration: isDiscounted ? 'line-through' : 'none',
-        textDecorationColor: 'rgba(148, 163, 184, 0.6)'
-      }}>
-        {formatCurrency(mrp, p.country)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 85 }} onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={onDealsClick}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 6,
+          background: isMultiple ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 0, 0, 0.04)',
+          color: isMultiple ? '#059669' : 'var(--text-muted)',
+          border: `1px solid ${isMultiple ? 'rgba(16, 185, 129, 0.3)' : 'var(--border)'}`,
+          fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s ease',
+          width: 'fit-content'
+        }}
+        title={`${cnt} linked Telegram deal post${cnt === 1 ? '' : 's'} (Click to view)`}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>local_offer</span>
+        <span>{cnt}</span>
+        {isMultiple && <span style={{ fontSize: '0.62rem', background: '#10b981', color: '#fff', borderRadius: 3, padding: '0 3px' }}>Multi</span>}
+      </button>
+
+      {p.rating ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.74rem', fontWeight: 700, color: '#f59e0b' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>star</span>
+          <span>{Number(p.rating).toFixed(1)}</span>
+        </div>
+      ) : (
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>—</span>
+      )}
+    </div>
+  );
+}
+
+// Unified Category & Subcategory Cell
+function CategoryAndSubcategoryCell({ p, subcategoryMeta }) {
+  const catColor = categoryColor(p.category);
+  const subLabel = subcategoryMeta[p.subcategory]?.label || p.subcategory;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 110 }}>
+      <span
+        className="badge-cat"
+        style={{
+          background: catColor.bg,
+          color: catColor.fg,
+          border: `1px solid ${catColor.border}`,
+          fontSize: '0.72rem',
+          padding: '2px 7px',
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+          width: 'fit-content'
+        }}
+      >
+        {p.category || 'general'}
       </span>
+      {subLabel ? (
+        <span
+          style={{
+            fontSize: '0.72rem',
+            color: 'var(--text-muted)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: 130
+          }}
+          title={subLabel}
+        >
+          {subLabel}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+// Unified Scrape Health & Audit Cell
+function ScrapeAuditCell({ p, onOpenModal }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 120 }} onClick={(e) => e.stopPropagation()}>
+      <ScrapeStatusPill p={p} onClick={onOpenModal} />
+      <button
+        onClick={onOpenModal}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 4,
+          background: 'rgba(245, 158, 11, 0.08)', color: '#b45309', border: '1px solid rgba(245, 158, 11, 0.2)',
+          fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', width: 'fit-content', whiteSpace: 'nowrap'
+        }}
+        title={`${p.priceHistoryCount || 1} checkpoints recorded. Click to view history.`}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 11 }}>update</span>
+        <span>{p.priceHistoryCount ? `${p.priceHistoryCount} runs` : '1 run'}</span>
+      </button>
+    </div>
+  );
+}
+
+// Unified Product Info Cell (Thumbnail + 2-line title + PID/ASIN + Store link)
+function ProductInfoCell({ p, onShowToast }) {
+  const imgUrl = p.imageUrl || (p.images && p.images[0]);
+  const merchant = p.merchant || 'Amazon';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 280, maxWidth: 360 }}>
+      {/* Thumbnail */}
+      <div style={{
+        width: 44, height: 44, minWidth: 44, borderRadius: 8, background: '#ffffff',
+        border: '1px solid var(--border)', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', overflow: 'hidden', padding: 3, position: 'relative',
+        flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+      }}>
+        {imgUrl ? (
+          <img src={imgUrl} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--text-muted)', opacity: 0.4 }}>image_not_supported</span>
+        )}
+        {p.imageIsFromDeal && (
+          <span style={{
+            position: 'absolute', bottom: 0, right: 0, width: 14, height: 14,
+            background: '#f59e0b', borderRadius: '4px 0 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+          }} title="Telegram Deal Photo Fallback">
+            <span className="material-symbols-outlined" style={{ fontSize: 9 }}>send</span>
+          </span>
+        )}
+      </div>
+
+      {/* Details */}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontWeight: 600,
+            fontSize: '0.86rem',
+            color: 'var(--text-main)',
+            lineHeight: 1.35,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical'
+          }}
+          title={p.title}
+        >
+          {p.title || 'Untitled Product'}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+          <span className={`merchant-badge merchant-${merchant.toLowerCase()}`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+            {merchant}
+          </span>
+
+          {p.productId && (
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              background: 'rgba(0,0,0,0.03)',
+              padding: '1px 5px',
+              borderRadius: 4,
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)'
+            }}>
+              {p.productId}
+            </span>
+          )}
+
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(p.productId || p._id);
+              onShowToast('Copied Product ID');
+            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 1 }}
+            title="Copy Product ID"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>content_copy</span>
+          </button>
+
+          {p.cleanUrl && (
+            <a
+              href={p.cleanUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', padding: 1 }}
+              title="Open Store Link"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>open_in_new</span>
+            </a>
+          )}
+
+          {p.isFlagged && (
+            <span style={{
+              fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+              background: 'var(--danger)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 2
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 9 }}>flag</span> FLAGGED
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -231,6 +453,21 @@ export default function ProductsPage() {
   const [priceSource, setPriceSource] = useState('all'); // 'all' | 'scraped' | 'ai_text' | 'price_history'
   const [imageStatus, setImageStatus] = useState('all'); // 'all' | 'missing' | 'has_image'
   const [minRating, setMinRating] = useState('all'); // 'all' | '4' | '3'
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (productsCategory !== 'all') count++;
+    if (productsSubcategory !== 'all') count++;
+    if (productsCountry !== 'all') count++;
+    if (productsFlagged !== 'all') count++;
+    if (dealsFilter !== 'all') count++;
+    if (minDiscount !== 'all') count++;
+    if (priceSource !== 'all') count++;
+    if (imageStatus !== 'all') count++;
+    if (minRating !== 'all') count++;
+    return count;
+  }, [productsCategory, productsSubcategory, productsCountry, productsFlagged, dealsFilter, minDiscount, priceSource, imageStatus, minRating]);
 
   // Selection & UI Mode
   const [productsSelectedIds, setProductsSelectedIds] = useState([]);
@@ -238,6 +475,7 @@ export default function ProductsPage() {
   const [drawerInitialTab, setDrawerInitialTab] = useState('overview');
   const [historyProductId, setHistoryProductId] = useState(null);
   const [flagModalProduct, setFlagModalProduct] = useState(null);
+  const [scrapeModalProduct, setScrapeModalProduct] = useState(null);
   const [flaggedCount, setFlaggedCount] = useState(0);
 
   // Column Sort
@@ -248,6 +486,7 @@ export default function ProductsPage() {
   const [knownCategories, setKnownCategories] = useState([]);
   const [subcategoryMeta, setSubcategoryMeta] = useState({});
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg, duration = 3000) => {
@@ -261,8 +500,9 @@ export default function ProductsPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   // Fetch Master Stores from /api/master/store
   useEffect(() => {
@@ -500,9 +740,15 @@ export default function ProductsPage() {
       } else if (sortField === 'subcategory') {
         aVal = (subcategoryMeta[a.subcategory]?.label || a.subcategory || '').toLowerCase();
         bVal = (subcategoryMeta[b.subcategory]?.label || b.subcategory || '').toLowerCase();
-      } else if (sortField === 'updatedAt') {
-        aVal = new Date(a.updatedAt || a.lastCheckedAt || 0).getTime();
-        bVal = new Date(b.updatedAt || b.lastCheckedAt || 0).getTime();
+      } else if (sortField === 'createdAt') {
+        aVal = new Date(a.createdAt || 0).getTime();
+        bVal = new Date(b.createdAt || 0).getTime();
+      } else if (sortField === 'lastChecked' || sortField === 'updatedAt') {
+        aVal = new Date(a.lastChecked || a.updatedAt || a.lastCheckedAt || 0).getTime();
+        bVal = new Date(b.lastChecked || b.updatedAt || b.lastCheckedAt || 0).getTime();
+      } else if (sortField === 'priceHistoryCount') {
+        aVal = a.priceHistoryCount || (a.priceHistory ? a.priceHistory.length : 0);
+        bVal = b.priceHistoryCount || (b.priceHistory ? b.priceHistory.length : 0);
       } else if (sortField === 'merchant') {
         aVal = (a.merchant || 'Amazon').toLowerCase();
         bVal = (b.merchant || 'Amazon').toLowerCase();
@@ -532,7 +778,8 @@ export default function ProductsPage() {
       `"${p.cleanUrl || ''}"`,
       `"${p.country || 'IN'}"`
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('
+');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -650,7 +897,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Summary Health Cards with Top Accent Line */}
-        <div className="grid-cards" style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div className="grid-cards" style={{ marginBottom: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
           {/* Total Catalog */}
           <div className="card glass crm-stat-card" style={{ borderTop: '3px solid #818cf8', cursor: 'pointer' }} onClick={handleResetFilters}>
             <div className="crm-stat-icon" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366f1' }}>
@@ -711,30 +958,102 @@ export default function ProductsPage() {
             </div>
             <div className="crm-stat-label">Registered Marketplaces</div>
             <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: -4 }}>
-              Amazon, Flipkart, Myntra & more
+              Amazon, Flipkart, Myntra &amp; more
             </span>
           </div>
+        </div>
+
+        {/* Quick Preset Filter Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.2rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Quick Presets:
+          </span>
+
+          <button
+            onClick={handleResetFilters}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: !hasActiveFilters ? 'var(--accent)' : 'rgba(0,0,0,0.04)',
+              color: !hasActiveFilters ? '#fff' : 'var(--text-main)',
+              border: `1px solid ${!hasActiveFilters ? 'var(--accent)' : 'var(--border)'}`,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            All Products ({productsTotalCount.toLocaleString()})
+          </button>
+
+          <button
+            onClick={() => setDealsFilter(dealsFilter === 'multiple' ? 'all' : 'multiple')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: dealsFilter === 'multiple' ? '#059669' : 'rgba(16, 185, 129, 0.08)',
+              color: dealsFilter === 'multiple' ? '#fff' : '#059669',
+              border: `1px solid ${dealsFilter === 'multiple' ? '#059669' : 'rgba(16, 185, 129, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>local_offer</span>
+            🔥 Multi-Deals (&gt;1)
+          </button>
+
+          <button
+            onClick={() => setMinDiscount(minDiscount === '50' ? 'all' : '50')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: minDiscount === '50' ? '#dc2626' : 'rgba(239, 68, 68, 0.08)',
+              color: minDiscount === '50' ? '#fff' : '#dc2626',
+              border: `1px solid ${minDiscount === '50' ? '#dc2626' : 'rgba(239, 68, 68, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>trending_down</span>
+            ≥ 50% Steal Deals
+          </button>
+
+          <button
+            onClick={() => setPriceSource(priceSource === 'scraped' ? 'all' : 'scraped')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: priceSource === 'scraped' ? '#2563eb' : 'rgba(37, 99, 235, 0.08)',
+              color: priceSource === 'scraped' ? '#fff' : '#2563eb',
+              border: `1px solid ${priceSource === 'scraped' ? '#2563eb' : 'rgba(37, 99, 235, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>verified</span>
+            Verified Scrapes
+          </button>
+
+          {flaggedCount > 0 && (
+            <button
+              onClick={() => setProductsFlagged(productsFlagged === 'true' ? 'all' : 'true')}
+              style={{
+                padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+                background: productsFlagged === 'true' ? '#dc2626' : 'rgba(239, 68, 68, 0.08)',
+                color: productsFlagged === 'true' ? '#fff' : '#dc2626',
+                border: `1px solid ${productsFlagged === 'true' ? '#dc2626' : 'rgba(239, 68, 68, 0.25)'}`,
+                display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>flag</span>
+              Flagged ({flaggedCount})
+            </button>
+          )}
         </div>
 
         {/* Directory Table Card */}
         <div className="card glass" style={{ padding: 0, overflow: 'hidden' }}>
           
-          {/* Table Filter Controls Header */}
-          <div style={{ padding: '1.2rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          {/* Primary Filter Toolbar */}
+          <div style={{ padding: '1rem 1.4rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             
-            {/* Left Title & Dynamic Master Stores Tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--accent)', fontSize: 20 }}>format_list_bulleted</span>
-                Catalog Directory
-              </h3>
-
-              {/* Status & Store Tabs from Stores Master */}
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.04)', padding: 3, borderRadius: 8, flexWrap: 'wrap' }}>
+            {/* Left: Store Segmented Control */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,0.04)', padding: 3, borderRadius: 8, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setProductsMerchant('all')}
                   style={{
-                    padding: '4px 11px',
+                    padding: '5px 10px',
                     fontSize: '0.78rem',
                     fontWeight: 600,
                     background: productsMerchant === 'all' ? 'var(--bg-panel)' : 'transparent',
@@ -745,11 +1064,10 @@ export default function ProductsPage() {
                     boxShadow: productsMerchant === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6
+                    gap: 5
                   }}
                 >
                   All Stores
-                  <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>({productsTotalCount})</span>
                 </button>
 
                 {masterStores.map(st => {
@@ -759,7 +1077,7 @@ export default function ProductsPage() {
                       key={st.value}
                       onClick={() => setProductsMerchant(st.value.toLowerCase())}
                       style={{
-                        padding: '4px 11px',
+                        padding: '5px 10px',
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         background: isAct ? 'var(--bg-panel)' : 'transparent',
@@ -770,7 +1088,7 @@ export default function ProductsPage() {
                         boxShadow: isAct ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 6
+                        gap: 5
                       }}
                     >
                       {st.label}
@@ -780,8 +1098,9 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            {/* Right Search Input */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Right: Search, Filter Toggle, Sort, Limit */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Search Box */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: 10, fontSize: 17, color: 'var(--text-muted)' }}>
                   search
@@ -792,24 +1111,68 @@ export default function ProductsPage() {
                   placeholder="Search title, PID, ASIN..."
                   value={productsSearch}
                   onChange={(e) => setProductsSearch(e.target.value)}
-                  style={{ width: 230, paddingLeft: 32, paddingRight: productsSearch ? 28 : 12, fontSize: '0.85rem' }}
+                  style={{ width: 220, paddingLeft: 32, paddingRight: productsSearch ? 28 : 10, fontSize: '0.82rem', height: 34 }}
                 />
                 {productsSearch && (
                   <button
                     onClick={() => setProductsSearch('')}
                     style={{ position: 'absolute', right: 8, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex' }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>cancel</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 15 }}>cancel</span>
                   </button>
                 )}
               </div>
 
-              {/* Rows per page */}
+              {/* Sort By Select */}
+              <select
+                className="filter-select"
+                value={productsSort}
+                onChange={(e) => setProductsSort(e.target.value)}
+                style={{ fontSize: '0.8rem', padding: '5px 8px', height: 34 }}
+              >
+                <option value="recently_checked">Latest Scraped</option>
+                <option value="newest">First Added (Newest)</option>
+                <option value="oldest">First Added (Oldest)</option>
+                <option value="least_scraped">Least Recently Scraped</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+              </select>
+
+              {/* Filters Toggle Button */}
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '5px 11px',
+                  borderRadius: 8,
+                  height: 34,
+                  background: showAdvancedFilters || activeFiltersCount > 0 ? 'rgba(37, 99, 235, 0.1)' : 'rgba(0, 0, 0, 0.04)',
+                  color: showAdvancedFilters || activeFiltersCount > 0 ? 'var(--accent)' : 'var(--text-main)',
+                  border: `1px solid ${showAdvancedFilters || activeFiltersCount > 0 ? 'rgba(37, 99, 235, 0.3)' : 'var(--border)'}`,
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>tune</span>
+                <span>Filters</span>
+                {activeFiltersCount > 0 && (
+                  <span style={{ background: 'var(--accent)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, borderRadius: 10, padding: '1px 6px', marginLeft: 2 }}>
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Page Limit */}
               <select
                 className="filter-select"
                 value={productsLimit}
                 onChange={(e) => setProductsLimit(Number(e.target.value))}
-                style={{ fontSize: '0.82rem', padding: '6px 8px' }}
+                style={{ fontSize: '0.8rem', padding: '5px 8px', height: 34 }}
               >
                 <option value={15}>15 / page</option>
                 <option value={30}>30 / page</option>
@@ -819,184 +1182,128 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          {/* Primary Taxonomy Filters Bar */}
-          <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.015)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-            {/* Store Select dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Store:</span>
-              <select className="filter-select" value={productsMerchant} onChange={(e) => setProductsMerchant(e.target.value)}>
-                <option value="all">All Stores</option>
-                {masterStores.map(st => (
-                  <option key={st.value} value={st.value.toLowerCase()}>{st.label}</option>
-                ))}
-              </select>
-            </div>
+          {/* Collapsible Secondary Filter Tray */}
+          {showAdvancedFilters && (
+            <div style={{
+              padding: '0.85rem 1.4rem',
+              borderBottom: '1px solid var(--border)',
+              background: 'rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 10,
+              alignItems: 'center',
+              animation: 'fadeIn 0.2s ease'
+            }}>
+              {/* Category */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Category:</span>
+                <select className="filter-select" value={productsCategory} onChange={(e) => handleCategoryFilterChange(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">All Categories</option>
+                  {knownCategories.map(c => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Category */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Category:</span>
-              <select className="filter-select" value={productsCategory} onChange={(e) => handleCategoryFilterChange(e.target.value)}>
-                <option value="all">All Categories</option>
-                {knownCategories.map(c => (
-                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                ))}
-              </select>
-            </div>
+              {/* Subcategory */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Subcategory:</span>
+                <select className="filter-select" value={productsSubcategory} onChange={(e) => setProductsSubcategory(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">All Subcategories</option>
+                  {productsCategory !== 'all'
+                    ? subcategoryFilterOptions.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))
+                    : Object.entries(subcategoryFilterOptions).map(([cat, subs]) => (
+                        <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
+                          {subs.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                </select>
+              </div>
 
-            {/* Subcategory */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Subcategory:</span>
-              <select className="filter-select" value={productsSubcategory} onChange={(e) => setProductsSubcategory(e.target.value)}>
-                <option value="all">All Subcategories</option>
-                {productsCategory !== 'all'
-                  ? subcategoryFilterOptions.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))
-                  : Object.entries(subcategoryFilterOptions).map(([cat, subs]) => (
-                      <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
-                        {subs.map((s) => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-              </select>
-            </div>
+              {/* Country */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Country:</span>
+                <select className="filter-select" value={productsCountry} onChange={(e) => setProductsCountry(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">All Countries</option>
+                  <option value="IN">🇮🇳 India (IN)</option>
+                  <option value="US">🇺🇸 United States (US)</option>
+                  <option value="UK">🇬🇧 United Kingdom (UK)</option>
+                  <option value="CA">🇨🇦 Canada (CA)</option>
+                  <option value="AU">🇦🇺 Australia (AU)</option>
+                </select>
+              </div>
 
-            {/* Country */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Country:</span>
-              <select className="filter-select" value={productsCountry} onChange={(e) => setProductsCountry(e.target.value)}>
-                <option value="all">All Countries</option>
-                <option value="IN">🇮🇳 India (IN)</option>
-                <option value="US">🇺🇸 United States (US)</option>
-                <option value="UK">🇬🇧 United Kingdom (UK)</option>
-                <option value="CA">🇨🇦 Canada (CA)</option>
-                <option value="AU">🇦🇺 Australia (AU)</option>
-              </select>
-            </div>
+              {/* Discount */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Discount:</span>
+                <select className="filter-select" value={minDiscount} onChange={(e) => setMinDiscount(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">Any Discount</option>
+                  <option value="30">≥ 30% OFF</option>
+                  <option value="50">≥ 50% OFF</option>
+                  <option value="70">≥ 70% Steal Deals</option>
+                </select>
+              </div>
 
-            {/* Sort */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Sort:</span>
-              <select className="filter-select" value={productsSort} onChange={(e) => setProductsSort(e.target.value)}>
-                <option value="recently_checked">Recently Checked</option>
-                <option value="newest">Newest First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-              </select>
-            </div>
-          </div>
+              {/* Price Source */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Source:</span>
+                <select className="filter-select" value={priceSource} onChange={(e) => setPriceSource(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">All Sources</option>
+                  <option value="scraped">✅ Scraped (Verified)</option>
+                  <option value="ai_text">🧠 AI Extracted</option>
+                  <option value="price_history">📈 Price History</option>
+                </select>
+              </div>
 
-          {/* Advanced Admin Intelligence Filters Bar */}
-          <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.025)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-            
-            {/* Deals Density Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#10b981' }}>local_offer</span>
-                Deals:
-              </span>
-              <select
-                className="filter-select"
-                value={dealsFilter}
-                onChange={(e) => setDealsFilter(e.target.value)}
-                style={{ fontWeight: dealsFilter !== 'all' ? 700 : 500, borderColor: dealsFilter !== 'all' ? 'var(--accent)' : 'var(--border)' }}
-              >
-                <option value="all">All Deals</option>
-                <option value="multiple">🔥 Multiple Deals (&gt; 1)</option>
-                <option value="single">Single Deal (1)</option>
-                <option value="zero">Zero Deals (0)</option>
-              </select>
-            </div>
+              {/* Rating */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Rating:</span>
+                <select className="filter-select" value={minRating} onChange={(e) => setMinRating(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">Any Rating</option>
+                  <option value="4">★ 4.0 &amp; above</option>
+                  <option value="3">★ 3.0 &amp; above</option>
+                </select>
+              </div>
 
-            {/* Minimum Discount Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Discount:</span>
-              <select
-                className="filter-select"
-                value={minDiscount}
-                onChange={(e) => setMinDiscount(e.target.value)}
-                style={{ fontWeight: minDiscount !== 'all' ? 700 : 500 }}
-              >
-                <option value="all">Any Discount</option>
-                <option value="30">≥ 30% OFF</option>
-                <option value="50">≥ 50% OFF</option>
-                <option value="70">≥ 70% Steal Deals</option>
-              </select>
-            </div>
+              {/* Images */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)' }}>Images:</span>
+                <select className="filter-select" value={imageStatus} onChange={(e) => setImageStatus(e.target.value)} style={{ fontSize: '0.78rem' }}>
+                  <option value="all">All Images</option>
+                  <option value="has_image">Has Image</option>
+                  <option value="missing">⚠️ Missing Image</option>
+                </select>
+              </div>
 
-            {/* Price Confidence / Source Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Source:</span>
-              <select
-                className="filter-select"
-                value={priceSource}
-                onChange={(e) => setPriceSource(e.target.value)}
-                style={{ fontWeight: priceSource !== 'all' ? 700 : 500 }}
-              >
-                <option value="all">All Sources</option>
-                <option value="scraped">✅ Scraped (Verified)</option>
-                <option value="ai_text">🧠 AI Extracted</option>
-                <option value="price_history">📈 Price History</option>
-              </select>
+              {/* Reset All */}
+              {hasActiveFilters && (
+                <button
+                  onClick={handleResetFilters}
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    color: '#dc2626',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>clear_all</span>
+                  Reset All
+                </button>
+              )}
             </div>
-
-            {/* Image Health Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Images:</span>
-              <select
-                className="filter-select"
-                value={imageStatus}
-                onChange={(e) => setImageStatus(e.target.value)}
-                style={{ fontWeight: imageStatus !== 'all' ? 700 : 500 }}
-              >
-                <option value="all">All Images</option>
-                <option value="has_image">Has Image</option>
-                <option value="missing">⚠️ Missing Image</option>
-              </select>
-            </div>
-
-            {/* Rating Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Rating:</span>
-              <select
-                className="filter-select"
-                value={minRating}
-                onChange={(e) => setMinRating(e.target.value)}
-                style={{ fontWeight: minRating !== 'all' ? 700 : 500 }}
-              >
-                <option value="all">Any Rating</option>
-                <option value="4">★ 4.0 & above</option>
-                <option value="3">★ 3.0 & above</option>
-              </select>
-            </div>
-
-            {/* Flag Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Flag:</span>
-              <select
-                className="filter-select"
-                value={productsFlagged}
-                onChange={(e) => setProductsFlagged(e.target.value)}
-                style={{ fontWeight: productsFlagged !== 'all' ? 700 : 500, color: productsFlagged === 'true' ? 'var(--danger)' : 'inherit' }}
-              >
-                <option value="all">All Records</option>
-                <option value="true">🚩 Flagged Only</option>
-                <option value="false">Clean Only</option>
-              </select>
-            </div>
-
-            {hasActiveFilters && (
-              <button
-                onClick={handleResetFilters}
-                style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>clear_all</span>
-                Reset All Filters
-              </button>
-            )}
-          </div>
+          )}
 
           {/* Table Body Area */}
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -1022,10 +1329,10 @@ export default function ProductsPage() {
                 </p>
               </div>
             ) : (
-              <table style={{ width: '100%', minWidth: 1360, borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table style={{ width: '100%', minWidth: 1320, borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ width: 44, padding: '12px 14px', textAlign: 'center' }}>
+                    <th style={{ width: 40, padding: '12px 14px', textAlign: 'center' }}>
                       <input
                         type="checkbox"
                         className="rounded border-border cursor-pointer"
@@ -1040,78 +1347,60 @@ export default function ProductsPage() {
                       />
                     </th>
 
-                    <th style={{ width: 64, padding: '12px 10px', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
-                      Item
-                    </th>
-
-                    <th style={{ padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', minWidth: 260 }} onClick={() => handleSort('title')}>
+                    <th style={{ padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', minWidth: 320 }} onClick={() => handleSort('title')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Product & ASIN {renderSortIcon('title')}
-                      </div>
-                    </th>
-
-                    <th style={{ width: 100, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('merchant')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Store {renderSortIcon('merchant')}
+                        Product &amp; Store {renderSortIcon('title')}
                       </div>
                     </th>
 
                     {/* Category Column */}
-                    <th style={{ width: 110, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('category')}>
+                    <th style={{ width: 130, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('category')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         Category {renderSortIcon('category')}
                       </div>
                     </th>
 
-                    {/* Subcategory Column */}
-                    <th style={{ width: 130, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('subcategory')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Subcategory {renderSortIcon('subcategory')}
-                      </div>
-                    </th>
-
-                    <th style={{ width: 95, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('rating')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Rating {renderSortIcon('rating')}
-                      </div>
-                    </th>
-
                     {/* Dedicated Price Column */}
-                    <th style={{ width: 120, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('price')}>
+                    <th style={{ width: 120, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('price')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Price {renderSortIcon('price')}
+                        Price &amp; MRP {renderSortIcon('price')}
                       </div>
                     </th>
 
-                    {/* Dedicated MRP Column */}
-                    <th style={{ width: 95, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('originalPrice')}>
+                    {/* Linked Deals & Rating Column */}
+                    <th style={{ width: 100, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('dealsCount')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        MRP {renderSortIcon('originalPrice')}
+                        Deals &amp; Rating {renderSortIcon('dealsCount')}
                       </div>
                     </th>
 
-                    {/* Linked Deals Count Column */}
-                    <th style={{ width: 90, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('dealsCount')}>
+                    {/* First Added Column */}
+                    <th style={{ width: 115, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('createdAt')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Deals {renderSortIcon('dealsCount')}
+                        First Added {renderSortIcon('createdAt')}
                       </div>
                     </th>
 
-                    <th style={{ width: 80, padding: '12px 14px', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
-                      History
+                    {/* Latest Scraped Column */}
+                    <th style={{ width: 120, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('lastChecked')}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Latest Scraped {renderSortIcon('lastChecked')}
+                      </div>
                     </th>
 
-                    <th style={{ width: 85, padding: '12px 14px', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
+                    {/* Scrape Frequency & Status */}
+                    <th style={{ width: 140, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('priceHistoryCount')}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        Scrape Health {renderSortIcon('priceHistoryCount')}
+                      </div>
+                    </th>
+
+                    {/* Country */}
+                    <th style={{ width: 70, padding: '12px 14px', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
                       Country
                     </th>
 
-                    <th style={{ width: 110, padding: '12px 14px', cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }} onClick={() => handleSort('updatedAt')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        Last Checked {renderSortIcon('updatedAt')}
-                      </div>
-                    </th>
-
-                    <th style={{ width: 130, padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
+                    <th style={{ width: 100, padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
                       Actions
                     </th>
                   </tr>
@@ -1120,10 +1409,9 @@ export default function ProductsPage() {
                 <tbody>
                   {sortedProducts.map((p) => {
                     const isSelected = productsSelectedIds.includes(p._id);
-                    const imgUrl = p.imageUrl || (p.images && p.images[0]);
-                    const merchant = p.merchant || 'Amazon';
-                    const catColor = categoryColor(p.category);
-                    const subLabel = subcategoryMeta[p.subcategory]?.label || p.subcategory;
+                    const lastScrapedTime = p.lastChecked || p.updatedAt;
+                    const isRecentScrape = lastScrapedTime && (Date.now() - new Date(lastScrapedTime).getTime()) < 3600000;
+                    const isMediumScrape = lastScrapedTime && (Date.now() - new Date(lastScrapedTime).getTime()) < 86400000;
 
                     return (
                       <tr
@@ -1152,172 +1440,72 @@ export default function ProductsPage() {
                           />
                         </td>
 
-                        {/* Image Thumbnail */}
-                        <td style={{ padding: '12px 10px' }} onClick={(e) => e.stopPropagation()}>
-                          <div style={{
-                            width: 44, height: 44, borderRadius: 8, background: '#ffffff',
-                            border: '1px solid var(--border)', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', overflow: 'hidden', padding: 4, position: 'relative'
-                          }}>
-                            {imgUrl ? (
-                              <img src={imgUrl} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            ) : (
-                              <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--text-muted)', opacity: 0.4 }}>image_not_supported</span>
-                            )}
-                            {p.imageIsFromDeal && (
-                              <span style={{
-                                position: 'absolute', bottom: 0, right: 0, width: 14, height: 14,
-                                background: '#f59e0b', borderRadius: '4px 0 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
-                              }} title="Telegram Deal Photo Fallback">
-                                <span className="material-symbols-outlined" style={{ fontSize: 9 }}>send</span>
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Title & Product ID */}
-                        <td style={{ padding: '12px 14px', maxWidth: 300 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--text-main)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }} title={p.title}>
-                            {p.title || 'Untitled Product'}
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }} onClick={(e) => e.stopPropagation()}>
-                            {p.productId && (
-                              <span style={{
-                                fontFamily: 'monospace',
-                                fontSize: '0.74rem',
-                                fontWeight: 600,
-                                background: 'rgba(0,0,0,0.03)',
-                                padding: '2px 6px',
-                                borderRadius: 4,
-                                border: '1px solid var(--border)',
-                                color: 'var(--text-muted)'
-                              }}>
-                                {p.productId}
-                              </span>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(p.productId || p._id);
-                                showToast('Copied Product ID');
-                              }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 2 }}
-                              title="Copy Product ID"
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
-                            </button>
-
-                            {p.cleanUrl && (
-                              <a
-                                href={p.cleanUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', padding: 2 }}
-                                title="Open Store Link"
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
-                              </a>
-                            )}
-
-                            {p.isFlagged && (
-                              <span style={{
-                                fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                                background: 'var(--danger)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 2
-                              }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: 10 }}>flag</span> FLAGGED
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Store Badge */}
+                        {/* Product Thumbnail & Details */}
                         <td style={{ padding: '12px 14px' }}>
-                          <span className={`merchant-badge merchant-${merchant.toLowerCase()}`}>
-                            {merchant}
-                          </span>
+                          <ProductInfoCell p={p} onShowToast={showToast} />
                         </td>
 
-                        {/* Category (Reduced font size) */}
+                        {/* Category & Subcategory */}
                         <td style={{ padding: '12px 14px' }}>
-                          <span
-                            className="badge-cat"
-                            style={{
-                              background: catColor.bg,
-                              color: catColor.fg,
-                              border: `1px solid ${catColor.border}`,
-                              fontSize: '0.72rem',
-                              padding: '2px 7px',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {p.category || 'general'}
-                          </span>
+                          <CategoryAndSubcategoryCell p={p} subcategoryMeta={subcategoryMeta} />
                         </td>
 
-                        {/* Subcategory Column */}
+                        {/* Price & MRP */}
                         <td style={{ padding: '12px 14px' }}>
-                          {subLabel ? (
-                            <span style={{
-                              fontSize: '0.72rem',
-                              padding: '2px 7px',
-                              borderRadius: 6,
-                              background: 'rgba(0,0,0,0.03)',
-                              border: '1px solid var(--border)',
-                              color: 'var(--text-muted)',
-                              fontWeight: 500,
-                              whiteSpace: 'nowrap',
-                              display: 'inline-block'
-                            }} title={subLabel}>
-                              {subLabel}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
-                          )}
+                          <PriceAndMrpCell p={p} />
                         </td>
 
-                        {/* Rating */}
+                        {/* Deals & Rating */}
                         <td style={{ padding: '12px 14px' }}>
-                          <StarRating rating={p.rating} reviews={p.reviews} />
-                        </td>
-
-                        {/* Price (Current / Deal Price) */}
-                        <td style={{ padding: '12px 14px' }}>
-                          <PriceCell p={p} />
-                        </td>
-
-                        {/* MRP (Original / List Price) */}
-                        <td style={{ padding: '12px 14px' }}>
-                          <MrpCell p={p} />
-                        </td>
-
-                        {/* Deals Count Column */}
-                        <td style={{ padding: '12px 14px' }} onClick={(e) => e.stopPropagation()}>
-                          <DealsCountBadge
-                            count={p.dealsCount}
-                            onClick={() => {
+                          <DealsAndRatingCell
+                            p={p}
+                            onDealsClick={() => {
                               setDrawerInitialTab('deals');
                               setDrawerProduct(p);
                             }}
                           />
                         </td>
 
-                        {/* Price History */}
-                        <td style={{ padding: '12px 14px' }} onClick={(e) => e.stopPropagation()}>
-                          <HistoryBadge count={p.priceHistoryCount} onClick={() => setHistoryProductId(p._id)} />
+                        {/* First Added Column */}
+                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                            {formatTime(p.createdAt)}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {p.createdAt ? new Date(p.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                          </div>
+                        </td>
+
+                        {/* Latest Scraped Column */}
+                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                display: 'inline-block',
+                                background: isRecentScrape ? '#10b981' : isMediumScrape ? '#f59e0b' : '#94a3b8',
+                                boxShadow: isRecentScrape ? '0 0 6px rgba(16, 185, 129, 0.6)' : 'none'
+                              }}
+                            />
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }} title={lastScrapedTime ? new Date(lastScrapedTime).toLocaleString() : 'Never'}>
+                              {formatTime(lastScrapedTime)}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', paddingLeft: 13 }}>
+                            {lastScrapedTime ? new Date(lastScrapedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </div>
+                        </td>
+
+                        {/* Scrape Frequency & Status */}
+                        <td style={{ padding: '12px 14px' }}>
+                          <ScrapeAuditCell p={p} onOpenModal={() => setScrapeModalProduct(p)} />
                         </td>
 
                         {/* Country */}
                         <td style={{ padding: '12px 14px', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {COUNTRY_FLAGS[p.country]?.flag || '🌐'} {p.country || 'IN'}
-                        </td>
-
-                        {/* Last Checked */}
-                        <td style={{ padding: '12px 14px', fontSize: '0.82rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          <span title={p.updatedAt ? new Date(p.updatedAt).toLocaleString() : 'Never'}>
-                            {formatTime(p.updatedAt || p.lastCheckedAt)}
-                          </span>
                         </td>
 
                         {/* Actions */}
@@ -1362,7 +1550,6 @@ export default function ProductsPage() {
                               title="Delete product"
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: 15 }}>delete</span>
-                              Delete
                             </button>
                           </div>
                         </td>
@@ -1478,9 +1665,20 @@ export default function ProductsPage() {
           onSelectProduct={(p) => setDrawerProduct(p)}
           onFlagClick={(p) => { setDrawerProduct(null); setFlagModalProduct(p); }}
           onHistoryClick={(id) => { setDrawerProduct(null); setHistoryProductId(id); }}
+          onScrapeHistoryClick={(p) => { setDrawerProduct(null); setScrapeModalProduct(p); }}
           onDeleteClick={handleDeleteProduct}
           onCategoryClick={(cat) => { setDrawerProduct(null); handleCategoryFilterChange(cat); }}
           onMerchantClick={(m) => { setDrawerProduct(null); setProductsMerchant(m); }}
+        />
+      )}
+
+      {/* Scrape History & Verification Modal */}
+      {scrapeModalProduct && (
+        <ScrapeHistoryModal
+          product={scrapeModalProduct}
+          apiBase={apiBase}
+          onClose={() => setScrapeModalProduct(null)}
+          onRefreshProduct={() => fetchProducts(productsPage)}
         />
       )}
 

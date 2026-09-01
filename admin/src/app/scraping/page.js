@@ -108,7 +108,7 @@ export default function ScrapingFrequencyPage() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('overview'); // overview | products | tokens | stale
+  const [tab, setTab] = useState('overview'); // overview | distribution | products | tokens | lookup
   const [productUrl, setProductUrl] = useState('');
   const [productData, setProductData] = useState(null);
   const [productLoading, setProductLoading] = useState(false);
@@ -168,6 +168,7 @@ export default function ScrapingFrequencyPage() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'distribution', label: '📊 Frequency Groups' },
     { id: 'products', label: 'Top / Stale Products' },
     { id: 'tokens', label: 'Token Usage' },
     { id: 'lookup', label: 'Product Lookup' },
@@ -314,6 +315,100 @@ export default function ScrapingFrequencyPage() {
                     });
                   })()}
                 </div>
+              </div>
+            )}
+
+            {/* ── FREQUENCY DISTRIBUTION TAB ── */}
+            {tab === 'distribution' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 4, lineHeight: 1.6 }}>
+                  Every product URL is bucketed by how often it gets scraped per day (avg over {days} days).
+                  Use this to spot <strong>over-scraped</strong> products consuming tokens unnecessarily, and
+                  <strong> under-scraped</strong> products whose prices may be stale.
+                </div>
+                {(data?.frequencyDistribution || []).map((bucket) => {
+                  const bucketColor = {
+                    very_frequent: '#ef4444',
+                    frequent: '#f97316',
+                    daily: '#10b981',
+                    every_few_days: '#3b82f6',
+                    rare: '#6b7280',
+                  }[bucket.bucket] || '#6b7280';
+                  const maxCat = Math.max(...(bucket.byCategory || []).map((c) => c.count), 1);
+                  const maxMerch = Math.max(...(bucket.byMerchant || []).map((m) => m.count), 1);
+                  return (
+                    <div key={bucket.bucket} style={{ background: 'var(--card)', border: `1px solid ${bucketColor}44`, borderLeft: `4px solid ${bucketColor}`, borderRadius: 12, padding: 18 }}>
+                      {/* Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+                        <div>
+                          <span style={{ fontSize: '1.1rem', fontWeight: 800, color: bucketColor }}>{bucket.label}</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 10 }}>{bucket.count} products</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {(bucket.bySources || []).map((s) => (
+                            <span key={s.source} style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 999, background: `${bucketColor}22`, color: bucketColor, fontWeight: 700 }}>
+                              {s.source.replace(/_/g, ' ')}: {s.count}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        {/* Category breakdown */}
+                        <div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>
+                            Top Categories
+                          </div>
+                          {(bucket.byCategory || []).slice(0, 8).map((c) => (
+                            <div key={c.category} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                              <span style={{ width: 110, fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: 'capitalize' }}>{c.category}</span>
+                              <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.round((c.count / maxCat) * 100)}%`, height: '100%', background: bucketColor, borderRadius: 3, opacity: 0.7 }} />
+                              </div>
+                              <span style={{ width: 28, fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'right' }}>{c.count}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Merchant breakdown */}
+                        <div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.5px' }}>
+                            By Merchant
+                          </div>
+                          {(bucket.byMerchant || []).map((m) => (
+                            <div key={m.merchant} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                              <span style={{ width: 70, fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: 'capitalize' }}>{m.merchant}</span>
+                              <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.round((m.count / maxMerch) * 100)}%`, height: '100%', background: bucketColor, borderRadius: 3, opacity: 0.7 }} />
+                              </div>
+                              <span style={{ width: 28, fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)', textAlign: 'right' }}>{m.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Example products */}
+                      {bucket.examples?.length > 0 && (
+                        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Examples</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {bucket.examples.map((ex, i) => (
+                              <a key={i} href={ex.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'var(--border)', padding: '2px 8px', borderRadius: 6, textDecoration: 'none', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}
+                                title={`${ex.title || ex.url} — ${ex.avgPerDay}×/day`}>
+                                {ex.title ? ex.title.split('|')[0].trim().slice(0, 40) : ex.url.split('/').pop()} <span style={{ opacity: 0.6 }}>({ex.avgPerDay}×/d)</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {(!data?.frequencyDistribution || data.frequencyDistribution.length === 0) && (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', padding: 40, textAlign: 'center' }}>
+                    No frequency data available for this period.
+                  </div>
+                )}
               </div>
             )}
 

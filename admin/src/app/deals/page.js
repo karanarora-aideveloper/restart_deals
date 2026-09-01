@@ -146,6 +146,7 @@ export default function DealsPage() {
   const [knownCategories, setKnownCategories] = useState([]);
   const [subcategoryMeta, setSubcategoryMeta] = useState({});
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg, duration = 3000) => {
@@ -159,8 +160,9 @@ export default function DealsPage() {
   const apiFetch = useCallback(async (endpoint, options = {}) => {
     const base = apiBase.replace(/\/+$/, '');
     const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return fetch(url, options);
-  }, [apiBase]);
+    const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
+    return fetch(url, { ...options, headers });
+  }, [apiBase, adminApiKey]);
 
   // Fetch Master Stores
   useEffect(() => {
@@ -389,7 +391,8 @@ export default function DealsPage() {
       `"${d.country || 'IN'}"`,
       `"${d.createdAt || ''}"`
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('
+');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);

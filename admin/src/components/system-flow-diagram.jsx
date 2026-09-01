@@ -11,9 +11,21 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+// Implementation-status indicator: a small dot in the node's TOP-LEFT corner
+// (the existing `badge` pill already owns top-right for other info like
+// priority level). Green = fully implemented and running live; amber =
+// partially implemented (see the side panel for exactly what's missing);
+// omitted entirely for 'full' so a clean diagram isn't cluttered with
+// checkmarks on every single working node.
+const IMPLEMENTED_DOT = {
+  partial: { color: '#f59e0b', icon: 'warning', label: 'Partially implemented' },
+  manual: { color: '#94a3b8', icon: 'pan_tool', label: 'Manual trigger only' },
+};
+
 // Custom Glassmorphism Node
 const GlassNode = ({ data }) => {
   const isOnline = data.isOnline !== false;
+  const implFlag = IMPLEMENTED_DOT[data.implemented];
 
   return (
     <div
@@ -52,6 +64,29 @@ const GlassNode = ({ data }) => {
           }}
         >
           {data.badge}
+        </div>
+      )}
+
+      {implFlag && (
+        <div
+          title={implFlag.label}
+          style={{
+            position: 'absolute',
+            top: -10,
+            left: 12,
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: implFlag.color,
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            border: '2px solid #fff',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{implFlag.icon}</span>
         </div>
       )}
 
@@ -189,7 +224,7 @@ export default function SystemFlowDiagram({ statusData, onNodeClick }) {
         id: 'producer-crawler',
         label: 'Category Bestseller Crawler',
         icon: 'star',
-        subLabel: '11 categories (Mobiles, Audio, TV...)',
+        subLabel: 'Every Master subcategory, every 24h',
         color: '#ec4899',
         badge: 'Priority 4',
         badgeColor: '#ec4899',
@@ -209,6 +244,7 @@ export default function SystemFlowDiagram({ statusData, onNodeClick }) {
         color: '#f59e0b',
         badge: 'Priority 1 (Urgent)',
         badgeColor: '#ef4444',
+        implemented: 'partial',
       },
     },
 
@@ -393,6 +429,7 @@ export default function SystemFlowDiagram({ statusData, onNodeClick }) {
         icon: 'verified',
         subLabel: 'Guarantees Deals ⊆ Products (100% matched)',
         color: '#10b981',
+        implemented: 'partial',
       },
     },
     {

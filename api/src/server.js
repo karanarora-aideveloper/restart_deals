@@ -17,6 +17,7 @@ import notificationsRouter from './routes/notifications.js';
 import alertsRouter from './routes/alerts.js';
 import xBotRouter from './routes/xBot.js';
 import crawlerRouter from './routes/crawler.js';
+import monitoringRouter from './routes/monitoring.js';
 import { startXBotScheduler } from './jobs/xBotScheduler.js';
 import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
 import { startBestsellerCrawlerScheduler } from './jobs/bestsellerCrawler.js';
@@ -24,8 +25,10 @@ import { requireAdminAuth } from './middleware/adminAuth.js';
 
 const app = express();
 
-// Mount SEO routes at root level (handles /sitemap.xml and /deal/:id)
+// Mount SEO routes
 app.use('/', seoRouter);
+app.use('/api/seo', seoRouter);
+app.use('/api', seoRouter);
 
 // Always CORS-enable. Plain Cloudflare proxying does NOT inject
 // Access-Control-Allow-Origin on its own (confirmed: proxied responses carry no CORS
@@ -85,6 +88,9 @@ app.use('/x-bot', requireAdminAuth, xBotRouter);
 
 app.use('/api/crawler', requireAdminAuth, crawlerRouter);
 app.use('/crawler', requireAdminAuth, crawlerRouter);
+
+app.use('/api/monitoring', requireAdminAuth, monitoringRouter);
+app.use('/monitoring', requireAdminAuth, monitoringRouter);
 
 export function startServer() {
   return new Promise((resolve) => {
