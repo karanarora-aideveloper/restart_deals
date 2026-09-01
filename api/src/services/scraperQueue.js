@@ -84,13 +84,28 @@ class DistributedScraperQueue {
       console.log('[Scraper Queue] Initialized BullMQ Distributed Queue on "scraper-queue".');
 
       // The streams.events.maxLen option above only bounds FUTURE growth — it does nothing
-      // to the ~22MB already sitting in bull:scraper-queue:events from before this fix
-      // existed (confirmed via GET /api/admin/redis-debug). Trim it once, actively, on every
-      // boot: harmless/no-op once already trimmed, and self-healing across restarts/deploys
-      // without needing a one-off manual script.
+      // to whatever's already sitting in bull:scraper-queue:events from before this fix
+      // existed. Trim it once, actively, on every boot: harmless/no-op once already trimmed,
+      // and self-healing across restarts/deploys without needing a one-off manual script.
       this.queue.trimEvents(500)
         .then(() => console.log('[Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
         .catch((err) => console.warn('[Scraper Queue] trimEvents failed (non-fatal):', err.message));
+
+      // ALSO re-trim periodically, not just at boot. Redis Streams' MAXLEN ~ trim (what
+      // streams.events.maxLen configures) is approximate/lazy — Redis only compacts in
+      // batches, so under sustained write load the stream can sit well above the configured
+      // cap between compactions. Confirmed live via GET /api/admin/redis-debug: with
+      // maxLen: 500 supposedly capping it, the stream was still measured at 8.6MB (~3,900
+      // entries — 8x the configured cap) with this instance at 70% of its 25MB ceiling. This
+      // is the exact same failure mode as the original incident (see the streams.events
+      // comment above) starting to recur, and retries (scraperQueue's attempts: 3) make it
+      // worse by writing more lifecycle events per job. An active XTRIM every 10 minutes
+      // keeps it honestly bounded regardless of how eagerly Redis compacts on its own.
+      setInterval(() => {
+        this.queue.trimEvents(500).catch((err) =>
+          console.warn('[Scraper Queue] periodic trimEvents failed (non-fatal):', err.message)
+        );
+      }, 10 * 60 * 1000);
     } catch (err) {
       console.error('[Scraper Queue Init Error]:', err.message);
     }

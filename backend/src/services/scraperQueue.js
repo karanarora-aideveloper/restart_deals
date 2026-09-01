@@ -61,6 +61,16 @@ class DistributedScraperQueue {
       this.queue.trimEvents(500)
         .then(() => console.log('[Backend Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
         .catch((err) => console.warn('[Backend Scraper Queue] trimEvents failed (non-fatal):', err.message));
+
+      // Also re-trim periodically — see api/'s matching comment for why the one-time boot
+      // trim alone isn't enough (Redis Streams' MAXLEN ~ trim is approximate/lazy and can
+      // sit well above the configured cap under sustained write load; confirmed live at
+      // ~8x the 500 cap with this instance at 70% of its memory ceiling).
+      setInterval(() => {
+        this.queue.trimEvents(500).catch((err) =>
+          console.warn('[Backend Scraper Queue] periodic trimEvents failed (non-fatal):', err.message)
+        );
+      }, 10 * 60 * 1000);
     } catch (err) {
       console.error('[Backend Scraper Queue Init Error]:', err.message);
     }
