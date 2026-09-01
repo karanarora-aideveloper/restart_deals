@@ -385,7 +385,24 @@ export function startBestsellerCrawlerScheduler() {
     try {
       await ensureCrawlerDefaults();
       const config = await CrawlerConfig.findOne({});
-      if (!config || !config.isEnabled || config.isRunning) return;
+      if (!config || !config.isEnabled) return;
+
+      if (config.isRunning) {
+        // Stale-lock self-heal: isRunning is set true right before a crawl starts and cleared
+        // in the finally block when it finishes — but a deploy/restart that kills the process
+        // mid-crawl (this API service redeploys often) skips that finally block entirely,
+        // leaving isRunning stuck true in the DB forever. Confirmed live: found this flag
+        // stuck true with updatedAt two days stale, silently skipping every 5-minute tick that
+        // whole time — the scheduler was doing nothing. updatedAt is bumped by the same
+        // updateOne() that sets isRunning: true, so it doubles as "when did the current run
+        // start" without needing a new field. A real concurrent run (even a large due batch
+        // fanned across the worker fleet) has no business taking anywhere near 60 minutes, so
+        // treat anything older than that as abandoned and recover instead of staying stuck.
+        const runningForMs = Date.now() - new Date(config.updatedAt).getTime();
+        if (runningForMs < 60 * 60 * 1000) return;
+        console.warn(`[Bestseller Crawler] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — treating as an abandoned lock from an interrupted run and clearing it.`);
+        await CrawlerConfig.updateOne({}, { isRunning: false });
+      }
 
       await runCategoryBestsellerCrawl({ dueOnly: true });
     } catch (err) {
