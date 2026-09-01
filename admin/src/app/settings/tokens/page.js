@@ -416,8 +416,7 @@ export default function TokensPage() {
       let payload;
 
       if (isBulk) {
-        const rawList = tokenInput.split(/[
-,]+/).map((t) => t.trim()).filter(Boolean);
+        const rawList = tokenInput.split(/[\n,]+/).map((t) => t.trim()).filter(Boolean);
         if (rawList.length === 0) return;
         payload = { tokens: rawList };
       } else {
@@ -523,8 +522,7 @@ export default function TokensPage() {
       t.lastUsedAt ? new Date(t.lastUsedAt).toISOString() : '',
       t.createdAt ? new Date(t.createdAt).toISOString() : '',
     ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('
-');
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

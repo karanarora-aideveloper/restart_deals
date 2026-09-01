@@ -206,11 +206,7 @@ export default function OutputChannelsPage() {
       fetchOutputChannels();
 
       if (failed.length > 0) {
-        alert(`Added ${groups.length - failed.length} of ${groups.length} channels.
-
-Failed:
-` + failed.map(f => f.reason.message).join('
-'));
+        alert(`Added ${groups.length - failed.length} of ${groups.length} channels.\n\nFailed:\n` + failed.map(f => f.reason.message).join('\n'));
       } else {
         alert(`✅ Added ${groups.length} output channel${groups.length > 1 ? 's' : ''}.`);
       }
@@ -294,9 +290,7 @@ Failed:
   };
 
   const handleResetStats = async (ch) => {
-    if (!window.confirm(`Reset the "Deals Sent" counter for "${ch.name}" back to 0?
-
-Use this when the count includes sends that never actually delivered (e.g. a stuck WhatsApp session).`)) return;
+    if (!window.confirm(`Reset the "Deals Sent" counter for "${ch.name}" back to 0?\n\nUse this when the count includes sends that never actually delivered (e.g. a stuck WhatsApp session).`)) return;
     try {
       const res = await apiFetch(`/api/output-channels/${ch._id}`, {
         method: 'PATCH',

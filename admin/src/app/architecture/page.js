@@ -476,22 +476,14 @@ export default function ArchitecturePage() {
                   <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '8px' }}>System Prompt</h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     You are a shopping deal analyzer. Analyze the Telegram message and any previously recorded details.
-                    {"
-
-"}
+                    {"\n\n"}
                     Respond ONLY with a valid JSON object matching this schema.
-                    {"
-
-"}
+                    {"\n\n"}
                     <span style={{ color: '#0ea5e9' }}>// Category list is fetched live from Master DB</span>
-                    {"
-"}Extract dealPrice/originalPrice from the message text FIRST.
-                    {"
-"}<span style={{ color: '#10b981' }}>// Fixed #8 — this used to say "prioritize the scraped price," which silently</span>
-                    {"
-"}<span style={{ color: '#10b981' }}>// overrode the message even though nothing was actually scraped this run.</span>
-                    {"
-"}Only fall back to the previously recorded price if the message states none at all.
+                    {"\n"}Extract dealPrice/originalPrice from the message text FIRST.
+                    {"\n"}<span style={{ color: '#10b981' }}>// Fixed #8 — this used to say "prioritize the scraped price," which silently</span>
+                    {"\n"}<span style={{ color: '#10b981' }}>// overrode the message even though nothing was actually scraped this run.</span>
+                    {"\n"}Only fall back to the previously recorded price if the message states none at all.
                   </div>
                 </div>
 
@@ -567,14 +559,8 @@ export default function ArchitecturePage() {
                   </h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     {selectedNode.id === 'upsert-product'
-                      ? `if (dealPrice !== productRecord.price) {
-  productRecord.priceHistory.push({
-    price: dealPrice, originalPrice, timestamp: now
-  });
-}`
-                      : `// existing dealUrl found:
-deal.createdAt = now; // bumps to top of feed
-await deal.save();`}
+                      ? `if (dealPrice !== productRecord.price) {\n  productRecord.priceHistory.push({\n    price: dealPrice, originalPrice, timestamp: now\n  });\n}`
+                      : `// existing dealUrl found:\ndeal.createdAt = now; // bumps to top of feed\nawait deal.save();`}
                   </div>
                 </div>
               </div>
@@ -623,13 +609,8 @@ await deal.save();`}
                   </h4>
                   <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', fontFamily: 'monospace', color: '#334155', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
                     {selectedNode.id === 'loop-resolve'
-                      ? `for (const [param, value] of urlObj.searchParams) {
-  if (value.match(/https?:\/\/[^\s"'<>]+/i)) {
-    return decodeURIComponent(value);
-  }
-}`
-                      : `const dpMatch = pathname.match(/\/dp\/([A-Z0-9]{10})/i);
-isProductUrl = !!dpMatch; // false for /s?k=... search pages`}
+                      ? `for (const [param, value] of urlObj.searchParams) {\n  if (value.match(/https?:\\/\\/[^\\s"'<>]+/i)) {\n    return decodeURIComponent(value);\n  }\n}`
+                      : `const dpMatch = pathname.match(/\\/dp\\/([A-Z0-9]{10})/i);\nisProductUrl = !!dpMatch; // false for /s?k=... search pages`}
                   </div>
                 </div>
               </div>

@@ -320,8 +320,7 @@ if (process.argv[1]?.endsWith('scraperWorker.js')) {
 
   console.log('==================================================');
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
-  console.log('==================================================
-');
+  console.log('==================================================\n');
 
   const port = process.env.PORT || 10000;
   http.createServer((req, res) => {

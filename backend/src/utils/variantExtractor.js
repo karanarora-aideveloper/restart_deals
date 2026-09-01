@@ -74,7 +74,7 @@ export function extractVariant(title) {
   if (!title || typeof title !== 'string') return null;
 
   // ---- 1. Weight / volume pattern: "2 kg", "500g", "1.5L", "250 ml", "500 gm" ----
-  const weightPattern = /(\d+(?:\.\d+)?)\s*(kg|kgs|kilogram|kilograms|g|gm|gms|gram|grams|mg|milligram|milligrams|l|lt|ltr|litre|litres|liter|liters|ml|milliliter|millilitre|milliliters|millilitres)/gi;
+  const weightPattern = /(\d+(?:\.\d+)?)\s*(kg|kgs|kilogram|kilograms|g|gm|gms|gram|grams|mg|milligram|milligrams|l|lt|ltr|litre|litres|liter|liters|ml|milliliter|millilitre|milliliters|millilitres)\b/gi;
 
   let bestWeight = null;
   let bestUnit = null;
@@ -122,14 +122,14 @@ export function extractVariant(title) {
   }
 
   // ---- 2. Count / piece pattern: "Pack of 6", "6 pcs", "Combo of 3" ----
-  const countPattern = /(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)/i
+  const countPattern = /(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)\b/i
     || /pack\s+of\s+(\d+)/i
     || /combo\s+of\s+(\d+)/i;
 
-  const countMatch = title.match(/(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)/i)
-    || title.match(/pack\s+of\s+(\d+)/i)
-    || title.match(/combo\s+of\s+(\d+)/i)
-    || title.match(/(\d+)\s*-\s*pack/i);
+  const countMatch = title.match(/(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)\b/i)
+    || title.match(/\bpack\s+of\s+(\d+)/i)
+    || title.match(/\bcombo\s+of\s+(\d+)/i)
+    || title.match(/\b(\d+)\s*-\s*pack\b/i);
 
   if (countMatch) {
     const count = parseInt(countMatch[1], 10);
@@ -146,7 +146,7 @@ export function extractVariant(title) {
   }
 
   // ---- 3. Size labels: "Small", "Medium", "Large", "XL", "XXL" ----
-  const sizeMatch = title.match(/(XS|S|M|L|XL|XXL|XXXL|Small|Medium|Large|Extra\s*Large)/i);
+  const sizeMatch = title.match(/\b(XS|S|M|L|XL|XXL|XXXL|Small|Medium|Large|Extra\s*Large)\b/i);
   if (sizeMatch) {
     return {
       raw: sizeMatch[0],

@@ -103,9 +103,7 @@ function extractMessageText(message) {
       const unique = [...new Set(entityUrls)];
       console.log(`[Entities] Found ${unique.length} hidden hyperlink URL(s) in message entities: ${unique.join(', ')}`);
       // Append hidden URLs to the text so extractUrls() in verifier.js picks them up
-      text = text + '
-' + unique.join('
-');
+      text = text + '\n' + unique.join('\n');
     }
   }
 
@@ -176,8 +174,7 @@ async function handleNewMessage(event) {
     }
 
     const displayName = channelName ? `"${channelName}"` : matchedId;
-    const preview = message.message ? message.message.substring(0, 35).replace(/
-/g, ' ') : 'none';
+    const preview = message.message ? message.message.substring(0, 35).replace(/\n/g, ' ') : 'none';
 
     console.log(`[DEBUG] New message captured in [${displayName}] (ID: ${matchedId}) - Preview: ${preview}`);
 
@@ -267,12 +264,10 @@ export async function startTelegramListener() {
   
   // Output session string
   const currentSession = client.session.save();
-  console.log('
-=================== TELEGRAM SESSION STRING ===================');
+  console.log('\n=================== TELEGRAM SESSION STRING ===================');
   console.log('Copy & paste this updated session string into backend/.env as TELEGRAM_SESSION:');
   console.log(currentSession);
-  console.log('===============================================================
-');
+  console.log('===============================================================\n');
 
   // Pre-fetch all joined dialogs into GramJS entity cache
   await fetchJoinedDialogs();

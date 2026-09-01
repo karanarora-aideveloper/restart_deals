@@ -158,9 +158,7 @@ export default function ChannelsPage() {
     const next = current === verdict ? 'unreviewed' : verdict;
     if (next === 'not_relevant' && c.isActive) {
       const name = c.name || c.username || c.channelId;
-      if (!window.confirm(`Mark "${name}" as not relevant?
-
-This also switches monitoring OFF so no more scrape/AI budget is spent on it.`)) return;
+      if (!window.confirm(`Mark "${name}" as not relevant?\n\nThis also switches monitoring OFF so no more scrape/AI budget is spent on it.`)) return;
     }
     return patchChannel(c._id, 'relevance', { relevance: next }, 'Failed to update relevance');
   }, [patchChannel]);
@@ -183,9 +181,7 @@ This also switches monitoring OFF so no more scrape/AI budget is spent on it.`))
       } else if (action === 'relevance') {
         endpoint = '/api/channels/bulk-relevance';
         if (extraData.relevance === 'not_relevant' &&
-            !window.confirm(`Mark ${channelsSelectedIds.length} channels as not relevant?
-
-This also switches monitoring OFF for all of them.`)) return;
+            !window.confirm(`Mark ${channelsSelectedIds.length} channels as not relevant?\n\nThis also switches monitoring OFF for all of them.`)) return;
       } else if (action === 'delete') {
         endpoint = '/api/channels/bulk-delete';
         if (!window.confirm(`Are you sure you want to delete ${channelsSelectedIds.length} channels?`)) return;

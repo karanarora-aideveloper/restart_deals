@@ -50,43 +50,30 @@ router.get('/sitemap.xml', async (req, res) => {
     const deals = await Deal.find({}, '_id updatedAt').sort({ createdAt: -1 }).limit(1000);
     const products = await Product.find({}, '_id updatedAt').sort({ createdAt: -1 }).limit(1000);
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-`;
-    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-`;
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
     // Static pages
     const baseUrl = 'https://www.shoppersdeals.in';
     const staticPages = ['', '/privacy'];
     
     for (const page of staticPages) {
-      xml += `  <url>
-`;
-      xml += `    <loc>${baseUrl}${page}</loc>
-`;
-      xml += `    <changefreq>daily</changefreq>
-`;
-      xml += `    <priority>${page === '' ? '1.0' : '0.5'}</priority>
-`;
-      xml += `  </url>
-`;
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}${page}</loc>\n`;
+      xml += `    <changefreq>daily</changefreq>\n`;
+      xml += `    <priority>${page === '' ? '1.0' : '0.5'}</priority>\n`;
+      xml += `  </url>\n`;
     }
 
     // Deals
     for (const deal of deals) {
-      xml += `  <url>
-`;
-      xml += `    <loc>${baseUrl}/deal/${deal._id}</loc>
-`;
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/deal/${deal._id}</loc>\n`;
       const date = deal.updatedAt ? new Date(deal.updatedAt).toISOString() : new Date().toISOString();
-      xml += `    <lastmod>${date}</lastmod>
-`;
-      xml += `    <changefreq>weekly</changefreq>
-`;
-      xml += `    <priority>0.8</priority>
-`;
-      xml += `  </url>
-`;
+      xml += `    <lastmod>${date}</lastmod>\n`;
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.8</priority>\n`;
+      xml += `  </url>\n`;
     }
 
     xml += `</urlset>`;

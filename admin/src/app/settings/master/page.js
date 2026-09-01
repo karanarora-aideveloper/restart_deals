@@ -102,9 +102,7 @@ export default function MasterPage() {
   // Handlers
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setMasterForm({ label: '', value: '', metadata: '{
-  
-}', isActive: true });
+    setMasterForm({ label: '', value: '', metadata: '{\n  \n}', isActive: true });
     setJsonError('');
     setIsModalOpen(true);
   };
@@ -114,9 +112,7 @@ export default function MasterPage() {
     setMasterForm({
       label: item.label,
       value: item.value,
-      metadata: Object.keys(item.metadata || {}).length ? JSON.stringify(item.metadata, null, 2) : '{
-  
-}',
+      metadata: Object.keys(item.metadata || {}).length ? JSON.stringify(item.metadata, null, 2) : '{\n  \n}',
       isActive: item.isActive !== undefined ? item.isActive : true
     });
     setJsonError('');
@@ -429,9 +425,7 @@ export default function MasterPage() {
                   <textarea
                     className="filter-input"
                     style={{ width: '100%', padding: '10px 12px', fontSize: '0.85rem', fontFamily: 'monospace', minHeight: 100, resize: 'vertical' }}
-                    placeholder={'{
-  "key": "value"
-}'}
+                    placeholder={'{\n  "key": "value"\n}'}
                     value={masterForm.metadata}
                     onChange={(e) => setMasterForm({ ...masterForm, metadata: e.target.value })}
                   />

@@ -80,8 +80,7 @@ async function processInBatches(products, stats) {
     const chunk = products.slice(i, i + CONCURRENCY);
     await Promise.all(chunk.map((p) => refreshProduct(p, stats)));
     const done = Math.min(i + CONCURRENCY, products.length);
-    console.log(`  [${done}/${products.length}] done
-`);
+    console.log(`  [${done}/${products.length}] done\n`);
     if (done < products.length) {
       await new Promise((r) => setTimeout(r, 3000)); // pause between batches
     }
@@ -91,8 +90,7 @@ async function processInBatches(products, stats) {
 async function main() {
   console.log('Connecting to MongoDB...');
   await mongoose.connect(process.env.MONGODB_URI);
-  console.log('Connected.
-');
+  console.log('Connected.\n');
 
   const products = await Product.find(
     {
@@ -111,10 +109,8 @@ async function main() {
     .lean();
 
   console.log(`Found ${products.length} active Amazon products missing MRP (limit: ${LIMIT})`);
-  if (DRY_RUN) console.log('[DRY RUN]
-');
-  console.log(`API: ${BASE_URL} | Concurrency: ${CONCURRENCY}
-`);
+  if (DRY_RUN) console.log('[DRY RUN]\n');
+  console.log(`API: ${BASE_URL} | Concurrency: ${CONCURRENCY}\n`);
 
   const stats = {
     total: products.length,
@@ -127,8 +123,7 @@ async function main() {
 
   await processInBatches(products, stats);
 
-  console.log('
-=== Summary ===');
+  console.log('\n=== Summary ===');
   console.log(`Total    : ${stats.total}`);
   if (DRY_RUN) {
     console.log(`DryRun   : ${stats.dryRun}`);
