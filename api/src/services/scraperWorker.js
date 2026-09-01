@@ -90,9 +90,24 @@ async function recordScrapingLog(data) {
  */
 export async function executeScrapingAntJob(url, source = 'other') {
   const startTime = Date.now();
-  const activeTokens = await ScrapingAntToken.find({ status: 'active' }).sort({ lastUsedAt: 1 }).lean();
 
-  if (!activeTokens || activeTokens.length === 0) {
+  // Atomically claim the least-recently-used active token in a single findOneAndUpdate.
+  // The previous approach (find().sort() then a separate updateOne()) was a read-then-write
+  // race: with 5 concurrent worker processes, two jobs starting close together could both
+  // read the same "LRU" token — especially likely since many tokens sit at lastUsedAt: null
+  // and tie — before either had stamped it, then both fire ScrapingAnt requests on that one
+  // token simultaneously. That's exactly what ScrapingAnt's 409 concurrency limit catches
+  // (confirmed: 65 explicit 409_concurrency + a chunk of the other 993 errors in a 24h
+  // window, despite 48 active tokens sitting idle). findOneAndUpdate is atomic per-document
+  // in MongoDB, so two racing calls are guaranteed to claim two different tokens as long as
+  // more than one active token exists.
+  const leased = await ScrapingAntToken.findOneAndUpdate(
+    { status: 'active' },
+    { $set: { lastUsedAt: new Date() } },
+    { sort: { lastUsedAt: 1 }, new: true }
+  ).lean();
+
+  if (!leased) {
     console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found.');
     await recordScrapingLog({
       url,
@@ -128,11 +143,11 @@ export async function executeScrapingAntJob(url, source = 'other') {
   const buildApiUrl = (t) =>
     `https://api.scrapingant.com/v2/general?x-api-key=${t}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;
 
-  // Lease the least-recently-used token and stamp it immediately. Stamping on lease
-  // (rather than only on success) is what makes rotation work: a token left holding a
-  // hung remote browser drops to the back of the queue instead of being re-picked.
-  let token = activeTokens[0].token;
-  await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date() }).catch(() => {});
+  // Stamping lastUsedAt on lease (rather than only on success) is what makes rotation
+  // work: a token left holding a hung remote browser drops to the back of the queue
+  // instead of being re-picked. The findOneAndUpdate above already did the stamping
+  // atomically as part of the claim.
+  let token = leased.token;
 
   let response = null;
   let durationMs = 0;
@@ -143,12 +158,17 @@ export async function executeScrapingAntJob(url, source = 'other') {
 
     if (response.status === 409) {
       // The slot is held by a still-running remote browser, so retrying the same token
-      // just 409s again. Rotate to a different active token instead.
-      const nextToken = activeTokens.find(t => t.token !== token)?.token;
-      if (nextToken) {
+      // just 409s again. Atomically claim a DIFFERENT active token — same race-avoidance
+      // reasoning as the initial lease above (a plain array lookup here would risk handing
+      // out a token another racing worker already claimed).
+      const rotated = await ScrapingAntToken.findOneAndUpdate(
+        { status: 'active', token: { $ne: token } },
+        { $set: { lastUsedAt: new Date() } },
+        { sort: { lastUsedAt: 1 }, new: true }
+      ).lean();
+      if (rotated) {
         console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. Rotating to next token...`);
-        token = nextToken;
-        await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date() }).catch(() => {});
+        token = rotated.token;
       } else {
         console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. No spare token, waiting 8s...`);
         await new Promise(r => setTimeout(r, 8000));
