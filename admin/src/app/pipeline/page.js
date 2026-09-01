@@ -3,39 +3,51 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AdminShell from '@/components/admin-shell';
 
-/* ─── Canvas geometry ─────────────────────────────────────────────────────── */
-const W = 180, H = 84;
-const CANVAS_W = 780, CANVAS_H = 940;
+/* ─── Canvas geometry (horizontal, left → right) ─────────────────────────── */
+const W = 180, H = 84;       // normal node card
+const DW = 152, DH = 116;    // decision diamond
+const CANVAS_W = 1920, CANVAS_H = 600;
+
+const ROW_TOP = 100, ROW_MID = 290, ROW_BOT = 480;
 
 const NODES = [
-  { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',    icon: '💬', color: '#2CA5E0', cx: 155, cy: 80,  logSource: 'listener' },
-  { id: 'crawler',     label: 'Bestseller Crawler', sub: '24 h scheduled run',     icon: '🔍', color: '#F59E0B', cx: 625, cy: 80,  logSource: 'api' },
-  { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',  icon: '⚡', color: '#8B5CF6', cx: 390, cy: 240, logSource: 'api' },
-  { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',   icon: '🕷️', color: '#EF4444', cx: 390, cy: 400, logSource: '__scrapers__' },
-  { id: 'products',    label: 'Product DB',          sub: 'MongoDB Atlas',          icon: '📦', color: '#10B981', cx: 390, cy: 560, logSource: 'api' },
-  { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',   icon: '🎯', color: '#F97316', cx: 390, cy: 720, logSource: 'api' },
-  { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',          icon: '📢', color: '#2CA5E0', cx: 100, cy: 870, logSource: 'api' },
-  { id: 'web',         label: 'Web & App Feed',     sub: 'shopscanner.store',      icon: '🌐', color: '#3B82F6', cx: 390, cy: 870, logSource: null },
-  { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',        icon: '🐦', color: '#64748B', cx: 680, cy: 870, logSource: 'api' },
+  { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',       icon: '💬', color: '#2CA5E0', cx: 110,  cy: ROW_TOP, logSource: 'listener' },
+  { id: 'crawler',     label: 'Bestseller Crawler', sub: '24 h scheduled run',        icon: '🔍', color: '#F59E0B', cx: 110,  cy: ROW_BOT, logSource: 'api' },
+  { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',     icon: '⚡', color: '#8B5CF6', cx: 350,  cy: ROW_MID, logSource: 'api' },
+  { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',      icon: '🕷️', color: '#EF4444', cx: 580,  cy: ROW_MID, logSource: '__scrapers__' },
+  { id: 'decision',    label: 'Product exists?',    sub: 'canonical ID lookup',       icon: '❓', color: '#FBBF24', cx: 810,  cy: ROW_MID, logSource: null, shape: 'diamond' },
+  { id: 'create',      label: 'Create Product',     sub: 'new canonical record',      icon: '🆕', color: '#22C55E', cx: 1040, cy: ROW_TOP, logSource: 'api' },
+  { id: 'update',      label: 'Update Product',     sub: 'refresh price + history',   icon: '♻️', color: '#0EA5E9', cx: 1040, cy: ROW_BOT, logSource: 'api' },
+  { id: 'products',    label: 'Product DB',         sub: 'MongoDB Atlas',             icon: '📦', color: '#10B981', cx: 1270, cy: ROW_MID, logSource: 'api' },
+  { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',       icon: '🎯', color: '#F97316', cx: 1500, cy: ROW_MID, logSource: 'api' },
+  { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',             icon: '📢', color: '#2CA5E0', cx: 1730, cy: ROW_TOP, logSource: 'api' },
+  { id: 'web',         label: 'Web & App Feed',     sub: 'shopscanner.store',         icon: '🌐', color: '#3B82F6', cx: 1730, cy: ROW_MID, logSource: null },
+  { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',           icon: '🐦', color: '#64748B', cx: 1730, cy: ROW_BOT, logSource: 'api' },
 ];
 
 const EDGES = [
   { from: 'telegram',    to: 'bullmq',      label: 'Priority 2' },
   { from: 'crawler',     to: 'bullmq',      label: 'Priority 4' },
   { from: 'bullmq',      to: 'scraper',     label: '1 req / 2.5 s' },
-  { from: 'scraper',     to: 'products',    label: 'upsert' },
+  { from: 'scraper',     to: 'decision',    label: 'lookup ASIN/PID' },
+  { from: 'decision',    to: 'create',      label: 'No → new' },
+  { from: 'decision',    to: 'update',      label: 'Yes → existing' },
+  { from: 'create',      to: 'products',    label: 'insert' },
+  { from: 'update',      to: 'products',    label: 'upsert + history' },
   { from: 'products',    to: 'synthesizer', label: 'price delta' },
   { from: 'synthesizer', to: 'tg-out',      label: 'alert' },
   { from: 'synthesizer', to: 'web',         label: 'deal' },
   { from: 'synthesizer', to: 'x-bot',       label: 'tweet' },
 ];
 
-/* ─── Edge path ───────────────────────────────────────────────────────────── */
+function halfW(n) { return n.shape === 'diamond' ? DW / 2 : W / 2; }
+
+/* ─── Edge path (horizontal: right edge of a → left edge of b) ──────────── */
 function edgePath(a, b) {
-  const x1 = a.cx, y1 = a.cy + H / 2;
-  const x2 = b.cx, y2 = b.cy - H / 2;
-  const mid = (y1 + y2) / 2;
-  return 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + mid + ',' + x2 + ' ' + mid + ',' + x2 + ' ' + y2;
+  const x1 = a.cx + halfW(a), y1 = a.cy;
+  const x2 = b.cx - halfW(b), y2 = b.cy;
+  const mid = (x1 + x2) / 2;
+  return 'M ' + x1 + ' ' + y1 + ' C ' + mid + ' ' + y1 + ',' + mid + ' ' + y2 + ',' + x2 + ' ' + y2;
 }
 
 /* ─── Mini-stat text for each node card ──────────────────────────────────── */
@@ -51,6 +63,10 @@ function nodeStats(nodeId, live) {
       return status ? (status.queueLength || 0) + ' in queue · 4 priority tiers' : null;
     case 'scraper':
       return scrapers ? scrapers.online + ' / ' + scrapers.total + ' workers online' : null;
+    case 'create':
+      return status ? '+' + (status.products24h || 0) + ' created today' : null;
+    case 'update':
+      return status ? (status.productsUpdated24h || 0).toLocaleString() + ' updated today' : null;
     case 'products':
       return status ? (status.totalProducts || 0).toLocaleString() + ' products · +' + (status.products24h || 0) + ' today' : null;
     case 'synthesizer':
@@ -373,6 +389,50 @@ function OverviewContent({ nodeId, apiFetch, live }) {
     );
   }
 
+  if (nodeId === 'decision') {
+    return (
+      <div>
+        <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: 13, marginBottom: 16 }}>
+          <div style={{ fontSize: '0.75rem', color: '#fde68a', fontWeight: 700, marginBottom: 5 }}>Lookup logic</div>
+          <div style={{ fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.65 }}>
+            After a scrape resolves the canonical identifier (Amazon ASIN, Flipkart PID, Myntra style ID), the pipeline queries <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>products</code> for an existing document matching that identifier.
+          </div>
+        </div>
+        <Row label="No match found → routes to" value="Create Product" accent="#22C55E" />
+        <Row label="Match found → routes to" value="Update Product" accent="#0EA5E9" />
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Last 24 h split</div>
+          <Row label="Created (new)" value={'+' + (status && status.products24h || 0)} accent="#22C55E" />
+          <Row label="Updated (existing)" value={(status && status.productsUpdated24h || 0).toLocaleString()} accent="#0EA5E9" />
+        </div>
+      </div>
+    );
+  }
+
+  if (nodeId === 'create') {
+    return (
+      <div>
+        <Row label="Created (24 h)" value={'+' + (status && status.products24h || 0)} accent="#22C55E" />
+        <Row label="Created (7 d)" value={(status && status.products7d || 0).toLocaleString()} />
+        <Row label="Created (30 d)" value={(status && status.products30d || 0).toLocaleString()} />
+        <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.65 }}>
+          Inserts a brand-new canonical <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>products</code> document — title, images, MRP, merchant, category from Master DB — and seeds the first price-history checkpoint.
+        </div>
+      </div>
+    );
+  }
+
+  if (nodeId === 'update') {
+    return (
+      <div>
+        <Row label="Updated (24 h)" value={(status && status.productsUpdated24h || 0).toLocaleString()} accent="#0EA5E9" />
+        <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.65 }}>
+          Refreshes price, stock, and image on the existing document, then appends a new daily price-history checkpoint. This is what feeds the Deal Synthesizer's ≥ 15% drop check downstream.
+        </div>
+      </div>
+    );
+  }
+
   if (nodeId === 'bullmq') {
     return (
       <div>
@@ -469,7 +529,9 @@ export default function PipelinePage() {
 
   const apiFetch = useCallback(async function(url) {
     const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-    const key = typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_API_KEY') || '') : '';
+    const key = typeof window !== 'undefined'
+      ? (localStorage.getItem('ADMIN_API_KEY') || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '')
+      : (process.env.NEXT_PUBLIC_ADMIN_API_KEY || '');
     const fullUrl = url.startsWith('http') ? url : (base + url);
     const res = await fetch(fullUrl, { headers: key ? { 'x-admin-key': key } : {} });
     if (!res.ok) throw new Error('' + res.status);
@@ -573,7 +635,9 @@ export default function PipelinePage() {
               </marker>
             </defs>
             {selectedNode && (
-              <ellipse cx={selectedNode.cx} cy={selectedNode.cy} rx={W * 0.75} ry={H * 0.85}
+              <ellipse cx={selectedNode.cx} cy={selectedNode.cy}
+                rx={(selectedNode.shape === 'diamond' ? DW : W) * 0.75}
+                ry={(selectedNode.shape === 'diamond' ? DH : H) * 0.85}
                 fill={selectedNode.color} fillOpacity="0.1" />
             )}
             {EDGES.map(function(e, i) {
@@ -601,6 +665,29 @@ export default function PipelinePage() {
             const stat = nodeStats(n.id, live);
             // Worker online dot for scraper
             const scraperDots = n.id === 'scraper' && live && live.scrapers && live.scrapers.workers;
+
+            if (n.shape === 'diamond') {
+              return (
+                <div key={n.id} className="pnode" onClick={function() { selectNode(n.id); }}
+                  style={{ position: 'absolute', left: n.cx - DW / 2, top: n.cy - DH / 2, width: DW, height: DH, userSelect: 'none' }}>
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    clipPath: 'polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%)',
+                    background: sel
+                      ? 'linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.04))'
+                      : 'rgba(10,14,20,0.97)',
+                    border: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.15)'),
+                    boxShadow: sel ? '0 0 28px ' + n.color + '40' : '0 2px 14px rgba(0,0,0,0.4)',
+                  }} />
+                  <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 34px' }}>
+                    <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{n.icon}</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: sel ? '#f1f5f9' : '#fde68a', lineHeight: 1.25, marginTop: 4 }}>{n.label}</span>
+                  </div>
+                  {sel && <div style={{ position: 'absolute', top: 8, right: DW / 2 - 4, width: 7, height: 7, borderRadius: '50%', background: n.color, boxShadow: '0 0 7px ' + n.color }} />}
+                </div>
+              );
+            }
+
             return (
               <div key={n.id} className="pnode" onClick={function() { selectNode(n.id); }}
                 style={{
