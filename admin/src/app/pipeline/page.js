@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AdminShell from '@/components/admin-shell';
 
-/* ─── Node layout ─────────────────────────────────────────────────────────── */
-const W = 164, H = 72;    // card dimensions
+/* ─── Canvas geometry ─────────────────────────────────────────────────────── */
+const W = 180, H = 84;
+const CANVAS_W = 780, CANVAS_H = 940;
+
 const NODES = [
-  { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',    icon: '💬', color: '#2CA5E0', cx: 155, cy: 80  },
-  { id: 'crawler',     label: 'Bestseller Crawler', sub: '24 h scheduled run',     icon: '🔍', color: '#F59E0B', cx: 595, cy: 80  },
-  { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',  icon: '⚡', color: '#8B5CF6', cx: 375, cy: 225 },
-  { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',   icon: '🕷️', color: '#EF4444', cx: 375, cy: 375 },
-  { id: 'products',    label: 'Product DB',          sub: 'MongoDB Atlas',          icon: '📦', color: '#10B981', cx: 375, cy: 525 },
-  { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',   icon: '🎯', color: '#F97316', cx: 375, cy: 675 },
-  { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',          icon: '📢', color: '#2CA5E0', cx: 95,  cy: 830 },
-  { id: 'web',         label: 'Web & App Feed',     sub: 'shopscanner.store',      icon: '🌐', color: '#3B82F6', cx: 375, cy: 830 },
-  { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',        icon: '🐦', color: '#64748B', cx: 655, cy: 830 },
+  { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',    icon: '💬', color: '#2CA5E0', cx: 155, cy: 80,  logSource: 'listener' },
+  { id: 'crawler',     label: 'Bestseller Crawler', sub: '24 h scheduled run',     icon: '🔍', color: '#F59E0B', cx: 625, cy: 80,  logSource: 'api' },
+  { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',  icon: '⚡', color: '#8B5CF6', cx: 390, cy: 240, logSource: 'api' },
+  { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',   icon: '🕷️', color: '#EF4444', cx: 390, cy: 400, logSource: '__scrapers__' },
+  { id: 'products',    label: 'Product DB',          sub: 'MongoDB Atlas',          icon: '📦', color: '#10B981', cx: 390, cy: 560, logSource: 'api' },
+  { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',   icon: '🎯', color: '#F97316', cx: 390, cy: 720, logSource: 'api' },
+  { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',          icon: '📢', color: '#2CA5E0', cx: 100, cy: 870, logSource: 'api' },
+  { id: 'web',         label: 'Web & App Feed',     sub: 'shopscanner.store',      icon: '🌐', color: '#3B82F6', cx: 390, cy: 870, logSource: null },
+  { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',        icon: '🐦', color: '#64748B', cx: 680, cy: 870, logSource: 'api' },
 ];
 
 const EDGES = [
@@ -23,181 +25,140 @@ const EDGES = [
   { from: 'bullmq',      to: 'scraper',     label: '1 req / 2.5 s' },
   { from: 'scraper',     to: 'products',    label: 'upsert' },
   { from: 'products',    to: 'synthesizer', label: 'price delta' },
-  { from: 'synthesizer', to: 'tg-out',      label: 'deal alert' },
-  { from: 'synthesizer', to: 'web',         label: 'active deal' },
+  { from: 'synthesizer', to: 'tg-out',      label: 'alert' },
+  { from: 'synthesizer', to: 'web',         label: 'deal' },
   { from: 'synthesizer', to: 'x-bot',       label: 'tweet' },
 ];
 
-/* ─── Helper: bezier path between two nodes ──────────────────────────────── */
-function edgePath(fromNode, toNode) {
-  const x1 = fromNode.cx, y1 = fromNode.cy + H / 2;
-  const x2 = toNode.cx,   y2 = toNode.cy - H / 2;
-  const cy = (y1 + y2) / 2;
-  return 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + cy + ', ' + x2 + ' ' + cy + ', ' + x2 + ' ' + y2;
+/* ─── Edge path ───────────────────────────────────────────────────────────── */
+function edgePath(a, b) {
+  const x1 = a.cx, y1 = a.cy + H / 2;
+  const x2 = b.cx, y2 = b.cy - H / 2;
+  const mid = (y1 + y2) / 2;
+  return 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + mid + ',' + x2 + ' ' + mid + ',' + x2 + ' ' + y2;
 }
 
-/* ─── Small UI components ─────────────────────────────────────────────────── */
+/* ─── Mini-stat text for each node card ──────────────────────────────────── */
+function nodeStats(nodeId, live) {
+  if (!live) return null;
+  const { status, scrapers, channels, crawlerSt } = live;
+  switch (nodeId) {
+    case 'telegram':
+      return channels ? (channels.filter(c => c.isActive !== false).length) + ' active · ' + channels.length + ' total' : null;
+    case 'crawler':
+      return crawlerSt ? (crawlerSt.isRunning ? '🟢 running' : '⚪ idle') + ' · every ' + (crawlerSt.intervalHours || 24) + 'h' : null;
+    case 'bullmq':
+      return status ? (status.queueLength || 0) + ' in queue · 4 priority tiers' : null;
+    case 'scraper':
+      return scrapers ? scrapers.online + ' / ' + scrapers.total + ' workers online' : null;
+    case 'products':
+      return status ? (status.totalProducts || 0).toLocaleString() + ' products · +' + (status.products24h || 0) + ' today' : null;
+    case 'synthesizer':
+      return status ? (status.dealsToday || 0) + ' deals today · ' + (status.activeDeals || 0) + ' active' : null;
+    case 'tg-out':
+      return status ? (status.totalUsers || 0).toLocaleString() + ' subscribers' : null;
+    case 'web':
+      return 'shopscanner.store';
+    case 'x-bot':
+      return 'US deals · scheduled tweets';
+    default:
+      return null;
+  }
+}
+
+/* ─── Small shared UI ─────────────────────────────────────────────────────── */
 function Spinner() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-      <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 28 }}>
+      <div style={{ width: 22, height: 22, border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 }
-function Stat({ label, value, accent }) {
+function Row({ label, value, accent }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{label}</span>
-      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: accent || '#e2e8f0' }}>{value}</span>
-    </div>
-  );
-}
-function StatMini({ label, value, color }) {
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: '1.1rem', fontWeight: 800, color }}>{value != null ? value : '—'}</div>
-      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{label}</div>
+      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: accent || '#e2e8f0' }}>{value}</span>
     </div>
   );
 }
 
-/* ─── Panel content components ────────────────────────────────────────────── */
-function TelegramPanel({ apiFetch }) {
-  const [channels, setChannels] = useState(null);
-  const [err, setErr] = useState(null);
-  useEffect(() => {
-    apiFetch('/api/channels?limit=50')
-      .then(d => setChannels(d.channels || d))
-      .catch(e => setErr(e.message));
-  }, [apiFetch]);
+/* ─── Log viewer ──────────────────────────────────────────────────────────── */
+function LogViewer({ apiFetch, nodeId, scrapers }) {
+  const [logs, setLogs] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedWorker, setSelectedWorker] = useState(null); // for scraper node
+  const node = NODES.find(n => n.id === nodeId);
 
-  if (err) return <p style={{ color: '#f87171', padding: 16 }}>Error: {err}</p>;
-  if (!channels) return <Spinner />;
+  const fetchLogs = useCallback(async function(src) {
+    setLoading(true);
+    try {
+      const source = src || (node && node.logSource !== '__scrapers__' ? node.logSource : 'all');
+      const url = '/api/admin/logs?limit=40' + (source && source !== 'all' ? '&source=' + source : '');
+      const data = await apiFetch(url);
+      setLogs(data.logs || []);
+    } catch (e) {
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiFetch, nodeId]);
 
-  const active = channels.filter(c => c.isActive !== false);
+  useEffect(function() {
+    if (nodeId === 'scraper') {
+      // Default to first online worker, or first worker
+      const firstOnline = scrapers && scrapers.workers && scrapers.workers.find(function(w) { return w.online; });
+      const first = firstOnline || (scrapers && scrapers.workers && scrapers.workers[0]);
+      const src = first ? first.name : null;
+      setSelectedWorker(src);
+      fetchLogs(src);
+    } else {
+      fetchLogs(null);
+    }
+  }, [nodeId]);
+
+  const LEVEL_COLOR = { error: '#f87171', warn: '#fbbf24', info: '#60a5fa', debug: '#94a3b8' };
+
   return (
     <div>
-      <Stat label="Total channels" value={channels.length} />
-      <Stat label="Active" value={active.length} accent="#10B981" />
-      <div style={{ marginTop: 16 }}>
-        {channels.map(ch => (
-          <div key={ch._id} style={{
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8, padding: '10px 12px', marginBottom: 8,
-            borderLeft: '3px solid ' + (ch.isActive !== false ? '#10B981' : '#6b7280'),
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{ch.name || ch.username}</span>
-              <span style={{
-                background: ch.isActive !== false ? 'rgba(16,185,129,0.15)' : 'rgba(107,114,128,0.2)',
-                color: ch.isActive !== false ? '#6ee7b7' : '#9ca3af',
-                borderRadius: 4, padding: '2px 8px', fontSize: '0.72rem', fontWeight: 600,
+      {/* Worker selector for scraper node */}
+      {nodeId === 'scraper' && scrapers && scrapers.workers && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {scrapers.workers.map(function(w) {
+            const active = selectedWorker === w.name;
+            return (
+              <button key={w.name} onClick={function() { setSelectedWorker(w.name); fetchLogs(w.name); }} style={{
+                padding: '4px 10px', borderRadius: 6, border: '1px solid ' + (active ? w.online ? '#10B981' : '#EF4444' : 'rgba(255,255,255,0.1)'),
+                background: active ? (w.online ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)') : 'transparent',
+                color: active ? '#e2e8f0' : '#64748b', fontSize: '0.72rem', cursor: 'pointer',
               }}>
-                {ch.isActive !== false ? 'ACTIVE' : 'PAUSED'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: '0.75rem', color: '#94a3b8' }}>
-              <span>💬 {(ch.messagesCapturedCount || 0).toLocaleString()} msgs</span>
-              <span>🎯 {(ch.dealsProducedCount || 0).toLocaleString()} deals</span>
-              {ch.country && <span>🌍 {ch.country}</span>}
-            </div>
-            {ch.lastMessageAt && (
-              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>
-                Last: {new Date(ch.lastMessageAt).toLocaleString()}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CrawlerPanel({ apiFetch }) {
-  const [status, setStatus] = useState(null);
-  const [seeds, setSeeds] = useState(null);
-  const [running, setRunning] = useState(false);
-  useEffect(() => {
-    Promise.all([
-      apiFetch('/api/crawler/status'),
-      apiFetch('/api/crawler/seeds?limit=100'),
-    ]).then(function(results) {
-      setStatus(results[0]);
-      setSeeds(results[1].seeds || results[1]);
-    }).catch(function() {});
-  }, [apiFetch]);
-
-  const runNow = function() {
-    setRunning(true);
-    apiFetch('/api/crawler/run-now').catch(function() {}).finally(function() { setRunning(false); });
-  };
-
-  const byCategory = {};
-  (seeds || []).forEach(function(s) {
-    const cat = s.category || 'other';
-    if (!byCategory[cat]) byCategory[cat] = [];
-    byCategory[cat].push(s);
-  });
-
-  return (
-    <div>
-      {status && (
-        <div>
-          <Stat label="Interval" value={(status.intervalHours || 24) + ' h'} />
-          <Stat label="Status" value={status.isRunning ? '🟢 Running' : '⚪ Idle'} />
-          {status.lastRunAt && (
-            <Stat label="Last run" value={new Date(status.lastRunAt).toLocaleString()} />
-          )}
-          {status.lastRunStats && (
-            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, marginTop: 12 }}>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 4 }}>Last run stats</div>
-              <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem' }}>
-                <span>🔍 {status.lastRunStats.seedsCrawled} seeds</span>
-                <span>📦 +{status.lastRunStats.productsEnrolled} enrolled</span>
-                <span>🔄 {status.lastRunStats.productsUpdated} updated</span>
-              </div>
-            </div>
-          )}
-          <button onClick={runNow} disabled={running} style={{
-            marginTop: 14, padding: '8px 18px',
-            background: running ? '#374151' : '#F59E0B',
-            color: running ? '#9ca3af' : '#000',
-            border: 'none', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem',
-            cursor: running ? 'not-allowed' : 'pointer',
+                {w.online ? '🟢' : '🔴'} {w.name.replace('shoppersdeals-', '')}
+              </button>
+            );
+          })}
+          <button onClick={function() { setSelectedWorker(null); fetchLogs('all'); }} style={{
+            padding: '4px 10px', borderRadius: 6, border: '1px solid ' + (!selectedWorker ? '#8B5CF6' : 'rgba(255,255,255,0.1)'),
+            background: !selectedWorker ? 'rgba(139,92,246,0.15)' : 'transparent',
+            color: !selectedWorker ? '#e2e8f0' : '#64748b', fontSize: '0.72rem', cursor: 'pointer',
           }}>
-            {running ? 'Starting…' : '▶ Run Now'}
+            All workers
           </button>
         </div>
       )}
-      {seeds && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Seeds ({seeds.length})
-          </div>
-          {Object.entries(byCategory).map(function([cat, items]) {
+
+      {loading ? <Spinner /> : logs && logs.length === 0 ? (
+        <p style={{ color: '#64748b', fontSize: '0.8rem', textAlign: 'center', padding: 24 }}>No logs found for this source</p>
+      ) : (
+        <div style={{ fontFamily: 'ui-monospace,monospace', fontSize: '0.68rem', lineHeight: 1.6 }}>
+          {(logs || []).map(function(entry, i) {
+            const color = LEVEL_COLOR[entry.level] || '#94a3b8';
+            const ts = entry.ts ? new Date(entry.ts).toLocaleTimeString() : '';
             return (
-              <div key={cat} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>
-                  📂 {cat} ({items.length})
-                </div>
-                {items.map(function(s) {
-                  return (
-                    <div key={s._id} style={{
-                      background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '7px 10px',
-                      marginBottom: 5, borderLeft: '2px solid ' + (s.isEnabled !== false ? '#F59E0B' : '#374151'),
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                        <span style={{ fontWeight: 600 }}>{s.keywords || s.subcategory}</span>
-                        <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{s.store}</span>
-                      </div>
-                      {s.lastResult && (
-                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 2 }}>
-                          Found: {s.lastResult.found || 0} · Enrolled: {s.lastResult.enrolled || 0}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div key={i} style={{ padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{ color: '#374151', whiteSpace: 'nowrap', flexShrink: 0, fontSize: '0.63rem' }}>{ts}</span>
+                <span style={{ color, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, fontSize: '0.65rem', textTransform: 'uppercase' }}>{entry.level}</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.65rem', flexShrink: 0 }}>[{entry.source || '?'}]</span>
+                <span style={{ color: '#cbd5e1', wordBreak: 'break-word' }}>{entry.msg || entry.message || ''}</span>
               </div>
             );
           })}
@@ -207,123 +168,226 @@ function CrawlerPanel({ apiFetch }) {
   );
 }
 
-function ScraperPanel({ apiFetch }) {
-  const [status, setStatus] = useState(null);
-  useEffect(() => {
-    apiFetch('/api/admin/scrapers/status').then(setStatus).catch(function() {});
-  }, [apiFetch]);
+/* ─── Panel overview content per node ────────────────────────────────────── */
+function OverviewContent({ nodeId, apiFetch, live }) {
+  const [extra, setExtra] = useState(null);
+  const { status, scrapers, channels, crawlerSt } = live || {};
 
-  if (!status) return <Spinner />;
+  // Fetch node-specific data
+  useEffect(function() {
+    if (nodeId === 'telegram' && !channels) return;
+    if (nodeId === 'crawler') {
+      apiFetch('/api/crawler/seeds?limit=200').then(function(d) { setExtra(d.seeds || d); }).catch(function() {});
+    }
+  }, [nodeId, apiFetch]);
 
-  return (
-    <div>
-      <Stat label="Queue length" value={status.queueLength != null ? status.queueLength : '—'} accent="#8B5CF6" />
-      <Stat label="Active jobs" value={status.activeJobs != null ? status.activeJobs : '—'} />
-      <Stat label="Workers" value={status.workerCount != null ? status.workerCount : '—'} />
-      {status.tokenStats && (
-        <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
-          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Token pool
-          </div>
-          <div style={{ display: 'flex', gap: 14 }}>
-            <StatMini label="Active" value={status.tokenStats.active} color="#10B981" />
-            <StatMini label="Exhausted" value={status.tokenStats.exhausted} color="#EF4444" />
-            <StatMini label="Total" value={status.tokenStats.total} color="#94a3b8" />
-          </div>
+  if (nodeId === 'telegram') {
+    const chs = channels || [];
+    const active = chs.filter(function(c) { return c.isActive !== false; });
+    return (
+      <div>
+        <Row label="Active channels" value={active.length} accent="#10B981" />
+        <Row label="Total channels" value={chs.length} />
+        <div style={{ marginTop: 16, maxHeight: 360, overflowY: 'auto' }}>
+          {chs.map(function(ch) {
+            return (
+              <div key={ch._id} style={{
+                background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '9px 11px', marginBottom: 7,
+                borderLeft: '3px solid ' + (ch.isActive !== false ? '#10B981' : '#374151'),
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#e2e8f0' }}>{ch.name || ch.username}</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: ch.isActive !== false ? '#6ee7b7' : '#6b7280', background: ch.isActive !== false ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.15)', borderRadius: 4, padding: '1px 6px' }}>
+                    {ch.isActive !== false ? 'ACTIVE' : 'PAUSED'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 14, marginTop: 5, fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <span>💬 {(ch.messagesCapturedCount || 0).toLocaleString()}</span>
+                  <span>🎯 {(ch.dealsProducedCount || 0).toLocaleString()} deals</span>
+                  {ch.country && <span>🌍 {ch.country}</span>}
+                </div>
+                {ch.lastMessageAt && <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: 3 }}>Last: {new Date(ch.lastMessageAt).toLocaleString()}</div>}
+              </div>
+            );
+          })}
         </div>
-      )}
-      <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-          Rate limiter
-        </div>
-        <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>1 request every 2.5 s (global)</div>
-        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 4 }}>Country proxy: IN &amp; US</div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-function StatusPanel({ apiFetch, nodeId }) {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    apiFetch('/api/admin/status').then(setData).catch(function() {});
-  }, [apiFetch]);
-
-  if (!data) return <Spinner />;
-
-  if (nodeId === 'bullmq') return (
-    <div>
-      <Stat label="Queue length" value={(data.queueLength || 0).toLocaleString()} accent="#8B5CF6" />
-      <Stat label="Deals today" value={(data.dealsToday || 0).toLocaleString()} />
-      <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Priority tiers</div>
-        {[
-          { p: 1, label: 'User re-check (urgent)', color: '#EF4444' },
-          { p: 2, label: 'Telegram deal', color: '#2CA5E0' },
-          { p: 3, label: '24h refresh', color: '#10B981' },
-          { p: 4, label: 'Bestseller crawler', color: '#F59E0B' },
-        ].map(function(r) {
-          return (
-            <div key={r.p} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ background: r.color, color: '#fff', borderRadius: 4, padding: '1px 7px', fontSize: '0.7rem', fontWeight: 700 }}>P{r.p}</span>
-              <span style={{ fontSize: '0.78rem', color: '#e2e8f0' }}>{r.label}</span>
+  if (nodeId === 'crawler') {
+    const seeds = extra || [];
+    const byCategory = {};
+    seeds.forEach(function(s) { const c = s.category || 'other'; if (!byCategory[c]) byCategory[c] = []; byCategory[c].push(s); });
+    return (
+      <div>
+        {crawlerSt && <Row label="Status" value={crawlerSt.isRunning ? '🟢 Running' : '⚪ Idle'} />}
+        {crawlerSt && <Row label="Interval" value={(crawlerSt.intervalHours || 24) + ' h'} />}
+        {crawlerSt && crawlerSt.lastRunAt && <Row label="Last run" value={new Date(crawlerSt.lastRunAt).toLocaleString()} />}
+        {crawlerSt && crawlerSt.lastRunStats && (
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 11, marginTop: 12 }}>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: 5 }}>Last run results</div>
+            <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem', color: '#e2e8f0' }}>
+              <span>🔍 {crawlerSt.lastRunStats.seedsCrawled} seeds</span>
+              <span>📦 +{crawlerSt.lastRunStats.productsEnrolled}</span>
+              <span>🔄 {crawlerSt.lastRunStats.productsUpdated}</span>
             </div>
-          );
-        })}
+          </div>
+        )}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+            Seeds ({seeds.length})
+          </div>
+          {Object.entries(byCategory).map(function([cat, items]) {
+            return (
+              <div key={cat} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: '0.72rem', color: '#F59E0B', fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>📂 {cat} ({items.length})</div>
+                {items.map(function(s) {
+                  return (
+                    <div key={s._id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 9px', marginBottom: 4, borderLeft: '2px solid ' + (s.isEnabled !== false ? '#F59E0B' : '#374151') }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                        <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{s.keywords || s.subcategory}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.68rem' }}>{s.store}</span>
+                      </div>
+                      {s.lastResult && <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: 2 }}>found {s.lastResult.found || 0} · enrolled {s.lastResult.enrolled || 0}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (nodeId === 'products') return (
-    <div>
-      <Stat label="Total products" value={(data.totalProducts || 0).toLocaleString()} accent="#10B981" />
-      <Stat label="New 24h" value={(data.products24h || 0).toLocaleString()} />
-      <Stat label="Updated 24h" value={(data.productsUpdated24h || 0).toLocaleString()} />
-    </div>
-  );
+  if (nodeId === 'scraper') {
+    const workers = scrapers && scrapers.workers ? scrapers.workers : [];
+    const onlineCount = scrapers ? scrapers.online : 0;
+    return (
+      <div>
+        <Row label="Workers online" value={onlineCount + ' / ' + workers.length} accent={onlineCount === workers.length ? '#10B981' : onlineCount > 0 ? '#F59E0B' : '#EF4444'} />
+        <Row label="Rate limit" value="1 req / 2.5 s (global)" />
+        <Row label="Proxy routing" value="IN + US" />
 
-  if (nodeId === 'synthesizer') return (
-    <div>
-      <Stat label="Deals today" value={(data.dealsToday || 0).toLocaleString()} accent="#F97316" />
-      <Stat label="Total deals" value={(data.totalDeals || 0).toLocaleString()} />
-      <Stat label="Active deals" value={(data.activeDeals || 0).toLocaleString()} />
-      <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Detection rule</div>
-        <div style={{ fontSize: '0.82rem', color: '#e2e8f0' }}>≥ 15% price drop vs historical min</div>
-        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 4 }}>Checks Products collection on each scrape</div>
+        {/* Worker tiles */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+            Worker Fleet ({workers.length} configured)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {workers.map(function(w) {
+              return (
+                <div key={w.name} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px',
+                  borderLeft: '3px solid ' + (w.online ? '#10B981' : '#EF4444'),
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <div style={{ width: 9, height: 9, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 6px ' + (w.online ? '#10B981' : '#EF4444'), flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#e2e8f0' }}>{w.name}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {w.online ? (
+                      <span style={{ fontSize: '0.72rem', color: '#6ee7b7' }}>{w.latencyMs} ms</span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', color: '#f87171' }}>offline</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 10, fontSize: '0.68rem', color: '#475569', lineHeight: 1.5 }}>
+            Workers are pinged live on every page load. Add/remove workers via <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>SCRAPER_WORKER_URLS</code> in admin.js.
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (nodeId === 'tg-out') return (
-    <div>
-      <Stat label="Total users" value={(data.totalUsers || 0).toLocaleString()} accent="#2CA5E0" />
-      <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0' }}>
-        Broadcasts rich HTML deal messages to subscribed Telegram channels with price badges, discount %, affiliate links.
+  if (nodeId === 'bullmq') {
+    return (
+      <div>
+        <Row label="Queue length" value={(status && status.queueLength || 0).toLocaleString()} accent="#8B5CF6" />
+        <Row label="Deals today" value={(status && status.dealsToday || 0).toLocaleString()} />
+        <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Priority tiers</div>
+          {[
+            { p: 1, label: 'User re-check (urgent)', color: '#EF4444' },
+            { p: 2, label: 'Telegram deal message', color: '#2CA5E0' },
+            { p: 3, label: '24 h price refresh', color: '#10B981' },
+            { p: 4, label: 'Bestseller crawler', color: '#F59E0B' },
+          ].map(function(r) {
+            return (
+              <div key={r.p} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+                <span style={{ background: r.color, color: '#fff', borderRadius: 4, padding: '1px 7px', fontSize: '0.68rem', fontWeight: 700 }}>P{r.p}</span>
+                <span style={{ fontSize: '0.77rem', color: '#e2e8f0' }}>{r.label}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (nodeId === 'web') return (
-    <div>
-      <Stat label="Total products" value={(data.totalProducts || 0).toLocaleString()} accent="#3B82F6" />
-      <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0' }}>
-        Frontend deal feed at{' '}
-        <a href="https://shopscanner.store" target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>
-          shopscanner.store
-        </a>
-        . Live price tracking + cubic spline charts + Algolia search.
+  if (nodeId === 'products') {
+    return (
+      <div>
+        <Row label="Total products" value={(status && status.totalProducts || 0).toLocaleString()} accent="#10B981" />
+        <Row label="New (24 h)" value={'+' + (status && status.products24h || 0)} />
+        <Row label="Updated (24 h)" value={(status && status.productsUpdated24h || 0).toLocaleString()} />
+        <Row label="Products (30 d)" value={(status && status.totalProducts30d || 0).toLocaleString()} />
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (nodeId === 'x-bot') return (
-    <div>
-      <div style={{ marginTop: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0' }}>
-        Automated Twitter/X bot posting verified US deals. Scheduled posting windows, media uploads, affiliate link injection.
+  if (nodeId === 'synthesizer') {
+    return (
+      <div>
+        <Row label="Deals today" value={(status && status.dealsToday || 0).toLocaleString()} accent="#F97316" />
+        <Row label="Active deals" value={(status && status.activeDeals || 0).toLocaleString()} />
+        <Row label="Total deals" value={(status && status.totalDeals || 0).toLocaleString()} />
+        <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Detection rule</div>
+          <div style={{ fontSize: '0.82rem', color: '#e2e8f0' }}>≥ 15% price drop vs historical min</div>
+          <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: 4 }}>Runs on every successful scrape · auto-creates + activates deals</div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (nodeId === 'tg-out') {
+    return (
+      <div>
+        <Row label="Total subscribers" value={(status && status.totalUsers || 0).toLocaleString()} accent="#2CA5E0" />
+        <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.6 }}>
+          Broadcasts rich HTML messages with price badge, discount %, merchant logo, affiliate buy link.
+        </div>
+      </div>
+    );
+  }
+
+  if (nodeId === 'web') {
+    return (
+      <div>
+        <Row label="Products indexed" value={(status && status.totalProducts || 0).toLocaleString()} accent="#3B82F6" />
+        <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.6 }}>
+          <a href="https://shopscanner.store" target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>shopscanner.store</a> — live deal feed, cubic spline price charts, Algolia full-text search.
+        </div>
+      </div>
+    );
+  }
+
+  if (nodeId === 'x-bot') {
+    return (
+      <div>
+        <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.6 }}>
+          Automated Twitter/X bot posting verified US deals with media uploads at scheduled windows. Affiliate links auto-injected.
+        </div>
+      </div>
+    );
+  }
 
   return null;
 }
@@ -331,71 +395,101 @@ function StatusPanel({ apiFetch, nodeId }) {
 /* ─── Main page ───────────────────────────────────────────────────────────── */
 export default function PipelinePage() {
   const [selected, setSelected] = useState(null);
+  const [panelTab, setPanelTab] = useState('overview'); // 'overview' | 'logs'
+  const [live, setLive] = useState(null);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const refreshRef = useRef(null);
+
   const apiFetch = useCallback(async function(url) {
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-    const adminKey = typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_API_KEY') || '') : '';
-    const fullUrl = url.startsWith('http') ? url : (apiBase + url);
-    const res = await fetch(fullUrl, { headers: adminKey ? { 'x-admin-key': adminKey } : {} });
+    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+    const key = typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_API_KEY') || '') : '';
+    const fullUrl = url.startsWith('http') ? url : (base + url);
+    const res = await fetch(fullUrl, { headers: key ? { 'x-admin-key': key } : {} });
     if (!res.ok) throw new Error('' + res.status);
     return res.json();
   }, []);
 
-  const nodeMap = {};
-  NODES.forEach(function(n) { nodeMap[n.id] = n; });
+  const loadLive = useCallback(async function() {
+    try {
+      const [status, channelsRes, crawlerSt, scrapers] = await Promise.all([
+        apiFetch('/api/admin/status').catch(function() { return {}; }),
+        apiFetch('/api/channels?limit=200').catch(function() { return { channels: [] }; }),
+        apiFetch('/api/crawler/status').catch(function() { return null; }),
+        apiFetch('/api/admin/scrapers/status').catch(function() { return null; }),
+      ]);
+      setLive({
+        status,
+        channels: channelsRes.channels || channelsRes || [],
+        crawlerSt,
+        scrapers,
+      });
+    } finally {
+      setLiveLoading(false);
+    }
+  }, [apiFetch]);
 
-  const selectedNode = selected ? nodeMap[selected] : null;
+  useEffect(function() {
+    loadLive();
+    refreshRef.current = setInterval(loadLive, 30000);
+    return function() { clearInterval(refreshRef.current); };
+  }, [loadLive]);
 
-  function getPanelContent() {
-    if (!selected) return null;
-    if (selected === 'telegram')    return <TelegramPanel apiFetch={apiFetch} />;
-    if (selected === 'crawler')     return <CrawlerPanel  apiFetch={apiFetch} />;
-    if (selected === 'scraper')     return <ScraperPanel  apiFetch={apiFetch} />;
-    return <StatusPanel apiFetch={apiFetch} nodeId={selected} />;
+  // Reset to overview tab when switching nodes
+  function selectNode(id) {
+    if (selected === id) { setSelected(null); return; }
+    setSelected(id);
+    setPanelTab('overview');
   }
 
-  const CANVAS_W = 750, CANVAS_H = 920;
+  const nodeMap = {};
+  NODES.forEach(function(n) { nodeMap[n.id] = n; });
+  const selectedNode = selected ? nodeMap[selected] : null;
+  const hasLogs = selectedNode && selectedNode.logSource !== null;
 
   return (
     <AdminShell title="Pipeline Flow">
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes flowDot {
-          0%   { stroke-dashoffset: 300; opacity: 1; }
-          80%  { opacity: 1; }
+          0%   { stroke-dashoffset: 400; opacity: 0.8; }
+          85%  { opacity: 0.8; }
           100% { stroke-dashoffset: 0;   opacity: 0; }
         }
-        .pipeline-node {
-          cursor: pointer;
-          transition: filter 0.15s, box-shadow 0.15s, transform 0.15s;
-          user-select: none;
-        }
-        .pipeline-node:hover { filter: brightness(1.12); transform: translateY(-2px); }
-        .panel-slide {
-          position: fixed; top: 0; right: 0; bottom: 0; width: 380px;
-          background: #0d1117; border-left: 1px solid rgba(255,255,255,0.08);
-          z-index: 200; overflow-y: auto; padding: 24px;
-          box-shadow: -12px 0 40px rgba(0,0,0,0.6);
-          animation: slideIn 0.2s ease;
+        .pnode { cursor: pointer; transition: filter 0.15s, transform 0.15s; }
+        .pnode:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .rpanel {
+          position: fixed; top: 0; right: 0; bottom: 0; width: 400px;
+          background: #0d1117; border-left: 1px solid rgba(255,255,255,0.07);
+          z-index: 200; display: flex; flex-direction: column;
+          box-shadow: -16px 0 48px rgba(0,0,0,0.6);
+          animation: slideIn 0.18s ease;
         }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .rpanel-body { overflow-y: auto; flex: 1; padding: 0 22px 40px; }
+        .tab-btn {
+          padding: 6px 16px; border: none; background: none;
+          font-size: 0.78rem; font-weight: 600; cursor: pointer;
+          border-bottom: 2px solid transparent; color: #64748b;
+          transition: color 0.12s, border-color 0.12s;
+        }
+        .tab-btn.active { color: #e2e8f0; border-bottom-color: var(--tc); }
+        .tab-btn:hover { color: #cbd5e1; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
       `}</style>
 
       {/* Toolbar */}
-      <div style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-          Click any node to open its control panel &nbsp;·&nbsp; {NODES.length} nodes &nbsp;·&nbsp; {EDGES.length} connections
+      <div style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ fontSize: '0.77rem', color: '#475569' }}>
+          {NODES.length} nodes · {EDGES.length} edges
+          {liveLoading && <span className="pulse" style={{ marginLeft: 10, color: '#60a5fa' }}>⟳ loading live data…</span>}
+          {!liveLoading && live && <span style={{ marginLeft: 10, color: '#10B981', fontSize: '0.7rem' }}>● live · refreshes every 30s</span>}
         </div>
         {selected && (
-          <button
-            onClick={function() { setSelected(null); }}
-            style={{
-              marginLeft: 'auto', background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8',
-              borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: '0.8rem',
-            }}
-          >
-            ✕ Close panel
-          </button>
+          <button onClick={function() { setSelected(null); }} style={{
+            marginLeft: 'auto', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            color: '#64748b', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: '0.78rem',
+          }}>✕ close</button>
         )}
       </div>
 
@@ -404,62 +498,30 @@ export default function PipelinePage() {
         <div style={{ position: 'relative', width: CANVAS_W, height: CANVAS_H }}>
 
           {/* SVG edges */}
-          <svg
-            width={CANVAS_W} height={CANVAS_H}
-            style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
-          >
+          <svg width={CANVAS_W} height={CANVAS_H} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}>
             <defs>
-              <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="rgba(148,163,184,0.4)" />
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="rgba(148,163,184,0.35)" />
               </marker>
             </defs>
-
-            {/* Glow under selected */}
             {selectedNode && (
-              <ellipse
-                cx={selectedNode.cx} cy={selectedNode.cy}
-                rx={W * 0.8} ry={H * 0.9}
-                fill={selectedNode.color}
-                fillOpacity="0.12"
-              />
+              <ellipse cx={selectedNode.cx} cy={selectedNode.cy} rx={W * 0.75} ry={H * 0.85}
+                fill={selectedNode.color} fillOpacity="0.1" />
             )}
-
-            {/* Edges */}
             {EDGES.map(function(e, i) {
               const fn = nodeMap[e.from], tn = nodeMap[e.to];
               const p = edgePath(fn, tn);
               const mx = (fn.cx + tn.cx) / 2, my = (fn.cy + tn.cy) / 2;
-              const isHighlighted = selected === e.from || selected === e.to;
+              const hi = selected === e.from || selected === e.to;
               return (
                 <g key={i}>
-                  {/* Base static line */}
-                  <path
-                    d={p} fill="none"
-                    stroke={isHighlighted ? fn.color : 'rgba(148,163,184,0.15)'}
-                    strokeWidth={isHighlighted ? 2 : 1.5}
-                    markerEnd="url(#arrowhead)"
-                  />
-                  {/* Animated flow dots */}
-                  <path
-                    d={p} fill="none"
-                    stroke={fn.color}
-                    strokeWidth="2"
-                    strokeOpacity="0.55"
+                  <path d={p} fill="none" stroke={hi ? fn.color : 'rgba(255,255,255,0.08)'} strokeWidth={hi ? 1.8 : 1.5} markerEnd="url(#arr)" />
+                  <path d={p} fill="none" stroke={fn.color} strokeWidth="2" strokeOpacity="0.5"
                     strokeDasharray="8 6"
-                    style={{
-                      strokeDashoffset: 300,
-                      animation: 'flowDot ' + (1.6 + i * 0.25) + 's linear infinite',
-                    }}
-                  />
-                  {/* Edge label */}
-                  <text
-                    x={mx + 6} y={my - 5}
-                    textAnchor="middle" fontSize="10"
-                    fill={isHighlighted ? 'rgba(255,255,255,0.5)' : 'rgba(148,163,184,0.35)'}
-                    fontFamily="ui-monospace, monospace"
-                  >
-                    {e.label}
-                  </text>
+                    style={{ strokeDashoffset: 400, animation: 'flowDot ' + (1.5 + i * 0.22) + 's linear infinite' }} />
+                  <text x={mx + 4} y={my - 5} textAnchor="middle" fontSize="9.5"
+                    fill={hi ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.2)'}
+                    fontFamily="ui-monospace,monospace">{e.label}</text>
                 </g>
               );
             })}
@@ -467,45 +529,44 @@ export default function PipelinePage() {
 
           {/* Node cards */}
           {NODES.map(function(n) {
-            const isSelected = selected === n.id;
+            const sel = selected === n.id;
+            const stat = nodeStats(n.id, live);
+            // Worker online dot for scraper
+            const scraperDots = n.id === 'scraper' && live && live.scrapers && live.scrapers.workers;
             return (
-              <div
-                key={n.id}
-                className="pipeline-node"
-                onClick={function() { setSelected(isSelected ? null : n.id); }}
+              <div key={n.id} className="pnode" onClick={function() { selectNode(n.id); }}
                 style={{
-                  position: 'absolute',
-                  left: n.cx - W / 2,
-                  top: n.cy - H / 2,
+                  position: 'absolute', left: n.cx - W / 2, top: n.cy - H / 2,
                   width: W, height: H,
-                  background: isSelected
-                    ? 'linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)'
-                    : 'rgba(13,17,23,0.96)',
-                  border: '1.5px solid ' + (isSelected ? n.color : 'rgba(255,255,255,0.1)'),
+                  background: sel
+                    ? 'linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))'
+                    : 'rgba(10,14,20,0.97)',
+                  border: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.08)'),
                   borderLeft: '4px solid ' + n.color,
                   borderRadius: 10,
                   padding: '10px 12px',
-                  boxShadow: isSelected
-                    ? '0 0 24px ' + n.color + '44, 0 4px 24px rgba(0,0,0,0.5)'
-                    : '0 2px 16px rgba(0,0,0,0.35)',
+                  boxShadow: sel
+                    ? '0 0 28px ' + n.color + '40, 0 4px 20px rgba(0,0,0,0.5)'
+                    : '0 2px 14px rgba(0,0,0,0.4)',
                   display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  userSelect: 'none',
+                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: stat ? 4 : 0 }}>
                   <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>{n.icon}</span>
-                  <span style={{ fontSize: '0.77rem', fontWeight: 700, color: isSelected ? '#f1f5f9' : '#cbd5e1', lineHeight: 1.25 }}>
-                    {n.label}
-                  </span>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: sel ? '#f1f5f9' : '#cbd5e1', lineHeight: 1.2 }}>{n.label}</span>
+                  {sel && <div style={{ marginLeft: 'auto', width: 7, height: 7, borderRadius: '50%', background: n.color, boxShadow: '0 0 7px ' + n.color }} />}
                 </div>
-                <span style={{ fontSize: '0.65rem', color: '#64748b', paddingLeft: 26, lineHeight: 1.3 }}>{n.sub}</span>
-                {/* Selected indicator dot */}
-                {isSelected && (
-                  <div style={{
-                    position: 'absolute', top: 7, right: 8,
-                    width: 7, height: 7, borderRadius: '50%',
-                    background: n.color,
-                    boxShadow: '0 0 8px ' + n.color,
-                  }} />
+                {stat && <div style={{ fontSize: '0.65rem', color: '#64748b', paddingLeft: 26, lineHeight: 1.3, marginBottom: 3 }}>{stat}</div>}
+                {/* Scraper worker dots */}
+                {scraperDots && (
+                  <div style={{ display: 'flex', gap: 5, paddingLeft: 26, marginTop: 3 }}>
+                    {live.scrapers.workers.map(function(w) {
+                      return (
+                        <div key={w.name} title={w.name + (w.online ? ' · ' + w.latencyMs + 'ms' : ' · offline')}
+                          style={{ width: 7, height: 7, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 4px ' + (w.online ? '#10B981' : '#EF4444') }} />
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             );
@@ -513,33 +574,44 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Right control panel */}
+      {/* Right panel */}
       {selected && selectedNode && (
-        <div className="panel-slide">
-          {/* Panel header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
-            <div>
+        <div className="rpanel">
+          {/* Header */}
+          <div style={{ padding: '20px 22px 0', flexShrink: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '1.5rem' }}>{selectedNode.icon}</span>
+                <span style={{ fontSize: '1.45rem' }}>{selectedNode.icon}</span>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f1f5f9' }}>
-                    {selectedNode.label}
-                  </h2>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 1 }}>{selectedNode.sub}</div>
+                  <h2 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: '#f1f5f9' }}>{selectedNode.label}</h2>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: 1 }}>{selectedNode.sub}</div>
                 </div>
               </div>
-              <div style={{ width: 44, height: 3, background: selectedNode.color, borderRadius: 2, marginTop: 12 }} />
+              <button onClick={function() { setSelected(null); }}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1rem', padding: '4px 6px' }}>✕</button>
             </div>
-            <button
-              onClick={function() { setSelected(null); }}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.1rem', padding: '4px 6px', lineHeight: 1 }}
-            >
-              ✕
-            </button>
+            <div style={{ width: 36, height: 2.5, background: selectedNode.color, borderRadius: 2, marginTop: 12 }} />
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 2, marginTop: 14, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <button className={'tab-btn' + (panelTab === 'overview' ? ' active' : '')}
+                style={{ '--tc': selectedNode.color }}
+                onClick={function() { setPanelTab('overview'); }}>Overview</button>
+              {hasLogs && (
+                <button className={'tab-btn' + (panelTab === 'logs' ? ' active' : '')}
+                  style={{ '--tc': selectedNode.color }}
+                  onClick={function() { setPanelTab('logs'); }}>Recent Logs</button>
+              )}
+            </div>
           </div>
 
-          {/* Dynamic panel content */}
-          {getPanelContent()}
+          {/* Panel body */}
+          <div className="rpanel-body" style={{ paddingTop: 18 }}>
+            {panelTab === 'overview'
+              ? <OverviewContent nodeId={selected} apiFetch={apiFetch} live={live} />
+              : <LogViewer apiFetch={apiFetch} nodeId={selected} scrapers={live && live.scrapers} />
+            }
+          </div>
         </div>
       )}
     </AdminShell>
