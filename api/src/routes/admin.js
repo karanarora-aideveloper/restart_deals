@@ -7,6 +7,7 @@ import Product from '../db/models/product.js';
 import User from '../db/models/user.js';
 import { getRefresherStatus, refreshStaleProductBatch } from '../jobs/dailyProductRefresher.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
+import { scraperQueue } from '../services/scraperQueue.js';
 
 const router = express.Router();
 
@@ -22,6 +23,11 @@ router.get('/status', async (req, res) => {
     const d30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
+
+    // Real BullMQ queue depth (waiting + delayed jobs) — this was previously hardcoded
+    // to 0, which is why the dashboard always showed an empty queue even with active
+    // scraper workers pulling jobs.
+    const queueStatus = await scraperQueue.getStatus().catch(() => ({ queueLength: 0 }));
 
     const [
       totalProducts,
@@ -126,7 +132,8 @@ router.get('/status', async (req, res) => {
 
     res.json({
       status: mongoose.connection.readyState === 1 ? 'Online' : 'Offline',
-      queueLength: 0,
+      queueLength: queueStatus.queueLength || 0,
+      activeScrapeJobs: queueStatus.activeWorkers || 0,
       totalProducts,
       products24h,
       productsUpdated24h,

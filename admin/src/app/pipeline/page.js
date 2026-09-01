@@ -46,7 +46,7 @@ function nodeStats(nodeId, live) {
     case 'telegram':
       return channels ? (channels.filter(c => c.isActive !== false).length) + ' active · ' + channels.length + ' total' : null;
     case 'crawler':
-      return crawlerSt ? (crawlerSt.isRunning ? '🟢 running' : '⚪ idle') + ' · every ' + (crawlerSt.intervalHours || 24) + 'h' : null;
+      { const cfg = crawlerSt && crawlerSt.config; return cfg ? (cfg.isRunning ? '🟢 running' : '⚪ idle') + ' · every ' + (cfg.intervalHours || 24) + 'h' : null; }
     case 'bullmq':
       return status ? (status.queueLength || 0) + ' in queue · 4 priority tiers' : null;
     case 'scraper':
@@ -217,39 +217,106 @@ function OverviewContent({ nodeId, apiFetch, live }) {
 
   if (nodeId === 'crawler') {
     const seeds = extra || [];
+    // Real API shape: GET /api/crawler/status → { config: { isRunning, intervalHours,
+    // lastRunAt, lastRunStats, ... }, totalSeeds, enabledSeeds, categoryCounts }.
+    // The scheduling/run-state fields live under `config`, not at the top level.
+    const cfg = (crawlerSt && crawlerSt.config) || null;
+
     const byCategory = {};
-    seeds.forEach(function(s) { const c = s.category || 'other'; if (!byCategory[c]) byCategory[c] = []; byCategory[c].push(s); });
+    const byStore = {};
+    seeds.forEach(function(s) {
+      const c = s.category || 'other';
+      if (!byCategory[c]) byCategory[c] = [];
+      byCategory[c].push(s);
+      const st = s.store || 'unknown';
+      byStore[st] = (byStore[st] || 0) + 1;
+    });
+    const enabledCount = seeds.filter(function(s) { return s.isEnabled !== false; }).length;
+
     return (
       <div>
-        {crawlerSt && <Row label="Status" value={crawlerSt.isRunning ? '🟢 Running' : '⚪ Idle'} />}
-        {crawlerSt && <Row label="Interval" value={(crawlerSt.intervalHours || 24) + ' h'} />}
-        {crawlerSt && crawlerSt.lastRunAt && <Row label="Last run" value={new Date(crawlerSt.lastRunAt).toLocaleString()} />}
-        {crawlerSt && crawlerSt.lastRunStats && (
+        <Row label="Status" value={cfg ? (cfg.isRunning ? '🟢 Running' : '⚪ Idle') : '—'} />
+        <Row label="Interval" value={(cfg && cfg.intervalHours || 24) + ' h'} />
+        {cfg && cfg.lastRunAt && <Row label="Last run" value={new Date(cfg.lastRunAt).toLocaleString()} />}
+        {cfg && cfg.nextRunAt && <Row label="Next run" value={new Date(cfg.nextRunAt).toLocaleString()} />}
+
+        {cfg && cfg.lastRunStats && (
           <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 11, marginTop: 12 }}>
             <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: 5 }}>Last run results</div>
-            <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem', color: '#e2e8f0' }}>
-              <span>🔍 {crawlerSt.lastRunStats.seedsCrawled} seeds</span>
-              <span>📦 +{crawlerSt.lastRunStats.productsEnrolled}</span>
-              <span>🔄 {crawlerSt.lastRunStats.productsUpdated}</span>
+            <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem', color: '#e2e8f0', flexWrap: 'wrap' }}>
+              <span>🔍 {cfg.lastRunStats.seedsCrawled || 0} seeds</span>
+              <span>📦 +{cfg.lastRunStats.productsEnrolled || 0}</span>
+              <span>🔄 {cfg.lastRunStats.productsUpdated || 0}</span>
+              {cfg.lastRunStats.errors > 0 && <span style={{ color: '#f87171' }}>⚠ {cfg.lastRunStats.errors} errors</span>}
             </div>
           </div>
         )}
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Seeds ({seeds.length})
+
+        {/* Summary strip: keywords / stores / categories at a glance */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <div style={{ flex: 1, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F59E0B' }}>{seeds.length}</div>
+            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>keywords</div>
           </div>
+          <div style={{ flex: 1, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10B981' }}>{enabledCount}</div>
+            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>enabled</div>
+          </div>
+          <div style={{ flex: 1, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#3B82F6' }}>{Object.keys(byStore).length}</div>
+            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>stores</div>
+          </div>
+          <div style={{ flex: 1, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#8B5CF6' }}>{Object.keys(byCategory).length}</div>
+            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>categories</div>
+          </div>
+        </div>
+
+        {/* Store breakdown */}
+        {Object.keys(byStore).length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            {Object.entries(byStore).map(function([store, count]) {
+              return (
+                <span key={store} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5, padding: '3px 9px', fontSize: '0.7rem', color: '#cbd5e1', textTransform: 'capitalize' }}>
+                  🏬 {store} · {count}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+            All seeds by category ({seeds.length})
+          </div>
+          {seeds.length === 0 && (
+            <p style={{ color: '#64748b', fontSize: '0.78rem' }}>No crawler seeds configured yet.</p>
+          )}
           {Object.entries(byCategory).map(function([cat, items]) {
             return (
-              <div key={cat} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.72rem', color: '#F59E0B', fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>📂 {cat} ({items.length})</div>
+              <div key={cat} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: '0.74rem', color: '#F59E0B', fontWeight: 700, marginBottom: 7, textTransform: 'capitalize' }}>📂 {cat} ({items.length})</div>
                 {items.map(function(s) {
                   return (
-                    <div key={s._id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 9px', marginBottom: 4, borderLeft: '2px solid ' + (s.isEnabled !== false ? '#F59E0B' : '#374151') }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                    <div key={s._id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px', marginBottom: 5, borderLeft: '2px solid ' + (s.isEnabled !== false ? '#F59E0B' : '#374151') }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                         <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{s.keywords || s.subcategory}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.68rem' }}>{s.store}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.7rem', textTransform: 'capitalize' }}>{s.store}</span>
                       </div>
-                      {s.lastResult && <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: 2 }}>found {s.lastResult.found || 0} · enrolled {s.lastResult.enrolled || 0}</div>}
+                      <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 3 }}>
+                        subcategory: {s.subcategory || '—'} · top {s.topN || 20}
+                      </div>
+                      {s.url && (
+                        <a href={s.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.65rem', color: '#60a5fa', wordBreak: 'break-all', display: 'block', marginTop: 3 }}>
+                          {s.url}
+                        </a>
+                      )}
+                      {s.lastResult && (
+                        <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: 3 }}>
+                          found {s.lastResult.found || 0} · enrolled {s.lastResult.enrolled || 0} · updated {s.lastResult.updated || 0}
+                          {s.lastResult.error && <span style={{ color: '#f87171' }}> · error: {s.lastResult.error}</span>}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -458,14 +525,15 @@ export default function PipelinePage() {
         .pnode { cursor: pointer; transition: filter 0.15s, transform 0.15s; }
         .pnode:hover { filter: brightness(1.1); transform: translateY(-2px); }
         .rpanel {
-          position: fixed; top: 0; right: 0; bottom: 0; width: 400px;
+          position: fixed; top: 0; right: 0; bottom: 0;
+          width: min(560px, 92vw);
           background: #0d1117; border-left: 1px solid rgba(255,255,255,0.07);
           z-index: 200; display: flex; flex-direction: column;
           box-shadow: -16px 0 48px rgba(0,0,0,0.6);
           animation: slideIn 0.18s ease;
         }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .rpanel-body { overflow-y: auto; flex: 1; padding: 0 22px 40px; }
+        .rpanel-body { overflow-y: auto; flex: 1; padding: 0 26px 44px; }
         .tab-btn {
           padding: 6px 16px; border: none; background: none;
           font-size: 0.78rem; font-weight: 600; cursor: pointer;
