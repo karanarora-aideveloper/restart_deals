@@ -64,7 +64,20 @@ class DistributedScraperQueue {
           // a handful of recent completions is plenty for manual debugging.
           removeOnComplete: 5,
           removeOnFail: 500,
-          attempts: 1, // Worker handles internal token retry logic
+          // Automatic retry for transient failures (network timeouts, 409 concurrency
+          // contention, exhausted tokens — see scraperWorker.js's executeScrapingAntJob for
+          // exactly which failure modes throw vs. return null). Previously attempts: 1 meant
+          // ANY such failure was final immediately — the only path back to that URL was the
+          // 24h daily refresher's staleness sweep, so a Telegram-triggered deal that hit a
+          // transient blip could sit unresolved for up to a day. 3 attempts with exponential
+          // backoff (5s, 10s) gives it two more chances within seconds/tens-of-seconds — each
+          // retry re-runs the whole job, including a fresh atomic token lease, so it's not
+          // just blindly repeating the same failing request. Non-transient failures (404s,
+          // Amazon's 423 anti-scraping block, no active tokens) still return null instead of
+          // throwing, so they're NOT retried and don't burn extra ScrapingAnt credits chasing
+          // something a retry can't fix.
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
         },
       });
 
@@ -109,9 +122,13 @@ class DistributedScraperQueue {
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
       // issues on Valkey/Render where completion events are never received.
-      // Must exceed the worker's worst case: a 90s render, then a rotate/backoff and a
-      // second 90s render. Timing out first would orphan a job that is still running.
-      const TIMEOUT = 200000;
+      // Must exceed the worker's worst case. A single BullMQ attempt can itself take up to
+      // ~188s pathologically (90s render + 409 rotate + a second 90s render + 8s grace).
+      // With attempts: 3 + exponential backoff (5s, 10s — see defaultJobOptions below) now
+      // retrying transient failures, the full worst case across all attempts is higher than
+      // one attempt alone — sized with headroom for that without being reckless (this is
+      // also the ceiling an interactive "re-check price" click can block on).
+      const TIMEOUT = 300000;
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 

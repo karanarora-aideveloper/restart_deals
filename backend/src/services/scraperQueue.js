@@ -43,7 +43,14 @@ class DistributedScraperQueue {
           // mass "Job wait scrape timed out" failures across the whole pipeline.
           removeOnComplete: 5,
           removeOnFail: 500,
-          attempts: 1,
+          // See the matching comment in api/src/services/scraperQueue.js — this is the copy
+          // that actually governs Telegram-sourced (Priority 2) jobs, since defaultJobOptions
+          // is applied by whichever Queue instance calls .add() (this one, for every incoming
+          // Telegram message via verifier.js), not by the consuming Worker. Keep this in sync
+          // with api/'s copy — attempts: 1 here would silently leave Telegram deals unretried
+          // even after fixing the other copy.
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
         },
       });
 
@@ -76,9 +83,9 @@ class DistributedScraperQueue {
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
       // issues on Valkey/Render where completion events are never received.
-      // Must exceed the worker's worst case: a 90s render, then a rotate/backoff and a
-      // second 90s render. Timing out first would orphan a job that is still running.
-      const TIMEOUT = 200000;
+      // See api/src/services/scraperQueue.js's matching comment — sized for attempts: 3 +
+      // backoff above, not just one worker attempt.
+      const TIMEOUT = 300000;
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 

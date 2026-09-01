@@ -190,7 +190,10 @@ export async function executeScrapingAntJob(url, source = 'other') {
       durationMs,
       errorMessage: fetchErr.message,
     });
-    return null;
+    // Transient (network blip, ScrapingAnt gateway hiccup) — throw so BullMQ's
+    // attempts/backoff (see scraperQueue.js's defaultJobOptions) retries the whole job,
+    // which re-leases a token from scratch on the next attempt.
+    throw new Error(`Timeout/network error: ${fetchErr.message}`);
   }
 
   if (response.status === 409) {
@@ -204,7 +207,10 @@ export async function executeScrapingAntJob(url, source = 'other') {
       errorMessage: 'Concurrency limit (409)',
     });
     await new Promise(r => setTimeout(r, 5000));
-    return null;
+    // Still 409 after the in-place rotation above — genuine contention, not a permanent
+    // failure. Throw to get a full BullMQ retry (fresh atomic token lease) rather than
+    // silently giving up after one rotation attempt.
+    throw new Error('ScrapingAnt 409 concurrency limit (persisted after token rotation)');
   }
 
   if (response.status === 403 || response.status === 429) {
@@ -219,7 +225,9 @@ export async function executeScrapingAntJob(url, source = 'other') {
       durationMs,
       errorMessage: `Token quota exhausted (${response.status})`,
     });
-    return null;
+    // The exhausted token is now excluded from future leases (status flipped above), so a
+    // retry will atomically pick a genuinely different active token — worth a BullMQ retry.
+    throw new Error(`Token quota exhausted (${response.status})`);
   }
 
   if (response.status === 423) {
@@ -232,6 +240,13 @@ export async function executeScrapingAntJob(url, source = 'other') {
       durationMs,
       errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection)',
     });
+    // Deliberately NOT retried (unlike the throws above). This is Amazon's own bot
+    // detection reacting to the proxy TIER (datacenter), not a specific token or a
+    // transient race — see the proxyType comment above (amazon.com on datacenter fails
+    // this way ~63% of the time). Every retry uses the same proxy_type for the same URL,
+    // so it would very likely 423 again while still burning a ScrapingAnt credit. This was
+    // also the single largest error bucket (510/993 in one 24h window) — retrying it by
+    // default would multiply real cost for close to zero recovery.
     return null;
   }
 
