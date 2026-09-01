@@ -34,7 +34,15 @@ class DistributedScraperQueue {
         // entry cap that alone reached 22MB (96% of this instance's 25MB total) — nothing
         // reads this stream (QueueEvents was removed from both copies), so it's capped far
         // tighter here.
-        streams: { events: { maxLen: 500 } },
+        // Tightened 500 → 100 (2026-09-01) — see api/'s matching comment: even at 500 with
+        // periodic trimming, this stream was still measured at 6.9MB (~all of this Redis
+        // instance's memory), and Redis's maxmemory-policy here is allkeys_lru (should be
+        // noeviction for BullMQ — needs a manual Render dashboard change, no safe API path
+        // to edit an existing instance's policy). Until that's fixed, minimizing this
+        // stream's footprint is the safest lever available to reduce eviction risk —
+        // confirmed live: logs:backend (Telegram listener logs) lost all its entries within
+        // minutes of being confirmed working, consistent with eviction under pressure.
+        streams: { events: { maxLen: 100 } },
         defaultJobOptions: {
           // See api/src/services/scraperQueue.js's matching comment — a completed
           // job's returnvalue is the full scraped HTML (300KB-1MB+ per page).
@@ -58,19 +66,19 @@ class DistributedScraperQueue {
 
       // See api/src/services/scraperQueue.js's matching comment — actively trims the
       // pre-existing bloated stream on every boot, not just future growth.
-      this.queue.trimEvents(500)
-        .then(() => console.log('[Backend Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
+      this.queue.trimEvents(100)
+        .then(() => console.log('[Backend Scraper Queue] Trimmed bull:scraper-queue:events to 100 entries.'))
         .catch((err) => console.warn('[Backend Scraper Queue] trimEvents failed (non-fatal):', err.message));
 
       // Also re-trim periodically — see api/'s matching comment for why the one-time boot
-      // trim alone isn't enough (Redis Streams' MAXLEN ~ trim is approximate/lazy and can
-      // sit well above the configured cap under sustained write load; confirmed live at
-      // ~8x the 500 cap with this instance at 70% of its memory ceiling).
+      // trim alone isn't enough. Tightened to every 2 minutes (from 10) alongside the maxLen
+      // reduction above, to keep memory pressure down as much as possible while the
+      // underlying allkeys_lru eviction policy is still in place.
       setInterval(() => {
-        this.queue.trimEvents(500).catch((err) =>
+        this.queue.trimEvents(100).catch((err) =>
           console.warn('[Backend Scraper Queue] periodic trimEvents failed (non-fatal):', err.message)
         );
-      }, 10 * 60 * 1000);
+      }, 2 * 60 * 1000);
     } catch (err) {
       console.error('[Backend Scraper Queue Init Error]:', err.message);
     }

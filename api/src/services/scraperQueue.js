@@ -45,7 +45,19 @@ class DistributedScraperQueue {
         // evicted every ~10 minutes, completely independent of job payload size or count.
         // Since nothing ever reads this stream, there's no reason to keep 10,000 of anything
         // — capped far tighter, generous only for a quick manual peek if ever needed.
-        streams: { events: { maxLen: 500 } },
+        // Tightened 500 → 100 (2026-09-01): even at 500 with periodic trimming, live
+        // measurement via GET /api/admin/redis-debug still showed this stream at 6.9MB —
+        // essentially the ENTIRE Redis instance's memory usage — and Redis's maxmemory-policy
+        // here is allkeys_lru (should be noeviction for BullMQ, but changing that needs a
+        // manual Render dashboard change — no API/MCP path to edit an existing Key Value
+        // instance's policy, only to create a new one, which would mean migrating all 7
+        // services' REDIS_URL — out of scope for a "no risk" fix). Until that's changed
+        // manually, keeping this stream as small as possible is the safest lever actually
+        // available: less memory pressure = less chance of Redis evicting ANY key (BullMQ's
+        // own job bookkeeping, or logs:backend — confirmed live: Telegram listener logs
+        // vanished entirely within minutes of being confirmed working, consistent with
+        // logs:backend itself getting evicted under pressure).
+        streams: { events: { maxLen: 100 } },
         defaultJobOptions: {
           // BUG (fixed): a completed job's returnvalue is the FULL scraped HTML page
           // (scraperWorker.js's executeScrapingAntJob returns { html, ... }) — a
@@ -87,25 +99,26 @@ class DistributedScraperQueue {
       // to whatever's already sitting in bull:scraper-queue:events from before this fix
       // existed. Trim it once, actively, on every boot: harmless/no-op once already trimmed,
       // and self-healing across restarts/deploys without needing a one-off manual script.
-      this.queue.trimEvents(500)
-        .then(() => console.log('[Scraper Queue] Trimmed bull:scraper-queue:events to 500 entries.'))
+      this.queue.trimEvents(100)
+        .then(() => console.log('[Scraper Queue] Trimmed bull:scraper-queue:events to 100 entries.'))
         .catch((err) => console.warn('[Scraper Queue] trimEvents failed (non-fatal):', err.message));
 
       // ALSO re-trim periodically, not just at boot. Redis Streams' MAXLEN ~ trim (what
       // streams.events.maxLen configures) is approximate/lazy — Redis only compacts in
       // batches, so under sustained write load the stream can sit well above the configured
-      // cap between compactions. Confirmed live via GET /api/admin/redis-debug: with
-      // maxLen: 500 supposedly capping it, the stream was still measured at 8.6MB (~3,900
-      // entries — 8x the configured cap) with this instance at 70% of its 25MB ceiling. This
-      // is the exact same failure mode as the original incident (see the streams.events
-      // comment above) starting to recur, and retries (scraperQueue's attempts: 3) make it
-      // worse by writing more lifecycle events per job. An active XTRIM every 10 minutes
-      // keeps it honestly bounded regardless of how eagerly Redis compacts on its own.
+      // cap between compactions. Confirmed live via GET /api/admin/redis-debug: even with a
+      // 10-minute interval at the old maxLen: 500, the stream still sat at 6.9MB — nearly
+      // this whole instance's memory usage — and directly correlated with logs:backend
+      // losing all its entries shortly after (Redis evicting under pressure, since the
+      // maxmemory-policy here is allkeys_lru, not the noeviction BullMQ expects). Tightened
+      // to maxLen: 100 and every 2 minutes (from 500 / 10 minutes) to keep this stream's
+      // footprint small enough that it's much less likely to be the thing that pushes this
+      // instance into eviction territory in the first place.
       setInterval(() => {
-        this.queue.trimEvents(500).catch((err) =>
+        this.queue.trimEvents(100).catch((err) =>
           console.warn('[Scraper Queue] periodic trimEvents failed (non-fatal):', err.message)
         );
-      }, 10 * 60 * 1000);
+      }, 2 * 60 * 1000);
     } catch (err) {
       console.error('[Scraper Queue Init Error]:', err.message);
     }
