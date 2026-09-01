@@ -338,8 +338,13 @@ export default function DashboardPage() {
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
               <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#e0e7ff', color: '#4338ca', fontSize: '0.75rem', fontWeight: 700 }}>
-                +{statusData.products24h || 0} in 24h
+                +{statusData.products24h || 0} created
               </span>
+              {statusData.productsUpdated24h != null && (
+                <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#dcfce7', color: '#166534', fontSize: '0.75rem', fontWeight: 700 }}>
+                  {statusData.productsUpdated24h.toLocaleString()} updated
+                </span>
+              )}
               <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', fontSize: '0.75rem', fontWeight: 600 }}>
                 +{statusData.products7d || 0} in 7d
               </span>

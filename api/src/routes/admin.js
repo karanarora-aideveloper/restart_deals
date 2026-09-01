@@ -39,11 +39,14 @@ router.get('/status', async (req, res) => {
       missingMrpCount,
       missingPriceCount,
       abnormalMrpCount,
+      productsUpdated24h,
     ] = await Promise.all([
       Product.countDocuments(),
       Product.countDocuments({ createdAt: { $gte: d24h } }),
       Product.countDocuments({ createdAt: { $gte: d7d } }),
       Product.countDocuments({ createdAt: { $gte: d30d } }),
+      // Products updated (price/MRP changed) in last 24h — excludes newly created ones
+      Product.countDocuments({ updatedAt: { $gte: d24h }, createdAt: { $lt: d24h } }),
       Deal.countDocuments(),
       Deal.countDocuments({ isExpired: { $ne: true } }),
       Deal.countDocuments({ createdAt: { $gte: startOfDay } }),
@@ -126,6 +129,7 @@ router.get('/status', async (req, res) => {
       queueLength: 0,
       totalProducts,
       products24h,
+      productsUpdated24h,
       products7d,
       products30d,
       totalDeals,
