@@ -541,7 +541,9 @@ export default function PipelinePage() {
                   background: sel
                     ? 'linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))'
                     : 'rgba(10,14,20,0.97)',
-                  border: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.08)'),
+                  borderTop: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.08)'),
+                  borderRight: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.08)'),
+                  borderBottom: '1.5px solid ' + (sel ? n.color : 'rgba(255,255,255,0.08)'),
                   borderLeft: '4px solid ' + n.color,
                   borderRadius: 10,
                   padding: '10px 12px',
