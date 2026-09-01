@@ -12,7 +12,7 @@ const ROW_TOP = 100, ROW_MID = 290, ROW_BOT = 480;
 
 const NODES = [
   { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',       icon: '💬', color: '#2CA5E0', cx: 110,  cy: ROW_TOP, logSource: 'listener' },
-  { id: 'crawler',     label: 'Bestseller Crawler', sub: '24 h scheduled run',        icon: '🔍', color: '#F59E0B', cx: 110,  cy: ROW_BOT, logSource: 'api' },
+  { id: 'crawler',     label: 'ShoppersDeals Engine', sub: '24 h scheduled run',      icon: '🔍', color: '#F59E0B', cx: 110,  cy: ROW_BOT, logSource: 'api' },
   { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',     icon: '⚡', color: '#8B5CF6', cx: 350,  cy: ROW_MID, logSource: 'api' },
   { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',      icon: '🕷️', color: '#EF4444', cx: 580,  cy: ROW_MID, logSource: '__scrapers__' },
   { id: 'decision',    label: 'Product exists?',    sub: 'canonical ID lookup',       icon: '❓', color: '#FBBF24', cx: 810,  cy: ROW_MID, logSource: null, shape: 'diamond' },
@@ -95,6 +95,87 @@ function Row({ label, value, accent }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{label}</span>
       <span style={{ fontSize: '0.88rem', fontWeight: 700, color: accent || '#e2e8f0' }}>{value}</span>
+    </div>
+  );
+}
+
+/* ─── Buffer list — the actual jobs sitting in the queue right now, not just a count ────
+   This is the direct answer to "where do messages wait / show me the buffer like SQS did":
+   pulls GET /api/admin/scraper-queue/buffer (optionally filtered by ?source=) and renders
+   each queued job's URL, priority tier, state (waiting vs delayed-for-retry), and how long
+   it's been sitting there. Auto-refreshes every 5s since buffer contents are short-lived by
+   nature — a job usually only sits here for seconds before a worker picks it up. */
+function BufferList({ apiFetch, source, emptyLabel }) {
+  const [jobs, setJobs] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(function() {
+    let cancelled = false;
+    function load() {
+      const url = '/api/admin/scraper-queue/buffer' + (source ? '?source=' + encodeURIComponent(source) : '');
+      apiFetch(url).then(function(d) {
+        if (!cancelled) { setJobs(d.jobs || []); setLoading(false); }
+      }).catch(function() {
+        if (!cancelled) { setJobs([]); setLoading(false); }
+      });
+    }
+    load();
+    const t = setInterval(load, 5000);
+    return function() { cancelled = true; clearInterval(t); };
+  }, [apiFetch, source]);
+
+  const PRIORITY_LABEL = { 1: 'P1 urgent', 2: 'P2 telegram', 3: 'P3 refresh', 4: 'P4 crawler' };
+  const PRIORITY_COLOR = { 1: '#EF4444', 2: '#2CA5E0', 3: '#10B981', 4: '#F59E0B' };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+          Buffer — {jobs.length} job{jobs.length === 1 ? '' : 's'} waiting
+        </div>
+        <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#475569' }}>refreshes every 5s</span>
+      </div>
+
+      {jobs.length === 0 ? (
+        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '16px 14px', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Empty right now</div>
+          <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 4 }}>
+            {emptyLabel || 'Jobs only sit here briefly — a worker usually grabs one within seconds.'}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 340, overflowY: 'auto' }}>
+          {jobs.map(function(j) {
+            const pColor = PRIORITY_COLOR[j.priority] || '#64748b';
+            return (
+              <div key={j.id + j.state} style={{
+                background: 'rgba(255,255,255,0.03)', borderRadius: 7, padding: '8px 10px',
+                borderLeft: '3px solid ' + (j.state === 'delayed' ? '#F59E0B' : pColor),
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.74rem', color: '#e2e8f0', wordBreak: 'break-all', flex: 1 }}>
+                    {j.url ? j.url.replace(/^https?:\/\//, '') : '(no url)'}
+                  </span>
+                  <span style={{
+                    background: (j.state === 'delayed' ? '#F59E0B' : pColor) + '22',
+                    color: j.state === 'delayed' ? '#fbbf24' : pColor,
+                    borderRadius: 4, padding: '1px 6px', fontSize: '0.62rem', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap',
+                  }}>
+                    {j.state === 'delayed' ? '⏳ retrying' : (PRIORITY_LABEL[j.priority] || 'queued')}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: 3 }}>
+                  {j.waitingMs != null && <span>waiting {Math.round(j.waitingMs / 1000)}s</span>}
+                  {j.attemptsMade > 0 && <span> · attempt {j.attemptsMade + 1}</span>}
+                  {j.source && <span> · {j.source}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -574,6 +655,11 @@ export default function PipelinePage() {
   NODES.forEach(function(n) { nodeMap[n.id] = n; });
   const selectedNode = selected ? nodeMap[selected] : null;
   const hasLogs = selectedNode && selectedNode.logSource !== null;
+  // Buffer tab: shows the actual queued jobs, filtered to whichever producer this node
+  // represents. bullmq shows the WHOLE buffer (source: null = no filter); telegram/crawler
+  // show only their own jobs — directly answers "is MY engine's traffic sitting waiting".
+  const BUFFER_SOURCE = { bullmq: null, telegram: 'telegram', crawler: 'bestseller_crawler' };
+  const hasBuffer = selected in BUFFER_SOURCE;
 
   return (
     <AdminShell title="Pipeline Flow">
@@ -754,6 +840,11 @@ export default function PipelinePage() {
               <button className={'tab-btn' + (panelTab === 'overview' ? ' active' : '')}
                 style={{ '--tc': selectedNode.color }}
                 onClick={function() { setPanelTab('overview'); }}>Overview</button>
+              {hasBuffer && (
+                <button className={'tab-btn' + (panelTab === 'buffer' ? ' active' : '')}
+                  style={{ '--tc': selectedNode.color }}
+                  onClick={function() { setPanelTab('buffer'); }}>Buffer</button>
+              )}
               {hasLogs && (
                 <button className={'tab-btn' + (panelTab === 'logs' ? ' active' : '')}
                   style={{ '--tc': selectedNode.color }}
@@ -764,10 +855,19 @@ export default function PipelinePage() {
 
           {/* Panel body */}
           <div className="rpanel-body" style={{ paddingTop: 18 }}>
-            {panelTab === 'overview'
-              ? <OverviewContent nodeId={selected} apiFetch={apiFetch} live={live} />
-              : <LogViewer apiFetch={apiFetch} nodeId={selected} scrapers={live && live.scrapers} />
-            }
+            {panelTab === 'overview' && <OverviewContent nodeId={selected} apiFetch={apiFetch} live={live} />}
+            {panelTab === 'buffer' && (
+              <BufferList
+                apiFetch={apiFetch}
+                source={BUFFER_SOURCE[selected]}
+                emptyLabel={
+                  selected === 'bullmq'
+                    ? 'Nothing waiting fleet-wide — all 5 workers are keeping up with current traffic.'
+                    : 'Nothing from this engine waiting right now — jobs get picked up almost as fast as they’re added.'
+                }
+              />
+            )}
+            {panelTab === 'logs' && <LogViewer apiFetch={apiFetch} nodeId={selected} scrapers={live && live.scrapers} />}
           </div>
         </div>
       )}

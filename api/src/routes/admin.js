@@ -516,6 +516,21 @@ const SCRAPER_WORKER_URLS = [
   'https://shoppersdeals-scraper-5.onrender.com',
 ];
 
+// Real buffer contents — the actual jobs sitting in Redis right now (waiting to be picked
+// up, or delayed pending a retry backoff), not just a count. Optional ?source= filters to
+// one producer (e.g. 'bestseller_crawler' for the crawler's own buffer, 'telegram' for
+// incoming deal messages).
+router.get('/scraper-queue/buffer', async (req, res) => {
+  try {
+    const jobs = await scraperQueue.getBufferedJobs(200);
+    const source = req.query.source;
+    const filtered = source ? jobs.filter(j => j.source === source) : jobs;
+    res.json({ total: filtered.length, jobs: filtered });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/scrapers/status', async (req, res) => {
   const results = await Promise.all(
     SCRAPER_WORKER_URLS.map(async (url) => {

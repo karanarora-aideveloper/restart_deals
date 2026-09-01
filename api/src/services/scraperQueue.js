@@ -193,6 +193,43 @@ class DistributedScraperQueue {
       return { queueLength: 0, isProcessing: false, error: err.message };
     }
   }
+
+  /**
+   * List the actual jobs currently sitting in the queue (waiting to be picked up by a
+   * worker, or delayed pending a retry backoff) — the literal "buffer" contents, not just
+   * a count. Mirrors what an SQS console shows you: the real messages queued right now,
+   * their priority/source, and how long they've been waiting.
+   */
+  async getBufferedJobs(limit = 100) {
+    if (!this.queue) return [];
+    try {
+      const [waiting, delayed] = await Promise.all([
+        this.queue.getJobs(['waiting'], 0, limit - 1),
+        this.queue.getJobs(['delayed'], 0, limit - 1),
+      ]);
+      const toEntry = (job, state) => ({
+        id: job.id,
+        url: job.data?.url || null,
+        source: job.data?.source || null,
+        priority: job.opts?.priority ?? null,
+        state,
+        attemptsMade: job.attemptsMade || 0,
+        enqueuedAt: job.data?.enqueuedAt ? new Date(job.data.enqueuedAt).toISOString() : null,
+        waitingMs: job.data?.enqueuedAt ? Date.now() - job.data.enqueuedAt : null,
+      });
+      const entries = [
+        ...waiting.map(j => toEntry(j, 'waiting')),
+        ...delayed.map(j => toEntry(j, 'delayed')),
+      ];
+      // Highest priority (lowest number) first, then oldest first within the same tier —
+      // matches BullMQ's own dispatch order so this reads as "what's next".
+      entries.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99) || (a.waitingMs ?? 0) - (b.waitingMs ?? 0));
+      return entries.slice(0, limit);
+    } catch (err) {
+      console.error('[Scraper Queue Error] getBufferedJobs failed:', err.message);
+      return [];
+    }
+  }
 }
 
 export const scraperQueue = new DistributedScraperQueue();
