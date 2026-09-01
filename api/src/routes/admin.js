@@ -45,8 +45,6 @@ router.get('/status', async (req, res) => {
       Product.countDocuments({ createdAt: { $gte: d24h } }),
       Product.countDocuments({ createdAt: { $gte: d7d } }),
       Product.countDocuments({ createdAt: { $gte: d30d } }),
-      // Products updated (price/MRP changed) in last 24h — excludes newly created ones
-      Product.countDocuments({ updatedAt: { $gte: d24h }, createdAt: { $lt: d24h } }),
       Deal.countDocuments(),
       Deal.countDocuments({ isExpired: { $ne: true } }),
       Deal.countDocuments({ createdAt: { $gte: startOfDay } }),
@@ -81,6 +79,8 @@ router.get('/status', async (req, res) => {
         price: { $exists: true, $ne: null, $gt: 0 },
         $expr: { $gt: [{ $subtract: ['$originalPrice', '$price'] }, 2000] },
       }),
+      // Products updated (price/data refreshed) in last 24h, excluding newly created
+      Product.countDocuments({ updatedAt: { $gte: d24h }, createdAt: { $lt: d24h } }),
     ]);
 
     const [dealsByCountryAgg, productsByCountryAgg, productsByMerchantAgg, productsByCategoryAgg] = await Promise.all([
