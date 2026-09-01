@@ -123,6 +123,7 @@ export default function AdminShell({ children, title }) {
     { href: '/scraping', label: 'Scrape Frequency', icon: 'query_stats' },
     { href: '/logs', label: 'Live Logs', icon: 'terminal' },
     { href: '/settings', label: 'Settings', icon: 'settings' },
+    { href: '/pipeline', label: 'Pipeline Flow', icon: 'schema' },
     { href: '/architecture', label: 'Architecture', icon: 'account_tree' },
   ];
 
