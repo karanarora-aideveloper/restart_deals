@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { extractVariant } from '../utils/variantExtractor.js';
 import Deal from '../db/models/deal.js';
 import VerifiedLink from '../db/models/verifiedLink.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
@@ -27,7 +28,7 @@ export function extractUrls(text) {
 // India-only regardless of their TLD — myntra.com, nykaa.com, and ajio.com are NOT US/generic
 // sites despite the .com, they simply never registered a .in domain (shopsy.in already is .in).
 // See cleanAndParseUrl()'s derivedCountry handling for each merchant.
-const SUPPORTED_MERCHANT_DOMAINS = ['amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com'];
+const SUPPORTED_MERCHANT_DOMAINS = ['amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com'];
 
 function isSupportedMerchantUrl(url) {
   return SUPPORTED_MERCHANT_DOMAINS.some(domain => url.includes(domain));
@@ -36,7 +37,7 @@ function isSupportedMerchantUrl(url) {
 // The merchant *names* cleanAndParseUrl() can produce, once a URL is actually parsed rather than
 // just pattern-matched by domain — used by verifyAndProcessMessage's candidate-URL loop to decide
 // which resolved URL to treat as the deal's product link.
-const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho'];
+const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'croma'];
 
 /**
  * Extract embedded target merchant URLs from tracking/redirect parameter wrappers
@@ -63,7 +64,7 @@ export function unwrapEmbeddedUrl(url) {
 
     // 2. Decode raw string in case of multi-level encoded URLs
     const decodedRaw = decodeURIComponent(url);
-    const rawMatch = decodedRaw.match(/https?:\/\/(?:www\.)?(?:amazon\.[a-z.]+|flipkart\.com|amzn\.to|fkrt\.it|myntra\.com|nykaa\.com|ajio\.com|shopsy\.in)\/[^\s"'<>]+/i);
+    const rawMatch = decodedRaw.match(/https?:\/\/(?:www\.)?(?:amazon\.[a-z.]+|flipkart\.com|amzn\.to|fkrt\.it|myntra\.com|nykaa\.com|ajio\.com|shopsy\.in|meesho\.com|croma\.com)\/[^\s"'<>]+/i);
     if (rawMatch && !isSupportedMerchantUrl(urlObj.hostname)) {
       console.log(`[Resolver] Unwrapped raw embedded merchant URL: ${rawMatch[0]}`);
       return rawMatch[0];
@@ -304,6 +305,25 @@ export function cleanAndParseUrl(url) {
       if (idMatch) {
         productId = idMatch[1];
         cleanUrl = `https://www.meesho.com${urlObj.pathname.replace(/\/$/, '')}`;
+        isProductUrl = true;
+      } else {
+        // No /p/<id> path — search/listing/category page, not a product.
+        cleanUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+        productId = null;
+        isProductUrl = false;
+      }
+    } else if (hostname.includes('croma.com')) {
+      merchant = 'croma';
+      derivedCountry = 'IN'; // Croma is India-only (croma.com is the only domain)
+      // Croma product URLs look like:
+      //   croma.com/product-name/p/PRODUCT_CODE or
+      //   croma.com/product-name-variant/p/CODE?colour=COLOR
+      // — a product code right after "/p/" (verified: 6-8 char alphanumeric + underscores)
+      const idMatch = urlObj.pathname.match(/\/p\/([a-z0-9_]+)/i);
+      if (idMatch) {
+        productId = idMatch[1];
+        cleanUrl = `https://www.croma.com${urlObj.pathname.replace(/\/$/, '')}`;
+        // Don't include colour param in clean URL — same product, different variant
         isProductUrl = true;
       } else {
         // No /p/<id> path — search/listing/category page, not a product.
@@ -599,6 +619,7 @@ export async function scrapeProductDetails(targetUrl) {
       ];
       const amazonListSelectors = [
         '.basisPrice .a-offscreen',
+        '.apex-basisprice-value .a-offscreen',
         'span.a-text-strike',
         '#listPrice',
         '#priceblock_listprice',
@@ -619,6 +640,17 @@ export async function scrapeProductDetails(targetUrl) {
         if (originalPrice !== null) break;
       }
       if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
+      // Fallback: regex scan for "M.R.P.: ₹838" / "M.R.P.: ₹838.00" patterns in raw text.
+      // ScrapingAnt's browser rendering can return slightly different class structures, so
+      // CSS selectors above may miss the MRP node even when the text is present.
+      if (originalPrice === null) {
+        const rawText = $.root().text();
+        const mrpMatch = rawText.match(/M\.R\.P[.:\s]*[₹₹]?\s*([\d,]+(?:\.\d{1,2})?)/i);
+        if (mrpMatch) {
+          const parsed = parsePriceText(mrpMatch[1]);
+          if (parsed !== null && parsed > 0) originalPrice = parsed;
+        }
+      }
 
     } else if (hostname.includes('flipkart.com')) {
       // Flipkart Title
@@ -776,6 +808,65 @@ export async function scrapeProductDetails(targetUrl) {
       if (ratingText) {
         const parsed = parseFloat(ratingText);
         if (!isNaN(parsed)) rating = parsed;
+      }
+    } else if (hostname.includes('croma.com')) {
+      // Croma is a modern tech retailer with clean, class-based HTML (verified live).
+      // Uses standard product page patterns with clear price/rating selectors.
+      title = $('h1').first().text().trim()
+        || $('meta[property="og:title"]').attr('content')
+        || $('title').text().trim();
+
+      // Collect images from multiple sources (product images + thumbnails)
+      $('meta[property="og:image"]').each((_, el) => {
+        const src = $(el).attr('content');
+        if (src && !images.includes(src)) images.push(src);
+      });
+      // Croma product carousel/gallery images
+      $('[data-test="product-image"]').each((_, el) => {
+        const src = $(el).attr('src') || $(el).attr('data-src');
+        if (src && !images.includes(src)) images.push(src);
+      });
+
+      // Price extraction: Croma displays selling price and MRP (original price)
+      // Structure: price is in span/div with data-testid or class containing "price"
+      const priceText = $('[data-testid*="price"]').first().text().trim()
+        || $('[class*="price"]').first().text().trim();
+      if (priceText) {
+        const parsed = parseFloat(priceText.replace(/[^\d.]/g, ''));
+        if (!isNaN(parsed)) price = Math.round(parsed);
+      }
+
+      // Original/MRP price (strikethrough price)
+      const mrpText = $('[data-testid*="original"]').first().text().trim()
+        || $('[class*="original"]').first().text().trim()
+        || $('[class*="mrp"]').first().text().trim();
+      if (mrpText) {
+        const parsed = parseFloat(mrpText.replace(/[^\d.]/g, ''));
+        if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+      }
+
+      // Fallback to meta tags if selectors fail
+      if (!price) {
+        const ogPrice = $('meta[property="product:price:amount"]').attr('content');
+        if (ogPrice) {
+          const parsed = parseFloat(ogPrice);
+          if (!isNaN(parsed)) price = Math.round(parsed);
+        }
+      }
+
+      // Rating: Croma shows star rating with review count
+      const ratingText = $('[data-testid*="rating"]').first().text().trim()
+        || $('[class*="rating"]').first().text().trim();
+      if (ratingText) {
+        const parsed = parseFloat(ratingText);
+        if (!isNaN(parsed)) rating = parsed;
+      }
+
+      // Category from breadcrumb if available
+      const breadcrumb = $('[data-testid="breadcrumb"]').text().trim()
+        || $('[class*="breadcrumb"]').text().trim();
+      if (breadcrumb) {
+        categoryHint = breadcrumb.replace(/\s+/g, ' ').trim();
       }
     } else if (hostname.includes('shopsy.in')) {
       // Shopsy is a Next.js app (window.__NEXT_DATA__ present) that also happens to render some
@@ -1224,7 +1315,21 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const liveScrapedPrice = scrapedData.price != null ? scrapedData.price : null;
   const liveScrapedMRP = scrapedData.originalPrice != null ? scrapedData.originalPrice : null;
 
-  const canonicalMRP = existingCanonicalMRP || liveScrapedMRP || null;
+  // Guard: reject impossible MRP values before they corrupt the DB.
+  // Inverted (MRP < price) or inflated (MRP > 15× price) values are scraper artefacts.
+  const sanitisedLiveMRP = (() => {
+    if (!liveScrapedMRP || !liveScrapedPrice) return liveScrapedMRP;
+    if (liveScrapedMRP < liveScrapedPrice) return null;
+    if (liveScrapedMRP > liveScrapedPrice * 15) return null;
+    return liveScrapedMRP;
+  })();
+  const sanitisedExistingMRP = (() => {
+    if (!existingCanonicalMRP || !liveScrapedPrice) return existingCanonicalMRP;
+    if (existingCanonicalMRP < liveScrapedPrice) return null;
+    if (existingCanonicalMRP > liveScrapedPrice * 15) return null;
+    return existingCanonicalMRP;
+  })();
+  const canonicalMRP = sanitisedExistingMRP || sanitisedLiveMRP || null;
 
   // Live Deal Verification: purely "did we get a real live price". There is no message-claimed
   // price to cross-check against any more — whether it's actually a genuine drop is decided
@@ -1252,6 +1357,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   if (scrapedData.images && scrapedData.images.length > 0) {
     scrapeSucceededThisRun = true;
+    const scrapedVariant = extractVariant(scrapedData.title);
     if (!productDetails) {
       productDetails = new VerifiedLink({
         originalUrl: primaryUrl,
@@ -1264,6 +1370,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         reviews: scrapedData.reviews,
         price: liveScrapedPrice,
         originalPrice: canonicalMRP,
+        variant: scrapedVariant,
         lastChecked: new Date()
       });
     } else {
@@ -1273,6 +1380,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       if (scrapedData.reviews && scrapedData.reviews.length > 0) productDetails.reviews = scrapedData.reviews;
       if (liveScrapedPrice != null) productDetails.price = liveScrapedPrice;
       if (canonicalMRP != null) productDetails.originalPrice = canonicalMRP;
+      if (scrapedVariant) productDetails.variant = scrapedVariant;
       productDetails.lastChecked = new Date();
     }
     await productDetails.save();

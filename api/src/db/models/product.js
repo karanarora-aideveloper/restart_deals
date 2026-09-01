@@ -104,6 +104,17 @@ const productSchema = new mongoose.Schema({
   flaggedAt: {
     type: Date
   },
+  // Extracted variant/size information (weight, volume, pack size).
+  // Used to detect mismatches when comparing prices across stores —
+  // e.g. Amazon 2 kg vs Flipkart 1 kg should NOT be compared directly.
+  variant: {
+    raw: { type: String, default: null },       // raw matched text, e.g. "2 kg"
+    display: { type: String, default: null },   // formatted label, e.g. "2 kg × 2"
+    weightGrams: { type: Number, default: null }, // single-unit weight in grams
+    packSize: { type: Number, default: 1 },       // number of units in pack
+    totalGrams: { type: Number, default: null }, // weightGrams * packSize
+    type: { type: String, default: null },       // 'weight'|'volume'|'count'|'piece'
+  },
   lastChecked: {
     type: Date,
     default: Date.now

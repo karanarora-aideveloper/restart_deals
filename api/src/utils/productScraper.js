@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { extractVariant } from './variantExtractor.js';
 
 /**
  * Parse HTML and extract structured product details across all supported merchants.
@@ -220,6 +221,7 @@ export function parseProductHtml(html, targetUrl) {
     ];
     const amazonListSelectors = [
       '.basisPrice .a-offscreen',
+      '.apex-basisprice-value .a-offscreen',
       'span.a-text-strike',
       '#listPrice',
       '#priceblock_listprice',
@@ -240,6 +242,17 @@ export function parseProductHtml(html, targetUrl) {
       if (originalPrice !== null) break;
     }
     if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
+    // Fallback: regex scan for "M.R.P.: ₹838" / "M.R.P.: ₹838.00" patterns in raw text.
+    // ScrapingAnt's browser rendering can return slightly different class structures, so
+    // CSS selectors above may miss the MRP node even when the text is present.
+    if (originalPrice === null) {
+      const rawText = $.root().text();
+      const mrpMatch = rawText.match(/M\.R\.P[.:\s]*[₹₹]?\s*([\d,]+(?:\.\d{1,2})?)/i);
+      if (mrpMatch) {
+        const parsed = parsePriceText(mrpMatch[1]);
+        if (parsed !== null && parsed > 0) originalPrice = parsed;
+      }
+    }
 
     // Category detection from breadcrumbs
     const breadcrumbs = $('#wayfinding-breadcrumbs_feature_div').text().toLowerCase();
@@ -383,6 +396,68 @@ export function parseProductHtml(html, targetUrl) {
       });
     }
 
+  } else if (hostname.includes('croma.com')) {
+    // Croma product pages have clean HTML with clear selectors for price, rating, and images.
+    title = $('h1').first().text().trim()
+      || $('meta[property="og:title"]').attr('content')
+      || $('title').text().trim();
+
+    // Collect product images from multiple sources
+    $('meta[property="og:image"]').each((_, el) => {
+      const src = $(el).attr('content');
+      if (src && !images.includes(src)) images.push(src);
+    });
+    $('[data-test="product-image"]').each((_, el) => {
+      const src = $(el).attr('src') || $(el).attr('data-src');
+      if (src && !images.includes(src)) images.push(src);
+    });
+
+    // Extract selling price
+    const priceText = $('[data-testid*="price"]').first().text().trim()
+      || $('[class*="price"]').first().text().trim();
+    if (priceText) {
+      price = parsePriceText(priceText);
+    }
+
+    // Extract original/MRP price (strikethrough)
+    const mrpText = $('[data-testid*="original"]').first().text().trim()
+      || $('[class*="original"]').first().text().trim()
+      || $('[class*="mrp"]').first().text().trim();
+    if (mrpText) {
+      originalPrice = parsePriceText(mrpText);
+    }
+
+    // Fallback to meta tags for price
+    if (price === null) {
+      const ogPrice = $('meta[property="product:price:amount"]').attr('content');
+      if (ogPrice) price = parsePriceText(ogPrice);
+    }
+
+    // Extract rating
+    const ratingText = $('[data-testid*="rating"]').first().text().trim()
+      || $('[class*="rating"]').first().text().trim();
+    if (ratingText) {
+      const parsed = parseFloat(ratingText);
+      if (!isNaN(parsed)) rating = parsed;
+    }
+
+    // Category from breadcrumb
+    const breadcrumb = $('[data-testid="breadcrumb"]').text().trim()
+      || $('[class*="breadcrumb"]').text().trim();
+    if (breadcrumb) {
+      // Check for category keywords
+      const lowerBread = breadcrumb.toLowerCase();
+      if (lowerBread.includes('laptop') || lowerBread.includes('computer') || lowerBread.includes('monitor')) {
+        category = 'electronics';
+      } else if (lowerBread.includes('phone') || lowerBread.includes('mobile') || lowerBread.includes('accessory')) {
+        category = 'electronics';
+      } else if (lowerBread.includes('tv') || lowerBread.includes('audio') || lowerBread.includes('headphone')) {
+        category = 'electronics';
+      } else if (lowerBread.includes('appliance') || lowerBread.includes('refrigerator') || lowerBread.includes('microwave')) {
+        category = 'appliances';
+      }
+    }
+
   } else if (hostname.includes('meesho.com')) {
     // Meesho is a Next.js app that embeds its ENTIRE product payload — price, real MRP, images,
     // rating, category breadcrumb, stock status — as plain JSON in the standard
@@ -452,15 +527,27 @@ export function parseProductHtml(html, targetUrl) {
   // Fallback originalPrice if not found: default to current price
   if (!originalPrice && price) originalPrice = price;
 
+  // Guard: reject impossible MRP values before they corrupt the DB.
+  // - Inverted: MRP < price means we scraped the wrong element
+  // - Inflated: MRP > 15× price is never a real discount (usually a currency mismatch or stale page value)
+  if (originalPrice && price) {
+    if (originalPrice < price || originalPrice > price * 15) {
+      originalPrice = null;
+    }
+  }
+
+  const cleanTitle = title ? title.replace(/\s+/g, ' ').trim() : null;
+
   return {
-    title: title ? title.replace(/\s+/g, ' ').trim() : null,
+    title: cleanTitle,
     images,
     imageUrl: images[0] || '',
     rating: rating || 0,
     reviews,
     price,
     originalPrice,
-    category
+    category,
+    variant: extractVariant(cleanTitle),
   };
 }
 

@@ -112,6 +112,15 @@ const productSchema = new mongoose.Schema({
   flaggedAt: {
     type: Date
   },
+  // Extracted variant/size information. Used for cross-store mismatch detection.
+  variant: {
+    raw: { type: String, default: null },
+    display: { type: String, default: null },
+    weightGrams: { type: Number, default: null },
+    packSize: { type: Number, default: 1 },
+    totalGrams: { type: Number, default: null },
+    type: { type: String, default: null },
+  },
   lastChecked: {
     type: Date,
     default: Date.now

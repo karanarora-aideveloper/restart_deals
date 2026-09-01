@@ -6,6 +6,7 @@ import Deal from '../db/models/deal.js';
 import Product from '../db/models/product.js';
 import User from '../db/models/user.js';
 import { getRefresherStatus, refreshStaleProductBatch } from '../jobs/dailyProductRefresher.js';
+import ScrapingLog from '../db/models/scrapingLog.js';
 
 const router = express.Router();
 
@@ -584,6 +585,287 @@ router.get('/redis-debug', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/scraping-frequency
+ *
+ * Global scraping frequency analytics:
+ *   - total scrapes per day/week/month by source and merchant
+ *   - token consumption breakdown
+ *   - over/under-scraped product distribution
+ *
+ * Query params:
+ *   days=30  (default 30, max 90)
+ */
+router.get('/scraping-frequency', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days, 10) || 30, 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const [
+      bySourceDay,
+      byMerchantDay,
+      byStatus,
+      topProducts,
+      bottomProducts,
+      tokenConsumption,
+      overallStats,
+    ] = await Promise.all([
+      // Scrapes per source per day
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
+              source: '$source',
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { '_id.date': 1 } },
+      ]),
+
+      // Scrapes per merchant per day
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
+              merchant: '$merchant',
+            },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { '_id.date': 1 } },
+      ]),
+
+      // Success / error breakdown
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Most-scraped products (potential over-scraping)
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: '$url',
+            totalScrapes: { $sum: 1 },
+            merchant: { $first: '$merchant' },
+            lastScraped: { $max: '$createdAt' },
+            sources: { $addToSet: '$source' },
+            successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+          },
+        },
+        { $sort: { totalScrapes: -1 } },
+        { $limit: 20 },
+        // Lookup product title
+        {
+          $lookup: {
+            from: 'products',
+            localField: '_id',
+            foreignField: 'cleanUrl',
+            as: 'product',
+            pipeline: [{ $project: { title: 1, price: 1 } }],
+          },
+        },
+        {
+          $project: {
+            url: '$_id',
+            totalScrapes: 1,
+            merchant: 1,
+            lastScraped: 1,
+            sources: 1,
+            successCount: 1,
+            successRate: { $round: [{ $multiply: [{ $divide: ['$successCount', '$totalScrapes'] }, 100] }, 0] },
+            title: { $ifNull: [{ $arrayElemAt: ['$product.title', 0] }, null] },
+            price: { $ifNull: [{ $arrayElemAt: ['$product.price', 0] }, null] },
+            avgPerDay: { $round: [{ $divide: ['$totalScrapes', days] }, 2] },
+          },
+        },
+      ]),
+
+      // Least-recently scraped active products (under-scraped / stale)
+      Product.find(
+        { isActive: { $ne: false } },
+        { title: 1, merchant: 1, cleanUrl: 1, price: 1, lastChecked: 1 }
+      )
+        .sort({ lastChecked: 1 })
+        .limit(20)
+        .lean()
+        .then((products) =>
+          products.map((p) => ({
+            ...p,
+            daysSinceLastScrape: p.lastChecked
+              ? Math.floor((Date.now() - new Date(p.lastChecked)) / 86400000)
+              : null,
+          }))
+        ),
+
+      // Token consumption by token/account
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since }, tokenUsed: { $ne: null } } },
+        {
+          $group: {
+            _id: '$tokenUsed',
+            count: { $sum: 1 },
+            successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+      ]),
+
+      // Overall stats
+      ScrapingLog.aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: null,
+            totalScrapes: { $sum: 1 },
+            successCount: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+            avgDurationMs: { $avg: '$durationMs' },
+            uniqueUrls: { $addToSet: '$url' },
+          },
+        },
+        {
+          $project: {
+            totalScrapes: 1,
+            successCount: 1,
+            avgDurationMs: { $round: ['$avgDurationMs', 0] },
+            uniqueProductsScraped: { $size: '$uniqueUrls' },
+            successRate: { $round: [{ $multiply: [{ $divide: ['$successCount', '$totalScrapes'] }, 100] }, 1] },
+          },
+        },
+      ]).then((r) => r[0] || {}),
+    ]);
+
+    // Restructure daily data into [{date, sources:{telegram:N, daily_refresh:N, ...}}]
+    const dateMap = {};
+    for (const row of bySourceDay) {
+      const d = row._id.date;
+      if (!dateMap[d]) dateMap[d] = { date: d };
+      dateMap[d][row._id.source] = row.count;
+    }
+    const dailyBySource = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    const merchantDateMap = {};
+    for (const row of byMerchantDay) {
+      const d = row._id.date;
+      if (!merchantDateMap[d]) merchantDateMap[d] = { date: d };
+      merchantDateMap[d][row._id.merchant] = row.count;
+    }
+    const dailyByMerchant = Object.values(merchantDateMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    res.json({
+      success: true,
+      days,
+      overview: {
+        ...overallStats,
+        avgScrapesPerDay: overallStats.totalScrapes ? Math.round(overallStats.totalScrapes / days) : 0,
+      },
+      byStatus,
+      dailyBySource,
+      dailyByMerchant,
+      topProducts,      // most-scraped (potential over-scraping)
+      bottomProducts,   // stale / under-scraped active products
+      tokenConsumption,
+    });
+  } catch (err) {
+    console.error('[Admin] scraping-frequency error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/scraping-frequency/product?url=...&productId=...
+ *
+ * Per-product scraping frequency — full history breakdown for one product.
+ */
+router.get('/scraping-frequency/product', async (req, res) => {
+  try {
+    const { url, productId } = req.query;
+    if (!url && !productId) {
+      return res.status(400).json({ success: false, error: 'url or productId required' });
+    }
+
+    // Find product
+    let product = null;
+    if (productId) {
+      product = await Product.findOne(
+        { $or: [{ productId }, { cleanUrl: { $regex: productId } }] },
+        { title: 1, merchant: 1, cleanUrl: 1, price: 1, originalPrice: 1, lastChecked: 1 }
+      ).lean();
+    }
+    if (!product && url) {
+      product = await Product.findOne(
+        { cleanUrl: url },
+        { title: 1, merchant: 1, cleanUrl: 1, price: 1, originalPrice: 1, lastChecked: 1 }
+      ).lean();
+    }
+    const targetUrl = url || product?.cleanUrl;
+    if (!targetUrl) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    const [logs, dailyBreakdown, sourceBreakdown] = await Promise.all([
+      // Last 50 scrape events
+      ScrapingLog.find({ url: targetUrl })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .select('source status durationMs createdAt extractedData errorMessage mode')
+        .lean(),
+
+      // Daily count over last 30 days
+      ScrapingLog.aggregate([
+        { $match: { url: targetUrl, createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
+            count: { $sum: 1 },
+            sources: { $addToSet: '$source' },
+            statuses: { $addToSet: '$status' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Source breakdown
+      ScrapingLog.aggregate([
+        { $match: { url: targetUrl } },
+        { $group: { _id: '$source', count: { $sum: 1 }, lastAt: { $max: '$createdAt' } } },
+        { $sort: { count: -1 } },
+      ]),
+    ]);
+
+    const totalScrapes = logs.length > 0
+      ? await ScrapingLog.countDocuments({ url: targetUrl })
+      : 0;
+    const successCount = await ScrapingLog.countDocuments({ url: targetUrl, status: 'success' });
+
+    res.json({
+      success: true,
+      product: product || { cleanUrl: targetUrl },
+      stats: {
+        totalScrapes,
+        successCount,
+        successRate: totalScrapes > 0 ? Math.round((successCount / totalScrapes) * 100) : 0,
+        firstSeen: logs.length > 0 ? logs[logs.length - 1]?.createdAt : null,
+        lastSeen: logs[0]?.createdAt || null,
+      },
+      recentLogs: logs,
+      dailyBreakdown,
+      sourceBreakdown,
+    });
+  } catch (err) {
+    console.error('[Admin] scraping-frequency/product error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -2,10 +2,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
+import ScrapingLog from '../db/models/scrapingLog.js';
 import { computePriceStats } from '../utils/priceAnalytics.js';
 import { resolveRedirect, parseProductUrl } from '../utils/urlParser.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
 import { rankCrossStoreMatches, extractBrand, tokenizeTitle } from '../utils/vectorMatcher.js';
+import { extractVariant, variantsMatch, variantMismatchReason } from '../utils/variantExtractor.js';
 import { cacheMiddleware } from '../utils/cache.js';
 import { PRIORITY } from '../services/scraperQueue.js';
 
@@ -118,8 +120,9 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
       ];
     }
 
-    if (req.query.q) {
-      const qStr = req.query.q.trim();
+    const rawQuery = req.query.q || req.query.search;
+    if (rawQuery) {
+      const qStr = rawQuery.trim();
       if (qStr.length > 0) {
         const searchTokens = qStr.split(/\s+/).filter(Boolean);
         const andConditions = searchTokens.map(token => {
@@ -145,10 +148,14 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
         sort = { price: -1 };
       } else if (req.query.sort === 'rating') {
         sort = { rating: -1 };
-      } else if (req.query.sort === 'newest') {
+      } else if (req.query.sort === 'newest' || req.query.sort === 'created_at' || req.query.sort === 'first_added') {
         sort = { createdAt: -1 };
-      } else if (req.query.sort === 'recently_checked') {
+      } else if (req.query.sort === 'oldest') {
+        sort = { createdAt: 1 };
+      } else if (req.query.sort === 'recently_checked' || req.query.sort === 'last_scraped') {
         sort = { lastChecked: -1 };
+      } else if (req.query.sort === 'least_scraped') {
+        sort = { lastChecked: 1 };
       }
     }
 
@@ -191,8 +198,12 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
     }).map(p => {
       const obj = p.toObject ? p.toObject() : p;
       const { priceHistory, ...rest } = obj;
+      const created = obj.createdAt || (obj._id?.getTimestamp ? obj._id.getTimestamp() : null);
+      const lastScraped = obj.lastChecked || obj.updatedAt || obj.priceUpdatedAt;
       return {
         ...rest,
+        createdAt: created,
+        lastChecked: lastScraped,
         priceHistoryCount: (priceHistory || []).length,
         dealsCount: dealCountMap.get(obj.productId) || 0
       };
@@ -497,6 +508,60 @@ router.get('/:id', cacheMiddleware(30), async (req, res) => {
 });
 
 /**
+ * GET /api/products/:id/scrape-logs
+ * Returns scraping log history for this specific product (by cleanUrl, URL, and productId)
+ */
+router.get('/:id/scrape-logs', async (req, res) => {
+  try {
+    let product = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      product = await Product.findById(req.params.id);
+    }
+    if (!product) {
+      product = await Product.findOne({ productId: req.params.id });
+    }
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    const urlConditions = [];
+    if (product.cleanUrl) urlConditions.push({ url: product.cleanUrl });
+    if (product.productId) urlConditions.push({ url: { $regex: product.productId, $options: 'i' } });
+
+    const query = urlConditions.length > 0 ? { $or: urlConditions } : { url: product.cleanUrl };
+
+    const logs = await ScrapingLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const totalScrapes = logs.length;
+    const successCount = logs.filter(l => l.status === 'success').length;
+    const errorCount = logs.filter(l => l.status !== 'success').length;
+    const lastScrape = logs[0] || null;
+
+    res.json({
+      success: true,
+      productId: product.productId,
+      cleanUrl: product.cleanUrl,
+      stats: {
+        totalScrapes,
+        successCount,
+        errorCount,
+        lastScrapeAt: lastScrape ? lastScrape.createdAt : product.lastChecked,
+        lastStatus: lastScrape ? lastScrape.status : (product.priceSource ? 'success' : 'scraped'),
+        priceHistoryCount: (product.priceHistory || []).length
+      },
+      priceHistory: product.priceHistory || [],
+      logs
+    });
+  } catch (err) {
+    console.error(`[API Error] GET /api/products/${req.params.id}/scrape-logs failed:`, err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/products/:id/refresh-live
  * Instant synchronous live re-scrape and price update on demand.
  */
@@ -530,7 +595,14 @@ router.post('/:id/refresh-live', async (req, res) => {
 
     const previousPrice = product.price;
     const livePrice = scraped.price;
-    const canonicalMRP = product.originalPrice || scraped.originalPrice || livePrice;
+    // Guard: reject impossible MRP values (inverted or inflated)
+    const rawMRP = product.originalPrice || scraped.originalPrice || null;
+    const canonicalMRP = (() => {
+      if (!rawMRP || !livePrice) return rawMRP;
+      if (rawMRP < livePrice) return null;
+      if (rawMRP > livePrice * 15) return null;
+      return rawMRP;
+    })() || livePrice;
     const now = new Date();
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
@@ -563,6 +635,10 @@ router.post('/:id/refresh-live', async (req, res) => {
     if (scraped.images && scraped.images.length > 0 && (!product.images || product.images.length === 0)) {
       product.images = scraped.images;
       product.imageUrl = scraped.imageUrl || scraped.images[0];
+    }
+    // Update variant from freshly scraped title (re-extract if title changed or variant not yet set)
+    if (scraped.variant || !product.variant?.display) {
+      product.variant = scraped.variant || extractVariant(product.title);
     }
     await product.save();
 
@@ -632,6 +708,11 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
 
     const currentMerchant = (product.merchant || 'amazon').toLowerCase();
     const currentPrice = Number(product.price) || 0;
+
+    // Derive the variant for this product (use stored value or extract fresh from title)
+    const currentVariant = product.variant?.display
+      ? product.variant
+      : extractVariant(product.title);
 
     // Extract brand and search query from product title
     const brand = extractBrand(product.title);
@@ -712,6 +793,12 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       const exactMatch = exactMatches.find(m => m.product.merchant && m.product.merchant.toLowerCase() === conf.id);
 
       if (exactMatch && exactMatch.product.price) {
+        const matchedVariant = exactMatch.product.variant?.display
+          ? exactMatch.product.variant
+          : extractVariant(exactMatch.product.title);
+        const mismatch = !variantsMatch(currentVariant, matchedVariant);
+        const mismatchReason = mismatch ? variantMismatchReason(currentVariant, matchedVariant) : null;
+
         stores.push({
           id: conf.id,
           name: conf.name,
@@ -725,6 +812,10 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
           url: exactMatch.product.cleanUrl,
           matchedProductId: exactMatch.product._id || exactMatch.product.productId,
           buttonText: 'View on ' + conf.name,
+          // Variant info
+          matchedVariant: matchedVariant ? matchedVariant.display : null,
+          variantMismatch: mismatch,
+          variantWarning: mismatchReason,
         });
       } else {
         // Fallback to genuine targeted search link
@@ -746,6 +837,7 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
     res.json({
       success: true,
       query: cleanSearchQuery,
+      currentVariant: currentVariant ? currentVariant.display : null,
       stores,
       exactMatchesCount: exactMatches.length,
       similarMatches: similarMatches.slice(0, 4).map(m => ({

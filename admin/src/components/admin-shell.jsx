@@ -8,6 +8,7 @@ export default function AdminShell({ children, title }) {
   const pathname = usePathname();
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
   const [adminApiKey, setAdminApiKey] = useState('');
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [statusData, setStatusData] = useState({
     status: 'Checking...',
     queueLength: 0,
@@ -29,7 +30,41 @@ export default function AdminShell({ children, title }) {
     if (storedKey) {
       setAdminApiKey(storedKey.trim());
     }
+
+    // Restore sidebar visibility preference
+    try {
+      const storedSidebar = localStorage.getItem('ADMIN_SIDEBAR_HIDDEN');
+      if (storedSidebar !== null) {
+        setIsSidebarHidden(storedSidebar === 'true');
+      }
+    } catch (e) {
+      console.warn('Could not read sidebar preference:', e);
+    }
   }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarHidden(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('ADMIN_SIDEBAR_HIDDEN', String(next));
+      } catch (e) {
+        console.warn('Could not save sidebar preference:', e);
+      }
+      return next;
+    });
+  }, []);
+
+  // Keyboard shortcut: Ctrl+B or Cmd+B to toggle sidebar panel
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar]);
 
   const handleApiBaseChange = (e) => {
     // Manual override via Settings UI (only active when no env var is set)
@@ -85,6 +120,7 @@ export default function AdminShell({ children, title }) {
     { href: '/network', label: 'Channel Network', icon: 'hub' },
     { href: '/notifications', label: 'Notifications', icon: 'notifications' },
     { href: '/x-bot', label: 'X Bot (USA)', icon: 'smart_toy' },
+    { href: '/scraping', label: 'Scrape Frequency', icon: 'query_stats' },
     { href: '/logs', label: 'Live Logs', icon: 'terminal' },
     { href: '/settings', label: 'Settings', icon: 'settings' },
     { href: '/architecture', label: 'Architecture', icon: 'account_tree' },
@@ -99,10 +135,21 @@ export default function AdminShell({ children, title }) {
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarHidden ? 'hidden' : ''}`}>
         <div className="logo">
-          <img src="/icon.png" alt="Admin Icon" className="logo-icon" />
-          <h2>ShoppersDeals</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img src="/icon.png" alt="Admin Icon" className="logo-icon" />
+            <h2>ShoppersDeals</h2>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="sidebar-toggle-btn"
+            title="Hide Menu Panel (⌘B / Ctrl+B)"
+            aria-label="Hide Menu Panel"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>menu_open</span>
+          </button>
         </div>
 
         <nav className="nav-menu">
@@ -146,7 +193,20 @@ export default function AdminShell({ children, title }) {
       {/* Main Content Area */}
       <main className="main-content">
         <header className="top-header">
-          <h1>{getTitle()}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="header-sidebar-toggle-btn"
+              title={isSidebarHidden ? "Show Menu Panel (⌘B / Ctrl+B)" : "Hide Menu Panel (⌘B / Ctrl+B)"}
+              aria-label={isSidebarHidden ? "Show Menu Panel" : "Hide Menu Panel"}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                {isSidebarHidden ? 'menu' : 'menu_open'}
+              </span>
+            </button>
+            <h1>{getTitle()}</h1>
+          </div>
           <div className="header-stats">
             <div className="stat-badge">
               Queue: <span className="highlight">{statusData.queueLength || 0}</span>
