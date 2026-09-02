@@ -120,7 +120,11 @@ function BufferList({ apiFetch, source, emptyLabel }) {
       });
     }
     load();
-    const t = setInterval(load, 5000);
+    // Was 5000ms — see admin-shell.jsx's matching comment: confirmed live via Upstash's
+    // own command stats that aggressive polling here was a real contributor toward the
+    // free-tier command budget. getBufferedJobs() does two getJobs() calls per hit; this
+    // tab is only open when a user actively has it selected, but still worth relaxing.
+    const t = setInterval(load, 15000);
     return function() { cancelled = true; clearInterval(t); };
   }, [apiFetch, source]);
 
@@ -434,40 +438,57 @@ function OverviewContent({ nodeId, apiFetch, live }) {
         <Row label="Rate limit" value="1 req / 2.5 s (global)" />
         <Row label="Proxy routing" value="IN + US" />
 
-        {/* Worker tiles */}
+        {/* Worker cards — one full card per configured worker, top to bottom, count always
+            matching however many are actually in SCRAPER_WORKER_URLS (10 right now: 5 Render
+            + 5 Railway). Never capped/truncated — if that list grows to 20, 20 cards render. */}
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Worker Fleet ({workers.length} configured) — multi-cloud
+            Worker Fleet — {workers.length} worker{workers.length === 1 ? '' : 's'}, multi-cloud
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {workers.map(function(w) {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {workers.map(function(w, i) {
               const isRailway = w.platform === 'railway';
               const platformColor = isRailway ? '#C084FC' : '#60A5FA';
+              const platformIcon = isRailway ? '🚄' : '🎈';
               return (
                 <div key={w.name} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px',
-                  borderLeft: '3px solid ' + (w.online ? '#10B981' : '#EF4444'),
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+                  border: '1px solid ' + (w.online ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'),
+                  borderLeft: '4px solid ' + (w.online ? '#10B981' : '#EF4444'),
+                  borderRadius: 10, padding: '13px 14px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <div style={{ width: 9, height: 9, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 6px ' + (w.online ? '#10B981' : '#EF4444'), flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#e2e8f0' }}>{w.name}</span>
-                    {w.platform && (
-                      <span style={{
-                        fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
-                        color: platformColor, background: platformColor + '1a',
-                        border: '1px solid ' + platformColor + '40', borderRadius: 4, padding: '1px 5px',
-                      }}>
-                        {w.platform}
-                      </span>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 700, width: 18 }}>#{i + 1}</span>
+                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 6px ' + (w.online ? '#10B981' : '#EF4444'), flexShrink: 0 }} />
+                      <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#f1f5f9' }}>{w.name}</span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.85rem', fontWeight: 700,
+                      color: w.online ? '#6ee7b7' : '#f87171',
+                    }}>
+                      {w.online ? (w.latencyMs + ' ms') : 'offline'}
+                    </span>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    {w.online ? (
-                      <span style={{ fontSize: '0.72rem', color: '#6ee7b7' }}>{w.latencyMs} ms</span>
-                    ) : (
-                      <span style={{ fontSize: '0.68rem', color: '#f87171' }}>offline</span>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingLeft: 37 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                      color: platformColor, background: platformColor + '1a',
+                      border: '1px solid ' + platformColor + '40', borderRadius: 5, padding: '2px 7px',
+                    }}>
+                      {platformIcon} {w.platform || 'unknown'}
+                    </span>
+                    <span style={{
+                      fontSize: '0.65rem', fontWeight: 700,
+                      color: w.online ? '#6ee7b7' : '#f87171',
+                      background: (w.online ? '#10B981' : '#EF4444') + '1a',
+                      border: '1px solid ' + (w.online ? '#10B981' : '#EF4444') + '40',
+                      borderRadius: 5, padding: '2px 7px',
+                    }}>
+                      {w.online ? 'ONLINE' : 'OFFLINE'}
+                    </span>
                   </div>
                 </div>
               );
@@ -478,55 +499,56 @@ function OverviewContent({ nodeId, apiFetch, live }) {
           </div>
         </div>
 
-        {/* Planned multi-cloud expansion — roadmap only, NOT live infrastructure. Kept
-            visually distinct (dashed borders, muted colors, explicit "not yet deployed"
-            labels) from the real Worker Fleet list above so it can never be mistaken for
-            actual status. */}
-        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px dashed rgba(255,255,255,0.12)' }}>
+        {/* Multi-cloud expansion status. Redis migration + all 5 Railway workers are LIVE
+            (solid styling, matches the real Worker Fleet cards above). Only the Render
+            reduction (5→3, decommissioning scraper-4/5) is still pending — kept visually
+            distinct (dashed border, "pending") so this section never claims something isn't
+            true yet. Update this block's framing the moment that reduction actually happens. */}
+        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span style={{ fontSize: '0.7rem', color: '#facc15', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-              🚧 Planned — multi-cloud expansion
+            <span style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+              ✅ Multi-cloud expansion — mostly live
             </span>
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
-            Not yet deployed. Target: 3 workers on Render (down from 5) + 5 new workers on Railway — 8 total, up from 5 today. Requires migrating Redis to an externally-reachable host first (see prerequisite below) since Railway can't reach Render's internal-only Redis.
+            Redis migrated to Upstash (externally reachable) and 5 Railway workers deployed — verified live: a job produced on Render was picked up and processed by a Railway worker. Current real count: <strong style={{ color: '#94a3b8' }}>10 workers</strong> (5 Render + 5 Railway). Target from the original plan is 8 (3 Render + 5 Railway) — Render's scraper-4/5 are still running pending a decommission decision.
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1, background: 'rgba(96,165,250,0.06)', border: '1px dashed rgba(96,165,250,0.35)', borderRadius: 8, padding: 12 }}>
+            <div style={{ flex: 1, background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.35)', borderRadius: 8, padding: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#60A5FA' }} />
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#93C5FD' }}>Render</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>3 workers</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers (live)</span>
               </div>
               {['scraper-1', 'scraper-2', 'scraper-3'].map(function(n) {
                 return (
                   <div key={n} style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '3px 0' }}>● {n} <span style={{ color: '#475569' }}>(keep)</span></div>
                 );
               })}
-              <div style={{ fontSize: '0.68rem', color: '#f87171', padding: '3px 0', opacity: 0.7 }}>
-                ✕ scraper-4, scraper-5 <span style={{ color: '#64748b' }}>(decommission)</span>
+              <div style={{ fontSize: '0.7rem', color: '#fbbf24', padding: '3px 0' }}>
+                ● scraper-4, scraper-5 <span style={{ color: '#64748b' }}>(pending decommission)</span>
               </div>
             </div>
 
-            <div style={{ flex: 1, background: 'rgba(192,132,252,0.06)', border: '1px dashed rgba(192,132,252,0.35)', borderRadius: 8, padding: 12 }}>
+            <div style={{ flex: 1, background: 'rgba(192,132,252,0.06)', border: '1px solid rgba(192,132,252,0.35)', borderRadius: 8, padding: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#C084FC' }} />
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D8B4FE' }}>Railway</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers (live)</span>
               </div>
-              {['railway-1', 'railway-2', 'railway-3', 'railway-4', 'railway-5'].map(function(n) {
+              {['railway-scraper-1', 'railway-scraper-2', 'railway-scraper-3', 'railway-scraper-4', 'railway-scraper-5'].map(function(n) {
                 return (
-                  <div key={n} style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '3px 0' }}>○ {n} <span style={{ color: '#475569' }}>(new)</span></div>
+                  <div key={n} style={{ fontSize: '0.7rem', color: '#4ade80', padding: '3px 0' }}>● {n} <span style={{ color: '#475569' }}>(deployed)</span></div>
                 );
               })}
             </div>
           </div>
 
-          <div style={{ marginTop: 12, background: 'rgba(251,191,36,0.05)', border: '1px dashed rgba(251,191,36,0.25)', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: '0.72rem', color: '#fde68a', fontWeight: 700, marginBottom: 4 }}>Prerequisite: shared queue must be reachable from both clouds</div>
+          <div style={{ marginTop: 12, background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 700, marginBottom: 4 }}>✓ Shared queue: reachable from both clouds</div>
             <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.5 }}>
-              Migrate Redis (BullMQ's backing store) from Render's internal-only instance to an externally-reachable managed Redis (Upstash / Redis Cloud — both have free tiers with public TLS endpoints). Same BullMQ code, same priority tiers, same rate limiter, same retry policy — only the <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>REDIS_URL</code> changes. All 8 workers (3 Render + 5 Railway) connect to this one queue exactly like the current 5 do today.
+              Redis moved to Upstash (Singapore region, TLS, eviction disabled). Same BullMQ code, same priority tiers, same rate limiter, same retry policy — only <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>REDIS_URL</code> changed. All 10 workers connect to this one queue.
             </div>
           </div>
         </div>

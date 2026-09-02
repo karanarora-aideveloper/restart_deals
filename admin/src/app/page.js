@@ -13,6 +13,7 @@ const COUNTRY_NAMES = {
 
 export default function DashboardPage() {
   const [statusData, setStatusData] = useState({});
+  const [scraperFleet, setScraperFleet] = useState(null);
   const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -110,9 +111,38 @@ export default function DashboardPage() {
     }
   }, [apiFetch, page, search, timeRange, country, merchant, hygiene, sort]);
 
+  // Scraper fleet count — its own separate, slow poll (this endpoint pings every worker's
+  // health-check URL live, so it's more expensive than a plain status read; no reason to
+  // couple it to statusData's cadence). 90s is plenty for a dashboard card that isn't the
+  // primary source of truth — the pipeline page's Scraping Engine panel is, with live 30s
+  // per-worker pings and a "last checked" indicator.
+  const fetchScraperFleet = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/admin/scrapers/status');
+      if (!res.ok) return;
+      setScraperFleet(await res.json());
+    } catch (err) {
+      console.error('Fetch scraper fleet error:', err);
+    }
+  }, [apiFetch]);
+
+  useEffect(() => {
+    fetchScraperFleet();
+    const timer = setInterval(fetchScraperFleet, 90000);
+    return () => clearInterval(timer);
+  }, [fetchScraperFleet]);
+
   useEffect(() => {
     fetchStatus();
-    const timer = setInterval(fetchStatus, 8000);
+    // Was 8000ms — confirmed live 2026-09-02 via Upstash's own command stats (27 ops/sec
+    // sustained against a 500K/month free-tier budget) that this dashboard page ran a
+    // SECOND, fully redundant poller of the exact same /api/admin/status endpoint that
+    // admin-shell.jsx (wrapping every admin page) already polls independently — meaning
+    // the dashboard alone was hitting it twice as often as any other page. There's also a
+    // manual "Sync Metrics" button on this page for on-demand freshness, so this background
+    // poll doesn't need to be aggressive. 45s (deliberately offset from admin-shell's 30s
+    // so they don't fire in lockstep) cuts this specific source ~5.6x.
+    const timer = setInterval(fetchStatus, 45000);
     return () => clearInterval(timer);
   }, [fetchStatus]);
 
@@ -471,6 +501,46 @@ export default function DashboardPage() {
               </span>
             </div>
           </div>
+
+          {/* Card: Scraper Fleet — live worker count, multi-cloud since 2026-09-02.
+              Click-through to /pipeline for the full per-worker breakdown. */}
+          <a
+            href="/pipeline"
+            className="card glass"
+            style={{
+              padding: '20px',
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,250,0.9))',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Scraper Fleet
+              </span>
+              <span className="material-symbols-outlined" style={{ color: '#6366f1', fontSize: 24 }}>dns</span>
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: scraperFleet && scraperFleet.online === scraperFleet.total ? '#166534' : '#92400e' }}>
+              {scraperFleet ? scraperFleet.online : '—'} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>/ {scraperFleet ? scraperFleet.total : '—'} Online</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+              {scraperFleet && (
+                <>
+                  <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {scraperFleet.workers.filter(w => w.platform === 'render').length} Render
+                  </span>
+                  <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#f5f3ff', color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {scraperFleet.workers.filter(w => w.platform === 'railway').length} Railway
+                  </span>
+                </>
+              )}
+            </div>
+          </a>
         </div>
 
         {/* SECTION 2: DATA QUALITY & HYGIENE AUDITOR (5 INTERACTIVE FILTER CARDS) */}

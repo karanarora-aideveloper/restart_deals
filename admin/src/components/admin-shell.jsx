@@ -108,7 +108,14 @@ export default function AdminShell({ children, title }) {
 
   useEffect(() => {
     fetchStatus();
-    const timer = setInterval(fetchStatus, 5000);
+    // Was 5000ms — confirmed live 2026-09-02 via Upstash's own INFO stats (27 ops/sec
+    // sustained, ~50K commands in a couple hours against a 500K/month free-tier budget,
+    // ~140x over if sustained) that this always-mounted-on-every-admin-page poll (each call
+    // triggers scraperQueue.getStatus()'s getJobCounts, several Redis commands per hit) was
+    // the single largest identified contributor — every open admin tab was independently
+    // hitting Redis 12x/minute for a stat badge that doesn't need near-real-time freshness.
+    // 30s cuts this specific source ~6x with no meaningful UX loss.
+    const timer = setInterval(fetchStatus, 30000);
     return () => clearInterval(timer);
   }, [fetchStatus]);
 
