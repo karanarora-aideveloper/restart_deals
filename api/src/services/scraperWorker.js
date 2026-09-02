@@ -347,11 +347,13 @@ export function initScraperWorker() {
 // HTTP server that always answers 200 satisfies that without pulling in a
 // full framework dependency just for a health check.
 if (process.argv[1]?.endsWith('scraperWorker.js')) {
-  // Each of the 5 scraper-N Render services runs this exact same file — tagging by
-  // RENDER_SERVICE_NAME (set automatically by Render on every service) instead of a
-  // fixed 'api' source is what lets the admin panel's live logs show which specific
-  // worker a job failed on, not just an undifferentiated merged stream.
-  installSystemLogger(process.env.RENDER_SERVICE_NAME || 'scraper-unknown');
+  // Each scraper-N worker runs this exact same file, on either Render or Railway now —
+  // tagging by the platform's own auto-injected service-name env var (RENDER_SERVICE_NAME
+  // on Render, RAILWAY_SERVICE_NAME on Railway) instead of a fixed 'api' source is what lets
+  // the admin panel's live logs show which specific worker a job failed on, not just an
+  // undifferentiated merged stream. Confirmed live: the first Railway worker logged as the
+  // 'scraper-unknown' fallback since RENDER_SERVICE_NAME obviously isn't set there.
+  installSystemLogger(process.env.RENDER_SERVICE_NAME || process.env.RAILWAY_SERVICE_NAME || 'scraper-unknown');
 
   console.log('==================================================');
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
