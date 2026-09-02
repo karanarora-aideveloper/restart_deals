@@ -450,25 +450,30 @@ function OverviewContent({ nodeId, apiFetch, live }) {
               const isRailway = w.platform === 'railway';
               const platformColor = isRailway ? '#C084FC' : '#60A5FA';
               const platformIcon = isRailway ? '🚄' : '🎈';
+              // Paused (WORKER_PAUSED=true — the 2026-09-02 10->4 fleet reduction): the
+              // process is still up and its health check still answers 200 (so w.online is
+              // true), but it isn't connected to Redis/Mongo or doing any work. Shown as a
+              // distinct amber "paused" state so it can't be mistaken for a real active
+              // worker — deliberately not colored red/offline either, since it isn't down.
+              const statusColor = w.paused ? '#F59E0B' : (w.online ? '#10B981' : '#EF4444');
+              const statusLabel = w.paused ? 'PAUSED' : (w.online ? 'ONLINE' : 'OFFLINE');
               return (
                 <div key={w.name} style={{
                   background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-                  border: '1px solid ' + (w.online ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'),
-                  borderLeft: '4px solid ' + (w.online ? '#10B981' : '#EF4444'),
+                  border: '1px solid ' + statusColor + '40',
+                  borderLeft: '4px solid ' + statusColor,
                   borderRadius: 10, padding: '13px 14px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  opacity: w.paused ? 0.75 : 1,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 700, width: 18 }}>#{i + 1}</span>
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 6px ' + (w.online ? '#10B981' : '#EF4444'), flexShrink: 0 }} />
+                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, boxShadow: '0 0 6px ' + statusColor, flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#f1f5f9' }}>{w.name}</span>
                     </div>
-                    <span style={{
-                      fontSize: '0.85rem', fontWeight: 700,
-                      color: w.online ? '#6ee7b7' : '#f87171',
-                    }}>
-                      {w.online ? (w.latencyMs + ' ms') : 'offline'}
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171') }}>
+                      {w.paused ? 'sleeping' : (w.online ? (w.latencyMs + ' ms') : 'offline')}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingLeft: 37 }}>
@@ -482,12 +487,12 @@ function OverviewContent({ nodeId, apiFetch, live }) {
                     </span>
                     <span style={{
                       fontSize: '0.65rem', fontWeight: 700,
-                      color: w.online ? '#6ee7b7' : '#f87171',
-                      background: (w.online ? '#10B981' : '#EF4444') + '1a',
-                      border: '1px solid ' + (w.online ? '#10B981' : '#EF4444') + '40',
+                      color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171'),
+                      background: statusColor + '1a',
+                      border: '1px solid ' + statusColor + '40',
                       borderRadius: 5, padding: '2px 7px',
                     }}>
-                      {w.online ? 'ONLINE' : 'OFFLINE'}
+                      {statusLabel}
                     </span>
                   </div>
                 </div>

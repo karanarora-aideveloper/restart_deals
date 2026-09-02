@@ -317,18 +317,16 @@ export function initScraperWorker() {
       // Fleet-wide parallelism comes from running multiple separate worker PROCESSES, not
       // from raising this.
       limiter: {
-        // Raised from max:1 (2026-09-02): this is a GLOBAL limiter shared via Redis across
-        // every worker process on the "scraper-queue" queue, regardless of how many
-        // processes exist — so at 1 dispatch/2.5s, growing from 5 to 10 workers gave ZERO
-        // extra real throughput (still 1 job starting every 2.5s system-wide); it only added
-        // 5 more processes competing to poll for that same single slot, which is exactly
-        // what was driving Redis command usage toward Upstash's free-tier ceiling (confirmed
-        // live via MONITOR sampling — see scraperQueue.js's matching comment). Matching this
-        // to the real fleet size (10 workers) removes the artificial bottleneck: worker
-        // availability (concurrency:1 × N processes) becomes the actual throughput ceiling
-        // instead of this number, and workers that were idly re-polling now do real work
-        // instead — a straight win on both throughput AND wasted Redis commands.
-        max: 10,
+        // This is a GLOBAL limiter shared via Redis across every worker process on the
+        // "scraper-queue" queue — always keep it matched to however many workers are
+        // actually ACTIVE (not paused), not the total process count. First raised 1→10 when
+        // the fleet was 10/10 active (confirmed 1 gave zero extra throughput over 5→10
+        // workers, just more idle-polling — see git history for that measurement). Now 4,
+        // matching the 2026-09-02 reduction to 4 active workers (2 Render + 2 Railway; the
+        // other 6 are WORKER_PAUSED=true — see the isPaused branch above) done specifically
+        // to cut Redis command volume (confirmed via Upstash's own MONITOR sampling and
+        // INFO stats — idle workers polling for a rarely-open slot were the dominant cost).
+        max: 4,
         duration: 2500,
       },
     }
@@ -374,17 +372,31 @@ if (process.argv[1]?.endsWith('scraperWorker.js')) {
   console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
   console.log('==================================================\n');
 
+  const isPaused = process.env.WORKER_PAUSED === 'true';
   const port = process.env.PORT || 10000;
   http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('scraper worker: ok');
+    res.end(isPaused ? 'scraper worker: paused' : 'scraper worker: ok');
   }).listen(port, () => {
     console.log(`[Scraper Worker] Health check server listening on port ${port}`);
   });
 
-  mongoose.connect(process.env.MONGODB_URI).then(() => {
-    console.log('[DB] Connected to MongoDB Atlas.');
-    initScraperWorker();
-    console.log('[Scraper Worker] Ready and listening for distributed jobs across all machines.');
-  });
+  if (isPaused) {
+    // Fleet-size reduction (2026-09-02, 10 -> 4 workers) without deleting anything on
+    // either platform — neither Render's nor Railway's API/MCP tooling available here
+    // exposes a delete/suspend-service action, so this is a code-level pause instead:
+    // WORKER_PAUSED=true skips the Mongo connection and BullMQ Worker entirely. The
+    // process stays up (health check keeps responding, no restart-loop, platform-side
+    // "online" status stays accurate) but does zero Redis polling and zero scraping —
+    // fully reversible by flipping the env var back, on either platform, no redeploy of
+    // this file needed. See scraperQueue.js's matching comment for why fewer *idle*
+    // workers directly cuts Redis command volume.
+    console.log('[Scraper Worker] WORKER_PAUSED=true — staying up for health checks, but not connecting to Redis/Mongo or processing any jobs.');
+  } else {
+    mongoose.connect(process.env.MONGODB_URI).then(() => {
+      console.log('[DB] Connected to MongoDB Atlas.');
+      initScraperWorker();
+      console.log('[Scraper Worker] Ready and listening for distributed jobs across all machines.');
+    });
+  }
 }

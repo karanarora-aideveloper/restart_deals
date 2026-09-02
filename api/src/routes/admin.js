@@ -556,15 +556,23 @@ router.get('/scrapers/status', async (req, res) => {
       const start = Date.now();
       try {
         const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        return { name, url, platform, online: r.ok, latencyMs: Date.now() - start };
+        // A paused worker (WORKER_PAUSED=true — see scraperWorker.js) still answers its
+        // health check with 200 (staying "online" from the platform's own perspective, no
+        // restart-loop) but says so in the body, so the admin panel can show "paused"
+        // instead of a misleading "online" for the 6 workers reduced out of the active
+        // fleet on 2026-09-02.
+        const body = await r.text().catch(() => '');
+        const paused = body.includes('paused');
+        return { name, url, platform, online: r.ok, paused, latencyMs: Date.now() - start };
       } catch (err) {
-        return { name, url, platform, online: false, latencyMs: Date.now() - start, error: err.message };
+        return { name, url, platform, online: false, paused: false, latencyMs: Date.now() - start, error: err.message };
       }
     })
   );
   res.json({
     total: results.length,
-    online: results.filter(r => r.online).length,
+    online: results.filter(r => r.online && !r.paused).length,
+    paused: results.filter(r => r.paused).length,
     workers: results,
   });
 });
