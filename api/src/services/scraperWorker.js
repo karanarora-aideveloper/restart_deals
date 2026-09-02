@@ -311,10 +311,25 @@ export function initScraperWorker() {
     },
     {
       connection: redisConnection,
-      concurrency: 1, // Strict Single-Flight Concurrency = 1
+      concurrency: 1, // Per-process concurrency stays 1 — each worker still handles one
+      // job at a time (matches a ScrapingAnt token's own per-token concurrency=1 reality;
+      // the atomic token-lease fix already guarantees two workers never share a token).
+      // Fleet-wide parallelism comes from running multiple separate worker PROCESSES, not
+      // from raising this.
       limiter: {
-        max: 1,
-        duration: 2500, // Enforce 2.5s global delay between jobs
+        // Raised from max:1 (2026-09-02): this is a GLOBAL limiter shared via Redis across
+        // every worker process on the "scraper-queue" queue, regardless of how many
+        // processes exist — so at 1 dispatch/2.5s, growing from 5 to 10 workers gave ZERO
+        // extra real throughput (still 1 job starting every 2.5s system-wide); it only added
+        // 5 more processes competing to poll for that same single slot, which is exactly
+        // what was driving Redis command usage toward Upstash's free-tier ceiling (confirmed
+        // live via MONITOR sampling — see scraperQueue.js's matching comment). Matching this
+        // to the real fleet size (10 workers) removes the artificial bottleneck: worker
+        // availability (concurrency:1 × N processes) becomes the actual throughput ceiling
+        // instead of this number, and workers that were idly re-polling now do real work
+        // instead — a straight win on both throughput AND wasted Redis commands.
+        max: 10,
+        duration: 2500,
       },
     }
   );
