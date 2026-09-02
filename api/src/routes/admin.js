@@ -505,15 +505,29 @@ router.get('/logs', async (req, res) => {
 
 // Scraper worker fleet status — pings each known scraper-N service's health-check
 // endpoint directly (they don't share a DB row or registry; the URL list is the only
-// thing identifying them) so the admin panel can show "N / 5 online" and per-worker
+// thing identifying them) so the admin panel can show "N / 10 online" and per-worker
 // latency without depending on BullMQ's own (less reliable — see the confirmed-live
 // eviction incident) internal bookkeeping.
+//
+// Multi-cloud since 2026-09-02: 5 new Railway workers added alongside the existing 5 on
+// Render — all 10 connect to the same shared Upstash queue (see scraperQueue.js), verified
+// live end-to-end (a job produced on Render was picked up and processed by a Railway
+// worker). `platform` lets the admin UI group/color them distinctly. The plan this
+// followed calls for reducing Render to 3 (decommissioning scraper-4/5) once the Railway
+// fleet has proven itself — NOT done yet, so scraper-4/5 stay listed here as long as
+// they're still actually running; remove their two lines only once those Render services
+// are actually torn down, so this list never drifts from reality.
 const SCRAPER_WORKER_URLS = [
-  'https://shoppersdeals-scraper-1.onrender.com',
-  'https://shoppersdeals-scraper-2.onrender.com',
-  'https://shoppersdeals-scraper-3.onrender.com',
-  'https://shoppersdeals-scraper-4.onrender.com',
-  'https://shoppersdeals-scraper-5.onrender.com',
+  { url: 'https://shoppersdeals-scraper-1.onrender.com', platform: 'render' },
+  { url: 'https://shoppersdeals-scraper-2.onrender.com', platform: 'render' },
+  { url: 'https://shoppersdeals-scraper-3.onrender.com', platform: 'render' },
+  { url: 'https://shoppersdeals-scraper-4.onrender.com', platform: 'render' },
+  { url: 'https://shoppersdeals-scraper-5.onrender.com', platform: 'render' },
+  { url: 'https://railway-scraper-1-production.up.railway.app', platform: 'railway' },
+  { url: 'https://railway-scraper-2-production.up.railway.app', platform: 'railway' },
+  { url: 'https://railway-scraper-3-production.up.railway.app', platform: 'railway' },
+  { url: 'https://railway-scraper-4-production.up.railway.app', platform: 'railway' },
+  { url: 'https://railway-scraper-5-production.up.railway.app', platform: 'railway' },
 ];
 
 // Real buffer contents — the actual jobs sitting in Redis right now (waiting to be picked
@@ -533,14 +547,18 @@ router.get('/scraper-queue/buffer', async (req, res) => {
 
 router.get('/scrapers/status', async (req, res) => {
   const results = await Promise.all(
-    SCRAPER_WORKER_URLS.map(async (url) => {
-      const name = url.match(/https:\/\/([^.]+)\.onrender\.com/)?.[1] || url;
+    SCRAPER_WORKER_URLS.map(async ({ url, platform }) => {
+      // Generic hostname-first-label extraction — works for both
+      // shoppersdeals-scraper-N.onrender.com and railway-scraper-N-production.up.railway.app
+      // instead of the old Render-only regex, which returned nothing (falling back to the
+      // full URL) for any non-onrender.com host.
+      const name = new URL(url).hostname.split('.')[0];
       const start = Date.now();
       try {
         const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        return { name, url, online: r.ok, latencyMs: Date.now() - start };
+        return { name, url, platform, online: r.ok, latencyMs: Date.now() - start };
       } catch (err) {
-        return { name, url, online: false, latencyMs: Date.now() - start, error: err.message };
+        return { name, url, platform, online: false, latencyMs: Date.now() - start, error: err.message };
       }
     })
   );

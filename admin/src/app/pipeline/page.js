@@ -437,10 +437,12 @@ function OverviewContent({ nodeId, apiFetch, live }) {
         {/* Worker tiles */}
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Worker Fleet ({workers.length} configured)
+            Worker Fleet ({workers.length} configured) — multi-cloud
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {workers.map(function(w) {
+              const isRailway = w.platform === 'railway';
+              const platformColor = isRailway ? '#C084FC' : '#60A5FA';
               return (
                 <div key={w.name} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -450,6 +452,15 @@ function OverviewContent({ nodeId, apiFetch, live }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <div style={{ width: 9, height: 9, borderRadius: '50%', background: w.online ? '#10B981' : '#EF4444', boxShadow: '0 0 6px ' + (w.online ? '#10B981' : '#EF4444'), flexShrink: 0 }} />
                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#e2e8f0' }}>{w.name}</span>
+                    {w.platform && (
+                      <span style={{
+                        fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                        color: platformColor, background: platformColor + '1a',
+                        border: '1px solid ' + platformColor + '40', borderRadius: 4, padding: '1px 5px',
+                      }}>
+                        {w.platform}
+                      </span>
+                    )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     {w.online ? (
