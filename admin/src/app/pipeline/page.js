@@ -466,6 +466,59 @@ function OverviewContent({ nodeId, apiFetch, live }) {
             Workers are pinged live on every page load. Add/remove workers via <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>SCRAPER_WORKER_URLS</code> in admin.js.
           </div>
         </div>
+
+        {/* Planned multi-cloud expansion — roadmap only, NOT live infrastructure. Kept
+            visually distinct (dashed borders, muted colors, explicit "not yet deployed"
+            labels) from the real Worker Fleet list above so it can never be mistaken for
+            actual status. */}
+        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px dashed rgba(255,255,255,0.12)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ fontSize: '0.7rem', color: '#facc15', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+              🚧 Planned — multi-cloud expansion
+            </span>
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
+            Not yet deployed. Target: 3 workers on Render (down from 5) + 5 new workers on Railway — 8 total, up from 5 today. Requires migrating Redis to an externally-reachable host first (see prerequisite below) since Railway can't reach Render's internal-only Redis.
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1, background: 'rgba(96,165,250,0.06)', border: '1px dashed rgba(96,165,250,0.35)', borderRadius: 8, padding: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#60A5FA' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#93C5FD' }}>Render</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>3 workers</span>
+              </div>
+              {['scraper-1', 'scraper-2', 'scraper-3'].map(function(n) {
+                return (
+                  <div key={n} style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '3px 0' }}>● {n} <span style={{ color: '#475569' }}>(keep)</span></div>
+                );
+              })}
+              <div style={{ fontSize: '0.68rem', color: '#f87171', padding: '3px 0', opacity: 0.7 }}>
+                ✕ scraper-4, scraper-5 <span style={{ color: '#64748b' }}>(decommission)</span>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, background: 'rgba(192,132,252,0.06)', border: '1px dashed rgba(192,132,252,0.35)', borderRadius: 8, padding: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#C084FC' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D8B4FE' }}>Railway</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers</span>
+              </div>
+              {['railway-1', 'railway-2', 'railway-3', 'railway-4', 'railway-5'].map(function(n) {
+                return (
+                  <div key={n} style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '3px 0' }}>○ {n} <span style={{ color: '#475569' }}>(new)</span></div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12, background: 'rgba(251,191,36,0.05)', border: '1px dashed rgba(251,191,36,0.25)', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: '0.72rem', color: '#fde68a', fontWeight: 700, marginBottom: 4 }}>Prerequisite: shared queue must be reachable from both clouds</div>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.5 }}>
+              Migrate Redis (BullMQ's backing store) from Render's internal-only instance to an externally-reachable managed Redis (Upstash / Redis Cloud — both have free tiers with public TLS endpoints). Same BullMQ code, same priority tiers, same rate limiter, same retry policy — only the <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>REDIS_URL</code> changes. All 8 workers (3 Render + 5 Railway) connect to this one queue exactly like the current 5 do today.
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
