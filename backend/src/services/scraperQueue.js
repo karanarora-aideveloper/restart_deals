@@ -17,6 +17,26 @@ function mapPriorityToSource(priority) {
   return 'other';
 }
 
+// BullMQ requires maxRetriesPerRequest: null on its Redis connection (see utils/redis.js) —
+// unlimited retries, which also means ioredis has NO built-in ceiling on how long it'll wait
+// for a command to complete if the connection is disconnected/reconnecting (commands just sit
+// in the offline queue). Confirmed live: the Telegram listener went completely silent for
+// 65+ minutes, twice, always right after a "Mandatory Live Scrape" log line — i.e. mid-poll,
+// inside Job.fromId()/getState() below. Given this app's known periodic Redis memory pressure
+// (see scraperQueue.js's events-stream trimming comments), a connection blip here has no
+// application-level recovery: the outer TIMEOUT/deadline loop can't fire because the process
+// is stuck AWAITING one of these calls, never returning to check the deadline. GramJS then
+// processes messages one at a time, so one wedged scrape call blocks every message behind it
+// forever — exactly the observed symptom. This wraps any individual Redis-dependent call in
+// its own hard ceiling, independent of ioredis's own (deliberately unlimited) retry policy.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 class DistributedScraperQueue {
   constructor() {
     this.queue = null;
@@ -93,10 +113,10 @@ class DistributedScraperQueue {
     }
 
     try {
-      const job = await this.queue.add(
-        'scrape',
-        { url, source, enqueuedAt: Date.now() },
-        { priority }
+      const job = await withTimeout(
+        this.queue.add('scrape', { url, source, enqueuedAt: Date.now() }, { priority }),
+        15000,
+        'queue.add'
       );
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
@@ -109,9 +129,13 @@ class DistributedScraperQueue {
 
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
-        const fresh = await Job.fromId(this.queue, job.id);
+        // Each individually wrapped in withTimeout() — see its docblock. Without this, either
+        // call hanging (a disconnected Redis connection with no command timeout) freezes this
+        // whole loop forever, since it can never get back to the `while` condition to notice
+        // the deadline has passed.
+        const fresh = await withTimeout(Job.fromId(this.queue, job.id), 15000, 'Job.fromId');
         if (!fresh) break; // Removed by removeOnComplete before we could read it — treat as done
-        const state = await fresh.getState();
+        const state = await withTimeout(fresh.getState(), 15000, 'job.getState');
         if (state === 'completed') {
           // Worker gzips the page before returning it (see api/src/services/scraperWorker.js)
           // — decompress here so verifier.js keeps getting a plain HTML string back.

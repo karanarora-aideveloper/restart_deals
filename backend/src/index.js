@@ -3,9 +3,15 @@ import { startServer } from './api/server.js';
 import { startTelegramListener } from './listener/telegram.js';
 import { startTokenResetScheduler } from './listener/tokenReset.js';
 import { installSystemLogger } from './utils/systemLogger.js';
+import { startWatchdog } from './utils/watchdog.js';
 
 // Mirror all console output to Redis so the admin panel can display live logs
 installSystemLogger();
+
+// Force-restart this process if it goes silent for too long — see watchdog.js's docblock for
+// the exact multi-hour-silent-hang incident this guards against (Express's own health check
+// doesn't cover whether the Telegram listener sub-system is actually still doing anything).
+startWatchdog();
 
 async function main() {
   console.log('==================================================');

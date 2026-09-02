@@ -17,6 +17,24 @@ function mapPriorityToSource(priority) {
   return 'other';
 }
 
+// BullMQ requires maxRetriesPerRequest: null on its Redis connection — unlimited retries,
+// which also means ioredis has NO built-in ceiling on how long it'll wait for a command if the
+// connection is disconnected/reconnecting (commands just sit in the offline queue). Confirmed
+// live in backend/'s copy of this file (same pattern, shares this exact risk): the Telegram
+// listener went completely silent for 65+ minutes, twice, always right after a "Mandatory Live
+// Scrape" log line — mid-poll, inside Job.fromId()/getState() below. Given this app's known
+// periodic Redis memory pressure, a connection blip here has no application-level recovery:
+// the outer TIMEOUT/deadline loop can't fire because the process is stuck AWAITING one of these
+// calls, never returning to check the deadline. Wraps any individual Redis-dependent call in
+// its own hard ceiling, independent of ioredis's own (deliberately unlimited) retry policy.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 /**
  * Distributed BullMQ Scraper Queue Service
  * Connects to Redis and guarantees strict global single-flight concurrency across all machines.
@@ -142,10 +160,10 @@ class DistributedScraperQueue {
 
     try {
       // Add job with BullMQ priority (lower number = higher priority)
-      const job = await this.queue.add(
-        'scrape',
-        { url, source, enqueuedAt: Date.now() },
-        { priority }
+      const job = await withTimeout(
+        this.queue.add('scrape', { url, source, enqueuedAt: Date.now() }, { priority }),
+        15000,
+        'queue.add'
       );
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
@@ -162,9 +180,10 @@ class DistributedScraperQueue {
 
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, POLL_INTERVAL));
-        const fresh = await Job.fromId(this.queue, job.id);
+        // Each individually wrapped in withTimeout() — see its docblock above.
+        const fresh = await withTimeout(Job.fromId(this.queue, job.id), 15000, 'Job.fromId');
         if (!fresh) break; // Removed by removeOnComplete before we could read it — treat as done
-        const state = await fresh.getState();
+        const state = await withTimeout(fresh.getState(), 15000, 'job.getState');
         if (state === 'completed') {
           // Worker gzips the page before returning it (see scraperWorker.js) — decompress
           // here so every caller (verifier.js, productScraper.js, bestsellerCrawler.js)

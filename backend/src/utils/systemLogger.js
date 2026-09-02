@@ -48,9 +48,18 @@ const _log = console.log.bind(console);
 const _warn = console.warn.bind(console);
 const _error = console.error.bind(console);
 
+// Last time ANY console output happened in this process — the watchdog (see watchdog.js)
+// uses this as a cheap, already-wired-up "is this process actually doing anything" heartbeat.
+// Updated synchronously in the wrapper itself (not inside push(), which is async and could
+// itself be the thing that's hung) so it stays accurate even if Redis is unreachable.
+let lastActivityAt = Date.now();
+export function getLastActivityAt() {
+  return lastActivityAt;
+}
+
 export function installSystemLogger() {
-  console.log = (...args) => { _log(...args); push('info', args); };
-  console.warn = (...args) => { _warn(...args); push('warn', args); };
-  console.error = (...args) => { _error(...args); push('error', args); };
+  console.log = (...args) => { lastActivityAt = Date.now(); _log(...args); push('info', args); };
+  console.warn = (...args) => { lastActivityAt = Date.now(); _warn(...args); push('warn', args); };
+  console.error = (...args) => { lastActivityAt = Date.now(); _error(...args); push('error', args); };
   _log('[SystemLogger] Console mirroring to Redis enabled.');
 }
