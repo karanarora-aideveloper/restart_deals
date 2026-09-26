@@ -610,7 +610,7 @@ export async function fetchDirectMetadata(url) {
       },
     });
     clearTimeout(timeout);
-    if (!resp.ok) return { image: null, title: null };
+    if (!resp.ok) return { image: null, title: null, images: [] };
     const html = await resp.text();
     const $ = cheerio.load(html);
     let image = $('meta[property="og:image"]').attr('content') ||
@@ -619,10 +619,37 @@ export async function fetchDirectMetadata(url) {
     let title = $('meta[property="og:title"]').attr('content') ||
                 $('meta[name="twitter:title"]').attr('content') ||
                 $('title').text().trim() || null;
+    const images = [];
+
+    // Parse JSON-LD (primary extraction path for Shopsy & Flipkart)
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const text = $(el).contents().text();
+        const parsed = JSON.parse(text);
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of list) {
+          if (item && item['@type'] === 'Product') {
+            if (!title && item.name) title = item.name;
+            if (item.image) {
+              const itemImgs = Array.isArray(item.image) ? item.image : [item.image];
+              for (const imgUrl of itemImgs) {
+                if (typeof imgUrl === 'string') {
+                  const secureUrl = imgUrl.replace(/^http:\/\//i, 'https://');
+                  if (!images.includes(secureUrl)) images.push(secureUrl);
+                  if (!image) image = secureUrl;
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    });
+
+    if (image && !images.includes(image)) images.push(image.replace(/^http:\/\//i, 'https://'));
     if (title) title = title.replace(/\s+/g, ' ').trim().slice(0, 160);
-    return { image, title };
+    return { image: images[0] || image, title, images };
   } catch (err) {
-    return { image: null, title: null };
+    return { image: null, title: null, images: [] };
   }
 }
 
@@ -771,53 +798,71 @@ export async function scrapeProductDetails(targetUrl) {
         }
       }
 
-    } else if (hostname.includes('flipkart.com')) {
-      // Flipkart Title
-      title = $('.B_NuCI').first().text().trim() || $('.VU-ZEz').first().text().trim() || $('meta[name="title"]').attr('content');
+    } else if (hostname.includes('flipkart.com') || hostname.includes('shopsy.in')) {
+      // Flipkart & Shopsy Title
+      title = $('.B_NuCI').first().text().trim() ||
+              $('.VU-ZEz').first().text().trim() ||
+              $('h1._6EBuvc').first().text().trim() ||
+              $('h1').first().text().trim() ||
+              $('meta[property="og:title"]').attr('content') ||
+              $('meta[name="title"]').attr('content');
 
-      // Flipkart Meta Image
-      $('meta[property="og:image"]').each((_, el) => {
+      // Flipkart & Shopsy Meta Images
+      $('meta[property="og:image"], meta[name="twitter:image"]').each((_, el) => {
         const src = $(el).attr('content');
-        if (src && !images.includes(src)) images.push(src);
+        if (src) {
+          const secure = src.replace(/^http:\/\//i, 'https://');
+          if (!images.includes(secure)) images.push(secure);
+        }
       });
 
-      // Flipkart product images
-      $('img[src*="/image/"]').slice(0, 3).each((_, el) => {
+      // Flipkart & Shopsy CDN product images (flixcart.com, rukminim)
+      $('img[src*="/image/"], img[src*="flixcart.com"], img[src*="rukminim"]').each((_, el) => {
         const src = $(el).attr('src');
-        if (src && !images.includes(src)) images.push(src);
+        if (src) {
+          const secure = src.replace(/^http:\/\//i, 'https://');
+          if (!images.includes(secure)) images.push(secure);
+        }
       });
 
-      // Flipkart Price Extraction — JSON-LD first for the live price. Flipkart's class names
-      // are hashed and rotate (._30jeq3/._3I9_R3 below are already dead against live markup);
-      // the schema.org Product.offers block has stayed stable for `price`, and its
-      // Product.category field (e.g. "mouse") doubles as the categoryHint Flipkart has no
-      // breadcrumb equivalent for. MRP never comes from JSON-LD here — see
-      // extractFlipkartMRP()'s docblock — that's the real extraction path below.
-      const fkLd = extractJsonLdPrice($);
-      if (fkLd.price !== null) {
-        price = fkLd.price;
-      } else {
-        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
-      }
-      if (price !== null) originalPrice = extractFlipkartMRP($, price);
-      if (originalPrice === null) {
-        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
-      }
-
+      // Parse JSON-LD for Product images, title, category
       $('script[type="application/ld+json"]').each((_, el) => {
-        if (categoryHint) return;
         try {
           const parsed = JSON.parse($(el).contents().text());
           const arr = Array.isArray(parsed) ? parsed : [parsed];
           for (const node of arr) {
             for (const g of (node['@graph'] || [node])) {
-              if (g && g['@type'] === 'Product' && typeof g.category === 'string' && g.category.trim()) {
-                categoryHint = g.category.trim();
+              if (g && g['@type'] === 'Product') {
+                if (!title && g.name) title = g.name;
+                if (g.image) {
+                  const gImgs = Array.isArray(g.image) ? g.image : [g.image];
+                  for (const imgUrl of gImgs) {
+                    if (typeof imgUrl === 'string') {
+                      const secure = imgUrl.replace(/^http:\/\//i, 'https://');
+                      if (!images.includes(secure)) images.push(secure);
+                    }
+                  }
+                }
+                if (categoryHint === null && typeof g.category === 'string' && g.category.trim()) {
+                  categoryHint = g.category.trim();
+                }
               }
             }
           }
-        } catch { /* malformed/unrelated JSON-LD block — try the next script tag */ }
+        } catch { /* malformed/unrelated JSON-LD block */ }
       });
+
+      // Flipkart & Shopsy Price Extraction
+      const fkLd = extractJsonLdPrice($);
+      if (fkLd.price !== null) {
+        price = fkLd.price;
+      } else {
+        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d', '.hl05eU ._30jeq3']);
+      }
+      if (price !== null) originalPrice = extractFlipkartMRP($, price);
+      if (originalPrice === null) {
+        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
+      }
 
       // Flipkart Rating
       const ratingText = $('._3LWZlK').first().text();
@@ -1571,18 +1616,53 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     discountPercentage = 0;
   }
 
-  // Update/Upsert Product Record in MongoDB "products" Collection & Track Price Updates
-  const productImages = (productDetails?.images && productDetails.images.length > 0)
-    ? productDetails.images
-    : (scrapedData.images || []);
-  let dealImages = productImages.length > 0 ? productImages : (dealFallbackImageUrl ? [dealFallbackImageUrl] : []);
-  if (dealImages.length === 0) {
-    if (merchant === 'amazon' && productId) {
-      dealImages = [`https://images-na.ssl-images-amazon.com/images/P/${productId}.01.LZZZZZZZ.jpg`];
-    } else {
-      dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
-    }
+  // Helper to verify if an image is a permanent authentic merchant image (not ephemeral local media or placeholder)
+  const isPermanentMerchantImage = (imgUrl) => {
+    if (!imgUrl || typeof imgUrl !== 'string') return false;
+    if (imgUrl.includes('/media/telegram/')) return false;
+    if (imgUrl.includes('placeholder.png')) return false;
+    return (
+      imgUrl.includes('amazon.') ||
+      imgUrl.includes('ssl-images-amazon.com') ||
+      imgUrl.includes('media-amazon.com') ||
+      imgUrl.includes('flixcart.com') ||
+      imgUrl.includes('rukminim') ||
+      imgUrl.includes('myntassets.com') ||
+      imgUrl.includes('nykaa.com') ||
+      imgUrl.includes('ajio.com') ||
+      imgUrl.includes('croma.com') ||
+      imgUrl.includes('meesho.com') ||
+      imgUrl.startsWith('https://')
+    );
+  };
+
+  // Rule: "image should be scraped only once, but price should be scraped every time"
+  // 1. If product was already scraped once and has authentic images in DB, re-use them!
+  const cachedImages = [
+    ...(productDetails?.images || []),
+    ...(existingProduct?.images || [])
+  ].filter(isPermanentMerchantImage);
+
+  // 2. Freshly scraped images from this run
+  const freshScrapedImages = (scrapedData.images || []).filter(isPermanentMerchantImage);
+
+  let dealImages = [];
+  if (cachedImages.length > 0) {
+    // Re-use already scraped images (scraped once, permanent)
+    dealImages = cachedImages;
+  } else if (freshScrapedImages.length > 0) {
+    dealImages = freshScrapedImages;
+  } else if (merchant === 'amazon' && productId) {
+    dealImages = [`https://images-na.ssl-images-amazon.com/images/P/${productId}.01.LZZZZZZZ.jpg`];
+  } else if (dealFallbackImageUrl && isPermanentMerchantImage(dealFallbackImageUrl)) {
+    dealImages = [dealFallbackImageUrl];
+  } else {
+    dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
   }
+
+  // Deduplicate images
+  dealImages = [...new Set(dealImages)];
+  const productImages = dealImages.filter(img => !img.includes('placeholder.png'));
   const dealMainImageUrl = dealImages[0] || '';
   const mainImageUrl = productImages[0] || dealMainImageUrl;
 
