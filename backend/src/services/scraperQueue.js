@@ -123,7 +123,7 @@ class DistributedScraperQueue {
       // issues on Valkey/Render where completion events are never received.
       // See api/src/services/scraperQueue.js's matching comment — sized for attempts: 3 +
       // backoff above, not just one worker attempt.
-      const TIMEOUT = 300000;
+      const TIMEOUT = options.timeout || (priority === PRIORITY.TELEGRAM ? 25000 : 90000);
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 

@@ -9,31 +9,15 @@ import { verifyAndProcessMessage } from './verifier.js';
 import { publishToTelegram } from './publisher.js';
 import { downloadMessagePhoto } from '../utils/telegramMedia.js';
 
-// Sequential queue (Concurrency = 1) to prevent race conditions on duplicate checks
-const queue = new PQueue({ concurrency: 1 });
+// Concurrent queue (Concurrency = 3) to process incoming messages across channels in parallel
+const queue = new PQueue({ concurrency: 3 });
 
 export function getQueueLength() {
   return queue.size + queue.pending;
 }
 
-// Root cause of the 2026-08-30 incident: this queue is strictly sequential (concurrency: 1), and
-// every task ultimately calls scraperQueue.enqueue() (backend/src/services/scraperQueue.js), whose
-// Redis client is configured with maxRetriesPerRequest: null and no connect/command timeout
-// (required by BullMQ for blocking commands — see utils/redis.js). Confirmed live: a single
-// in-flight Redis command stalled and never settled, and because nothing here ever raced it
-// against a deadline, that one task blocked EVERY message behind it, forever — the whole listener
-// sat frozen (no crash, no restart, just silence) for ~14.5 hours until manually restarted, since
-// this service also has no Render healthCheckPath configured to catch a hang like this.
-//
-// This wraps every queued task in a hard ceiling so a single stuck task can never do that again.
-// 240s is chosen to sit safely above scraperQueue.enqueue()'s own internal 200s poll-timeout (the
-// normal way a slow-but-alive scrape already resolves) — so this only ever fires for a task that
-// bypassed that internal timeout entirely, i.e. exactly the Redis-hang scenario above, not a
-// merely slow one. A task that blows past this is abandoned here (PQueue's concurrency slot frees
-// up immediately) — its underlying work may still be running in the background and simply gets
-// its result discarded when it eventually settles, which is a fair trade for guaranteeing the
-// pipeline can never wedge again.
-const MESSAGE_PROCESSING_TIMEOUT_MS = 240000;
+// 35s ceiling for single-message verification (prevents stuck scrapes from freezing queue)
+const MESSAGE_PROCESSING_TIMEOUT_MS = 35000;
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -46,12 +30,7 @@ function withTimeout(promise, ms, label) {
 /**
  * Normalize any Telegram channel ID variant (bare "123", MTProto "-100123", or
  * bot-API "-123") to the bare digit-string form that Channel.channelId is stored
- * as in MongoDB (see addChannelToMonitor / syncChannelsFromTelegram). Anchored to
- * the start of the string — a bare, un-prefixed .replace('-100', '') would remove
- * ANY occurrence of that substring, not just a leading one, and previously left
- * Channel.updateOne() matching against a value that could never equal what's
- * actually stored, silently no-op'ing the metrics update whenever a caller passed
- * in an ID that was already -100-prefixed.
+ * as in MongoDB.
  */
 function toBareChannelId(id) {
   return id.toString().replace(/^-100/, '').replace(/^-/, '');
@@ -63,17 +42,8 @@ const channelTitlesMap = new Map();   // Maps channel ID -> Channel Title for cl
 const channelCountryMap = new Map();  // Maps channel ID -> Country Code
 const channelCategoryMap = new Map(); // Maps channel ID -> admin-configured category ('auto' if unset)
 const dialogEntitiesMap = new Map();  // Cached GramJS entity objects from getDialogs()
-
-/**
- * Shared between the live GramJS event handler AND the polling fallback — tracks the highest
- * message ID already enqueued per channel (keyed by toBareChannelId()). Whichever path sees a
- * message first "claims" it here, so the other path's later look never re-enqueues the same
- * message. Before this was unified, the poller only tracked messages it had personally seen, so
- * a message the live handler had already processed a moment earlier still looked "new" to the
- * next poll tick — burning a full redirect-resolution pass and double-counting
- * messagesCapturedCount for that one message every time.
- */
-const lastEnqueuedMessageId = new Map();
+const channelPtsMap = new Map();      // Maps bareChannelId -> current MTProto PTS sequence
+const lastEnqueuedMessageId = new Map(); // Tracks highest message ID enqueued per channel
 
 let currentHandler = null;
 
@@ -81,9 +51,6 @@ let currentHandler = null;
  * Extract full message text including URLs hidden inside Telegram hyperlink entities.
  * Telegram admins often use "Buy Now" hyperlinks where the URL is in message.entities
  * as MessageEntityTextUrl, not visible in message.message plain text.
- *
- * @param {object} message - GramJS Message object
- * @returns {string} - Plain text + any hidden entity URLs appended
  */
 function extractMessageText(message) {
   let text = message.message || '';
@@ -91,18 +58,13 @@ function extractMessageText(message) {
   if (message.entities && message.entities.length > 0) {
     const entityUrls = [];
     for (const entity of message.entities) {
-      // MessageEntityTextUrl: text is a label, entity.url holds the actual link
       if (entity.className === 'MessageEntityTextUrl' && entity.url) {
         entityUrls.push(entity.url);
       }
-      // MessageEntityUrl: the URL IS the text slice (already in plain text, but double-check)
-      // These are already captured by the regex in extractUrls(), so no need to re-add.
     }
 
     if (entityUrls.length > 0) {
       const unique = [...new Set(entityUrls)];
-      console.log(`[Entities] Found ${unique.length} hidden hyperlink URL(s) in message entities: ${unique.join(', ')}`);
-      // Append hidden URLs to the text so extractUrls() in verifier.js picks them up
       text = text + '\n' + unique.join('\n');
     }
   }
@@ -111,126 +73,187 @@ function extractMessageText(message) {
 }
 
 /**
- * Event handler for new messages across all monitored Telegram channels
+ * Unified entry point for incoming channel messages (live socket pushes & MTProto delta syncs).
  */
-async function handleNewMessage(event) {
+async function enqueueIncomingMessage(rawChannelId, message) {
   try {
-    const message = event.message;
-    if (!message) return;
+    if (!message || message.id == null) return;
+    const bareChannelId = toBareChannelId(rawChannelId);
+    const messageId = message.id.toString();
 
-    // Collect all possible numeric ID and handle formats for the incoming message
-    const possibleIds = new Set();
-
-    if (event.chatId) {
-      const cStr = event.chatId.toString();
-      possibleIds.add(cStr);
-      const raw = cStr.replace('-100', '').replace('-', '');
-      possibleIds.add(raw);
-      possibleIds.add('-100' + raw);
+    // Deduplicate against last enqueued message ID
+    const lastEnqueued = lastEnqueuedMessageId.get(bareChannelId) || 0;
+    if (message.id <= lastEnqueued) {
+      return;
     }
+    lastEnqueuedMessageId.set(bareChannelId, message.id);
 
-    if (message.peerId) {
-      if (message.peerId.channelId) {
-        const cId = message.peerId.channelId.toString();
-        possibleIds.add(cId);
-        possibleIds.add('-100' + cId.replace('-100', ''));
-      }
-      if (message.peerId.chatId) {
-        const cId = message.peerId.chatId.toString();
-        possibleIds.add(cId);
-        possibleIds.add('-100' + cId.replace('-100', ''));
-      }
-      if (message.peerId.userId) {
-        const cId = message.peerId.userId.toString();
-        possibleIds.add(cId);
-      }
-    }
-
-    // Match against active monitored channels
-    let matchedId = null;
-    for (const id of possibleIds) {
-      if (resolvedChannelIds.has(id)) {
-        matchedId = id;
-        break;
-      }
-    }
-
-    if (!matchedId) return; // Message from a non-monitored channel — skip silently
-
-    // Resolve human-readable channel title
-    let channelName = channelTitlesMap.get(matchedId);
-    if (!channelName) {
-      try {
-        const chat = event.chat || (await event.getChat());
-        if (chat) {
-          channelName = chat.title || chat.username || '';
-          if (channelName) {
-            for (const pid of possibleIds) {
-              channelTitlesMap.set(pid, channelName);
-            }
-          }
-        }
-      } catch (e) {}
-    }
-
-    const displayName = channelName ? `"${channelName}"` : matchedId;
-    const preview = message.message ? message.message.substring(0, 35).replace(/\n/g, ' ') : 'none';
-
-    console.log(`[DEBUG] New message captured in [${displayName}] (ID: ${matchedId}) - Preview: ${preview}`);
-
-    const channelId = matchedId;
-    const messageId = message.id ? message.id.toString() : Date.now().toString();
-    const channelKey = toBareChannelId(channelId);
-
-    // Claim this message ID before doing anything else — if the poller already grabbed it
-    // (or a duplicate GramJS update redelivered it), skip entirely rather than double-process.
-    if (message.id != null) {
-      const lastEnqueued = lastEnqueuedMessageId.get(channelKey) || 0;
-      if (message.id <= lastEnqueued) {
-        console.log(`[Queue] Message ${messageId} from channel ${displayName} was already enqueued (live/poller race). Skipping.`);
-        return;
-      }
-      lastEnqueuedMessageId.set(channelKey, message.id);
-    }
-
-    // Extract text + any URLs hidden in hyperlink entities
     const messageText = extractMessageText(message);
+    if (!messageText || messageText.trim().length === 0) return;
 
-    console.log(`[Queue] Received message ${messageId} from channel ${displayName} (${channelId}). Enqueueing...`);
+    const channelName = channelTitlesMap.get(bareChannelId) || bareChannelId;
+    const displayName = `"${channelName}"`;
+    const preview = messageText.substring(0, 45).replace(/\n/g, ' ');
 
-    // Increment channel captured metrics in DB
+    console.log(`[Telegram Listener] ⚡ Captured message ${messageId} in [${displayName}] (ID: ${bareChannelId}) - ${preview}`);
+
+    // Update DB captured metrics
     Channel.updateOne(
-      { channelId: channelKey },
+      { channelId: bareChannelId },
       { $inc: { messagesCapturedCount: 1 }, $set: { lastMessageAt: new Date() } }
-    ).catch(err => console.warn(`[Channel Metrics] Failed to update ${channelKey} captured count:`, err.message));
+    ).catch(err => console.warn(`[Channel Metrics] Update failed for ${bareChannelId}:`, err.message));
 
-    const country = channelCountryMap.get(matchedId) || 'IN';
-    const category = channelCategoryMap.get(matchedId) || 'auto';
-    const sourceChannelName = channelTitlesMap.get(matchedId) || channelId;
+    const country = channelCountryMap.get(bareChannelId) || 'IN';
+    const category = channelCategoryMap.get(bareChannelId) || 'auto';
+    const sourceChannelName = channelTitlesMap.get(bareChannelId) || bareChannelId;
 
-    // Push the deal verification process to the sequential queue
+    // Enqueue message processing with concurrency 3
     queue.add(async () => {
       try {
-        // Lazy — only actually downloads if the verifier needs a fallback image
         const getTelegramPhotoUrl = () => downloadMessagePhoto(client, message);
         const deal = await withTimeout(
-          verifyAndProcessMessage(channelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category),
+          verifyAndProcessMessage(bareChannelId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category),
           MESSAGE_PROCESSING_TIMEOUT_MS,
           `verifyAndProcessMessage(${messageId})`
         );
         if (deal) {
           await withTimeout(publishToTelegram(client, deal), 30000, `publishToTelegram(${messageId})`);
           Channel.updateOne(
-            { channelId: channelKey },
+            { channelId: bareChannelId },
             { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
-          ).catch(err => console.warn(`[Channel Metrics] Failed to update ${channelKey} deals produced count:`, err.message));
+          ).catch(() => {});
         }
       } catch (err) {
-        console.error(`[Queue Error] Processing failed for message ${messageId}:`, err);
+        console.error(`[Queue Error] Processing failed for message ${messageId}:`, err.message);
       }
     });
   } catch (err) {
-    console.error('[Telegram Listener Error] Handler error:', err.message);
+    console.error('[Telegram Listener Error] enqueueIncomingMessage error:', err.message);
+  }
+}
+
+/**
+ * Synchronize channel PTS state via native Telegram MTProto updates.getChannelDifference.
+ * This establishes the client's PTS on Telegram's servers so Telegram sends passive socket updates,
+ * and recovers any pending delta messages if gaps exist.
+ */
+async function syncChannelDifference(bareChannelId, entity) {
+  try {
+    if (!client || !client.connected || !entity) return;
+
+    let pts = channelPtsMap.get(bareChannelId);
+    if (!pts) {
+      // First time: fetch full channel to establish the latest PTS baseline
+      const full = await client.invoke(new Api.channels.GetFullChannel({ channel: entity }));
+      pts = full.fullChat?.pts || 1;
+      channelPtsMap.set(bareChannelId, pts);
+      console.log(`[MTProto Sync] Established PTS baseline for "${entity.title || bareChannelId}": ${pts}`);
+    }
+
+    const diff = await client.invoke(new Api.updates.GetChannelDifference({
+      channel: entity,
+      filter: new Api.ChannelMessagesFilterEmpty(),
+      pts: pts,
+      limit: 50
+    }));
+
+    if (diff.pts) {
+      channelPtsMap.set(bareChannelId, diff.pts);
+    }
+
+    // Process any new messages returned in the difference
+    if (diff.newMessages && diff.newMessages.length > 0) {
+      console.log(`[MTProto Sync] Retrieved ${diff.newMessages.length} message(s) from "${entity.title || bareChannelId}" via channel difference.`);
+      for (const msg of diff.newMessages) {
+        await enqueueIncomingMessage(bareChannelId, msg);
+      }
+    }
+  } catch (err) {
+    if (err.message && err.message.includes('PERSISTENT_TIMESTAMP_OUTDATED')) {
+      try {
+        const full = await client.invoke(new Api.channels.GetFullChannel({ channel: entity }));
+        if (full.fullChat?.pts) {
+          channelPtsMap.set(bareChannelId, full.fullChat.pts);
+        }
+      } catch (_) {}
+    }
+  }
+}
+
+/**
+ * Master MTProto update handler for all incoming Telegram updates.
+ * Dispatches UpdateNewChannelMessage, UpdateNewMessage, and UpdateChannelTooLong.
+ */
+async function handleTelegramUpdate(update) {
+  try {
+    if (!update) return;
+
+    // Direct channel or private message
+    if (update instanceof Api.UpdateNewChannelMessage || update instanceof Api.UpdateNewMessage) {
+      const msg = update.message;
+      if (!msg) return;
+      const cId = msg.peerId?.channelId?.toString() || msg.peerId?.chatId?.toString();
+      if (!cId) return;
+
+      const bareId = toBareChannelId(cId);
+      if (resolvedChannelIds.has(bareId) || resolvedChannelIds.has(cId)) {
+        if (update.pts) {
+          channelPtsMap.set(bareId, update.pts);
+        }
+        await enqueueIncomingMessage(bareId, msg);
+      }
+      return;
+    }
+
+    // UpdateChannelTooLong: Telegram notifies us that channel has an update gap or activity burst
+    if (update instanceof Api.UpdateChannelTooLong) {
+      const channelId = update.channelId?.toString();
+      if (!channelId) return;
+      const bareId = toBareChannelId(channelId);
+      if (resolvedChannelIds.has(bareId) || resolvedChannelIds.has(channelId)) {
+        console.log(`[MTProto] UpdateChannelTooLong for channel ${bareId} (pts: ${update.pts}). Recovering delta...`);
+        let entity = dialogEntitiesMap.get(bareId) || dialogEntitiesMap.get('-100' + bareId);
+        if (!entity) {
+          try { entity = await client.getEntity(BigInt('-100' + bareId)); } catch {}
+        }
+        if (entity) {
+          await syncChannelDifference(bareId, entity);
+        }
+      }
+      return;
+    }
+
+    // Compound updates container (Updates or UpdatesCombined)
+    if (update instanceof Api.Updates || update instanceof Api.UpdatesCombined) {
+      for (const u of update.updates || []) {
+        if (u instanceof Api.UpdateNewChannelMessage || u instanceof Api.UpdateNewMessage) {
+          const msg = u.message;
+          if (msg && msg.peerId?.channelId) {
+            const bareId = toBareChannelId(msg.peerId.channelId.toString());
+            if (resolvedChannelIds.has(bareId)) {
+              if (u.pts) channelPtsMap.set(bareId, u.pts);
+              await enqueueIncomingMessage(bareId, msg);
+            }
+          }
+        } else if (u instanceof Api.UpdateChannelTooLong) {
+          const bareId = toBareChannelId(u.channelId.toString());
+          if (resolvedChannelIds.has(bareId)) {
+            let entity = dialogEntitiesMap.get(bareId) || dialogEntitiesMap.get('-100' + bareId);
+            if (entity) await syncChannelDifference(bareId, entity);
+          }
+        }
+      }
+      return;
+    }
+
+    // Short update wrapper
+    if (update instanceof Api.UpdateShort) {
+      if (update.update) {
+        await handleTelegramUpdate(update.update);
+      }
+    }
+  } catch (err) {
+    console.error('[Telegram Dispatcher Error]', err.message);
   }
 }
 
@@ -281,47 +304,23 @@ export async function startTelegramListener() {
   // Pre-fetch all joined dialogs into GramJS entity cache
   await fetchJoinedDialogs();
 
-  // Attach permanent GramJS listener ONCE
+  // Attach permanent MTProto event dispatcher
   if (!currentHandler) {
-    currentHandler = handleNewMessage;
-    client.addEventHandler(currentHandler, new NewMessage({}));
-    console.log('[Telegram] Registered event listener for incoming messages.');
+    currentHandler = handleTelegramUpdate;
+    client.addEventHandler(currentHandler);
+    console.log('[Telegram] Registered native MTProto update dispatcher.');
   }
 
-  // CRITICAL: Sync GramJS channel PTS state so broadcast channel updates are received.
-  // Without this, GramJS silently drops NewMessage events from channels.
-  //
-  // client.catchUp() is NOT usable for this — checked the installed `telegram` package source
-  // directly (node_modules/telegram/client/updates.js): in this version (2.26.22) it's a literal
-  // no-op stub —
-  //   /** @hidden */
-  //   function catchUp() { // TODO }
-  // — explicitly marked @hidden, never wired onto TelegramClient.prototype at all (unlike
-  // getDialogs/getMessages/etc., which ARE real prototype methods in this same file). That's why
-  // it fails with "client.catchUp is not a function" rather than doing nothing silently — GramJS
-  // never finished porting Telethon's catch_up() in this release. The client's own internal
-  // update loop does call Api.updates.GetState() (updates.js, inside _updateLoop), but only as a
-  // 30-MINUTE keepalive nudge to stop Telegram from cutting off updates on an idle connection —
-  // it doesn't run at connect time and isn't a state-resync/gap-backfill step.
-  //
-  // Substitute: invoke Api.updates.GetState() directly, once, right after connecting. This
-  // establishes a real PTS/qts/date/seq baseline (the actual first half of what catch_up does)
-  // so incoming channel updates have a known state to validate against — it does NOT backfill any
-  // gap since being offline (that needs GetDifference/GetChannelDifference, which this doesn't
-  // attempt). Whether this alone meaningfully improves broadcast-channel live delivery isn't
-  // something we could fully verify without an extended live-traffic observation window, so the
-  // 30s poller stays exactly as-is as the guaranteed fallback — that poller exists independently
-  // of this catchUp gap anyway (GramJS event push is documented as unreliable for large broadcast
-  // channels regardless; see startChannelPoller() below), not solely because of it.
+  // Sync global update state baseline
   try {
-    console.log('[Telegram] Syncing update state (GetState)...');
+    console.log('[Telegram] Syncing global update state (GetState)...');
     await client.invoke(new Api.updates.GetState());
-    console.log('[Telegram] Update state synced — PTS baseline established.');
+    console.log('[Telegram] Global update state synced.');
   } catch (cuErr) {
     console.warn('[Telegram Warning] GetState() sync failed (non-fatal):', cuErr.message);
   }
 
-  // Load active channels into lookup Set
+  // Load active channels into lookup Set and initialize their PTS baselines
   await refreshMonitoredChannels();
 
   // Periodically refresh channel list from DB every 5 seconds (auto-detect Admin changes)
@@ -333,103 +332,40 @@ export async function startTelegramListener() {
     }
   }, 5 * 1000);
 
-  // Polling fallback: GramJS does NOT reliably fire NewMessage for large broadcast channels
-  // via MTProto push. We poll every 30s as a guaranteed fallback.
-  startChannelPoller();
+  // In accordance with Telegram MTProto spec, keep channel subscriptions active via delta sync
+  startChannelKeepAliveSync();
 }
 
 /**
- * Polling fallback for broadcast channels — GramJS event push is unreliable for
- * high-subscriber Telegram channels. This fetches the latest messages directly.
+ * MTProto subscription keep-alive sync:
+ * Periodically invokes updates.getChannelDifference for monitored channels to:
+ * 1. Maintain active server-side socket push subscription on Telegram MTProto gateways.
+ * 2. Instantly recover any updates missed during network reconnects or gap conditions.
+ * Returns in ~20ms with ChannelDifferenceEmpty when there are no new messages.
  */
-function startChannelPoller() {
-  const POLL_INTERVAL_MS = 30 * 1000; // 30 seconds
+function startChannelKeepAliveSync() {
+  const SYNC_INTERVAL_MS = 25 * 1000; // 25 seconds
 
   setInterval(async () => {
     if (!client || !client.connected) return;
 
-    // Get a snapshot of the currently active channel IDs (raw numeric, no -100)
     const channelIds = [...resolvedChannelIds].filter(id => /^\d+$/.test(id));
     if (channelIds.length === 0) return;
 
     for (const rawId of channelIds) {
       try {
-        // Resolve GramJS entity — use cached entity or fetch fresh
         let entity = dialogEntitiesMap.get(rawId) || dialogEntitiesMap.get('-100' + rawId);
         if (!entity) {
           try { entity = await client.getEntity(BigInt('-100' + rawId)); } catch { continue; }
         }
-
-        // Fetch the latest 10 messages from this channel
-        const messages = await client.getMessages(entity, { limit: 10 });
-        if (!messages || messages.length === 0) continue;
-
-        const channelName = channelTitlesMap.get(rawId) || rawId;
-        // Shared with the live handler — if it already claimed messages on this channel (the
-        // common case, since live events arrive well before the next 30s tick), this reflects
-        // that and the filter below correctly skips them instead of re-enqueueing.
-        const lastSeen = lastEnqueuedMessageId.get(rawId) || 0;
-        const newest = messages[0].id;
-
-        // On first poll (and only if the live handler hasn't already claimed anything on this
-        // channel), just record the baseline — don't process historical messages.
-        if (lastSeen === 0) {
-          lastEnqueuedMessageId.set(rawId, newest);
-          console.log(`[Poller] Baseline set for "${channelName}" — last message ID: ${newest}`);
-          continue;
-        }
-
-        // Filter only messages newer than last seen
-        const newMessages = messages.filter(m => m.id > lastSeen && m.message);
-        if (newMessages.length === 0) continue;
-
-        console.log(`[Poller] Caught ${newMessages.length} new message(s) in "${channelName}" via polling.`);
-        lastEnqueuedMessageId.set(rawId, newest);
-
-        // Process each new message through the same queue pipeline
-        for (const msg of newMessages.reverse()) { // oldest first
-          const messageId = msg.id.toString();
-          // Extract text + any URLs hidden in hyperlink entities
-          const messageText = extractMessageText(msg);
-
-          console.log(`[Poller→Queue] Enqueueing polled message ${messageId} from "${channelName}"`);
-
-          Channel.updateOne(
-            { channelId: toBareChannelId(rawId) },
-            { $inc: { messagesCapturedCount: 1 }, $set: { lastMessageAt: new Date() } }
-          ).catch(() => {});
-
-          queue.add(async () => {
-            try {
-              const country = channelCountryMap.get(rawId) || 'IN';
-              const category = channelCategoryMap.get(rawId) || 'auto';
-              const sourceChannelName = channelTitlesMap.get(rawId) || rawId;
-              // Lazy — only actually downloads if the verifier needs a fallback image
-              const getTelegramPhotoUrl = () => downloadMessagePhoto(client, msg);
-              const deal = await withTimeout(
-                verifyAndProcessMessage(rawId, messageId, messageText, country, sourceChannelName, getTelegramPhotoUrl, category),
-                MESSAGE_PROCESSING_TIMEOUT_MS,
-                `verifyAndProcessMessage(${messageId})`
-              );
-              if (deal) {
-                await withTimeout(publishToTelegram(client, deal), 30000, `publishToTelegram(${messageId})`);
-                Channel.updateOne(
-                  { channelId: toBareChannelId(rawId) },
-                  { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
-                ).catch(() => {});
-              }
-            } catch (err) {
-              console.error(`[Poller Queue Error] Processing failed for message ${messageId}:`, err.message);
-            }
-          });
-        }
+        await syncChannelDifference(rawId, entity);
       } catch (err) {
-        // Non-fatal — just skip this channel this cycle
+        // non-fatal
       }
     }
-  }, POLL_INTERVAL_MS);
+  }, SYNC_INTERVAL_MS);
 
-  console.log('[Poller] Channel polling fallback started (every 30s).');
+  console.log('[MTProto] Channel subscription keep-alive sync active (every 25s).');
 }
 
 /**

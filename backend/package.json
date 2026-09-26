@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "auth:telegram": "node scripts/generate_session.js"
   },
   "dependencies": {
     "bullmq": "^6.2.0",
