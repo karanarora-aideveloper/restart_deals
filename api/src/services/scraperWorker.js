@@ -359,7 +359,7 @@ export function initScraperWorker() {
 // this process is really a queue consumer with nothing to serve — a tiny
 // HTTP server that always answers 200 satisfies that without pulling in a
 // full framework dependency just for a health check.
-if (process.argv[1]?.endsWith('scraperWorker.js')) {
+export function runStandaloneWorker() {
   // Each scraper-N worker runs this exact same file, on either Render or Railway now —
   // tagging by the platform's own auto-injected service-name env var (RENDER_SERVICE_NAME
   // on Render, RAILWAY_SERVICE_NAME on Railway) instead of a fixed 'api' source is what lets
@@ -397,6 +397,12 @@ if (process.argv[1]?.endsWith('scraperWorker.js')) {
       console.log('[DB] Connected to MongoDB Atlas.');
       initScraperWorker();
       console.log('[Scraper Worker] Ready and listening for distributed jobs across all machines.');
+    }).catch(err => {
+      console.error('[Scraper Worker] DB connection error:', err.message);
     });
   }
+}
+
+if (process.argv[1]?.endsWith('scraperWorker.js')) {
+  runStandaloneWorker();
 }

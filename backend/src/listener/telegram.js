@@ -8,12 +8,56 @@ import Channel from '../db/models/channel.js';
 import { verifyAndProcessMessage } from './verifier.js';
 import { publishToTelegram } from './publisher.js';
 import { downloadMessagePhoto } from '../utils/telegramMedia.js';
+import { scraperQueue } from '../services/scraperQueue.js';
 
-// Concurrent queue (Concurrency = 3) to process incoming messages across channels in parallel
-const queue = new PQueue({ concurrency: 3 });
+// Dynamic concurrency queue to process incoming messages across channels in parallel.
+// Concurrency dynamically scales to match the number of active scraper workers available.
+const INITIAL_CONCURRENCY = parseInt(process.env.SCRAPER_CONCURRENCY || '3', 10);
+const queue = new PQueue({ concurrency: Math.max(1, INITIAL_CONCURRENCY) });
 
 export function getQueueLength() {
   return queue.size + queue.pending;
+}
+
+export function getQueueConcurrency() {
+  return queue.concurrency;
+}
+
+/**
+ * Update queue concurrency based on the number of active scraper workers connected to Redis.
+ * Ensures Telegram message processing throughput dynamically matches scraper fleet capacity.
+ */
+export async function syncQueueConcurrencyWithScrapers() {
+  try {
+    const activeWorkers = await scraperQueue.getActiveWorkerCount();
+    const forcedConcurrency = process.env.FORCE_SCRAPER_CONCURRENCY
+      ? parseInt(process.env.FORCE_SCRAPER_CONCURRENCY, 10)
+      : null;
+    const fallbackConcurrency = process.env.SCRAPER_CONCURRENCY
+      ? parseInt(process.env.SCRAPER_CONCURRENCY, 10)
+      : 3;
+
+    let target;
+    if (forcedConcurrency && forcedConcurrency > 0) {
+      target = forcedConcurrency;
+    } else if (activeWorkers > 0) {
+      target = activeWorkers;
+    } else {
+      target = fallbackConcurrency;
+    }
+
+    target = Math.max(1, target);
+
+    if (queue.concurrency !== target) {
+      console.log(`[Queue Dynamic Concurrency] Concurrency scaled ${queue.concurrency} ➔ ${target} (active scrapers in Redis: ${activeWorkers}, fallback: ${fallbackConcurrency})`);
+      queue.concurrency = target;
+    }
+
+    return target;
+  } catch (err) {
+    console.warn('[Queue Dynamic Concurrency] Sync failed (non-fatal):', err.message);
+    return queue.concurrency;
+  }
 }
 
 // 35s ceiling for single-message verification (prevents stuck scrapes from freezing queue)
@@ -107,7 +151,7 @@ async function enqueueIncomingMessage(rawChannelId, message) {
     const category = channelCategoryMap.get(bareChannelId) || 'auto';
     const sourceChannelName = channelTitlesMap.get(bareChannelId) || bareChannelId;
 
-    // Enqueue message processing with concurrency 3
+    // Enqueue message processing with dynamic scraper-based concurrency
     queue.add(async () => {
       try {
         const getTelegramPhotoUrl = () => downloadMessagePhoto(client, message);
@@ -334,6 +378,12 @@ export async function startTelegramListener() {
 
   // In accordance with Telegram MTProto spec, keep channel subscriptions active via delta sync
   startChannelKeepAliveSync();
+
+  // Initial sync with active scrapers in Redis to determine dynamic queue concurrency
+  await syncQueueConcurrencyWithScrapers();
+
+  // Periodically refresh scraper concurrency every 20 seconds to dynamically scale with the scraper fleet
+  setInterval(syncQueueConcurrencyWithScrapers, 20 * 1000);
 }
 
 /**

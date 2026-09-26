@@ -208,6 +208,25 @@ class DistributedScraperQueue {
   }
 
   /**
+   * Returns the count of active scraper worker processes currently connected to Redis.
+   * BullMQ tracks this via active Redis blocking client connections on 'scraper-queue'.
+   * @returns {Promise<number>}
+   */
+  async getActiveWorkerCount() {
+    if (!this.queue) {
+      this.initQueue();
+    }
+    if (!this.queue) return 0;
+    try {
+      const workers = await withTimeout(this.queue.getWorkers(), 5000, 'queue.getWorkers');
+      return Array.isArray(workers) ? workers.length : 0;
+    } catch (err) {
+      console.warn('[Scraper Queue] Could not retrieve active workers from Redis:', err.message);
+      return 0;
+    }
+  }
+
+  /**
    * Get real-time queue health and metrics from Redis.
    */
   async getStatus() {
@@ -215,9 +234,11 @@ class DistributedScraperQueue {
 
     try {
       const counts = await this.queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed');
+      const activeWorkers = await this.getActiveWorkerCount();
       return {
         queueLength: (counts.waiting || 0) + (counts.delayed || 0),
-        activeWorkers: counts.active || 0,
+        activeWorkers,
+        activeJobs: counts.active || 0,
         isProcessing: (counts.active || 0) > 0,
         counts,
       };
