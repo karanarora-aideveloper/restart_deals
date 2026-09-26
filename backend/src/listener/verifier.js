@@ -1624,6 +1624,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     console.log(`[Verifier] Amazon coupon detected for ${cleanUrl}: ${dealCoupon.label} (raw: "${(scrapedData.couponRawText || '').slice(0, 100)}")`);
   }
 
+  const now = new Date();
+
   try {
     let productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
     const effectivePrice = verifiedDealPrice || liveScrapedPrice || productRecord?.price || null;
