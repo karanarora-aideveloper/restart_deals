@@ -60,8 +60,8 @@ export async function syncQueueConcurrencyWithScrapers() {
   }
 }
 
-// 35s ceiling for single-message verification (prevents stuck scrapes from freezing queue)
-const MESSAGE_PROCESSING_TIMEOUT_MS = 35000;
+// 75s ceiling for single-message verification (allows ScrapingAnt full browser renders without blocking indefinitely)
+const MESSAGE_PROCESSING_TIMEOUT_MS = 75000;
 
 function withTimeout(promise, ms, label) {
   let timer;

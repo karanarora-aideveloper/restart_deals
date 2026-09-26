@@ -373,6 +373,56 @@ export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant
 }
 
 /**
+ * Extract deal selling price directly from Telegram message text
+ * Matches patterns like "@ ₹472", "at ₹8,674", "At Rs.9,899", "@249", "₹499", "$19.99"
+ */
+export function extractPriceFromMessage(text) {
+  if (!text) return null;
+  const patterns = [
+    /(?:@|at|for|price|just|pay|rs\.?|₹|\$)\s*[:=]?\s*[₹$]?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+    /(?:₹|\$)\s*([0-9,]+(?:\.[0-9]{1,2})?)/,
+    /\brs\.?\s*([0-9,]+)/i,
+    /@\s*([0-9,]+)/
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(/,/g, ''));
+      if (!isNaN(num) && num > 0 && num < 10000000) return Math.round(num);
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract original list price / MRP directly from Telegram message text
+ * Matches patterns like "MRP: ₹1499", "Was: ₹1499", "strike: 999"
+ */
+export function extractMRPFromMessage(text) {
+  if (!text) return null;
+  const m = text.match(/(?:m\.?r\.?p\.?|was|strike|original|list price)\s*[:=]?\s*[₹$]?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
+  if (m && m[1]) {
+    const num = parseFloat(m[1].replace(/,/g, ''));
+    if (!isNaN(num) && num > 0 && num < 10000000) return Math.round(num);
+  }
+  return null;
+}
+
+/**
+ * Extract stated discount percentage from Telegram message text
+ * Matches patterns like "70% off", "Flat 50% discount", "80% Off"
+ */
+export function extractDiscountFromMessage(text) {
+  if (!text) return null;
+  const m = text.match(/([0-9]{1,2})\s*%\s*(?:off|discount|flat)/i);
+  if (m && m[1]) {
+    const num = parseInt(m[1], 10);
+    if (num > 0 && num <= 99) return num;
+  }
+  return null;
+}
+
+/**
  * Fetch and extract product details using Distributed BullMQ Scraping Queue
  * @param {string} targetUrl 
  * @returns {Promise<{ images: string[], rating: number, reviews: Array }>}
@@ -1331,18 +1381,24 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   })();
   const canonicalMRP = sanitisedExistingMRP || sanitisedLiveMRP || null;
 
-  // Live Deal Verification: purely "did we get a real live price". There is no message-claimed
-  // price to cross-check against any more — whether it's actually a genuine drop is decided
-  // entirely by the MRP/price-history comparison below, which needs nothing but this number.
+  // Live Deal Verification: Scraped live merchant price first; fallback to curated message text price
   let isPriceVerified = false;
   let verifiedDealPrice = null;
 
-  if (liveScrapedPrice == null) {
-    console.warn(`[Verifier Warning] ⚠️ Failed to extract live price from ${cleanUrl} during scrape. Cannot verify deal.`);
-  } else {
+  if (liveScrapedPrice != null) {
     isPriceVerified = true;
     verifiedDealPrice = liveScrapedPrice;
     console.log(`[Verifier] ✓ Live price for ${cleanUrl}: ₹${liveScrapedPrice}.`);
+  } else {
+    // Fallback to Telegram message text price extraction
+    const messagePrice = extractPriceFromMessage(messageText);
+    if (messagePrice != null) {
+      isPriceVerified = true;
+      verifiedDealPrice = messagePrice;
+      console.log(`[Verifier] ✓ Using message-extracted price for ${cleanUrl}: ₹${messagePrice}.`);
+    } else {
+      console.warn(`[Verifier Warning] ⚠️ Failed to extract live price from ${cleanUrl} during scrape or message text. Cannot verify deal.`);
+    }
   }
 
   // 8. Category/Subcategory — channel default first, then the scraped category hint (Amazon
@@ -1351,7 +1407,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const { category, subcategory } = await deriveCategory(channelCategory, scrapedData.categoryHint, scrapedData.title);
   console.log(`[Verifier] Category: "${category}"${subcategory ? ` / "${subcategory}"` : ''} (channel="${channelCategory}"${scrapedData.categoryHint ? `, hint="${scrapedData.categoryHint.slice(0, 60)}"` : ''}).`);
 
-  // Handle Images
+  // Handle Images (Live scrape image -> Existing DB image -> Telegram message photo fallback)
   let dealFallbackImageUrl = null;
   let scrapeSucceededThisRun = false;
 
@@ -1368,7 +1424,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         images: scrapedData.images,
         rating: scrapedData.rating,
         reviews: scrapedData.reviews,
-        price: liveScrapedPrice,
+        price: liveScrapedPrice || verifiedDealPrice,
         originalPrice: canonicalMRP,
         variant: scrapedVariant,
         lastChecked: new Date()
@@ -1378,7 +1434,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       if (scrapedData.title) productDetails.title = scrapedData.title;
       if (scrapedData.rating) productDetails.rating = scrapedData.rating;
       if (scrapedData.reviews && scrapedData.reviews.length > 0) productDetails.reviews = scrapedData.reviews;
-      if (liveScrapedPrice != null) productDetails.price = liveScrapedPrice;
+      if (verifiedDealPrice != null) productDetails.price = verifiedDealPrice;
       if (canonicalMRP != null) productDetails.originalPrice = canonicalMRP;
       if (scrapedVariant) productDetails.variant = scrapedVariant;
       productDetails.lastChecked = new Date();
@@ -1393,16 +1449,19 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // Calculate Authentic Discount — price-history drop ONLY. MRP is never used as a base any
-  // more, full stop — not even as a cold-start fallback.
-  //
-  // A page's "MRP" is routinely set by the seller purely to inflate the shown discount; it was
-  // often never a real selling price. The only base that means anything is a price WE ourselves
-  // already observed for this exact product. A direct consequence: a product scraped for the
-  // FIRST time can never be a deal, no matter how large its page's MRP claims the discount is —
-  // there is nothing yet to compare it against. It's still recorded as a Product below (with
-  // needsEnrichment) so we start tracking it, and it can become a real deal on a LATER pass once
-  // we've actually observed its price fall.
+  // Determine Effective MRP (Scraped MRP / DB canonical MRP -> Message MRP fallback)
+  let effectiveMRP = canonicalMRP;
+  if (!effectiveMRP) {
+    const msgMRP = extractMRPFromMessage(messageText);
+    if (msgMRP && (!verifiedDealPrice || msgMRP > verifiedDealPrice)) {
+      effectiveMRP = msgMRP;
+    }
+  }
+
+  // Calculate Authentic Discount:
+  // 1. Price-history drop (highest authentic authority if previously observed)
+  // 2. Authentic MRP / List price discount (standard retail discount)
+  // 3. Stated Telegram channel discount
   let discountPercentage = null;
   let priceSource = null;
   let genuinePriceDrop = null;
@@ -1418,6 +1477,31 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
+  if (discountPercentage == null && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
+    const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
+    if (mrpDiscount >= PRICE_DROP_MIN_PERCENT && mrpDiscount <= 95) {
+      discountPercentage = mrpDiscount;
+      priceSource = 'mrp';
+      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ₹${effectiveMRP} -> ₹${verifiedDealPrice} (${mrpDiscount}% OFF).`);
+    }
+  }
+
+  if (discountPercentage == null && verifiedDealPrice != null) {
+    const msgDiscount = extractDiscountFromMessage(messageText);
+    if (msgDiscount && msgDiscount >= PRICE_DROP_MIN_PERCENT && msgDiscount <= 95) {
+      discountPercentage = msgDiscount;
+      priceSource = 'telegram_channel';
+      if (!effectiveMRP) {
+        effectiveMRP = Math.round(verifiedDealPrice / (1 - msgDiscount / 100));
+      }
+      console.log(`[Verifier] Message-stated discount for ${cleanUrl}: ${msgDiscount}% OFF.`);
+    }
+  }
+
+  if (discountPercentage == null) {
+    discountPercentage = 0;
+  }
+
   // Update/Upsert Product Record in MongoDB "products" Collection & Track Price Updates
   const productImages = (productDetails?.images && productDetails.images.length > 0)
     ? productDetails.images
@@ -1427,12 +1511,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const dealMainImageUrl = dealImages[0] || '';
 
   const hasImage = dealImages.length > 0;
-  const hasPrice = verifiedDealPrice != null;
-  const hasDiscount = discountPercentage != null && discountPercentage > 0;
-  const isFullyVerified = isPriceVerified && hasImage && hasPrice && hasDiscount;
+  const hasPrice = verifiedDealPrice != null && verifiedDealPrice > 0;
+  const isFullyVerified = isPriceVerified && hasImage && hasPrice;
 
   if (!isFullyVerified) {
-    console.warn(`[Verifier Warning] Incomplete or unverified deal for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ${hasPrice} (₹${verifiedDealPrice || 'N/A'}), discount: ${hasDiscount} (${discountPercentage || 0}%). Recording Product entry (needsEnrichment) and skipping Deal creation.`);
+    console.warn(`[Verifier Warning] Incomplete or unverified deal for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ${hasPrice} (₹${verifiedDealPrice || 'N/A'}). Recording Product entry (needsEnrichment) and skipping Deal creation.`);
   }
 
   const productRating = productDetails?.rating || scrapedData?.rating || 0;
@@ -1586,7 +1669,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.images = dealImages;
       deal.rating = productRating;
       deal.reviews = productReviews;
-      deal.originalPrice = canonicalMRP;
+      deal.originalPrice = effectiveMRP || canonicalMRP || verifiedDealPrice;
       deal.dealPrice = verifiedDealPrice;
       deal.discountPercentage = discountPercentage;
       deal.coupon = dealCoupon;
@@ -1599,7 +1682,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.updatedAt = now;
 
       await deal.save();
-      console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${canonicalMRP || 'N/A'})`);
+      console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
       return deal;
     } else {
       deal = new Deal({
@@ -1617,7 +1700,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         dealUrl: cleanUrl,
         productId,
         merchant,
-        originalPrice: canonicalMRP,
+        originalPrice: effectiveMRP || canonicalMRP || verifiedDealPrice,
         dealPrice: verifiedDealPrice,
         previousPrice: genuinePriceDrop,
         discountPercentage: discountPercentage,
@@ -1636,7 +1719,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         updatedAt: now
       });
       await deal.save();
-      console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${canonicalMRP || 'N/A'})`);
+      console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
       return deal;
     }
   } catch (dealSaveErr) {
