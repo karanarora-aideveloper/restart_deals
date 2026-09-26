@@ -200,6 +200,18 @@ class DistributedScraperQueue {
         if (state === 'failed') throw new Error(fresh.failedReason || 'Job failed');
       }
 
+      // Evict job from queue if it has not yet started running to free workers
+      try {
+        const fresh = await withTimeout(Job.fromId(this.queue, job.id), 5000, 'Job.fromId').catch(() => null);
+        if (fresh) {
+          const state = await fresh.getState().catch(() => null);
+          if (state === 'waiting' || state === 'delayed') {
+            await fresh.remove().catch(() => {});
+            console.log(`[Scraper Queue] Evicted timed-out waiting job #${job.id} to protect scraper capacity.`);
+          }
+        }
+      } catch (_) {}
+
       throw new Error(`Job wait scrape timed out before finishing, no finish notification arrived after ${TIMEOUT}ms (id=${job.id})`);
     } catch (err) {
       console.error(`[Scraper Queue Error] Job failed for ${url.slice(0, 45)}:`, err.message);

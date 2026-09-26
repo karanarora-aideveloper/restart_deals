@@ -41,9 +41,9 @@ export async function syncQueueConcurrencyWithScrapers() {
     if (forcedConcurrency && forcedConcurrency > 0) {
       target = forcedConcurrency;
     } else if (activeWorkers > 0) {
-      target = activeWorkers;
+      target = Math.max(3, activeWorkers * 2);
     } else {
-      target = fallbackConcurrency;
+      target = Math.max(3, fallbackConcurrency);
     }
 
     target = Math.max(1, target);

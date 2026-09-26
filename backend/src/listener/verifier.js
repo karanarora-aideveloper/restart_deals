@@ -593,11 +593,80 @@ function extractShopsyMRP($, livePrice) {
   return result;
 }
 
+/**
+ * Fast direct HTTP metadata fetcher (no headless browser, no ScrapingAnt credits).
+ * Used when ScrapingAnt times out or fails to extract title/og:image for Flipkart, Myntra, Shopsy, etc.
+ */
+export async function fetchDirectMetadata(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return { image: null, title: null };
+    const html = await resp.text();
+    const $ = cheerio.load(html);
+    let image = $('meta[property="og:image"]').attr('content') ||
+                $('meta[name="twitter:image"]').attr('content') ||
+                $('link[rel="image_src"]').attr('href') || null;
+    let title = $('meta[property="og:title"]').attr('content') ||
+                $('meta[name="twitter:title"]').attr('content') ||
+                $('title').text().trim() || null;
+    if (title) title = title.replace(/\s+/g, ' ').trim().slice(0, 160);
+    return { image, title };
+  } catch (err) {
+    return { image: null, title: null };
+  }
+}
+
+/**
+ * Extracts clean, human-readable product title from Telegram deal message text.
+ */
+export function extractTitleFromMessage(text) {
+  if (!text) return null;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (line.startsWith('http') || line.startsWith('🛒') || line.startsWith('😱') || line.startsWith('⚡')) continue;
+    let cleaned = line
+      .replace(/#ad\b/gi, '')
+      .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' ')
+      .replace(/^([▪️•\-\*#\s])+/gi, '')
+      .replace(/\s*(?:buy\s*now|order\s*now|grab\s*fast).*/i, '')
+      .replace(/\s*(?:starting\s*@\s*rs\.?|starting\s*@|@|at\s*rs\.?|at\s*₹|now\s*only|price:?|only:?)\s*[₹$]?[\d,.]+.*$/i, '')
+      .replace(/\s*-\s*[₹$][\d,.]+.*$/i, '')
+      .replace(/\s+\d{3,5}\s*$/i, '')
+      .replace(/\s+https?:\/\/\S+/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (cleaned.length > 5 && !cleaned.toLowerCase().startsWith('deal') && !cleaned.toLowerCase().startsWith('click')) {
+      return cleaned.slice(0, 140);
+    }
+  }
+  return null;
+}
+
 export async function scrapeProductDetails(targetUrl) {
   try {
     const html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
     if (!html) {
-      return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, categoryHint: null, couponRawText: null };
+      const direct = await fetchDirectMetadata(targetUrl);
+      return {
+        title: direct.title || null,
+        images: direct.image ? [direct.image] : [],
+        rating: null,
+        reviews: [],
+        price: null,
+        originalPrice: null,
+        categoryHint: null,
+        couponRawText: null
+      };
     }
 
     // Parse HTML with cheerio
@@ -1506,8 +1575,14 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const productImages = (productDetails?.images && productDetails.images.length > 0)
     ? productDetails.images
     : (scrapedData.images || []);
-  const mainImageUrl = productImages[0] || '';
-  const dealImages = productImages.length > 0 ? productImages : (dealFallbackImageUrl ? [dealFallbackImageUrl] : []);
+  let dealImages = productImages.length > 0 ? productImages : (dealFallbackImageUrl ? [dealFallbackImageUrl] : []);
+  if (dealImages.length === 0) {
+    if (merchant === 'amazon' && productId) {
+      dealImages = [`https://images-na.ssl-images-amazon.com/images/P/${productId}.01.LZZZZZZZ.jpg`];
+    } else {
+      dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
+    }
+  }
   const dealMainImageUrl = dealImages[0] || '';
 
   const hasImage = dealImages.length > 0;
@@ -1521,10 +1596,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const productRating = productDetails?.rating || scrapedData?.rating || 0;
   const productReviews = productDetails?.reviews || scrapedData?.reviews || [];
   const now = new Date();
-  // Scraped title always wins when available (an actual scrape essentially always returns one,
-  // even for out-of-stock listings) — this generic fallback only fires when the scrape itself
-  // failed outright and nothing was ever cached for this product either.
-  const actualTitle = productDetails?.title || scrapedData?.title || `${merchant} Deal (${productId})`;
+  const messageTitle = extractTitleFromMessage(messageText);
+  const actualTitle = productDetails?.title || scrapedData?.title || messageTitle || `${merchant} Deal (${productId})`;
   // No AI-generated summary any more — a plain templated line covers what the field is for
   // (a one-line blurb under the deal card) without depending on a text-parsing call.
   const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;

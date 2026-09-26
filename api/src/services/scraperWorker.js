@@ -311,23 +311,10 @@ export function initScraperWorker() {
     },
     {
       connection: redisConnection,
-      concurrency: 1, // Per-process concurrency stays 1 — each worker still handles one
-      // job at a time (matches a ScrapingAnt token's own per-token concurrency=1 reality;
-      // the atomic token-lease fix already guarantees two workers never share a token).
-      // Fleet-wide parallelism comes from running multiple separate worker PROCESSES, not
-      // from raising this.
+      concurrency: parseInt(process.env.SCRAPER_WORKER_CONCURRENCY || '3', 10),
       limiter: {
-        // This is a GLOBAL limiter shared via Redis across every worker process on the
-        // "scraper-queue" queue — always keep it matched to however many workers are
-        // actually ACTIVE (not paused), not the total process count. First raised 1→10 when
-        // the fleet was 10/10 active (confirmed 1 gave zero extra throughput over 5→10
-        // workers, just more idle-polling — see git history for that measurement). Now 4,
-        // matching the 2026-09-02 reduction to 4 active workers (2 Render + 2 Railway; the
-        // other 6 are WORKER_PAUSED=true — see the isPaused branch above) done specifically
-        // to cut Redis command volume (confirmed via Upstash's own MONITOR sampling and
-        // INFO stats — idle workers polling for a rarely-open slot were the dominant cost).
-        max: 4,
-        duration: 2500,
+        max: 10,
+        duration: 1000,
       },
     }
   );

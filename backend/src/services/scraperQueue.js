@@ -90,6 +90,11 @@ class DistributedScraperQueue {
         .then(() => console.log('[Backend Scraper Queue] Trimmed bull:scraper-queue:events to 100 entries.'))
         .catch((err) => console.warn('[Backend Scraper Queue] trimEvents failed (non-fatal):', err.message));
 
+      // Clean stale waiting jobs older than 2 minutes on boot to prevent worker backlogs
+      this.queue.clean(2 * 60 * 1000, 500, 'wait')
+        .then(cleaned => { if (cleaned.length > 0) console.log(`[Backend Scraper Queue] Cleaned ${cleaned.length} stale waiting jobs on boot.`); })
+        .catch(() => {});
+
       // Also re-trim periodically — see api/'s matching comment for why the one-time boot
       // trim alone isn't enough. Tightened to every 2 minutes (from 10) alongside the maxLen
       // reduction above, to keep memory pressure down as much as possible while the
@@ -123,7 +128,7 @@ class DistributedScraperQueue {
       // issues on Valkey/Render where completion events are never received.
       // See api/src/services/scraperQueue.js's matching comment — sized for attempts: 3 +
       // backoff above, not just one worker attempt.
-      const TIMEOUT = options.timeout || (priority === PRIORITY.TELEGRAM ? 60000 : 90000);
+      const TIMEOUT = options.timeout || (priority === PRIORITY.TELEGRAM ? 35000 : 90000);
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 
@@ -150,6 +155,18 @@ class DistributedScraperQueue {
         }
         if (state === 'failed') throw new Error(fresh.failedReason || 'Job failed');
       }
+
+      // Evict job from queue if it has not yet started running to free workers
+      try {
+        const fresh = await withTimeout(Job.fromId(this.queue, job.id), 5000, 'Job.fromId').catch(() => null);
+        if (fresh) {
+          const state = await fresh.getState().catch(() => null);
+          if (state === 'waiting' || state === 'delayed') {
+            await fresh.remove().catch(() => {});
+            console.log(`[Backend Scraper Queue] Evicted timed-out waiting job #${job.id} to protect scraper capacity.`);
+          }
+        }
+      } catch (_) {}
 
       throw new Error(`Job wait scrape timed out before finishing, no finish notification arrived after ${TIMEOUT}ms (id=${job.id})`);
     } catch (err) {
