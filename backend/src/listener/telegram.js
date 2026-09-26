@@ -304,8 +304,20 @@ async function handleTelegramUpdate(update) {
 /**
  * Start GramJS client and bind listener
  */
+export async function stopTelegramListener() {
+  if (client) {
+    try {
+      console.log('[Telegram] Disconnecting Telegram client gracefully...');
+      await client.disconnect();
+      console.log('[Telegram] Client disconnected.');
+    } catch (e) {
+      console.warn('[Telegram] Disconnect error (ignored):', e.message);
+    }
+  }
+}
+
 export async function startTelegramListener() {
-  const { apiId, apiHash, session } = config.telegram;
+  const { session, apiId, apiHash } = config.telegram;
 
   if (!apiId || !apiHash) {
     console.error('[Telegram Error] TELEGRAM_API_ID or TELEGRAM_API_HASH is not set in config.');
@@ -314,13 +326,31 @@ export async function startTelegramListener() {
 
   console.log('[Telegram] Initializing client...');
   const stringSession = new StringSession(session);
-  
-  client = new TelegramClient(stringSession, apiId, apiHash, {
-    connectionRetries: 5,
-  });
 
-  await client.connect();
-  const isAuthorized = await client.checkAuthorization();
+  let isAuthorized = false;
+  const maxAttempts = 10;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      if (client) {
+        try { await client.disconnect(); } catch (_) {}
+      }
+      client = new TelegramClient(stringSession, apiId, apiHash, {
+        connectionRetries: 5,
+      });
+      await client.connect();
+      isAuthorized = await client.checkAuthorization();
+      break;
+    } catch (connErr) {
+      const errStr = String(connErr?.message || connErr);
+      const isAuthDuplicated = errStr.includes('AUTH_KEY_DUPLICATED') || connErr?.code === 406;
+      if (isAuthDuplicated && attempt < maxAttempts) {
+        console.warn(`[Telegram Warning] AUTH_KEY_DUPLICATED (previous container shutting down). Retrying connection in 6s (attempt ${attempt}/${maxAttempts})...`);
+        await new Promise(r => setTimeout(r, 6000));
+      } else {
+        throw connErr;
+      }
+    }
+  }
 
   if (!isAuthorized) {
     if (!process.stdin.isTTY || process.env.NODE_ENV === 'production') {
