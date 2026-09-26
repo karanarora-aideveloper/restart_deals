@@ -77,7 +77,7 @@ const dealSchema = new mongoose.Schema({
   },
   priceSource: {
     type: String,
-    enum: ['scraped', 'ai_text', 'price_history']
+    enum: ['scraped', 'ai_text', 'price_history', 'mrp', 'telegram_channel']
   },
   coupon: {
     type: couponSchema,

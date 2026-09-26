@@ -1550,7 +1550,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
     if (mrpDiscount >= PRICE_DROP_MIN_PERCENT && mrpDiscount <= 95) {
       discountPercentage = mrpDiscount;
-      priceSource = 'mrp';
+      priceSource = liveScrapedPrice != null ? 'scraped' : 'ai_text';
       console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ₹${effectiveMRP} -> ₹${verifiedDealPrice} (${mrpDiscount}% OFF).`);
     }
   }
@@ -1559,7 +1559,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     const msgDiscount = extractDiscountFromMessage(messageText);
     if (msgDiscount && msgDiscount >= PRICE_DROP_MIN_PERCENT && msgDiscount <= 95) {
       discountPercentage = msgDiscount;
-      priceSource = 'telegram_channel';
+      priceSource = 'ai_text';
       if (!effectiveMRP) {
         effectiveMRP = Math.round(verifiedDealPrice / (1 - msgDiscount / 100));
       }
@@ -1584,6 +1584,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
   const dealMainImageUrl = dealImages[0] || '';
+  const mainImageUrl = productImages[0] || dealMainImageUrl;
 
   const hasImage = dealImages.length > 0;
   const hasPrice = verifiedDealPrice != null && verifiedDealPrice > 0;
@@ -1595,9 +1596,23 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   const productRating = productDetails?.rating || scrapedData?.rating || 0;
   const productReviews = productDetails?.reviews || scrapedData?.reviews || [];
-  const now = new Date();
+  const isGenericTitle = (t) => {
+    if (!t) return true;
+    const lower = t.toLowerCase().trim();
+    return (
+      lower === 'amazon.com' ||
+      lower === 'amazon.in' ||
+      lower.startsWith('amazon.in :') ||
+      lower.startsWith('amazon.com :') ||
+      lower.includes('robot check') ||
+      lower.includes('online shopping site') ||
+      lower.includes('page not found')
+    );
+  };
   const messageTitle = extractTitleFromMessage(messageText);
-  const actualTitle = productDetails?.title || scrapedData?.title || messageTitle || `${merchant} Deal (${productId})`;
+  const validDetailsTitle = !isGenericTitle(productDetails?.title) ? productDetails?.title : null;
+  const validScrapedTitle = !isGenericTitle(scrapedData?.title) ? scrapedData?.title : null;
+  const actualTitle = validDetailsTitle || validScrapedTitle || messageTitle || `${merchant} Deal (${productId})`;
   // No AI-generated summary any more — a plain templated line covers what the field is for
   // (a one-line blurb under the deal card) without depending on a text-parsing call.
   const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;

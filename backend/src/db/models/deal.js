@@ -85,7 +85,7 @@ const dealSchema = new mongoose.Schema({
   // scrape), or 'price_history' (no MRP anywhere — compared against our own last known price).
   priceSource: {
     type: String,
-    enum: ['scraped', 'ai_text', 'price_history']
+    enum: ['scraped', 'ai_text', 'price_history', 'mrp', 'telegram_channel']
   },
   // An extra coupon the shopper applies on the merchant page for a further saving on top of
   // dealPrice. Lives on the Deal, not the Product — it's advertised per-post and expires, unlike
