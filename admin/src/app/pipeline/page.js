@@ -21,7 +21,7 @@ const NODES = [
   { id: 'products',    label: 'Product DB',         sub: 'MongoDB Atlas',             icon: '📦', color: '#10B981', cx: 1270, cy: ROW_MID, logSource: 'api' },
   { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',       icon: '🎯', color: '#F97316', cx: 1500, cy: ROW_MID, logSource: 'api' },
   { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',             icon: '📢', color: '#2CA5E0', cx: 1730, cy: ROW_TOP, logSource: 'api' },
-  { id: 'web',         label: 'Web & App Feed',     sub: 'shopscanner.store',         icon: '🌐', color: '#3B82F6', cx: 1730, cy: ROW_MID, logSource: null },
+  { id: 'web',         label: 'Web & App Feed',     sub: 'shoppersdeals.in',          icon: '🌐', color: '#3B82F6', cx: 1730, cy: ROW_MID, logSource: null },
   { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',           icon: '🐦', color: '#64748B', cx: 1730, cy: ROW_BOT, logSource: 'api' },
 ];
 
@@ -74,7 +74,7 @@ function nodeStats(nodeId, live) {
     case 'tg-out':
       return status ? (status.totalUsers || 0).toLocaleString() + ' subscribers' : null;
     case 'web':
-      return 'shopscanner.store';
+      return 'shoppersdeals.in';
     case 'x-bot':
       return 'US deals · scheduled tweets';
     default:
@@ -672,7 +672,7 @@ function OverviewContent({ nodeId, apiFetch, live }) {
       <div>
         <Row label="Products indexed" value={(status && status.totalProducts || 0).toLocaleString()} accent="#3B82F6" />
         <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 12, fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.6 }}>
-          <a href="https://shopscanner.store" target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>shopscanner.store</a> — live deal feed, cubic spline price charts, Algolia full-text search.
+          <a href="https://www.shoppersdeals.in" target="_blank" rel="noreferrer" style={{ color: '#60a5fa' }}>shoppersdeals.in</a> — live deal feed, cubic spline price charts, Algolia full-text search.
         </div>
       </div>
     );

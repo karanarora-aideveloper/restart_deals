@@ -504,7 +504,7 @@ you need history.
 > `api/` service. It was removed here because tracing every consumer in the monorepo (admin
 > portal, Expo app, Next.js web app) by their actual configured API base URLs showed none of them
 > ever called this backend — they all default to the sibling `api/` service (port `5001` dev /
-> `https://api.shopscanner.store` prod), not this backend's port `3000`. The static admin-portal
+> `https://api.shoppersdeals.in` prod), not this backend's port `3000`. The static admin-portal
 > mount was additionally non-functional on its own terms (`admin/` is a plain Next.js app with no
 > `output: 'export'`/`out/` build to serve statically). Route source, if ever needed for reference,
 > is recoverable from version history; `channels.js`'s `PATCH /:id/category` bug (wrote the

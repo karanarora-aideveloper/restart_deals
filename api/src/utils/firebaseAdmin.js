@@ -15,12 +15,16 @@ let initError = null;
 function initFirebaseAdmin() {
   if (app || initError) return;
   try {
-    if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
-      initError = `Firebase service account not found at ${SERVICE_ACCOUNT_PATH}. Generate one from the Firebase console (Project Settings → Service Accounts → Generate New Private Key) for the "shoppers-deals" project and save it there, or set FIREBASE_SERVICE_ACCOUNT_PATH in api/.env.`;
+    let serviceAccount = null;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else if (fs.existsSync(SERVICE_ACCOUNT_PATH)) {
+      serviceAccount = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
+    } else {
+      initError = `Firebase service account not found at ${SERVICE_ACCOUNT_PATH} and FIREBASE_SERVICE_ACCOUNT env is not set.`;
       console.warn(`[Firebase Admin] ${initError}`);
       return;
     }
-    const serviceAccount = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
     app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });

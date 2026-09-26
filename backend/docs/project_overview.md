@@ -137,7 +137,7 @@ flowchart TD
     Publisher -->|platform: whatsapp - WAHA / Meta / webhook| WA[WhatsApp OutputChannels]
     Publisher -->|platform: twitter - OAuth1 via XAccount| TW[Twitter/X OutputChannels]
 
-    DB -->|Read via the sibling api/ service, NOT this backend| SiblingAPI["api/ service - port 5001 / api.shopscanner.store"]
+    DB -->|Read via the sibling api/ service, NOT this backend| SiblingAPI["api/ service - port 5001 / api.shoppersdeals.in"]
     SiblingAPI -->|REST API| App["Consumer app / admin portal"]
     DB -->|Telegram fallback images, served directly| ThisBackend["This backend's own /media/telegram/*"]
     ThisBackend --> App

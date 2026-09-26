@@ -252,13 +252,22 @@ export async function startTelegramListener() {
     connectionRetries: 5,
   });
 
-  // Login flow
-  await client.start({
-    phoneNumber: async () => await input.text('Enter your Telegram Phone Number (with country code): '),
-    password: async () => await input.text('Enter your Telegram 2FA Password (if enabled): '),
-    phoneCode: async () => await input.text('Enter the Telegram verification code received: '),
-    onError: (err) => console.error('[Telegram Auth Error]', err.message),
-  });
+  await client.connect();
+  const isAuthorized = await client.checkAuthorization();
+
+  if (!isAuthorized) {
+    if (!process.stdin.isTTY || process.env.NODE_ENV === 'production') {
+      console.warn('[Telegram Auth Warning] Telegram session is not authorized or expired. In non-interactive/production environment, skipping interactive login prompt to prevent process hang. Please update TELEGRAM_SESSION with a valid session string.');
+      return;
+    }
+    // Login flow
+    await client.start({
+      phoneNumber: async () => await input.text('Enter your Telegram Phone Number (with country code): '),
+      password: async () => await input.text('Enter your Telegram 2FA Password (if enabled): '),
+      phoneCode: async () => await input.text('Enter the Telegram verification code received: '),
+      onError: (err) => console.error('[Telegram Auth Error]', err.message),
+    });
+  }
 
   console.log('[Telegram] Authenticated successfully!');
   

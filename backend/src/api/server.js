@@ -41,8 +41,8 @@ app.get('/health', (req, res) => {
 export function startServer() {
   const port = config.port || 3000;
   return new Promise((resolve) => {
-    const server = app.listen(port, () => {
-      console.log(`[API Server] Express app running on HTTP port ${port}`);
+    const server = app.listen(port, '0.0.0.0', () => {
+      console.log(`[API Server] Express app running on HTTP port ${port} (0.0.0.0)`);
       resolve(server);
     });
     // Without this, a bind failure (e.g. EADDRINUSE) fires as an unhandled 'error' event —

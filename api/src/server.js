@@ -40,7 +40,21 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(compression());
 app.use(express.json());
 
-// Health check endpoint
+// Root and health check endpoints
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'shoppersdeals-api',
+    message: 'ShoppersDeals REST API Service is live and running.',
+    endpoints: {
+      health: '/health',
+      deals: '/api/deals',
+      products: '/api/products',
+    },
+    time: new Date(),
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'shoppersdeals-api', time: new Date() });
 });
@@ -100,8 +114,8 @@ export function startServer() {
     // scraping throughput from the api web service's single instance: adding
     // more scraping capacity now means deploying another worker instance,
     // not scaling the whole API. See src/services/scraperWorker.js.
-    const server = app.listen(config.port, () => {
-      console.log(`[API Service] Express REST server running on port ${config.port}`);
+    const server = app.listen(config.port, '0.0.0.0', () => {
+      console.log(`[API Service] Express REST server running on port ${config.port} (0.0.0.0)`);
       startXBotScheduler();
       startDailyProductRefresher();
       startBestsellerCrawlerScheduler();
