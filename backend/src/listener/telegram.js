@@ -306,28 +306,53 @@ async function handleTelegramUpdate(update) {
 const CONTAINER_INSTANCE_ID = crypto.randomUUID();
 let heartbeatInterval = null;
 
+function ensureHeartbeat(lockKey, ttlSec) {
+  if (heartbeatInterval) return;
+  heartbeatInterval = setInterval(async () => {
+    try {
+      if (client && !client.connected) {
+        return;
+      }
+      const current = await defaultRedis.get(lockKey);
+      if (current === CONTAINER_INSTANCE_ID) {
+        await defaultRedis.expire(lockKey, ttlSec);
+      }
+    } catch (_) {}
+  }, 8000);
+}
+
 async function acquireTelegramLock() {
   const LOCK_KEY = 'telegram:active_listener';
   const LOCK_TTL_SEC = 25;
+  const maxWaitMs = 45000;
+  const startTime = Date.now();
 
   while (true) {
     try {
-      const acquired = await defaultRedis.set(LOCK_KEY, CONTAINER_INSTANCE_ID, 'EX', LOCK_TTL_SEC, 'NX');
-      if (acquired === 'OK') {
-        console.log(`[Telegram Lock] Acquired master Telegram listener lock (${CONTAINER_INSTANCE_ID.slice(0, 8)}).`);
-        
-        heartbeatInterval = setInterval(async () => {
-          try {
-            const current = await defaultRedis.get(LOCK_KEY);
-            if (current === CONTAINER_INSTANCE_ID) {
-              await defaultRedis.expire(LOCK_KEY, LOCK_TTL_SEC);
-            }
-          } catch (_) {}
-        }, 8000);
+      // 1. If this container already owns the lock, refresh TTL and proceed
+      const currentOwner = await defaultRedis.get(LOCK_KEY);
+      if (currentOwner === CONTAINER_INSTANCE_ID) {
+        await defaultRedis.expire(LOCK_KEY, LOCK_TTL_SEC);
+        ensureHeartbeat(LOCK_KEY, LOCK_TTL_SEC);
         return;
       }
 
-      const currentOwner = await defaultRedis.get(LOCK_KEY);
+      // 2. Try to acquire lock if available
+      const acquired = await defaultRedis.set(LOCK_KEY, CONTAINER_INSTANCE_ID, 'EX', LOCK_TTL_SEC, 'NX');
+      if (acquired === 'OK') {
+        console.log(`[Telegram Lock] Acquired master Telegram listener lock (${CONTAINER_INSTANCE_ID.slice(0, 8)}).`);
+        ensureHeartbeat(LOCK_KEY, LOCK_TTL_SEC);
+        return;
+      }
+
+      // 3. If waited > 45s for previous container, force takeover to avoid stalling deployment
+      if (Date.now() - startTime > maxWaitMs) {
+        console.warn(`[Telegram Lock Warning] Handover wait timed out after ${maxWaitMs / 1000}s. Forcing lock takeover from (${currentOwner?.slice(0, 8) || 'unknown'})...`);
+        await defaultRedis.set(LOCK_KEY, CONTAINER_INSTANCE_ID, 'EX', LOCK_TTL_SEC);
+        ensureHeartbeat(LOCK_KEY, LOCK_TTL_SEC);
+        return;
+      }
+
       console.log(`[Telegram Lock] Previous container (${currentOwner?.slice(0, 8) || 'unknown'}) is active. Waiting 5s for socket handover...`);
       await new Promise(r => setTimeout(r, 5000));
     } catch (lockErr) {
@@ -378,96 +403,103 @@ export async function startTelegramListener() {
   // Acquire distributed lock before connecting socket to prevent rolling-deploy collision
   await acquireTelegramLock();
 
-  console.log('[Telegram] Initializing client...');
-  const stringSession = new StringSession(session);
-
-  let isAuthorized = false;
-  const maxAttempts = 10;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      if (client) {
-        try { await client.disconnect(); } catch (_) {}
-      }
-      client = new TelegramClient(stringSession, apiId, apiHash, {
-        connectionRetries: 5,
-      });
-      await client.connect();
-      isAuthorized = await client.checkAuthorization();
-      break;
-    } catch (connErr) {
-      const errStr = String(connErr?.message || connErr);
-      const isAuthDuplicated = errStr.includes('AUTH_KEY_DUPLICATED') || connErr?.code === 406;
-      if (isAuthDuplicated && attempt < maxAttempts) {
-        console.warn(`[Telegram Warning] AUTH_KEY_DUPLICATED (previous container shutting down). Retrying connection in 6s (attempt ${attempt}/${maxAttempts})...`);
-        await new Promise(r => setTimeout(r, 6000));
-      } else {
-        throw connErr;
-      }
-    }
-  }
-
-  if (!isAuthorized) {
-    if (!process.stdin.isTTY || process.env.NODE_ENV === 'production') {
-      console.warn('[Telegram Auth Warning] Telegram session is not authorized or expired. In non-interactive/production environment, skipping interactive login prompt to prevent process hang. Please update TELEGRAM_SESSION with a valid session string.');
-      return;
-    }
-    // Login flow
-    await client.start({
-      phoneNumber: async () => await input.text('Enter your Telegram Phone Number (with country code): '),
-      password: async () => await input.text('Enter your Telegram 2FA Password (if enabled): '),
-      phoneCode: async () => await input.text('Enter the Telegram verification code received: '),
-      onError: (err) => console.error('[Telegram Auth Error]', err.message),
-    });
-  }
-
-  console.log('[Telegram] Authenticated successfully!');
-  
-  // Output session string
-  const currentSession = client.session.save();
-  console.log('\n=================== TELEGRAM SESSION STRING ===================');
-  console.log('Copy & paste this updated session string into backend/.env as TELEGRAM_SESSION:');
-  console.log(currentSession);
-  console.log('===============================================================\n');
-
-  // Pre-fetch all joined dialogs into GramJS entity cache
-  await fetchJoinedDialogs();
-
-  // Attach permanent MTProto event dispatcher
-  if (!currentHandler) {
-    currentHandler = handleTelegramUpdate;
-    client.addEventHandler(currentHandler);
-    console.log('[Telegram] Registered native MTProto update dispatcher.');
-  }
-
-  // Sync global update state baseline
   try {
-    console.log('[Telegram] Syncing global update state (GetState)...');
-    await client.invoke(new Api.updates.GetState());
-    console.log('[Telegram] Global update state synced.');
-  } catch (cuErr) {
-    console.warn('[Telegram Warning] GetState() sync failed (non-fatal):', cuErr.message);
-  }
+    console.log('[Telegram] Initializing client...');
+    const stringSession = new StringSession(session);
 
-  // Load active channels into lookup Set and initialize their PTS baselines
-  await refreshMonitoredChannels();
-
-  // Periodically refresh channel list from DB every 5 seconds (auto-detect Admin changes)
-  setInterval(async () => {
-    try {
-      await refreshMonitoredChannels();
-    } catch (err) {
-      console.error('[Telegram Refresh Error] Failed to refresh channel list:', err.message);
+    let isAuthorized = false;
+    const maxAttempts = 5;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        if (client) {
+          try { await client.disconnect(); } catch (_) {}
+        }
+        client = new TelegramClient(stringSession, apiId, apiHash, {
+          connectionRetries: 3,
+        });
+        await client.connect();
+        isAuthorized = await client.checkAuthorization();
+        break;
+      } catch (connErr) {
+        const errStr = String(connErr?.message || connErr);
+        const isAuthDuplicated = errStr.includes('AUTH_KEY_DUPLICATED') || connErr?.code === 406;
+        if (isAuthDuplicated && attempt < maxAttempts) {
+          console.warn(`[Telegram Warning] AUTH_KEY_DUPLICATED (socket collision). Retrying connection in 5s (attempt ${attempt}/${maxAttempts})...`);
+          await new Promise(r => setTimeout(r, 5000));
+        } else {
+          throw connErr;
+        }
+      }
     }
-  }, 5 * 1000);
 
-  // In accordance with Telegram MTProto spec, keep channel subscriptions active via delta sync
-  startChannelKeepAliveSync();
+    if (!isAuthorized) {
+      if (!process.stdin.isTTY || process.env.NODE_ENV === 'production') {
+        console.warn('[Telegram Auth Warning] Telegram session is not authorized or expired. In non-interactive/production environment, skipping interactive login prompt to prevent process hang. Please run: node backend/scripts/generate_session.js to generate a new session.');
+        await releaseTelegramLock();
+        return;
+      }
+      // Login flow
+      await client.start({
+        phoneNumber: async () => await input.text('Enter your Telegram Phone Number (with country code): '),
+        password: async () => await input.text('Enter your Telegram 2FA Password (if enabled): '),
+        phoneCode: async () => await input.text('Enter the Telegram verification code received: '),
+        onError: (err) => console.error('[Telegram Auth Error]', err.message),
+      });
+    }
 
-  // Initial sync with active scrapers in Redis to determine dynamic queue concurrency
-  await syncQueueConcurrencyWithScrapers();
+    console.log('[Telegram] Authenticated successfully!');
+    
+    // Output session string
+    const currentSession = client.session.save();
+    console.log('\n=================== TELEGRAM SESSION STRING ===================');
+    console.log('Copy & paste this updated session string into backend/.env as TELEGRAM_SESSION:');
+    console.log(currentSession);
+    console.log('===============================================================\n');
 
-  // Periodically refresh scraper concurrency every 20 seconds to dynamically scale with the scraper fleet
-  setInterval(syncQueueConcurrencyWithScrapers, 20 * 1000);
+    // Pre-fetch all joined dialogs into GramJS entity cache
+    await fetchJoinedDialogs();
+
+    // Attach permanent MTProto event dispatcher
+    if (!currentHandler) {
+      currentHandler = handleTelegramUpdate;
+      client.addEventHandler(currentHandler);
+      console.log('[Telegram] Registered native MTProto update dispatcher.');
+    }
+
+    // Sync global update state baseline
+    try {
+      console.log('[Telegram] Syncing global update state (GetState)...');
+      await client.invoke(new Api.updates.GetState());
+      console.log('[Telegram] Global update state synced.');
+    } catch (cuErr) {
+      console.warn('[Telegram Warning] GetState() sync failed (non-fatal):', cuErr.message);
+    }
+
+    // Load active channels into lookup Set and initialize their PTS baselines
+    await refreshMonitoredChannels();
+
+    // Periodically refresh channel list from DB every 5 seconds (auto-detect Admin changes)
+    setInterval(async () => {
+      try {
+        await refreshMonitoredChannels();
+      } catch (err) {
+        console.error('[Telegram Refresh Error] Failed to refresh channel list:', err.message);
+      }
+    }, 5 * 1000);
+
+    // In accordance with Telegram MTProto spec, keep channel subscriptions active via delta sync
+    startChannelKeepAliveSync();
+
+    // Initial sync with active scrapers in Redis to determine dynamic queue concurrency
+    await syncQueueConcurrencyWithScrapers();
+
+    // Periodically refresh scraper concurrency every 20 seconds to dynamically scale with the scraper fleet
+    setInterval(syncQueueConcurrencyWithScrapers, 20 * 1000);
+  } catch (err) {
+    console.error('[Telegram Listener Failed]', err.message);
+    await releaseTelegramLock();
+    throw err;
+  }
 }
 
 /**
