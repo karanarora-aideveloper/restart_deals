@@ -9,6 +9,8 @@ import { verifyAndProcessMessage } from './verifier.js';
 import { publishToTelegram } from './publisher.js';
 import { downloadMessagePhoto } from '../utils/telegramMedia.js';
 import { scraperQueue } from '../services/scraperQueue.js';
+import { defaultRedis } from '../utils/redis.js';
+import crypto from 'crypto';
 
 // Dynamic concurrency queue to process incoming messages across channels in parallel.
 // Concurrency dynamically scales to match the number of active scraper workers available.
@@ -301,6 +303,54 @@ async function handleTelegramUpdate(update) {
   }
 }
 
+const CONTAINER_INSTANCE_ID = crypto.randomUUID();
+let heartbeatInterval = null;
+
+async function acquireTelegramLock() {
+  const LOCK_KEY = 'telegram:active_listener';
+  const LOCK_TTL_SEC = 25;
+
+  while (true) {
+    try {
+      const acquired = await defaultRedis.set(LOCK_KEY, CONTAINER_INSTANCE_ID, 'EX', LOCK_TTL_SEC, 'NX');
+      if (acquired === 'OK') {
+        console.log(`[Telegram Lock] Acquired master Telegram listener lock (${CONTAINER_INSTANCE_ID.slice(0, 8)}).`);
+        
+        heartbeatInterval = setInterval(async () => {
+          try {
+            const current = await defaultRedis.get(LOCK_KEY);
+            if (current === CONTAINER_INSTANCE_ID) {
+              await defaultRedis.expire(LOCK_KEY, LOCK_TTL_SEC);
+            }
+          } catch (_) {}
+        }, 8000);
+        return;
+      }
+
+      const currentOwner = await defaultRedis.get(LOCK_KEY);
+      console.log(`[Telegram Lock] Previous container (${currentOwner?.slice(0, 8) || 'unknown'}) is active. Waiting 5s for socket handover...`);
+      await new Promise(r => setTimeout(r, 5000));
+    } catch (lockErr) {
+      console.warn('[Telegram Lock Warning] Redis lock check failed, proceeding cautiously:', lockErr.message);
+      return;
+    }
+  }
+}
+
+async function releaseTelegramLock() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  try {
+    const current = await defaultRedis.get('telegram:active_listener');
+    if (current === CONTAINER_INSTANCE_ID) {
+      await defaultRedis.del('telegram:active_listener');
+      console.log('[Telegram Lock] Master listener lock released cleanly.');
+    }
+  } catch (_) {}
+}
+
 /**
  * Start GramJS client and bind listener
  */
@@ -314,6 +364,7 @@ export async function stopTelegramListener() {
       console.warn('[Telegram] Disconnect error (ignored):', e.message);
     }
   }
+  await releaseTelegramLock();
 }
 
 export async function startTelegramListener() {
@@ -323,6 +374,9 @@ export async function startTelegramListener() {
     console.error('[Telegram Error] TELEGRAM_API_ID or TELEGRAM_API_HASH is not set in config.');
     return;
   }
+
+  // Acquire distributed lock before connecting socket to prevent rolling-deploy collision
+  await acquireTelegramLock();
 
   console.log('[Telegram] Initializing client...');
   const stringSession = new StringSession(session);
