@@ -688,7 +688,46 @@ export function extractTitleFromMessage(text) {
 
 export async function scrapeProductDetails(targetUrl) {
   try {
-    const html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
+    let html = null;
+
+    // 1. Direct fetch with browser headers first (0 credits, instant response)
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const resp = await fetch(targetUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-IN,en-US;q=0.9,en;q=0.8',
+          'Sec-Ch-Ua': '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"macOS"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+        },
+      });
+      clearTimeout(timeout);
+      if (resp.ok) {
+        const text = await resp.text();
+        // Check that this is real page HTML and not a bot challenge / captcha
+        if (text && !text.includes('api-services-support@amazon.com') && !text.includes('/errors/validateCaptcha') && text.length > 3000) {
+          html = text;
+          console.log(`[Verifier] ⚡ Direct fetch SUCCEEDED for ${targetUrl.slice(0, 50)} (0 credits)!`);
+        }
+      }
+    } catch (_) {
+      // Direct fetch failed or timed out — smoothly proceed to distributed scraper queue
+    }
+
+    // 2. If direct fetch didn't return valid HTML, fall back to distributed scraper queue
+    if (!html) {
+      html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
+    }
+
     if (!html) {
       const direct = await fetchDirectMetadata(targetUrl);
       return {
@@ -1674,12 +1713,14 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     discountPercentage = 0;
   }
 
-  // Helper to verify if an image is a permanent authentic merchant image (not ephemeral local media or placeholder)
+  // Helper to verify if an image is a usable product image (not 1x1 blank GIF or broken placeholder)
   const isPermanentMerchantImage = (imgUrl) => {
     if (!imgUrl || typeof imgUrl !== 'string') return false;
-    if (imgUrl.includes('/media/telegram/')) return false;
+    // Reject legacy Amazon media server that returns 43-byte transparent 1x1 GIFs
+    if (imgUrl.includes('images-na.ssl-images-amazon.com/images/P/')) return false;
     if (imgUrl.includes('placeholder.png')) return false;
     return (
+      imgUrl.includes('/media/telegram/') ||
       imgUrl.includes('amazon.') ||
       imgUrl.includes('ssl-images-amazon.com') ||
       imgUrl.includes('media-amazon.com') ||
@@ -1710,9 +1751,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     dealImages = cachedImages;
   } else if (freshScrapedImages.length > 0) {
     dealImages = freshScrapedImages;
-  } else if (merchant === 'amazon' && productId) {
-    dealImages = [`https://images-na.ssl-images-amazon.com/images/P/${productId}.01.LZZZZZZZ.jpg`];
   } else if (dealFallbackImageUrl && isPermanentMerchantImage(dealFallbackImageUrl)) {
+    // Real Telegram photo attached to the curator's message
     dealImages = [dealFallbackImageUrl];
   } else {
     dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
@@ -1818,7 +1858,10 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         const newPriceStr = `₹${effectivePrice}`;
         console.log(`[Price Tracker] 📈 Price update for "${productRecord.title || actualTitle}": ${oldPriceStr} ➔ ${newPriceStr} at ${now.toLocaleTimeString()}`);
 
-        if (genuinePriceDrop != null) {
+        // Authentic previous price: previous selling price before this update
+        if (productRecord.price != null && productRecord.price > 0) {
+          productRecord.previousPrice = productRecord.price;
+        } else if (genuinePriceDrop != null) {
           productRecord.previousPrice = genuinePriceDrop;
         }
         productRecord.price = effectivePrice;
@@ -1831,6 +1874,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         });
       } else {
         if (!productRecord.priceUpdatedAt) productRecord.priceUpdatedAt = now;
+        if (genuinePriceDrop != null && !productRecord.previousPrice) {
+          productRecord.previousPrice = genuinePriceDrop;
+        }
       }
 
       if (priceSource) productRecord.priceSource = priceSource;
@@ -1910,7 +1956,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.discountPercentage = discountPercentage;
       deal.coupon = dealCoupon;
       deal.priceSource = priceSource;
-      if (genuinePriceDrop != null) deal.previousPrice = genuinePriceDrop;
+      const authenticPrev = genuinePriceDrop || productRecord?.previousPrice || previousTrackedPrice || null;
+      if (authenticPrev != null) deal.previousPrice = authenticPrev;
       deal.category = category;
       deal.subcategory = subcategory;
       deal.isVerified = true;
@@ -1933,6 +1980,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
       return deal;
     } else {
+      const authenticPrev = genuinePriceDrop || productRecord?.previousPrice || previousTrackedPrice || null;
       deal = new Deal({
         sourceChannelId,
         sourceMessageId: sourceMessageId,
@@ -1950,7 +1998,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         merchant,
         originalPrice: effectiveMRP || canonicalMRP || verifiedDealPrice,
         dealPrice: verifiedDealPrice,
-        previousPrice: genuinePriceDrop,
+        previousPrice: authenticPrev,
         discountPercentage: discountPercentage,
         coupon: dealCoupon,
         priceSource,
