@@ -101,9 +101,17 @@ export async function executeScrapingAntJob(url, source = 'other') {
   // window, despite 48 active tokens sitting idle). findOneAndUpdate is atomic per-document
   // in MongoDB, so two racing calls are guaranteed to claim two different tokens as long as
   // more than one active token exists.
+  // Atomically claim the least-recently-used active token that is not in cooldown.
+  const now = new Date();
   const leased = await ScrapingAntToken.findOneAndUpdate(
-    { status: 'active' },
-    { $set: { lastUsedAt: new Date() } },
+    {
+      status: 'active',
+      $or: [
+        { cooldownUntil: { $exists: false } },
+        { cooldownUntil: { $lte: now } }
+      ]
+    },
+    { $set: { lastUsedAt: now } },
     { sort: { lastUsedAt: 1 }, new: true }
   ).lean();
 
@@ -162,7 +170,14 @@ export async function executeScrapingAntJob(url, source = 'other') {
       // reasoning as the initial lease above (a plain array lookup here would risk handing
       // out a token another racing worker already claimed).
       const rotated = await ScrapingAntToken.findOneAndUpdate(
-        { status: 'active', token: { $ne: token } },
+        {
+          status: 'active',
+          token: { $ne: token },
+          $or: [
+            { cooldownUntil: { $exists: false } },
+            { cooldownUntil: { $lte: new Date() } }
+          ]
+        },
         { $set: { lastUsedAt: new Date() } },
         { sort: { lastUsedAt: 1 }, new: true }
       ).lean();
@@ -213,21 +228,39 @@ export async function executeScrapingAntJob(url, source = 'other') {
     throw new Error('ScrapingAnt 409 concurrency limit (persisted after token rotation)');
   }
 
-  if (response.status === 403 || response.status === 429) {
-    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (${response.status}).`);
+  if (response.status === 429) {
+    console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit. Setting 60s cooldown.`);
+    await ScrapingAntToken.updateOne(
+      { token },
+      { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }
+    ).catch(() => {});
+    await recordScrapingLog({
+      url,
+      source,
+      tokenUsed: token,
+      status: '429_rate_limit',
+      statusCode: 429,
+      durationMs,
+      errorMessage: 'ScrapingAnt rate limit (429) - 60s cooldown applied',
+    });
+    throw new Error('ScrapingAnt rate limit (429) - token cooled down, rotating');
+  }
+
+  if (response.status === 403) {
+    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403).`);
     await ScrapingAntToken.updateOne({ token }, { status: 'exhausted', exhaustedAt: new Date() }).catch(() => {});
     await recordScrapingLog({
       url,
       source,
       tokenUsed: token,
       status: '403_exhausted',
-      statusCode: response.status,
+      statusCode: 403,
       durationMs,
-      errorMessage: `Token quota exhausted (${response.status})`,
+      errorMessage: 'Token quota exhausted (403)',
     });
     // The exhausted token is now excluded from future leases (status flipped above), so a
     // retry will atomically pick a genuinely different active token — worth a BullMQ retry.
-    throw new Error(`Token quota exhausted (${response.status})`);
+    throw new Error('Token quota exhausted (403)');
   }
 
   if (response.status === 423) {

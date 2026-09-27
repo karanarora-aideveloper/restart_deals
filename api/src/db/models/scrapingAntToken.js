@@ -42,6 +42,10 @@ const scrapingAntTokenSchema = new mongoose.Schema({
   exhaustedAt: {
     type: Date
   },
+  cooldownUntil: {
+    type: Date,
+    default: null
+  },
   lastUsedAt: {
     type: Date,
     default: Date.now
@@ -49,6 +53,7 @@ const scrapingAntTokenSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 scrapingAntTokenSchema.index({ status: 1, lastUsedAt: 1 });
+scrapingAntTokenSchema.index({ status: 1, cooldownUntil: 1, lastUsedAt: 1 });
 
 const ScrapingAntToken = mongoose.models.ScrapingAntToken || mongoose.model('ScrapingAntToken', scrapingAntTokenSchema, 'scraping_ant_tokens');
 
