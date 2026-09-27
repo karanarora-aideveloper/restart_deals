@@ -40,6 +40,12 @@ function isSupportedMerchantUrl(url) {
 // which resolved URL to treat as the deal's product link.
 const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'croma'];
 
+// In-flight scraper promises map to prevent duplicate simultaneous scrapes for the exact same URL
+const inFlightScrapes = new Map();
+
+// Configurable cache window for scraped pages (default: 30 minutes)
+const SCRAPER_CACHE_WINDOW_MS = (parseInt(process.env.SCRAPER_CACHE_TTL_MINUTES || '30', 10)) * 60 * 1000;
+
 /**
  * Extract embedded target merchant URLs from tracking/redirect parameter wrappers
  * e.g., https://go.bigtricks.in/?o=https%3A%2F%2Fwww.amazon.in%2Fdp%2FB0FDB6YRGK%3Ftag%3Dbigin-21
@@ -1472,10 +1478,57 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   // qualification path when no MRP exists anywhere (see the discount calculation further down).
   const previousTrackedPrice = existingProduct?.price ?? null;
 
-  // 7. MANDATORY Live Scrape for incoming Telegram deals
-  // We ALWAYS scrape the live merchant URL to verify the current selling price and genuine MRP.
-  console.log(`[Verifier] 🔍 Mandatory Live Scrape: Fetching live merchant page for ${cleanUrl}...`);
-  const scrapedData = await scrapeProductDetails(cleanUrl);
+  // 7. Check 30-Minute Scrape Freshness Cache Before Hitting Worker
+  // User Rule: Only pass the link to the scraper worker if we genuinely need to scrape it.
+  // 1. Redirect URL is already resolved (cleanUrl, productId, merchant).
+  // 2. Check whether this particular product was already scraped in the last 30 minutes.
+  const nowMs = Date.now();
+  const lastScrapedTime = productDetails?.lastChecked
+    ? new Date(productDetails.lastChecked).getTime()
+    : (existingProduct?.lastChecked ? new Date(existingProduct.lastChecked).getTime() : null);
+
+  const isScrapedWithin30Mins = lastScrapedTime && (nowMs - lastScrapedTime < SCRAPER_CACHE_WINDOW_MS);
+  const hasCachedImages = (productDetails?.images && productDetails.images.length > 0) || (existingProduct?.images && existingProduct.images.length > 0);
+  const hasCachedPrice = (productDetails?.price != null && productDetails.price > 0) || (existingProduct?.price != null && existingProduct.price > 0);
+
+  const canUseCache = Boolean(isScrapedWithin30Mins && hasCachedPrice && hasCachedImages);
+
+  let scrapedData;
+  if (canUseCache) {
+    const ageMins = Math.round((nowMs - lastScrapedTime) / 60000);
+    console.log(`[Verifier] ⚡ Cache HIT for ${cleanUrl}: Scraped ${ageMins}m ago (< 30m). Bypassing scraper worker queue completely!`);
+    scrapedData = {
+      title: productDetails?.title || existingProduct?.title || null,
+      images: (productDetails?.images && productDetails.images.length > 0)
+        ? productDetails.images
+        : (existingProduct?.images || []),
+      rating: productDetails?.rating ?? existingProduct?.rating ?? null,
+      reviews: productDetails?.reviews || existingProduct?.reviews || [],
+      price: productDetails?.price ?? existingProduct?.price ?? null,
+      originalPrice: productDetails?.originalPrice ?? existingProduct?.originalPrice ?? null,
+      categoryHint: existingProduct?.category || null,
+      couponRawText: null,
+      isFromCache: true
+    };
+  } else {
+    const reason = !lastScrapedTime
+      ? 'Never scraped before'
+      : (!isScrapedWithin30Mins ? `Scraped ${Math.round((nowMs - lastScrapedTime) / 60000)}m ago (> 30m cache window)` : 'Missing cached price or images');
+    console.log(`[Verifier] 🔍 Scrape needed for ${cleanUrl} (${reason}). Handing over to Scraper Worker...`);
+
+    if (inFlightScrapes.has(cleanUrl)) {
+      console.log(`[Verifier] ⏳ Scrape already in flight for ${cleanUrl}. Awaiting active worker job...`);
+      scrapedData = await inFlightScrapes.get(cleanUrl);
+    } else {
+      const scrapePromise = scrapeProductDetails(cleanUrl);
+      inFlightScrapes.set(cleanUrl, scrapePromise);
+      try {
+        scrapedData = await scrapePromise;
+      } finally {
+        inFlightScrapes.delete(cleanUrl);
+      }
+    }
+  }
 
   const liveScrapedPrice = scrapedData.price != null ? scrapedData.price : null;
   const liveScrapedMRP = scrapedData.originalPrice != null ? scrapedData.originalPrice : null;
@@ -1527,35 +1580,39 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   let scrapeSucceededThisRun = false;
 
   if (scrapedData.images && scrapedData.images.length > 0) {
-    scrapeSucceededThisRun = true;
-    const scrapedVariant = extractVariant(scrapedData.title);
-    if (!productDetails) {
-      productDetails = new VerifiedLink({
-        originalUrl: primaryUrl,
-        cleanUrl,
-        productId,
-        merchant,
-        title: scrapedData.title || null,
-        images: scrapedData.images,
-        rating: scrapedData.rating,
-        reviews: scrapedData.reviews,
-        price: liveScrapedPrice || verifiedDealPrice,
-        originalPrice: canonicalMRP,
-        variant: scrapedVariant,
-        lastChecked: new Date()
-      });
+    if (!scrapedData.isFromCache) {
+      scrapeSucceededThisRun = true;
+      const scrapedVariant = extractVariant(scrapedData.title);
+      if (!productDetails) {
+        productDetails = new VerifiedLink({
+          originalUrl: primaryUrl,
+          cleanUrl,
+          productId,
+          merchant,
+          title: scrapedData.title || null,
+          images: scrapedData.images,
+          rating: scrapedData.rating,
+          reviews: scrapedData.reviews,
+          price: liveScrapedPrice || verifiedDealPrice,
+          originalPrice: canonicalMRP,
+          variant: scrapedVariant,
+          lastChecked: new Date()
+        });
+      } else {
+        productDetails.images = scrapedData.images;
+        if (scrapedData.title) productDetails.title = scrapedData.title;
+        if (scrapedData.rating) productDetails.rating = scrapedData.rating;
+        if (scrapedData.reviews && scrapedData.reviews.length > 0) productDetails.reviews = scrapedData.reviews;
+        if (verifiedDealPrice != null) productDetails.price = verifiedDealPrice;
+        if (canonicalMRP != null) productDetails.originalPrice = canonicalMRP;
+        if (scrapedVariant) productDetails.variant = scrapedVariant;
+        productDetails.lastChecked = new Date();
+      }
+      await productDetails.save();
+      console.log(`[Verifier] Scraped details saved/updated in verified_links cache for ${cleanUrl}.`);
     } else {
-      productDetails.images = scrapedData.images;
-      if (scrapedData.title) productDetails.title = scrapedData.title;
-      if (scrapedData.rating) productDetails.rating = scrapedData.rating;
-      if (scrapedData.reviews && scrapedData.reviews.length > 0) productDetails.reviews = scrapedData.reviews;
-      if (verifiedDealPrice != null) productDetails.price = verifiedDealPrice;
-      if (canonicalMRP != null) productDetails.originalPrice = canonicalMRP;
-      if (scrapedVariant) productDetails.variant = scrapedVariant;
-      productDetails.lastChecked = new Date();
+      console.log(`[Verifier] Re-using verified product details from 30m cache for ${cleanUrl}.`);
     }
-    await productDetails.save();
-    console.log(`[Verifier] Scraped details saved/updated in verified_links cache for ${cleanUrl}.`);
   } else {
     if (productDetails && productDetails.images && productDetails.images.length > 0) {
       console.log(`[Verifier] Scrape did not return images, using existing DB cached images for ${cleanUrl}.`);
@@ -1783,7 +1840,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         productRecord.subcategory = subcategory;
       }
       if (isFullyVerified) productRecord.needsEnrichment = false;
-      productRecord.lastChecked = now;
+      if (!scrapedData.isFromCache) {
+        productRecord.lastChecked = now;
+      }
       productRecord.updatedAt = now;
     }
     await productRecord.save();
