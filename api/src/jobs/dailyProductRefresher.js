@@ -377,8 +377,52 @@ export async function getRefresherStatus() {
 }
 
 /**
+ * Auto-expires deals older than maxAgeDays (default: 5 days) that have not been re-verified in the last 48 hours.
+ * Flash sale deals on Amazon/Flipkart rarely last beyond 24-72 hours.
+ * Sweeps the collection periodically to keep active deals fresh and accurate.
+ *
+ * @param {number} maxAgeDays - Age threshold in days after which un-verified deals expire (default: 5)
+ * @returns {Promise<number>} Number of deals expired
+ */
+export async function autoExpireStaleDeals(maxAgeDays = 5) {
+  try {
+    const cutoffDate = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+    const query = {
+      isExpired: { $ne: true },
+      createdAt: { $lt: cutoffDate },
+      $or: [
+        { lastVerifiedAt: { $lt: fortyEightHoursAgo } },
+        { lastVerifiedAt: null },
+        { lastVerifiedAt: { $exists: false } }
+      ]
+    };
+
+    const count = await Deal.countDocuments(query);
+    if (count > 0) {
+      const result = await Deal.updateMany(query, {
+        $set: {
+          isExpired: true,
+          expiredAt: new Date(),
+          expiryReason: 'stale_timeout'
+        }
+      });
+      console.log(`[Deal Lifecycle] 🧹 Auto-expired ${result.modifiedCount} stale deals (older than ${maxAgeDays} days without recent re-verification).`);
+      apiCache.invalidatePattern('/api/deals');
+      return result.modifiedCount;
+    }
+    return 0;
+  } catch (err) {
+    console.error('[Deal Lifecycle Error] Failed to auto-expire stale deals:', err.message);
+    return 0;
+  }
+}
+
+/**
  * Start recurring cron job scheduler
  * Runs every 3 minutes to process a batch of 10 stale products (200/hour, ~4,800 products/day).
+ * Sweeps and auto-expires stale deals hourly.
  */
 export function startDailyProductRefresher() {
   console.log('[Daily Refresher] Initializing 24-Hour Product Refresh Cron Schedule (Every 3 minutes)...');
@@ -392,8 +436,18 @@ export function startDailyProductRefresher() {
     }
   });
 
-  // Run initial small batch after 15 seconds on startup
+  // Run auto-expiry sweep every hour at minute 0: '0 * * * *'
+  cron.schedule('0 * * * *', async () => {
+    try {
+      await autoExpireStaleDeals(5);
+    } catch (err) {
+      console.error('[Deal Expiry Cron Error]:', err.message);
+    }
+  });
+
+  // Run initial small batch and stale deal expiry after 15 seconds on startup
   setTimeout(() => {
     refreshStaleProductBatch(5).catch(() => {});
+    autoExpireStaleDeals(5).catch(() => {});
   }, 15000);
 }

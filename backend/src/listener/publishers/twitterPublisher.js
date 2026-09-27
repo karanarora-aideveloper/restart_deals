@@ -1,19 +1,22 @@
 import OutputChannel from '../../db/models/outputChannel.js';
 import XAccount from '../../db/models/xAccount.js';
+import { buildAffiliateUrl, getWebsiteDealUrl, formatPriceCurrency } from '../../utils/affiliate.js';
 
 export function formatTweetMessage(deal) {
   const title = deal.title || 'Hot Deal!';
-  const priceStr = deal.dealPrice ? `₹${deal.dealPrice}` : '';
+  const country = deal.country || 'IN';
+  const priceStr = formatPriceCurrency(deal.dealPrice, country) || '';
   const discountStr = deal.discountPercentage ? `(${deal.discountPercentage}% OFF)` : '';
-  const link = deal.dealUrl || '';
+  const link = buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
+  const webLink = getWebsiteDealUrl(deal);
 
   const couponStr = deal.coupon?.label ? `\n🎟️ ${deal.coupon.label}` : '';
 
   // Twitter text limit is 280 chars
-  let text = `🔥 ${title}\n\n💰 Price: ${priceStr} ${discountStr}${couponStr}\n🛒 Buy: ${link}\n#Deals #Loot #Discount`;
+  let text = `🔥 ${title}\n\n💰 Price: ${priceStr} ${discountStr}${couponStr}\n🛒 Buy: ${link}\n📊 Track: ${webLink}\n#Deals #Discount`;
   if (text.length > 280) {
-    const trimmedTitle = title.substring(0, 100) + '...';
-    text = `🔥 ${trimmedTitle}\n\n💰 Price: ${priceStr} ${discountStr}${couponStr}\n🛒 Buy: ${link}\n#Deals #Loot`;
+    const trimmedTitle = title.substring(0, 80) + '...';
+    text = `🔥 ${trimmedTitle}\n\n💰 Price: ${priceStr} ${discountStr}${couponStr}\n🛒 Buy: ${link}\n#Deals`;
   }
   // Coupon is the first thing dropped if we're still over — the link matters more
   if (text.length > 280 && couponStr) {

@@ -1,9 +1,12 @@
 import OutputChannel from '../../db/models/outputChannel.js';
+import { buildAffiliateUrl, getWebsiteDealUrl, formatPriceCurrency } from '../../utils/affiliate.js';
 
 export function formatWhatsAppMessage(deal) {
   const title = deal.title || 'Special Deal';
-  const dealPriceStr = deal.dealPrice ? `₹${deal.dealPrice.toLocaleString('en-IN')}` : 'Special Price';
-  const origPriceStr = deal.originalPrice ? `₹${deal.originalPrice.toLocaleString('en-IN')}` : null;
+  const country = deal.country || 'IN';
+  const dealPriceFormatted = formatPriceCurrency(deal.dealPrice, country);
+  const dealPriceStr = dealPriceFormatted || 'Special Price';
+  const origPriceStr = deal.originalPrice ? formatPriceCurrency(deal.originalPrice, country) : null;
   const discountStr = deal.discountPercentage ? `*${deal.discountPercentage}% OFF*` : '';
 
   let priceLine = `*Price:* ${dealPriceStr}`;
@@ -12,11 +15,16 @@ export function formatWhatsAppMessage(deal) {
   }
   // Extra coupon the shopper applies on the merchant page, on top of the deal price
   const couponLine = deal.coupon?.label ? `\n🎟️ *${deal.coupon.label}*` : '';
+  
+  const affiliateBuyUrl = buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
+  const webDealUrl = getWebsiteDealUrl(deal);
+  const merchantName = (deal.merchant || 'Store').charAt(0).toUpperCase() + (deal.merchant || 'Store').slice(1);
 
   return `*🔥 ${title} 🔥*
 
 💰 ${priceLine}${couponLine}
-🛒 *Buy Now:* ${deal.dealUrl}
+🛒 *Buy on ${merchantName}:* ${affiliateBuyUrl}
+📊 *Price History & Alerts:* ${webDealUrl}
 
 _Shared via ShoppersDeals_`;
 }
