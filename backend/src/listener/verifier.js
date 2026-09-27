@@ -799,8 +799,8 @@ export async function scrapeProductDetails(targetUrl) {
         }
       }
 
-    } else if (hostname.includes('flipkart.com') || hostname.includes('shopsy.in')) {
-      // Flipkart & Shopsy Title
+    } else if (hostname.includes('flipkart.com')) {
+      // Flipkart Title
       title = $('.B_NuCI').first().text().trim() ||
               $('.VU-ZEz').first().text().trim() ||
               $('h1._6EBuvc').first().text().trim() ||
@@ -1744,8 +1744,10 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       productRecord.cleanUrl = cleanUrl;
       productRecord.merchant = merchant;
       if (actualTitle) productRecord.title = actualTitle;
-      if (productImages.length > 0) {
+      if ((!productRecord.images || productRecord.images.length === 0) && productImages.length > 0) {
         productRecord.images = productImages;
+        productRecord.imageUrl = mainImageUrl;
+      } else if (!productRecord.imageUrl && mainImageUrl) {
         productRecord.imageUrl = mainImageUrl;
       }
       if (productRating) productRecord.rating = productRating;
@@ -1836,8 +1838,12 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.productId = productId;
       deal.merchant = merchant;
       deal.description = dealDescription;
-      deal.imageUrl = dealMainImageUrl;
-      deal.images = dealImages;
+      if (!deal.imageUrl && dealMainImageUrl) {
+        deal.imageUrl = dealMainImageUrl;
+      }
+      if ((!deal.images || deal.images.length === 0) && dealImages.length > 0) {
+        deal.images = dealImages;
+      }
       deal.rating = productRating;
       deal.reviews = productReviews;
       deal.originalPrice = effectiveMRP || canonicalMRP || verifiedDealPrice;
