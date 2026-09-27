@@ -344,7 +344,7 @@ export function initScraperWorker() {
     },
     {
       connection: redisConnection,
-      concurrency: parseInt(process.env.SCRAPER_WORKER_CONCURRENCY || '3', 10),
+      concurrency: parseInt(process.env.SCRAPER_WORKER_CONCURRENCY || '1', 10),
       limiter: {
         max: 10,
         duration: 1000,
