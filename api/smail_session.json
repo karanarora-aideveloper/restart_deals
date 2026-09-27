@@ -1,0 +1,99 @@
+{
+  "cookies": [
+    {
+      "name": "m",
+      "value": "0f198f2c-355a-4699-b55b-6e47edf5f56265867b",
+      "domain": "m.stripe.com",
+      "path": "/",
+      "expires": 1822889926.356432,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "__stripe_mid",
+      "value": "007277b9-a3ef-4cfd-aae9-a57695adce6867da8f",
+      "domain": ".sonjj.com",
+      "path": "/",
+      "expires": 1819866053,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "ghost-members-ssr",
+      "value": "5a2d3985-6bdb-4f13-8bfc-4ed29eccc71e",
+      "domain": "sonjj.com",
+      "path": "/",
+      "expires": 1804227653.512347,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ghost-members-ssr.sig",
+      "value": "1aqWdI7AvxfrixrQHyFyFJsrVVY",
+      "domain": "sonjj.com",
+      "path": "/",
+      "expires": 1804227653.512403,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d",
+      "value": "eyJpdiI6Ii82QWh1MUhqV3lpYlc4OXFLb3p0UkE9PSIsInZhbHVlIjoiMmIvN241dnZuNGlOY3JJTlFRMEtqNXNBMEhLWGdqd050dDBKL3p2aENxUzFGMVJIRGJaM1EveFN4WGpPdy8rQko3OVdQa1loT2JGWk03VEx3ajBMdFBTOVVYUkJZRmI5d0NTYmJ2YS9hVks1dlNjYzJsQ0ttS212QXdnbE1Ob3pwVEdEN0g1Z3ZhZ290T3RobmI5NGdxdFJZdkw5NmpGbU1QR2dxMjNUK2dOUEZhR3l5eG5NbGs1Y3NzZHJXbG0vQ05jQ0hoRUR3OWkrdXoxS1pKblV6cmNoU2JlRURjekRJNHpMbXNpWHhvMD0iLCJtYWMiOiI5ODU4NWY1MTI0Y2VkNWU0YjUyYTMyZjlmYzQ1MDE1YjczYzQ1NTM3N2E3OWQ1ODcwZmY2MzQ5YTJiYjU3MjAyIiwidGFnIjoiIn0%3D",
+      "domain": "my.sonjj.com",
+      "path": "/",
+      "expires": 1822890054.659221,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IjQ5OGdRWHFMYXUxNTIvaE03bjlJbkE9PSIsInZhbHVlIjoiUkZmQll4QzF5VFd5T0p4aTdHbUVsRE9ydmN0ZXhscXVBUWhYTnZrbnJQN1Y1bWdwbDRsWnNiVlRVM2lCQ0NWbzhpSmdETFhodUlGZXhuYlM1UHp6aVU1VzdxQjFlYlpQb1VWSEE1RlVBV09PMENsNFM2RXhHcHdET1YvOGp5WDIiLCJtYWMiOiIwN2QxMWMyODY2MDdjZDAwNDU0N2E3NDljZGRkYTU4YmRmYTZmMjJlMmFlMGFjMWIwM2M1YTU1M2NiYWE1ZDZkIiwidGFnIjoiIn0%3D",
+      "domain": "my.sonjj.com",
+      "path": "/",
+      "expires": 1790575238.562932,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sonjj_session",
+      "value": "eyJpdiI6IkM4RXBrdDVPRzJRd2c4S3B4bHB5WUE9PSIsInZhbHVlIjoiNHNtcXRkZlRvOHJhaFc3YjNuc1dSdnJQZVRnZkNKKytoWk1ucnh1bno3K253bUxTb2JiRlZISG95ZXhGUExuaTNhRkpyKy9LRTM1dU1kdEVRb1VtUlBLU3ovekQ5WFI5dWV4TVVMelZnekI3dnc1Y3R3SWNQVmY3bjVHdjN5SzciLCJtYWMiOiJjNmI2ZTcwZGVhNTNmNjc0ZDdhMzE0N2FhM2RjNzhiODdhMzFlZmFiMzU5YWNmMDcxYjA5ZTg1NDczNzIyZDUyIiwidGFnIjoiIn0%3D",
+      "domain": "my.sonjj.com",
+      "path": "/",
+      "expires": 1790575238.563011,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6IkJEMmRIZHpQNlB0KytkZmE0WTJleGc9PSIsInZhbHVlIjoiYjR4RFZFMUxLbEo0YkhtMkhwL0tlOTJ0Ky9IdXNTRjBDS1F2cmlyRm5Ma0VqQVdFYldmRlRKb1R5VDBDWXkzblhKRDQ5TWk4dmF4Nm5PUmoyR0pBd3RCVkVmOXEyanpyN3o0TDA4Q2xOVUFmTjV3L2NzWWV6UExVVnlROHU5NTIiLCJtYWMiOiIwNWQ0OTRhNTQ0ZGE1NjFmMjgxMjQ1NzExNDUwZDkzNjFkNWZkMjk2ODg2YzAwODA0Njc3N2RiOTlhNmNmNTNhIiwidGFnIjoiIn0%3D",
+      "domain": "smailpro.com",
+      "path": "/",
+      "expires": 1790575241.702962,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sonjj_session",
+      "value": "eyJpdiI6InptY1BFSUlGSk02UHVpNXB4eHVDb1E9PSIsInZhbHVlIjoiOS8xTFMyMGNkZ2s2b2FSakxLR1ZwcnJpendZbkNjeXF1Wm5hYnlnTVQxdzQ5YnB3bitqVGp6eEJpL0JmMU1UZ3IwSWhzYU10OG1lNTZCTllhMnVKRXdmUy9wU2VtdHd2QTRPOVdrckVRUVdKTXhjcFBWZkZFa3dhc1RVbTdrMUsiLCJtYWMiOiI4NmMzOTQxYTM2YjI5YThjYmRkM2Q2NTQyYzM5NmVkNzUyNjg1YTc4MDk4YTQwZjc4M2ZjNmFjN2I3ZTdmZDFhIiwidGFnIjoiIn0%3D",
+      "domain": "smailpro.com",
+      "path": "/",
+      "expires": 1790575241.70302,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "localStorage": {
+    "sessionToken": "bbff91a585a96c613e56fdc46cbbdc58fe3be12503ff0e70b29a69dc673b71b1",
+    "query": "{\"username\":\"random\",\"type\":\"alias\",\"domain\":\"gmail.com\",\"server\":\"1\"}"
+  },
+  "savedAt": "2026-09-27T06:00:44.652Z"
+}
