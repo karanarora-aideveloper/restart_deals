@@ -6,6 +6,7 @@ import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Product from '../db/models/product.js';
 import Master from '../db/models/master.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 
 /**
  * Extract all HTTP/HTTPS links from text using a Regex pattern
@@ -1853,6 +1854,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
       await deal.save();
       console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
+
+      // Real-time evaluation of user price drop alerts
+      evaluateAndTriggerPriceAlerts({
+        productId,
+        livePrice: verifiedDealPrice,
+        title: actualTitle,
+        dealUrl: cleanUrl,
+        imageUrl: dealMainImageUrl,
+        merchant,
+        country
+      }).catch(err => console.warn('[Price Alert Evaluation Error]', err.message));
+
       return deal;
     } else {
       deal = new Deal({
@@ -1890,6 +1903,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       });
       await deal.save();
       console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
+
+      // Real-time evaluation of user price drop alerts
+      evaluateAndTriggerPriceAlerts({
+        productId,
+        livePrice: verifiedDealPrice,
+        title: actualTitle,
+        dealUrl: cleanUrl,
+        imageUrl: dealMainImageUrl,
+        merchant,
+        country
+      }).catch(err => console.warn('[Price Alert Evaluation Error]', err.message));
+
       return deal;
     }
   } catch (dealSaveErr) {
