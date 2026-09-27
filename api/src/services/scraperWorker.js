@@ -1,3 +1,5 @@
+import cluster from 'cluster';
+import { fileURLToPath } from 'url';
 import { Worker } from 'bullmq';
 import * as cheerio from 'cheerio';
 import mongoose from 'mongoose';
@@ -328,17 +330,17 @@ let workerInstance = null;
 /**
  * Initialize Distributed BullMQ Scraper Worker
  */
-export function initScraperWorker() {
+export function initScraperWorker(workerIndex = '1') {
   if (workerInstance) return workerInstance;
 
-  console.log('[Scraper Worker] Initializing BullMQ Worker for "scraper-queue"...');
+  console.log(`[Scraper Worker #${workerIndex}] Initializing BullMQ Worker for "scraper-queue"...`);
   const redisConnection = createRedisConnection();
 
   workerInstance = new Worker(
     'scraper-queue',
     async (job) => {
       const { url, source } = job.data;
-      console.log(`[Scraper Worker] Processing Job #${job.id} [Priority ${job.opts.priority || 3}]: ${url.slice(0, 50)}...`);
+      console.log(`[Scraper Worker #${workerIndex}] Processing Job #${job.id} [Priority ${job.opts.priority || 3}]: ${url.slice(0, 50)}...`);
       const result = await executeScrapingAntJob(url, source);
       return result;
     },
@@ -353,72 +355,80 @@ export function initScraperWorker() {
   );
 
   workerInstance.on('completed', (job, returnvalue) => {
-    console.log(`[Scraper Worker] ✓ Job #${job.id} Completed in ${returnvalue?.durationMs || 0}ms`);
+    console.log(`[Scraper Worker #${workerIndex}] ✓ Job #${job.id} Completed in ${returnvalue?.durationMs || 0}ms`);
   });
 
   workerInstance.on('failed', (job, err) => {
-    // Job data/url so the admin panel's per-worker log view actually shows WHAT failed,
-    // not just an opaque job id — the previous version left "what's failing" unanswerable
-    // without cross-referencing BullMQ directly.
     const urlHint = job?.data?.url ? job.data.url.slice(0, 60) : 'unknown url';
-    console.error(`[Scraper Worker] ✕ Job #${job?.id} Failed (${urlHint}):`, err.message);
+    console.error(`[Scraper Worker #${workerIndex}] ✕ Job #${job?.id} Failed (${urlHint}):`, err.message);
   });
 
   return workerInstance;
 }
 
-// Support running as standalone process: `node src/services/scraperWorker.js`
-//
-// This is deployed as its own Render service (independent of the api web
-// service) so scraping throughput can scale horizontally — each instance
-// pulls from the same BullMQ queue with its own 1-job/2.5s self-throttle,
-// so N instances = N times the aggregate scraping throughput, without any
-// single instance exceeding ScrapingAnt's per-request pacing.
-//
-// Render's web-service health check requires binding to $PORT, even though
-// this process is really a queue consumer with nothing to serve — a tiny
-// HTTP server that always answers 200 satisfies that without pulling in a
-// full framework dependency just for a health check.
+// Support running as standalone distributed multi-process fleet: `node src/services/scraperWorker.js`
+// Spawns N isolated OS processes (default 3) running independently with their own V8 engines,
+// each claiming 1 job from Redis with zero concurrency collisions.
 export function runStandaloneWorker() {
-  // Each scraper-N worker runs this exact same file, on either Render or Railway now —
-  // tagging by the platform's own auto-injected service-name env var (RENDER_SERVICE_NAME
-  // on Render, RAILWAY_SERVICE_NAME on Railway) instead of a fixed 'api' source is what lets
-  // the admin panel's live logs show which specific worker a job failed on, not just an
-  // undifferentiated merged stream. Confirmed live: the first Railway worker logged as the
-  // 'scraper-unknown' fallback since RENDER_SERVICE_NAME obviously isn't set there.
-  installSystemLogger(process.env.RENDER_SERVICE_NAME || process.env.RAILWAY_SERVICE_NAME || 'scraper-unknown');
+  const processCount = parseInt(process.env.SCRAPER_PROCESS_COUNT || '3', 10);
 
-  console.log('==================================================');
-  console.log('    STANDALONE DISTRIBUTED SCRAPER WORKER SERVICE ');
-  console.log('==================================================\n');
+  if (cluster.isPrimary) {
+    cluster.setupPrimary({
+      exec: fileURLToPath(import.meta.url),
+    });
 
-  const isPaused = process.env.WORKER_PAUSED === 'true';
-  const port = process.env.PORT || 10000;
-  http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(isPaused ? 'scraper worker: paused' : 'scraper worker: ok');
-  }).listen(port, () => {
-    console.log(`[Scraper Worker] Health check server listening on port ${port}`);
-  });
+    installSystemLogger(process.env.RAILWAY_SERVICE_NAME || 'scraper-master');
 
-  if (isPaused) {
-    // Fleet-size reduction (2026-09-02, 10 -> 4 workers) without deleting anything on
-    // either platform — neither Render's nor Railway's API/MCP tooling available here
-    // exposes a delete/suspend-service action, so this is a code-level pause instead:
-    // WORKER_PAUSED=true skips the Mongo connection and BullMQ Worker entirely. The
-    // process stays up (health check keeps responding, no restart-loop, platform-side
-    // "online" status stays accurate) but does zero Redis polling and zero scraping —
-    // fully reversible by flipping the env var back, on either platform, no redeploy of
-    // this file needed. See scraperQueue.js's matching comment for why fewer *idle*
-    // workers directly cuts Redis command volume.
-    console.log('[Scraper Worker] WORKER_PAUSED=true — staying up for health checks, but not connecting to Redis/Mongo or processing any jobs.');
+    console.log('==================================================');
+    console.log(`    DISTRIBUTED SCRAPER FLEET (Master Process)   `);
+    console.log(`    Spawning ${processCount} isolated worker processes...`);
+    console.log('==================================================\n');
+
+    const port = process.env.PORT || 10000;
+    http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('scraper fleet: ok');
+    }).listen(port, () => {
+      console.log(`[Scraper Master] Health check server listening on port ${port}`);
+    });
+
+    const isPaused = process.env.WORKER_PAUSED === 'true';
+    if (isPaused) {
+      console.log('[Scraper Master] WORKER_PAUSED=true — staying up for health checks, skipping worker spawns.');
+      return;
+    }
+
+    for (let i = 1; i <= processCount; i++) {
+      cluster.fork({ WORKER_INDEX: String(i), SCRAPER_WORKER_CONCURRENCY: '1' });
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      console.warn(`[Scraper Master] Worker PID ${worker.process.pid} exited (${signal || code}). Respawning in 2s...`);
+      setTimeout(() => {
+        cluster.fork({ SCRAPER_WORKER_CONCURRENCY: '1' });
+      }, 2000);
+    });
+
+    process.on('SIGTERM', () => {
+      console.log('[Scraper Master] SIGTERM received. Terminating worker fleet gracefully...');
+      for (const id in cluster.workers) {
+        cluster.workers[id]?.kill('SIGTERM');
+      }
+      process.exit(0);
+    });
   } else {
+    const workerIndex = process.env.WORKER_INDEX || String(cluster.worker?.id || '1');
+    const workerTag = `scraper-${workerIndex}`;
+    installSystemLogger(workerTag);
+
+    console.log(`[Scraper Worker #${workerIndex}] Process started (PID: ${process.pid}). Connecting to Mongo & Redis...`);
+
     mongoose.connect(process.env.MONGODB_URI).then(() => {
-      console.log('[DB] Connected to MongoDB Atlas.');
-      initScraperWorker();
-      console.log('[Scraper Worker] Ready and listening for distributed jobs across all machines.');
+      console.log(`[Scraper Worker #${workerIndex}] Connected to MongoDB Atlas.`);
+      initScraperWorker(workerIndex);
+      console.log(`[Scraper Worker #${workerIndex}] Ready and listening for distributed jobs.`);
     }).catch(err => {
-      console.error('[Scraper Worker] DB connection error:', err.message);
+      console.error(`[Scraper Worker #${workerIndex}] DB connection error:`, err.message);
     });
   }
 }
