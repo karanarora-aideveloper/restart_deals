@@ -77,6 +77,10 @@ export async function publishToTelegram(client, deal) {
 
     // Fallback: If DB output_channels collection is empty, publish to default Telegram channel from .env
     if (activeOutputChannels.length === 0) {
+      if (dealCountry !== 'IN') {
+        console.log(`[Publisher] No custom OutputChannels found in DB matching Country="${dealCountry}". Suppressing broadcast to prevent posting non-IN deal to default Indian channel.`);
+        return true;
+      }
       console.log('[Publisher] No custom OutputChannels found in DB. Falling back to default .env Telegram channel configuration.');
       const fallbackUsername = dealCategory === 'fitness'
         ? config.telegram.fitnessChannel

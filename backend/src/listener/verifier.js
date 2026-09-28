@@ -1789,15 +1789,15 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     if (verifiedDealPrice < previousTrackedPrice) {
       const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
       const cashDrop = previousTrackedPrice - verifiedDealPrice;
-      const thresholdCheck = meetsCategoryThreshold(category, subcategory, historyDiscount, cashDrop);
+      const thresholdCheck = meetsCategoryThreshold(category, subcategory, historyDiscount, cashDrop, country);
 
       if (thresholdCheck.qualifies) {
         discountPercentage = historyDiscount;
         genuinePriceDrop = previousTrackedPrice;
         priceSource = 'price_history';
-        console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}).`);
+        console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}).`);
       } else {
-        console.log(`[Price Tracker] ℹ️ Sub-threshold price change for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}). Skipping deal promotion.`);
+        console.log(`[Price Tracker] ℹ️ Sub-threshold price change for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}). Skipping deal promotion.`);
       }
     }
   }
@@ -1805,12 +1805,12 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   if (discountPercentage === 0 && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
     const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
     const mrpCashDrop = effectiveMRP - verifiedDealPrice;
-    const thresholdCheck = meetsCategoryThreshold(category, subcategory, mrpDiscount, mrpCashDrop);
+    const thresholdCheck = meetsCategoryThreshold(category, subcategory, mrpDiscount, mrpCashDrop, country);
 
     if (thresholdCheck.qualifies && mrpDiscount <= 95) {
       discountPercentage = mrpDiscount;
       priceSource = liveScrapedPrice != null ? 'scraped' : 'ai_text';
-      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ₹${effectiveMRP} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}).`);
+      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ${effectiveMRP} -> ${verifiedDealPrice} (${thresholdCheck.reason}).`);
     }
   }
 
@@ -1818,7 +1818,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     const msgDiscount = extractDiscountFromMessage(messageText);
     const estimatedMRP = effectiveMRP || (msgDiscount ? Math.round(verifiedDealPrice / (1 - msgDiscount / 100)) : null);
     const msgCashDrop = estimatedMRP ? estimatedMRP - verifiedDealPrice : 0;
-    const thresholdCheck = meetsCategoryThreshold(category, subcategory, msgDiscount || 0, msgCashDrop);
+    const thresholdCheck = meetsCategoryThreshold(category, subcategory, msgDiscount || 0, msgCashDrop, country);
 
     if (msgDiscount && thresholdCheck.qualifies && msgDiscount <= 95) {
       discountPercentage = msgDiscount;

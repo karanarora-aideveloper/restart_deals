@@ -61,10 +61,11 @@ export const CATEGORY_THRESHOLDS = {
  * @param {string} category - Primary category (e.g. 'electronics', 'beauty')
  * @param {string} subcategory - Subcategory (e.g. 'mobiles', 'skincare')
  * @param {number} dropPercent - Computed drop percentage (e.g. 5.5)
- * @param {number} cashDrop - Absolute cash drop amount in rupees (e.g. 1500)
+ * @param {number} cashDrop - Absolute cash drop amount in local currency (rupees or dollars)
+ * @param {string} country - Country code ('IN', 'US', etc., default: 'IN')
  * @returns {{ qualifies: boolean, reason: string, threshold: object }}
  */
-export function meetsCategoryThreshold(category, subcategory, dropPercent, cashDrop) {
+export function meetsCategoryThreshold(category, subcategory, dropPercent, cashDrop, country = 'IN') {
   if (dropPercent <= 0 && cashDrop <= 0) {
     return { qualifies: false, reason: 'No price reduction', threshold: null };
   }
@@ -77,22 +78,31 @@ export function meetsCategoryThreshold(category, subcategory, dropPercent, cashD
     || (catKey && CATEGORY_THRESHOLDS[catKey])
     || CATEGORY_THRESHOLDS['general'];
 
+  const upperCountry = (country || 'IN').toUpperCase();
+  const isUS = upperCountry === 'US';
+  const currencySymbol = isUS ? '$' : '₹';
+
+  // Normalize cash floor: Indian thresholds are in INR. For US, convert to USD floor (~80:1)
+  const effectiveMinCash = isUS
+    ? Math.max(1, Math.round(threshold.minCash / 80 * 10) / 10)
+    : threshold.minCash;
+
   const percentMet = dropPercent >= threshold.minPercent;
-  const cashMet = cashDrop >= threshold.minCash;
+  const cashMet = cashDrop >= effectiveMinCash;
 
   if (percentMet || cashMet) {
     const reason = percentMet && cashMet
-      ? `Drop of ${dropPercent}% (>= ${threshold.minPercent}%) AND ₹${cashDrop} (>= ₹${threshold.minCash})`
+      ? `Drop of ${dropPercent}% (>= ${threshold.minPercent}%) AND ${currencySymbol}${cashDrop} (>= ${currencySymbol}${effectiveMinCash})`
       : (percentMet
         ? `Drop of ${dropPercent}% (>= ${threshold.minPercent}% for ${threshold.label})`
-        : `Flat cash drop of ₹${cashDrop} (>= ₹${threshold.minCash} floor for ${threshold.label})`);
+        : `Flat cash drop of ${currencySymbol}${cashDrop} (>= ${currencySymbol}${effectiveMinCash} floor for ${threshold.label})`);
 
     return { qualifies: true, reason, threshold };
   }
 
   return {
     qualifies: false,
-    reason: `Below threshold for ${threshold.label}: ${dropPercent}% < ${threshold.minPercent}% and ₹${cashDrop} < ₹${threshold.minCash}`,
+    reason: `Below threshold for ${threshold.label}: ${dropPercent}% < ${threshold.minPercent}% and ${currencySymbol}${cashDrop} < ${currencySymbol}${effectiveMinCash}`,
     threshold,
   };
 }

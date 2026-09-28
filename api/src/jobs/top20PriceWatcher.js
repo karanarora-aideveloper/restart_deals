@@ -44,12 +44,22 @@ export async function syncTop20Batch(batchSize = 5) {
 
   try {
     // 1. Query Top-20 products needing sync (lastStoreSyncAt is older than 12h or null)
+    // India-only for now; Engine 2 US catalog watcher expansion deferred to future phase
     const productsToSync = await Product.find({
       isTop20: true,
       $or: [
-        { lastStoreSyncAt: { $lt: twelveHoursAgo } },
-        { lastStoreSyncAt: null },
-        { lastStoreSyncAt: { $exists: false } }
+        { country: 'IN' },
+        { country: { $exists: false } },
+        { country: null }
+      ],
+      $and: [
+        {
+          $or: [
+            { lastStoreSyncAt: { $lt: twelveHoursAgo } },
+            { lastStoreSyncAt: null },
+            { lastStoreSyncAt: { $exists: false } }
+          ]
+        }
       ]
     })
       .sort({ lastStoreSyncAt: 1 })
@@ -193,7 +203,7 @@ export async function syncTop20Batch(batchSize = 5) {
           if (matchingDeals.length === 0 && product.title && product.cleanUrl && priorTrackedPrice != null && priorTrackedPrice > livePrice) {
             const genuineDiscount = Math.round(((priorTrackedPrice - livePrice) / priorTrackedPrice) * 100);
             const cashDrop = priorTrackedPrice - livePrice;
-            const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop);
+            const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop, product.country || 'IN');
 
             if (thresholdCheck.qualifies) {
               const synthesizedDeal = new Deal({

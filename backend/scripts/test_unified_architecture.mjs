@@ -39,6 +39,20 @@ console.log('   Qualifies:', beautyPass.qualifies);
 console.log('   Reason:', beautyPass.reason);
 console.assert(beautyPass.qualifies === true, 'Beauty test should qualify');
 
+// Test 6: USA Mobile Phone ($30 drop on $1,000 phone = 3.0%, but flat cash is $30 >= $12.50 floor)
+const usMobilePass = meetsCategoryThreshold('electronics', 'mobiles', 3.0, 30, 'US');
+console.log('\n6. USA Mobile $30 drop on $1,000 phone (US):');
+console.log('   Qualifies:', usMobilePass.qualifies);
+console.log('   Reason:', usMobilePass.reason);
+console.assert(usMobilePass.qualifies === true, 'US Mobile test should qualify via USD cash floor');
+
+// Test 7: USA Laptop ($10 drop on $600 laptop = 1.67%, below 4% and below $18.8 floor)
+const usLaptopFail = meetsCategoryThreshold('electronics', 'laptops', 1.67, 10, 'US');
+console.log('\n7. USA Laptop $10 drop on $600 laptop (US):');
+console.log('   Qualifies:', usLaptopFail.qualifies);
+console.log('   Reason:', usLaptopFail.reason);
+console.assert(usLaptopFail.qualifies === false, 'US Laptop test should NOT qualify');
+
 console.log('\n====================================================');
-console.log('  ALL CATEGORY THRESHOLD TESTS PASSED PERFECTLY!    ');
+console.log('  ALL CATEGORY THRESHOLD TESTS (IN + US) PASSED!    ');
 console.log('====================================================');
