@@ -11,6 +11,7 @@ import { createRedisConnection } from '../utils/redis.js';
 import { installSystemLogger } from '../utils/systemLogger.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
+import { scrapeWithHeadlessBrowser } from './headlessScraper.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
@@ -88,21 +89,50 @@ async function recordScrapingLog(data) {
 }
 
 /**
+ * Execute Playwright Headless Browser fallback
+ */
+export async function executePlaywrightJob(url, source = 'other') {
+  const startTime = Date.now();
+  console.log(`[ScraperWorker] 🎭 Executing Playwright Headless Browser for ${url.slice(0, 50)}...`);
+  try {
+    const html = await scrapeWithHeadlessBrowser(url, { timeoutMs: 35000 });
+    if (!html) {
+      await recordScrapingLog({
+        url,
+        source,
+        mode: 'playwright_headless',
+        status: 'error',
+        statusCode: 500,
+        durationMs: Date.now() - startTime,
+        errorMessage: 'Playwright navigation returned empty HTML',
+      });
+      return null;
+    }
+    const extracted = extractBasicMetadata(html);
+    const durationMs = Date.now() - startTime;
+    await recordScrapingLog({
+      url,
+      source,
+      mode: 'playwright_headless',
+      status: 'success',
+      statusCode: 200,
+      durationMs,
+      extractedData: extracted,
+    });
+    const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+    return { htmlGzip, extractedData: extracted, durationMs };
+  } catch (err) {
+    console.error(`[ScraperWorker Playwright Error] ${url.slice(0, 45)}:`, err.message);
+    return null;
+  }
+}
+
+/**
  * Execute ScrapingAnt Request with Token Lease & Backoff
  */
 export async function executeScrapingAntJob(url, source = 'other') {
   const startTime = Date.now();
 
-  // Atomically claim the least-recently-used active token in a single findOneAndUpdate.
-  // The previous approach (find().sort() then a separate updateOne()) was a read-then-write
-  // race: with 5 concurrent worker processes, two jobs starting close together could both
-  // read the same "LRU" token — especially likely since many tokens sit at lastUsedAt: null
-  // and tie — before either had stamped it, then both fire ScrapingAnt requests on that one
-  // token simultaneously. That's exactly what ScrapingAnt's 409 concurrency limit catches
-  // (confirmed: 65 explicit 409_concurrency + a chunk of the other 993 errors in a 24h
-  // window, despite 48 active tokens sitting idle). findOneAndUpdate is atomic per-document
-  // in MongoDB, so two racing calls are guaranteed to claim two different tokens as long as
-  // more than one active token exists.
   // Atomically claim the least-recently-used active token that is not in cooldown.
   const now = new Date();
   const leased = await ScrapingAntToken.findOneAndUpdate(
@@ -118,16 +148,8 @@ export async function executeScrapingAntJob(url, source = 'other') {
   ).lean();
 
   if (!leased) {
-    console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found.');
-    await recordScrapingLog({
-      url,
-      source,
-      status: 'error',
-      statusCode: 503,
-      durationMs: Date.now() - startTime,
-      errorMessage: 'No active ScrapingAnt tokens in database',
-    });
-    return null;
+    console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found. Seamlessly falling back to Playwright headless browser...');
+    return await executePlaywrightJob(url, source);
   }
 
   const isUs = url.includes('amazon.com') || url.includes('.us');
@@ -249,7 +271,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
   }
 
   if (response.status === 403) {
-    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403).`);
+    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403). Falling back to Playwright...`);
     await ScrapingAntToken.updateOne({ token }, { status: 'exhausted', exhaustedAt: new Date() }).catch(() => {});
     await recordScrapingLog({
       url,
@@ -258,14 +280,13 @@ export async function executeScrapingAntJob(url, source = 'other') {
       status: '403_exhausted',
       statusCode: 403,
       durationMs,
-      errorMessage: 'Token quota exhausted (403)',
+      errorMessage: 'Token quota exhausted (403) - falling back to Playwright',
     });
-    // The exhausted token is now excluded from future leases (status flipped above), so a
-    // retry will atomically pick a genuinely different active token — worth a BullMQ retry.
-    throw new Error('Token quota exhausted (403)');
+    return await executePlaywrightJob(url, source);
   }
 
   if (response.status === 423) {
+    console.warn(`[ScraperWorker] ScrapingAnt 423 on ${url.slice(0, 45)}. Falling back to Playwright...`);
     await recordScrapingLog({
       url,
       source,
@@ -273,16 +294,9 @@ export async function executeScrapingAntJob(url, source = 'other') {
       status: 'error',
       statusCode: 423,
       durationMs,
-      errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection)',
+      errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection) - falling back to Playwright',
     });
-    // Deliberately NOT retried (unlike the throws above). This is Amazon's own bot
-    // detection reacting to the proxy TIER (datacenter), not a specific token or a
-    // transient race — see the proxyType comment above (amazon.com on datacenter fails
-    // this way ~63% of the time). Every retry uses the same proxy_type for the same URL,
-    // so it would very likely 423 again while still burning a ScrapingAnt credit. This was
-    // also the single largest error bucket (510/993 in one 24h window) — retrying it by
-    // default would multiply real cost for close to zero recovery.
-    return null;
+    return await executePlaywrightJob(url, source);
   }
 
   if (response.ok) {

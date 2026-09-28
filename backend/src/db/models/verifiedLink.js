@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 
 const cachedReviewSchema = new mongoose.Schema({
   author: { type: String },
+  headline: { type: String },
   text: { type: String },
   rating: { type: Number },
-  date: { type: Date }
+  date: { type: mongoose.Schema.Types.Mixed },
+  verifiedPurchase: { type: Boolean, default: false }
 }, { _id: false });
 
 const verifiedLinkSchema = new mongoose.Schema({
@@ -14,8 +16,7 @@ const verifiedLinkSchema = new mongoose.Schema({
   },
   cleanUrl: { 
     type: String, 
-    required: true, 
-    unique: true 
+    required: true 
   }, // Canonical URL
   productId: { 
     type: String, 
@@ -24,6 +25,10 @@ const verifiedLinkSchema = new mongoose.Schema({
   title: { 
     type: String 
   }, // Actual product title from webpage
+  brand: {
+    type: String,
+    default: null
+  },
   merchant: { 
     type: String, 
     required: true 
@@ -31,6 +36,18 @@ const verifiedLinkSchema = new mongoose.Schema({
   images: [{ 
     type: String 
   }],
+  aboutThisItem: [{
+    type: String
+  }],
+  technicalSpecifications: {
+    type: Map,
+    of: String,
+    default: {}
+  },
+  aiSummary: {
+    type: String,
+    default: null
+  },
   rating: { 
     type: Number 
   },

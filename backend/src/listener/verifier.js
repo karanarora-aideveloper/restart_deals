@@ -6,6 +6,7 @@ import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Product from '../db/models/product.js';
 import Master from '../db/models/master.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { scrapeWithHeadlessBrowser } from '../services/headlessScraper.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 
 /**
@@ -43,8 +44,8 @@ const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 's
 // In-flight scraper promises map to prevent duplicate simultaneous scrapes for the exact same URL
 const inFlightScrapes = new Map();
 
-// Configurable cache window for scraped pages (default: 30 minutes)
-const SCRAPER_CACHE_WINDOW_MS = (parseInt(process.env.SCRAPER_CACHE_TTL_MINUTES || '30', 10)) * 60 * 1000;
+// Configurable cache window for scraped pages (default: 60 minutes)
+const SCRAPER_CACHE_WINDOW_MS = (parseInt(process.env.SCRAPER_CACHE_TTL_MINUTES || '60', 10)) * 60 * 1000;
 
 /**
  * Extract embedded target merchant URLs from tracking/redirect parameter wrappers
@@ -600,65 +601,6 @@ function extractShopsyMRP($, livePrice) {
   return result;
 }
 
-/**
- * Fast direct HTTP metadata fetcher (no headless browser, no ScrapingAnt credits).
- * Used when ScrapingAnt times out or fails to extract title/og:image for Flipkart, Myntra, Shopsy, etc.
- */
-export async function fetchDirectMetadata(url) {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
-    clearTimeout(timeout);
-    if (!resp.ok) return { image: null, title: null, images: [] };
-    const html = await resp.text();
-    const $ = cheerio.load(html);
-    let image = $('meta[property="og:image"]').attr('content') ||
-                $('meta[name="twitter:image"]').attr('content') ||
-                $('link[rel="image_src"]').attr('href') || null;
-    let title = $('meta[property="og:title"]').attr('content') ||
-                $('meta[name="twitter:title"]').attr('content') ||
-                $('title').text().trim() || null;
-    const images = [];
-
-    // Parse JSON-LD (primary extraction path for Shopsy & Flipkart)
-    $('script[type="application/ld+json"]').each((_, el) => {
-      try {
-        const text = $(el).contents().text();
-        const parsed = JSON.parse(text);
-        const list = Array.isArray(parsed) ? parsed : [parsed];
-        for (const item of list) {
-          if (item && item['@type'] === 'Product') {
-            if (!title && item.name) title = item.name;
-            if (item.image) {
-              const itemImgs = Array.isArray(item.image) ? item.image : [item.image];
-              for (const imgUrl of itemImgs) {
-                if (typeof imgUrl === 'string') {
-                  const secureUrl = imgUrl.replace(/^http:\/\//i, 'https://');
-                  if (!images.includes(secureUrl)) images.push(secureUrl);
-                  if (!image) image = secureUrl;
-                }
-              }
-            }
-          }
-        }
-      } catch (_) {}
-    });
-
-    if (image && !images.includes(image)) images.push(image.replace(/^http:\/\//i, 'https://'));
-    if (title) title = title.replace(/\s+/g, ' ').trim().slice(0, 160);
-    return { image: images[0] || image, title, images };
-  } catch (err) {
-    return { image: null, title: null, images: [] };
-  }
-}
 
 /**
  * Extracts clean, human-readable product title from Telegram deal message text.
@@ -690,53 +632,32 @@ export async function scrapeProductDetails(targetUrl) {
   try {
     let html = null;
 
-    // 1. Direct fetch with browser headers first (0 credits, instant response)
+    // 1. Authoritative headless scrape via distributed scraper queue (BullMQ)
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
-      const resp = await fetch(targetUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-IN,en-US;q=0.9,en;q=0.8',
-          'Sec-Ch-Ua': '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"macOS"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1',
-        },
-      });
-      clearTimeout(timeout);
-      if (resp.ok) {
-        const text = await resp.text();
-        // Check that this is real page HTML and not a bot challenge / captcha
-        if (text && !text.includes('api-services-support@amazon.com') && !text.includes('/errors/validateCaptcha') && text.length > 3000) {
-          html = text;
-          console.log(`[Verifier] ⚡ Direct fetch SUCCEEDED for ${targetUrl.slice(0, 50)} (0 credits)!`);
-        }
-      }
-    } catch (_) {
-      // Direct fetch failed or timed out — smoothly proceed to distributed scraper queue
-    }
-
-    // 2. If direct fetch didn't return valid HTML, fall back to distributed scraper queue
-    if (!html) {
       html = await scraperQueue.enqueue(targetUrl, { priority: PRIORITY.TELEGRAM });
+    } catch (qErr) {
+      console.warn(`[Verifier] Scraper queue enqueue error for ${targetUrl.slice(0, 45)}:`, qErr.message);
+    }
+
+    // 2. Playwright Headless Browser fallback (No bare HTTP fetch, bypasses bot checks)
+    if (!html) {
+      console.log(`[Verifier] Distributed queue returned no HTML. Invoking local headless browser for ${targetUrl.slice(0, 50)}...`);
+      html = await scrapeWithHeadlessBrowser(targetUrl, { timeoutMs: 35000 });
     }
 
     if (!html) {
-      const direct = await fetchDirectMetadata(targetUrl);
+      console.warn(`[Verifier Warning] All headless scraper attempts failed for ${targetUrl.slice(0, 50)}`);
       return {
-        title: direct.title || null,
-        images: direct.image ? [direct.image] : [],
+        title: null,
+        brand: null,
+        images: [],
         rating: null,
         reviews: [],
         price: null,
         originalPrice: null,
+        aboutThisItem: [],
+        technicalSpecifications: {},
+        aiSummary: null,
         categoryHint: null,
         couponRawText: null
       };
@@ -747,6 +668,10 @@ export async function scrapeProductDetails(targetUrl) {
     const images = [];
     const reviews = [];
     let title = null;
+    let brand = null;
+    let aboutThisItem = [];
+    let technicalSpecifications = {};
+    let aiSummary = null;
     let rating = null;
     let price = null;
     let originalPrice = null;
@@ -768,17 +693,54 @@ export async function scrapeProductDetails(targetUrl) {
       // Amazon Title
       title = $('#productTitle').text().trim() || $('meta[name="title"]').attr('content');
 
-      // 1. Title/Meta image fallback
+      // Amazon Brand
+      brand = $('#bylineInfo').text().replace(/\s+/g, ' ').replace(/^Brand:\s*/i, '').replace(/^Visit the\s*/i, '').replace(/\s*Store$/i, '').trim() || null;
+
+      // 1. Amazon main and dynamic high-res product images
+      $('#landingImage, #imgTagWrapperId img, #main-image').each((_, el) => {
+        const dyn = $(el).attr('data-a-dynamic-image');
+        if (dyn) {
+          try {
+            const parsed = JSON.parse(dyn);
+            for (const k of Object.keys(parsed)) {
+              if (k && !images.includes(k)) images.push(k);
+            }
+          } catch (e) {}
+        }
+        const src = $(el).attr('data-old-hires') || $(el).attr('src');
+        if (src && !images.includes(src)) images.push(src);
+      });
+
       $('meta[property="og:image"]').each((_, el) => {
         const src = $(el).attr('content');
         if (src && !images.includes(src)) images.push(src);
       });
 
-      // Amazon main product images
-      $('#landingImage, #imgTagWrapperId img, #main-image').each((_, el) => {
-        const src = $(el).attr('src') || $(el).attr('data-old-hires');
-        if (src && !images.includes(src)) images.push(src);
+      // Amazon 'About this item' (Feature Bullets)
+      $('#feature-bullets ul li span.a-list-item').each((_, el) => {
+        const text = $(el).text().replace(/\s+/g, ' ').trim();
+        if (text && !text.includes('Replacement') && !text.includes('Warranty') && !text.includes('Installation') && text.length > 5) {
+          if (!aboutThisItem.includes(text)) aboutThisItem.push(text);
+        }
       });
+
+      // Amazon Technical Specifications
+      $('#productDetails_techSpec_section_1 tr, #prodDetails .pdTab tr').each((_, el) => {
+        const key = $(el).find('th').text().replace(/\s+/g, ' ').trim();
+        const val = $(el).find('td').text().replace(/\s+/g, ' ').trim();
+        if (key && val) technicalSpecifications[key] = val;
+      });
+      $('#detailBullets_feature_div ul li').each((_, el) => {
+        const key = $(el).find('.a-text-bold').text().replace(/[:\n\r]/g, '').trim();
+        const val = $(el).find('span:not(.a-text-bold)').text().replace(/[\n\r]/g, '').trim();
+        if (key && val && !technicalSpecifications[key]) technicalSpecifications[key] = val;
+      });
+      if (!brand && (technicalSpecifications['Brand'] || technicalSpecifications['Manufacturer'])) {
+        brand = technicalSpecifications['Brand'] || technicalSpecifications['Manufacturer'];
+      }
+
+      // Amazon AI Customer Review Insights Summary
+      aiSummary = $('[data-hook="cr-ai-generated-summary-content"] span, #product-summary p').text().replace(/\s+/g, ' ').trim() || null;
 
       // Amazon Rating
       const ratingText = $('.a-icon-alt').first().text();
@@ -787,18 +749,43 @@ export async function scrapeProductDetails(targetUrl) {
         rating = parseFloat(ratingMatch[1]);
       }
 
-      // Amazon Reviews
-      $('.review-text-content span').slice(0, 3).each((i, el) => {
-        const text = $(el).text().trim();
-        if (text) {
+      // Amazon Verified Customer Reviews
+      $('[data-hook="review"]').slice(0, 5).each((_, el) => {
+        const reviewTitle = $(el).find('[data-hook="review-title"] span:not(.a-icon-alt), [data-hook="review-title"]').first().text().replace(/\s+/g, ' ').trim();
+        const reviewRating = $(el).find('.a-icon-alt').first().text().replace(/\s+/g, ' ').trim();
+        const reviewDate = $(el).find('[data-hook="review-date"]').text().replace(/\s+/g, ' ').trim();
+        const reviewBody = $(el).find('[data-hook="reviewRichContentContainer"] p, [data-hook="review-body"], [data-hook="reviewText"]').text().replace(/\s+/g, ' ').trim();
+        const author = $(el).find('.a-profile-name').first().text().trim() || 'Verified Customer';
+        const isVerified = $(el).find('[data-hook="avp-badge"]').length > 0;
+        if (reviewBody) {
+          let numRating = 5;
+          const m = reviewRating.match(/([0-9.]+)/);
+          if (m) numRating = parseFloat(m[1]);
           reviews.push({
-            author: 'Customer',
-            text: text.substring(0, 300),
-            rating: 5,
-            date: new Date()
+            author,
+            headline: reviewTitle || 'Customer Review',
+            text: reviewBody.slice(0, 500),
+            rating: numRating,
+            date: reviewDate || new Date().toISOString(),
+            verifiedPurchase: isVerified
           });
         }
       });
+      if (reviews.length === 0) {
+        $('.review-text-content span').slice(0, 3).each((i, el) => {
+          const text = $(el).text().trim();
+          if (text) {
+            reviews.push({
+              author: 'Customer',
+              headline: 'Customer Review',
+              text: text.substring(0, 300),
+              rating: 5,
+              date: new Date().toISOString(),
+              verifiedPurchase: true
+            });
+          }
+        });
+      }
 
       // Amazon Price Extraction — scoped to the main product column first (see findPrice()).
       const amazonPriceSelectors = [
@@ -910,6 +897,22 @@ export async function scrapeProductDetails(targetUrl) {
         originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
       }
 
+      // Flipkart Brand
+      brand = $('div._2W-ggt').first().text().trim() || null;
+
+      // Flipkart Highlights / About this item
+      $('div._2418kt li, div._21Ahn- li').each((_, el) => {
+        const text = $(el).text().replace(/\s+/g, ' ').trim();
+        if (text && !aboutThisItem.includes(text)) aboutThisItem.push(text);
+      });
+
+      // Flipkart Technical Specifications
+      $('table._14beGI tr, tr.WJdYP6').each((_, el) => {
+        const key = $(el).find('td:nth-child(1)').text().replace(/\s+/g, ' ').trim();
+        const val = $(el).find('td:nth-child(2)').text().replace(/\s+/g, ' ').trim();
+        if (key && val) technicalSpecifications[key] = val;
+      });
+
       // Flipkart Rating
       const ratingText = $('._3LWZlK').first().text();
       if (ratingText) {
@@ -917,17 +920,37 @@ export async function scrapeProductDetails(targetUrl) {
       }
 
       // Flipkart Reviews
-      $('._2-t18p, .t-yNPA').slice(0, 3).each((i, el) => {
-        const text = $(el).text().trim();
+      $('div._27M-vq, div.col.EPCmJX').slice(0, 5).each((i, el) => {
+        const headline = $(el).find('p._2-N8zT').text().trim() || 'Review';
+        const text = $(el).find('div.t-yNPA, div._2-t18p').text().trim();
+        const author = $(el).find('p._2sc7ZR').first().text().trim() || 'Buyer';
+        const reviewRating = parseFloat($(el).find('div._3LWZlK').text().trim()) || 5;
         if (text) {
           reviews.push({
-            author: 'Buyer',
-            text: text.substring(0, 300),
-            rating: 5,
-            date: new Date()
+            author,
+            headline,
+            text: text.slice(0, 500),
+            rating: reviewRating,
+            date: new Date().toISOString(),
+            verifiedPurchase: true
           });
         }
       });
+      if (reviews.length === 0) {
+        $('._2-t18p, .t-yNPA').slice(0, 3).each((i, el) => {
+          const text = $(el).text().trim();
+          if (text) {
+            reviews.push({
+              author: 'Buyer',
+              headline: 'Review',
+              text: text.substring(0, 300),
+              rating: 5,
+              date: new Date().toISOString(),
+              verifiedPurchase: true
+            });
+          }
+        });
+      }
     } else if (hostname.includes('myntra.com')) {
       // Myntra renders as a client-side React app with hashed/utility class names in places, and
       // its product images are set via CSS background-image on a div rather than an <img src> —
@@ -1201,11 +1224,37 @@ export async function scrapeProductDetails(targetUrl) {
       });
     }
 
-    return { title, images, rating, reviews, price, originalPrice, categoryHint, couponRawText };
+    return {
+      title,
+      brand,
+      images,
+      rating,
+      reviews,
+      price,
+      originalPrice,
+      aboutThisItem,
+      technicalSpecifications,
+      aiSummary,
+      categoryHint,
+      couponRawText
+    };
   } catch (err) {
     console.error(`[Scraper Error] Scraping failed for ${targetUrl}:`, err.message);
     // Return empty fallback instead of crashing the pipeline
-    return { title: null, images: [], rating: null, reviews: [], price: null, originalPrice: null, breadcrumbText: null };
+    return {
+      title: null,
+      brand: null,
+      images: [],
+      rating: null,
+      reviews: [],
+      price: null,
+      originalPrice: null,
+      aboutThisItem: [],
+      technicalSpecifications: {},
+      aiSummary: null,
+      categoryHint: null,
+      couponRawText: null
+    };
   }
 }
 
@@ -1629,7 +1678,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
           productId,
           merchant,
           title: scrapedData.title || null,
+          brand: scrapedData.brand || null,
           images: scrapedData.images,
+          aboutThisItem: scrapedData.aboutThisItem || [],
+          technicalSpecifications: scrapedData.technicalSpecifications || {},
+          aiSummary: scrapedData.aiSummary || null,
           rating: scrapedData.rating,
           reviews: scrapedData.reviews,
           price: liveScrapedPrice || verifiedDealPrice,
@@ -1638,8 +1691,12 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
           lastChecked: new Date()
         });
       } else {
-        productDetails.images = scrapedData.images;
+        if (scrapedData.images && scrapedData.images.length > 0) productDetails.images = scrapedData.images;
         if (scrapedData.title) productDetails.title = scrapedData.title;
+        if (scrapedData.brand) productDetails.brand = scrapedData.brand;
+        if (scrapedData.aboutThisItem && scrapedData.aboutThisItem.length > 0) productDetails.aboutThisItem = scrapedData.aboutThisItem;
+        if (scrapedData.technicalSpecifications && Object.keys(scrapedData.technicalSpecifications).length > 0) productDetails.technicalSpecifications = scrapedData.technicalSpecifications;
+        if (scrapedData.aiSummary) productDetails.aiSummary = scrapedData.aiSummary;
         if (scrapedData.rating) productDetails.rating = scrapedData.rating;
         if (scrapedData.reviews && scrapedData.reviews.length > 0) productDetails.reviews = scrapedData.reviews;
         if (verifiedDealPrice != null) productDetails.price = verifiedDealPrice;
@@ -1650,7 +1707,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       await productDetails.save();
       console.log(`[Verifier] Scraped details saved/updated in verified_links cache for ${cleanUrl}.`);
     } else {
-      console.log(`[Verifier] Re-using verified product details from 30m cache for ${cleanUrl}.`);
+      console.log(`[Verifier] Re-using verified product details from 60m cache for ${cleanUrl}.`);
     }
   } else {
     if (productDetails && productDetails.images && productDetails.images.length > 0) {
@@ -1660,8 +1717,24 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // Determine Effective MRP (Scraped MRP / DB canonical MRP -> Message MRP fallback)
+  const now = new Date();
+  const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+  const isNewProduct = !existingProduct;
+  const isMetadataStale = existingProduct && (
+    !existingProduct.metadataUpdatedAt ||
+    (now.getTime() - new Date(existingProduct.metadataUpdatedAt).getTime() > ONE_MONTH_MS)
+  );
+
+  // 1. MRP Resolution & Patching
+  // User Rule: We will not update the MRP every time, but patch it if currently null/empty.
   let effectiveMRP = canonicalMRP;
+  if (!effectiveMRP && existingProduct?.originalPrice) {
+    effectiveMRP = existingProduct.originalPrice;
+  }
+  if (!isNewProduct && (!existingProduct.originalPrice || existingProduct.originalPrice <= 0) && sanitisedLiveMRP) {
+    effectiveMRP = sanitisedLiveMRP;
+    console.log(`[Product DB] 🏷️ Patched missing MRP for ${cleanUrl} with live observed MRP: ₹${sanitisedLiveMRP}`);
+  }
   if (!effectiveMRP) {
     const msgMRP = extractMRPFromMessage(messageText);
     if (msgMRP && (!verifiedDealPrice || msgMRP > verifiedDealPrice)) {
@@ -1669,26 +1742,28 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // Calculate Authentic Discount:
-  // 1. Price-history drop (highest authentic authority if previously observed)
-  // 2. Authentic MRP / List price discount (standard retail discount)
-  // 3. Stated Telegram channel discount
-  let discountPercentage = null;
+  // 2. Calculate Authentic Discount:
+  // - Primary: Genuine Price Drop against our own DB previousTrackedPrice
+  // - Secondary: Authentic MRP / List price discount (standard retail discount)
+  // - Tertiary: Stated Telegram channel discount
+  let discountPercentage = 0;
   let priceSource = null;
   let genuinePriceDrop = null;
   const PRICE_DROP_MIN_PERCENT = 5;
 
-  if (verifiedDealPrice != null && previousTrackedPrice != null && previousTrackedPrice > verifiedDealPrice) {
-    const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
-    if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
-      discountPercentage = historyDiscount;
-      genuinePriceDrop = previousTrackedPrice;
-      priceSource = 'price_history';
-      console.log(`[Verifier] Price-history drop for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}%).`);
+  if (verifiedDealPrice != null && previousTrackedPrice != null && previousTrackedPrice > 0) {
+    if (verifiedDealPrice < previousTrackedPrice) {
+      const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
+      if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
+        discountPercentage = historyDiscount;
+        genuinePriceDrop = previousTrackedPrice;
+        priceSource = 'price_history';
+        console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}% drop against DB price).`);
+      }
     }
   }
 
-  if (discountPercentage == null && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
+  if (discountPercentage === 0 && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
     const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
     if (mrpDiscount >= PRICE_DROP_MIN_PERCENT && mrpDiscount <= 95) {
       discountPercentage = mrpDiscount;
@@ -1697,7 +1772,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  if (discountPercentage == null && verifiedDealPrice != null) {
+  if (discountPercentage === 0 && verifiedDealPrice != null) {
     const msgDiscount = extractDiscountFromMessage(messageText);
     if (msgDiscount && msgDiscount >= PRICE_DROP_MIN_PERCENT && msgDiscount <= 95) {
       discountPercentage = msgDiscount;
@@ -1707,10 +1782,6 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       }
       console.log(`[Verifier] Message-stated discount for ${cleanUrl}: ${msgDiscount}% OFF.`);
     }
-  }
-
-  if (discountPercentage == null) {
-    discountPercentage = 0;
   }
 
   // Helper to verify if an image is a usable product image (not 1x1 blank GIF or broken placeholder)
@@ -1736,29 +1807,27 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   };
 
   // Rule: "image should be scraped only once, but price should be scraped every time"
-  // 1. If product was already scraped once and has authentic images in DB, re-use them!
+  // For existing product with fresh metadata (< 30 days), retain permanent DB images!
   const cachedImages = [
     ...(productDetails?.images || []),
     ...(existingProduct?.images || [])
   ].filter(isPermanentMerchantImage);
 
-  // 2. Freshly scraped images from this run
   const freshScrapedImages = (scrapedData.images || []).filter(isPermanentMerchantImage);
 
   let dealImages = [];
-  if (cachedImages.length > 0) {
-    // Re-use already scraped images (scraped once, permanent)
+  if (!isNewProduct && !isMetadataStale && cachedImages.length > 0) {
     dealImages = cachedImages;
   } else if (freshScrapedImages.length > 0) {
     dealImages = freshScrapedImages;
+  } else if (cachedImages.length > 0) {
+    dealImages = cachedImages;
   } else if (dealFallbackImageUrl && isPermanentMerchantImage(dealFallbackImageUrl)) {
-    // Real Telegram photo attached to the curator's message
     dealImages = [dealFallbackImageUrl];
   } else {
     dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
   }
 
-  // Deduplicate images
   dealImages = [...new Set(dealImages)];
   const productImages = dealImages.filter(img => !img.includes('placeholder.png'));
   const dealMainImageUrl = dealImages[0] || '';
@@ -1772,8 +1841,6 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     console.warn(`[Verifier Warning] Incomplete or unverified deal for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ${hasPrice} (₹${verifiedDealPrice || 'N/A'}). Recording Product entry (needsEnrichment) and skipping Deal creation.`);
   }
 
-  const productRating = productDetails?.rating || scrapedData?.rating || 0;
-  const productReviews = productDetails?.reviews || scrapedData?.reviews || [];
   const isGenericTitle = (t) => {
     if (!t) return true;
     const lower = t.toLowerCase().trim();
@@ -1787,110 +1854,182 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       lower.includes('page not found')
     );
   };
-  const messageTitle = extractTitleFromMessage(messageText);
-  const validDetailsTitle = !isGenericTitle(productDetails?.title) ? productDetails?.title : null;
-  const validScrapedTitle = !isGenericTitle(scrapedData?.title) ? scrapedData?.title : null;
-  const actualTitle = validDetailsTitle || validScrapedTitle || messageTitle || `${merchant} Deal (${productId})`;
-  // No AI-generated summary any more — a plain templated line covers what the field is for
-  // (a one-line blurb under the deal card) without depending on a text-parsing call.
+
+  // Title Resolution:
+  let actualTitle;
+  if (!isNewProduct && !isMetadataStale && existingProduct.title && !isGenericTitle(existingProduct.title)) {
+    actualTitle = existingProduct.title;
+  } else {
+    const validDetailsTitle = !isGenericTitle(productDetails?.title) ? productDetails?.title : null;
+    const validScrapedTitle = !isGenericTitle(scrapedData?.title) ? scrapedData?.title : null;
+    const messageTitle = extractTitleFromMessage(messageText);
+    actualTitle = validScrapedTitle || validDetailsTitle || messageTitle || `${merchant} Deal (${productId})`;
+  }
+
+  // Static Metadata Resolution (30-day lifecycle)
+  let productBrand = null;
+  let productAboutThisItem = [];
+  let productSpecs = {};
+  let productAiSummary = null;
+  let productRating = 0;
+  let productReviews = [];
+
+  if (!isNewProduct && !isMetadataStale) {
+    productBrand = existingProduct.brand || scrapedData.brand || null;
+    productAboutThisItem = (existingProduct.aboutThisItem && existingProduct.aboutThisItem.length > 0)
+      ? existingProduct.aboutThisItem
+      : (scrapedData.aboutThisItem || []);
+    productSpecs = (existingProduct.technicalSpecifications && Object.keys(existingProduct.technicalSpecifications).length > 0)
+      ? existingProduct.technicalSpecifications
+      : (scrapedData.technicalSpecifications || {});
+    productAiSummary = existingProduct.aiSummary || scrapedData.aiSummary || null;
+    productRating = existingProduct.rating || scrapedData.rating || 0;
+    productReviews = (existingProduct.reviews && existingProduct.reviews.length > 0)
+      ? existingProduct.reviews
+      : (scrapedData.reviews || []);
+  } else {
+    productBrand = scrapedData.brand || existingProduct?.brand || null;
+    productAboutThisItem = (scrapedData.aboutThisItem && scrapedData.aboutThisItem.length > 0)
+      ? scrapedData.aboutThisItem
+      : (existingProduct?.aboutThisItem || []);
+    productSpecs = (scrapedData.technicalSpecifications && Object.keys(scrapedData.technicalSpecifications).length > 0)
+      ? scrapedData.technicalSpecifications
+      : (existingProduct?.technicalSpecifications || {});
+    productAiSummary = scrapedData.aiSummary || existingProduct?.aiSummary || null;
+    productRating = scrapedData.rating || existingProduct?.rating || 0;
+    productReviews = (scrapedData.reviews && scrapedData.reviews.length > 0)
+      ? scrapedData.reviews
+      : (existingProduct?.reviews || []);
+  }
+
   const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;
-  // A real coupon scraped directly off the merchant page — see parseAmazonCoupon()'s docblock
-  // for what this replaces (Telegram-text coupon parsing) and its one open caveat (unconfirmed
-  // exact wording for an active coupon, since none of the products sampled this session had one).
   const dealCoupon = merchant === 'amazon' ? parseAmazonCoupon(scrapedData.couponRawText) : null;
   if (dealCoupon) {
     console.log(`[Verifier] Amazon coupon detected for ${cleanUrl}: ${dealCoupon.label} (raw: "${(scrapedData.couponRawText || '').slice(0, 100)}")`);
   }
 
-  const now = new Date();
+  let productRecord = existingProduct || null;
 
   try {
-    let productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
+    if (!productRecord) {
+      productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
+    }
     const effectivePrice = verifiedDealPrice || liveScrapedPrice || productRecord?.price || null;
 
     if (!productRecord) {
+      // NEW PRODUCT: First discovery, store all rich assets and lock for 30 days
       productRecord = new Product({
         productId,
         cleanUrl,
         merchant,
         title: actualTitle,
+        brand: productBrand,
         images: productImages,
         imageUrl: mainImageUrl,
+        aboutThisItem: productAboutThisItem,
+        technicalSpecifications: productSpecs,
+        aiSummary: productAiSummary,
+        metadataUpdatedAt: now,
         rating: productRating,
         reviews: productReviews,
         price: effectivePrice,
-        previousPrice: genuinePriceDrop,
+        previousPrice: null,
         priceSource,
-        originalPrice: canonicalMRP,
+        originalPrice: effectiveMRP,
         priceUpdatedAt: now,
         priceHistory: effectivePrice ? [{
           price: effectivePrice,
-          originalPrice: canonicalMRP,
+          originalPrice: effectiveMRP,
           timestamp: now
         }] : [],
         category,
         subcategory,
-        merchant: merchant,
-        country: country,
-        sourceChannelName: sourceChannelName,
+        country,
+        sourceChannelName,
         needsEnrichment: !isFullyVerified,
         lastChecked: now
       });
-      console.log(`[Product DB] ✓ Created product "${actualTitle}"${effectivePrice ? ` with price ₹${effectivePrice}` : ''} in "products" collection.`);
+      console.log(`[Product DB] ✓ Created NEW product "${actualTitle}" on first discovery. All static assets locked for 30-day cycle.`);
     } else {
+      // EXISTING PRODUCT: Price-focused update with 30-day static asset lifecycle
       productRecord.cleanUrl = cleanUrl;
       productRecord.merchant = merchant;
-      if (actualTitle) productRecord.title = actualTitle;
-      if ((!productRecord.images || productRecord.images.length === 0) && productImages.length > 0) {
-        productRecord.images = productImages;
-        productRecord.imageUrl = mainImageUrl;
-      } else if (!productRecord.imageUrl && mainImageUrl) {
-        productRecord.imageUrl = mainImageUrl;
-      }
-      if (productRating) productRecord.rating = productRating;
-      if (productReviews.length > 0) productRecord.reviews = productReviews;
-      if (sourceChannelName) productRecord.sourceChannelName = sourceChannelName;
       if (country) productRecord.country = country;
-
-      // Price Tracking & Update Logging
-      if (effectivePrice != null && effectivePrice !== productRecord.price) {
-        const oldPriceStr = productRecord.price != null ? `₹${productRecord.price}` : 'None';
-        const newPriceStr = `₹${effectivePrice}`;
-        console.log(`[Price Tracker] 📈 Price update for "${productRecord.title || actualTitle}": ${oldPriceStr} ➔ ${newPriceStr} at ${now.toLocaleTimeString()}`);
-
-        // Authentic previous price: previous selling price before this update
-        if (productRecord.price != null && productRecord.price > 0) {
-          productRecord.previousPrice = productRecord.price;
-        } else if (genuinePriceDrop != null) {
-          productRecord.previousPrice = genuinePriceDrop;
-        }
-        productRecord.price = effectivePrice;
-        productRecord.priceUpdatedAt = now;
-        if (!productRecord.priceHistory) productRecord.priceHistory = [];
-        productRecord.priceHistory.push({
-          price: effectivePrice,
-          originalPrice: canonicalMRP || productRecord.originalPrice,
-          timestamp: now
-        });
-      } else {
-        if (!productRecord.priceUpdatedAt) productRecord.priceUpdatedAt = now;
-        if (genuinePriceDrop != null && !productRecord.previousPrice) {
-          productRecord.previousPrice = genuinePriceDrop;
-        }
-      }
-
-      if (priceSource) productRecord.priceSource = priceSource;
-      if (canonicalMRP) productRecord.originalPrice = canonicalMRP;
+      if (sourceChannelName) productRecord.sourceChannelName = sourceChannelName;
       if (category) {
         productRecord.category = category;
         productRecord.subcategory = subcategory;
       }
-      if (isFullyVerified) productRecord.needsEnrichment = false;
-      if (!scrapedData.isFromCache) {
-        productRecord.lastChecked = now;
+
+      if (isMetadataStale) {
+        console.log(`[Product DB] 🔄 30-day metadata cycle expired for "${productRecord.title}". Refreshing static assets...`);
+        productRecord.title = actualTitle;
+        if (productBrand) productRecord.brand = productBrand;
+        if (productImages.length > 0) {
+          productRecord.images = productImages;
+          productRecord.imageUrl = mainImageUrl;
+        }
+        if (productAboutThisItem.length > 0) productRecord.aboutThisItem = productAboutThisItem;
+        if (Object.keys(productSpecs).length > 0) productRecord.technicalSpecifications = productSpecs;
+        if (productAiSummary) productRecord.aiSummary = productAiSummary;
+        if (productRating) productRecord.rating = productRating;
+        if (productReviews.length > 0) productRecord.reviews = productReviews;
+        productRecord.metadataUpdatedAt = now;
+      } else {
+        console.log(`[Product DB] 🔒 Preserving static assets for "${productRecord.title}" (metadata age < 30 days).`);
+        if (!productRecord.brand && productBrand) productRecord.brand = productBrand;
+        if ((!productRecord.images || productRecord.images.length === 0) && productImages.length > 0) {
+          productRecord.images = productImages;
+          productRecord.imageUrl = mainImageUrl;
+        }
+        if ((!productRecord.aboutThisItem || productRecord.aboutThisItem.length === 0) && productAboutThisItem.length > 0) {
+          productRecord.aboutThisItem = productAboutThisItem;
+        }
+        if ((!productRecord.technicalSpecifications || Object.keys(productRecord.technicalSpecifications).length === 0) && Object.keys(productSpecs).length > 0) {
+          productRecord.technicalSpecifications = productSpecs;
+        }
+        if (!productRecord.aiSummary && productAiSummary) productRecord.aiSummary = productAiSummary;
+        if (!productRecord.rating && productRating) productRecord.rating = productRating;
+        if ((!productRecord.reviews || productRecord.reviews.length === 0) && productReviews.length > 0) {
+          productRecord.reviews = productReviews;
+        }
       }
+
+      // MRP Patching
+      if (effectiveMRP && (!productRecord.originalPrice || productRecord.originalPrice <= 0)) {
+        productRecord.originalPrice = effectiveMRP;
+        console.log(`[Product DB] 🏷️ Patched missing MRP for "${productRecord.title}": ₹${effectiveMRP}`);
+      }
+
+      // Price Tracking & Authentic Price Drop comparison against DB
+      if (effectivePrice != null && effectivePrice !== productRecord.price) {
+        const oldPrice = productRecord.price;
+        const newPrice = effectivePrice;
+        console.log(`[Price Tracker] 📈 Price change for "${productRecord.title}": ₹${oldPrice ?? 'None'} ➔ ₹${newPrice} at ${now.toLocaleTimeString()}`);
+
+        if (oldPrice != null && oldPrice > 0 && newPrice < oldPrice) {
+          productRecord.previousPrice = oldPrice;
+        } else if (newPrice > oldPrice) {
+          productRecord.previousPrice = null;
+        }
+        productRecord.price = newPrice;
+        productRecord.priceUpdatedAt = now;
+        if (!productRecord.priceHistory) productRecord.priceHistory = [];
+        productRecord.priceHistory.push({
+          price: newPrice,
+          originalPrice: effectiveMRP || productRecord.originalPrice,
+          timestamp: now
+        });
+      } else {
+        if (!productRecord.priceUpdatedAt) productRecord.priceUpdatedAt = now;
+      }
+
+      if (priceSource) productRecord.priceSource = priceSource;
+      if (isFullyVerified) productRecord.needsEnrichment = false;
+      productRecord.lastChecked = now;
       productRecord.updatedAt = now;
     }
+
     await productRecord.save();
     console.log(`[Product DB] ✓ Saved/updated product "${actualTitle}" in "products" collection.`);
   } catch (prodErr) {
@@ -1942,6 +2081,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       deal.dealUrl = cleanUrl;
       deal.productId = productId;
       deal.merchant = merchant;
+      if (productBrand || productRecord?.brand) {
+        deal.brand = productBrand || productRecord?.brand;
+      }
       deal.description = dealDescription;
       if (!deal.imageUrl && dealMainImageUrl) {
         deal.imageUrl = dealMainImageUrl;
@@ -1988,6 +2130,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         sourceChannelName: sourceChannelName,
         originalText: messageText,
         title: actualTitle,
+        brand: productBrand || productRecord?.brand || null,
         description: dealDescription,
         imageUrl: dealMainImageUrl,
         images: dealImages,

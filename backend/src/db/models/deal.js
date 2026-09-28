@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 
 const reviewSchema = new mongoose.Schema({
   author: { type: String },
+  headline: { type: String },
   text: { type: String },
   rating: { type: Number },
-  date: { type: Date }
+  date: { type: mongoose.Schema.Types.Mixed },
+  verifiedPurchase: { type: Boolean, default: false }
 }, { _id: false });
 
 // Declared as its own schema rather than a nested object literal: a field literally named "type"
@@ -38,6 +40,10 @@ const dealSchema = new mongoose.Schema({
   },
   title: { 
     type: String 
+  },
+  brand: {
+    type: String,
+    default: null
   },
   description: { 
     type: String 
