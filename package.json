@@ -1,0 +1,13 @@
+{
+  "name": "shoppersdeals",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "npm --prefix api install && npm --prefix backend install",
+    "start": "node start-service.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
