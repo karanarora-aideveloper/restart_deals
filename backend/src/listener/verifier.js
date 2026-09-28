@@ -9,6 +9,7 @@ import DealChannelEvent from '../db/models/dealChannelEvent.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { scrapeWithHeadlessBrowser } from '../services/headlessScraper.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
+import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 
 /**
  * Extract all HTTP/HTTPS links from text using a Regex pattern
@@ -1783,38 +1784,49 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   let discountPercentage = 0;
   let priceSource = null;
   let genuinePriceDrop = null;
-  const PRICE_DROP_MIN_PERCENT = 5;
 
   if (verifiedDealPrice != null && previousTrackedPrice != null && previousTrackedPrice > 0) {
     if (verifiedDealPrice < previousTrackedPrice) {
       const historyDiscount = calculateDiscount(previousTrackedPrice, verifiedDealPrice);
-      if (historyDiscount >= PRICE_DROP_MIN_PERCENT) {
+      const cashDrop = previousTrackedPrice - verifiedDealPrice;
+      const thresholdCheck = meetsCategoryThreshold(category, subcategory, historyDiscount, cashDrop);
+
+      if (thresholdCheck.qualifies) {
         discountPercentage = historyDiscount;
         genuinePriceDrop = previousTrackedPrice;
         priceSource = 'price_history';
-        console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${historyDiscount}% drop against DB price).`);
+        console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}).`);
+      } else {
+        console.log(`[Price Tracker] ℹ️ Sub-threshold price change for ${cleanUrl}: ₹${previousTrackedPrice} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}). Skipping deal promotion.`);
       }
     }
   }
 
   if (discountPercentage === 0 && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
     const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
-    if (mrpDiscount >= PRICE_DROP_MIN_PERCENT && mrpDiscount <= 95) {
+    const mrpCashDrop = effectiveMRP - verifiedDealPrice;
+    const thresholdCheck = meetsCategoryThreshold(category, subcategory, mrpDiscount, mrpCashDrop);
+
+    if (thresholdCheck.qualifies && mrpDiscount <= 95) {
       discountPercentage = mrpDiscount;
       priceSource = liveScrapedPrice != null ? 'scraped' : 'ai_text';
-      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ₹${effectiveMRP} -> ₹${verifiedDealPrice} (${mrpDiscount}% OFF).`);
+      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ₹${effectiveMRP} -> ₹${verifiedDealPrice} (${thresholdCheck.reason}).`);
     }
   }
 
   if (discountPercentage === 0 && verifiedDealPrice != null) {
     const msgDiscount = extractDiscountFromMessage(messageText);
-    if (msgDiscount && msgDiscount >= PRICE_DROP_MIN_PERCENT && msgDiscount <= 95) {
+    const estimatedMRP = effectiveMRP || (msgDiscount ? Math.round(verifiedDealPrice / (1 - msgDiscount / 100)) : null);
+    const msgCashDrop = estimatedMRP ? estimatedMRP - verifiedDealPrice : 0;
+    const thresholdCheck = meetsCategoryThreshold(category, subcategory, msgDiscount || 0, msgCashDrop);
+
+    if (msgDiscount && thresholdCheck.qualifies && msgDiscount <= 95) {
       discountPercentage = msgDiscount;
       priceSource = 'ai_text';
       if (!effectiveMRP) {
-        effectiveMRP = Math.round(verifiedDealPrice / (1 - msgDiscount / 100));
+        effectiveMRP = estimatedMRP;
       }
-      console.log(`[Verifier] Message-stated discount for ${cleanUrl}: ${msgDiscount}% OFF.`);
+      console.log(`[Verifier] Message-stated discount qualified for ${cleanUrl}: ${msgDiscount}% OFF (${thresholdCheck.reason}).`);
     }
   }
 

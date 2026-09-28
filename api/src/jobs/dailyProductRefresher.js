@@ -4,6 +4,9 @@ import Deal from '../db/models/deal.js';
 import PriceAlert from '../db/models/priceAlert.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
 import { apiCache } from '../utils/cache.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
+import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
+import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 
 let isRefreshing = false;
 let lastCycleStats = {
@@ -90,16 +93,16 @@ export async function refreshStaleProductBatch(batchSize = 10) {
     // b) Products whose lastChecked is oldest
     const staleProducts = await Product.find({
       $or: [
-        { lastChecked: { $lt: twentyFourHoursAgo } },
-        { lastChecked: null },
-        { lastChecked: { $exists: false } }
+        { lastStoreSyncAt: { $lt: twentyFourHoursAgo } },
+        { lastStoreSyncAt: null },
+        { lastStoreSyncAt: { $exists: false } }
       ]
     })
-      .sort({ lastChecked: 1 })
+      .sort({ lastStoreSyncAt: 1 })
       .limit(batchSize);
 
     if (staleProducts.length === 0) {
-      console.log('[Daily Refresher] ✓ All catalog products are fresh (checked within last 24h).');
+      console.log('[Daily Refresher] ✓ All catalog products are fresh (store-synced within last 24h).');
       isRefreshing = false;
       return { skipped: true, reason: 'all_fresh' };
     }
@@ -180,6 +183,7 @@ export async function refreshStaleProductBatch(batchSize = 10) {
           }
           if (scraped.rating) product.rating = scraped.rating;
 
+          product.lastStoreSyncAt = now;
           product.lastChecked = now;
           product.updatedAt = now;
           await saveWithRetry(product);
@@ -225,6 +229,9 @@ export async function refreshStaleProductBatch(batchSize = 10) {
                 deal.priceSource = 'price_history';
                 dealUpdated = true;
                 console.log(`[Daily Refresher] 🔥 Deal Price Dropped Further: "${deal.title}" ➔ ₹${livePrice}`);
+
+                // Re-enqueue deal for broadcasting the new lower price
+                enqueueDealForPublishing(deal._id, { sourceEngine: 'price_drop_further' }).catch(() => {});
               }
               await deal.save();
               stats.dealsActive++;
@@ -232,26 +239,12 @@ export async function refreshStaleProductBatch(batchSize = 10) {
           }
 
           // 3b. Autonomous Deal Synthesis for Catalog Products without prior deal
-          //
-          // This is the "later pass" mechanism verifier.js's comments refer to: a product added
-          // to the catalog (via Telegram OR the bestseller crawler OR anything else) with no
-          // qualifying deal yet becomes one here, once — and only once — a genuine drop against
-          // its OWN previously tracked price is actually observed.
-          //
-          // The three-way OR this replaced used MRP (`canonicalMRP * 0.80`) and a historical
-          // average (`priceStats.averagePrice * 0.88`) as alternate qualifying bases, and
-          // fabricated a flat 15% "discount" when no MRP existed at all to compute one from. Both
-          // MRP and a historical average are exactly the kind of "not a real observed drop" basis
-          // ruled out for this pipeline (a page's MRP is routinely inflated by the seller purely
-          // to make the discount look bigger) — same rule as verifier.js's price-history path,
-          // now applied consistently here too. A brand-new product with no prior tracked price
-          // (priorTrackedPrice is null) cannot synthesize a deal on this first check, matching
-          // verifier.js exactly — it starts price tracking now and can qualify on a later cycle.
-          const PRICE_DROP_MIN_PERCENT = 5;
           if (matchingDeals.length === 0 && product.title && product.cleanUrl && priorTrackedPrice != null && priorTrackedPrice > livePrice) {
             const genuineDiscount = Math.round(((priorTrackedPrice - livePrice) / priorTrackedPrice) * 100);
+            const cashDrop = priorTrackedPrice - livePrice;
+            const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop);
 
-            if (genuineDiscount >= PRICE_DROP_MIN_PERCENT) {
+            if (thresholdCheck.qualifies) {
               const synthesizedDeal = new Deal({
                 sourceChannelId: 'catalog_engine',
                 sourceMessageId: `${product.productId}_${Date.now()}`,
@@ -265,8 +258,6 @@ export async function refreshStaleProductBatch(batchSize = 10) {
                 dealUrl: product.cleanUrl,
                 productId: product.productId,
                 merchant: product.merchant || 'amazon',
-                // Auxiliary display info only, when a real MRP is on file — never what qualified
-                // this as a deal or what discountPercentage below is computed from.
                 originalPrice: canonicalMRP || null,
                 dealPrice: livePrice,
                 previousPrice: priorTrackedPrice,
@@ -284,8 +275,22 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
               await synthesizedDeal.save();
               stats.dealsActive++;
-              console.log(`[Daily Refresher] 🚀 NEW DEAL SYNTHESIZED from Catalog: "${synthesizedDeal.title}" — price-history drop ₹${priorTrackedPrice} -> ₹${livePrice} (${genuineDiscount}% OFF)`);
+              console.log(`[Daily Refresher] 🚀 NEW DEAL SYNTHESIZED from Catalog: "${synthesizedDeal.title}" — ${thresholdCheck.reason}`);
               apiCache.invalidatePattern('/api/deals');
+
+              // Route deal to universal outbound publish queue (Telegram, Twitter, WhatsApp)
+              await enqueueDealForPublishing(synthesizedDeal._id, { sourceEngine: 'catalog_refresher' });
+
+              // Evaluate personalized user price alerts
+              await evaluateAndTriggerPriceAlerts({
+                productId: product.productId,
+                livePrice,
+                title: product.title,
+                dealUrl: product.cleanUrl,
+                imageUrl: product.imageUrl || (product.images && product.images[0]) || '',
+                merchant: product.merchant || 'amazon',
+                country: product.country || 'IN',
+              });
             }
           }
 

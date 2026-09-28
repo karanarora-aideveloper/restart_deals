@@ -21,6 +21,7 @@ import monitoringRouter from './routes/monitoring.js';
 import { startXBotScheduler } from './jobs/xBotScheduler.js';
 import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
 import { startBestsellerCrawlerScheduler } from './jobs/bestsellerCrawler.js';
+import { startTop20PriceWatcherScheduler } from './jobs/top20PriceWatcher.js';
 import { requireAdminAuth } from './middleware/adminAuth.js';
 
 const app = express();
@@ -119,6 +120,7 @@ export function startServer() {
       startXBotScheduler();
       startDailyProductRefresher();
       startBestsellerCrawlerScheduler();
+      startTop20PriceWatcherScheduler();
       resolve(server);
     });
   });

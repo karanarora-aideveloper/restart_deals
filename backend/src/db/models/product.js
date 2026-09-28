@@ -16,6 +16,23 @@ const priceHistorySchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 }, { _id: false });
 
+const variantSkuSchema = new mongoose.Schema({
+  skuId: { type: String },
+  shadeName: { type: String, default: null },
+  size: { type: String, default: null },
+  price: { type: Number },
+  previousPrice: { type: Number, default: null },
+  inStock: { type: Boolean, default: true },
+  url: { type: String, default: null }
+}, { _id: false });
+
+const bankOfferSchema = new mongoose.Schema({
+  bank: { type: String },
+  discountAmount: { type: Number },
+  effectivePrice: { type: Number },
+  description: { type: String }
+}, { _id: false });
+
 const productSchema = new mongoose.Schema({
   productId: { 
     type: String, 
@@ -142,6 +159,47 @@ const productSchema = new mongoose.Schema({
     packSize: { type: Number, default: 1 },
     totalGrams: { type: Number, default: null },
     type: { type: String, default: null },
+  },
+  // Multi-shade/size SKUs for beauty & fashion
+  variants: [variantSkuSchema],
+  // Active bank & card promotions
+  bankOffers: [bankOfferSchema],
+  // Discovery engine source tracking
+  productSource: {
+    type: String,
+    enum: ['telegram', 'top20_catalog', 'user_search', 'bestseller'],
+    default: 'telegram'
+  },
+  // Engine 2: Top-20 core product tracking
+  isTop20: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  // Admin manual override protecting product from crawler rotation
+  isPinned: {
+    type: Boolean,
+    default: false
+  },
+  top20Category: {
+    type: String,
+    default: null
+  },
+  top20Subcategory: {
+    type: String,
+    default: null
+  },
+  top20Rank: {
+    type: Number,
+    default: null
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
+  lightningDealEndsAt: {
+    type: Date,
+    default: null
   },
   // lastStoreSyncAt: exact moment we actually fetched fresh data from the merchant's own
   // store page (Amazon / Flipkart / etc.) — ONLY updated when a real network scrape happens,

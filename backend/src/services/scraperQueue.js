@@ -5,13 +5,15 @@ import { createRedisConnection } from '../utils/redis.js';
 export const PRIORITY = {
   INTERACTIVE: 1,
   TELEGRAM: 2,
-  DAILY_REFRESH: 3,
-  BESTSELLER: 4,
+  CATALOG_TOP20: 3,
+  DAILY_REFRESH: 4,
+  BESTSELLER: 5,
 };
 
 function mapPriorityToSource(priority) {
   if (priority === PRIORITY.INTERACTIVE) return 'interactive';
   if (priority === PRIORITY.TELEGRAM) return 'telegram';
+  if (priority === PRIORITY.CATALOG_TOP20) return 'catalog_top20';
   if (priority === PRIORITY.DAILY_REFRESH) return 'daily_refresh';
   if (priority === PRIORITY.BESTSELLER) return 'bestseller_crawler';
   return 'other';

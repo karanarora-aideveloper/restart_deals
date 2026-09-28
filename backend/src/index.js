@@ -2,6 +2,7 @@ import { connectDB } from './db/connection.js';
 import { startServer } from './api/server.js';
 import { startTelegramListener, stopTelegramListener } from './listener/telegram.js';
 import { startTokenResetScheduler } from './listener/tokenReset.js';
+import { initDealPublishWorker } from './listener/dealPublishWorker.js';
 import { installSystemLogger } from './utils/systemLogger.js';
 import { startWatchdog } from './utils/watchdog.js';
 
@@ -27,7 +28,10 @@ async function main() {
   // 3. Launch API HTTP Server
   await startServer();
 
-  // 4. Start Telegram Scraping Listener with resilient background retries
+  // 4. Initialize Outbound Deal Publish Worker (Paced Multi-Channel Broadcaster)
+  initDealPublishWorker();
+
+  // 5. Start Telegram Scraping Listener with resilient background retries
   const initTelegram = async () => {
     try {
       await startTelegramListener();

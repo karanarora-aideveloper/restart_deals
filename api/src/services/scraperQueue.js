@@ -5,13 +5,15 @@ import { createRedisConnection } from '../utils/redis.js';
 export const PRIORITY = {
   INTERACTIVE: 1,    // On-demand user click ("Re-check Live Price", URL search paste)
   TELEGRAM: 2,       // Live incoming deal stream verifier
-  DAILY_REFRESH: 3,  // 24h background refresher
-  BESTSELLER: 4,     // Category crawler
+  CATALOG_TOP20: 3,  // Engine 2: 12-hour top 20 core watcher
+  DAILY_REFRESH: 4,  // 24h background refresher
+  BESTSELLER: 5,     // Category crawler
 };
 
 function mapPriorityToSource(priority) {
   if (priority === PRIORITY.INTERACTIVE) return 'interactive';
   if (priority === PRIORITY.TELEGRAM) return 'telegram';
+  if (priority === PRIORITY.CATALOG_TOP20) return 'catalog_top20';
   if (priority === PRIORITY.DAILY_REFRESH) return 'daily_refresh';
   if (priority === PRIORITY.BESTSELLER) return 'bestseller_crawler';
   return 'other';

@@ -100,6 +100,28 @@ const dealSchema = new mongoose.Schema({
     type: couponSchema,
     default: null
   },
+  // Dual-Price: Specific card / bank discount effective price (e.g. ₹49,999 with HDFC)
+  bankOfferPrice: {
+    type: Number,
+    default: null
+  },
+  bankOffers: [{
+    bank: { type: String },
+    discountAmount: { type: Number },
+    effectivePrice: { type: Number },
+    description: { type: String }
+  }],
+  // Countdown timer for Amazon Lightning Deals / Flash Sales
+  lightningDealEndsAt: {
+    type: Date,
+    default: null
+  },
+  // Stock scarcity & urgency FOMO tags
+  stockScarcity: {
+    rawText: { type: String, default: null },
+    unitsLeft: { type: Number, default: null },
+    percentClaimed: { type: Number, default: null }
+  },
   category: {
     type: String,
     default: 'general'

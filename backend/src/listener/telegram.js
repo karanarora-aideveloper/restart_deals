@@ -7,6 +7,7 @@ import config from '../config.js';
 import Channel from '../db/models/channel.js';
 import { verifyAndProcessMessage } from './verifier.js';
 import { publishToTelegram } from './publisher.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { downloadMessagePhoto } from '../utils/telegramMedia.js';
 import { scraperQueue } from '../services/scraperQueue.js';
 import { defaultRedis } from '../utils/redis.js';
@@ -83,6 +84,11 @@ function toBareChannelId(id) {
 }
 
 let client;
+
+export function getTelegramClient() {
+  return client;
+}
+
 const resolvedChannelIds = new Set(); // Fast lookup set for active channel IDs/handles
 const channelTitlesMap = new Map();   // Maps channel ID -> Channel Title for clean logs
 const channelCountryMap = new Map();  // Maps channel ID -> Country Code
@@ -163,7 +169,8 @@ async function enqueueIncomingMessage(rawChannelId, message) {
           `verifyAndProcessMessage(${messageId})`
         );
         if (deal) {
-          await withTimeout(publishToTelegram(client, deal), 30000, `publishToTelegram(${messageId})`);
+          // Route deal through the paced publishing queue (60s channel delay + yo-yo cooldown + trust gate)
+          await enqueueDealForPublishing(deal._id, { sourceEngine: 'engine1_telegram' });
           Channel.updateOne(
             { channelId: bareChannelId },
             { $inc: { dealsProducedCount: 1 }, $set: { lastDealAt: new Date() } }
