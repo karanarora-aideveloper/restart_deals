@@ -141,6 +141,10 @@ The system is decoupled into 7 specialized, independent agents running across mi
 | **15** | **Personal Price Alert Delivery**: Low open-rate emails? | **Personal Telegram Bot (`@ShoppersDealsAlertBot`) + WebPush**: Free, instant, 98% open-rate delivery directly to user DMs. | **LOCKED** |
 | **16** | **Trust & Quality Score**: Protecting followers from junk items? | **Minimum Trust Gate**: Requires $\ge 3.8$ stars and $\ge 15$ reviews for main channel broadcast. Lower-rated items are labeled with budget warning badges on website. | **LOCKED** |
 | **17** | **Stock Scarcity & FOMO**: Converting hesitant shoppers? | **Scarcity Badging**: Scraper extracts *"Only X left in stock"* and *"% claimed"* to feature bold urgency tags on posts. | **LOCKED** |
+| **18** | **Category Broadcast Balancing**: Traffic hooks vs Cash cows? | **Dynamic User-Driven Mix**: Mix adapts dynamically to user segments and inbound category interest rather than rigid static quotas. | **LOCKED** |
+| **19** | **All-Time Low (ATL) Badging**: When to introduce ATL claims? | **1-Year Historical Data Requirement**: ATL claims are strictly deferred until the system has accumulated at least 1 year (or 180+ days) of empirical DB price checkpoints to prevent misleading claims. | **LOCKED** |
+| **20** | **Multi-Store Out-of-Stock Failover**: What happens if the deal store goes OOS? | **Smart Switch Redirection**: `/r/:dealId` detects if primary store is out of stock and dynamically redirects clicks to alternative in-stock stores (e.g. Nykaa or Flipkart) to preserve commissions. | **LOCKED** |
+| **21** | **Replenishment Cycles**: Consumables retention & LTV? | **Automated Replenishment Nudges**: Tracks estimated depletion dates for consumables (supplements, skincare) to send timely re-order deal alerts via Telegram bot/push. | **LOCKED** |
 
 ---
 
