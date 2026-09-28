@@ -141,6 +141,16 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  // lastStoreSyncAt: only updated when a real merchant network scrape happens (not on cache hits)
+  lastStoreSyncAt: {
+    type: Date,
+    default: null
+  },
+  // lastTelegramSeenAt: updated every time any Telegram channel posts this product URL
+  lastTelegramSeenAt: {
+    type: Date,
+    default: null
+  },
   country: {
     type: String,
     default: 'IN'
@@ -163,6 +173,7 @@ productSchema.index({ isActive: 1, country: 1, lastChecked: -1 });
 productSchema.index({ category: 1, isActive: 1, lastChecked: -1 });
 productSchema.index({ merchant: 1, category: 1 });
 productSchema.index({ lastChecked: 1 });
+productSchema.index({ lastStoreSyncAt: 1 });
 productSchema.index({ updatedAt: -1 });
 
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema, 'products');

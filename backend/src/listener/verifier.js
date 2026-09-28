@@ -5,6 +5,7 @@ import VerifiedLink from '../db/models/verifiedLink.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Product from '../db/models/product.js';
 import Master from '../db/models/master.js';
+import DealChannelEvent from '../db/models/dealChannelEvent.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { scrapeWithHeadlessBrowser } from '../services/headlessScraper.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
@@ -1582,6 +1583,8 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const canUseCache = Boolean(isScrapedWithin30Mins && hasCachedPrice && hasCachedImages);
 
   let scrapedData;
+  let wasStoreSynced = false; // true only if we actually hit the merchant's page this time
+
   if (canUseCache) {
     const ageMins = Math.round((nowMs - lastScrapedTime) / 60000);
     console.log(`[Verifier] ⚡ Cache HIT for ${cleanUrl}: Scraped ${ageMins}m ago (< 30m). Bypassing scraper worker queue completely!`);
@@ -1598,6 +1601,21 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       couponRawText: null,
       isFromCache: true
     };
+
+    // Log the cache hit as a channel event (fire-and-forget — never block deal processing on this)
+    DealChannelEvent.create({
+      productId,
+      cleanUrl,
+      merchant,
+      sourceChannelId,
+      sourceChannelName,
+      sourceMessageId,
+      country,
+      price: scrapedData.price,
+      event: 'cache_hit',
+      cacheAgeMinutes: ageMins,
+    }).catch(err => console.warn('[ChannelEvent] Failed to log cache_hit event:', err.message));
+
   } else {
     const reason = !lastScrapedTime
       ? 'Never scraped before'
@@ -1616,6 +1634,22 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         inFlightScrapes.delete(cleanUrl);
       }
     }
+
+    wasStoreSynced = true; // a real merchant fetch just happened
+
+    // Log the fresh scrape as a channel event
+    DealChannelEvent.create({
+      productId,
+      cleanUrl,
+      merchant,
+      sourceChannelId,
+      sourceChannelName,
+      sourceMessageId,
+      country,
+      price: scrapedData?.price ?? null,
+      event: 'scraped',
+      cacheAgeMinutes: null,
+    }).catch(err => console.warn('[ChannelEvent] Failed to log scraped event:', err.message));
   }
 
   const liveScrapedPrice = scrapedData.price != null ? scrapedData.price : null;
@@ -2026,6 +2060,12 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
       if (priceSource) productRecord.priceSource = priceSource;
       if (isFullyVerified) productRecord.needsEnrichment = false;
+      // lastTelegramSeenAt is updated on every Telegram arrival, regardless of cache/scrape.
+      productRecord.lastTelegramSeenAt = now;
+      // lastStoreSyncAt is ONLY updated when we actually fetched from the merchant page this run.
+      if (wasStoreSynced) {
+        productRecord.lastStoreSyncAt = now;
+      }
       productRecord.lastChecked = now;
       productRecord.updatedAt = now;
     }

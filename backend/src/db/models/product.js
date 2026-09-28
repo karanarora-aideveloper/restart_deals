@@ -143,6 +143,21 @@ const productSchema = new mongoose.Schema({
     totalGrams: { type: Number, default: null },
     type: { type: String, default: null },
   },
+  // lastStoreSyncAt: exact moment we actually fetched fresh data from the merchant's own
+  // store page (Amazon / Flipkart / etc.) — ONLY updated when a real network scrape happens,
+  // never on cache hits. This is the number to use when measuring "how fresh is our listing".
+  lastStoreSyncAt: {
+    type: Date,
+    default: null
+  },
+  // lastTelegramSeenAt: every time any Telegram channel posts a link to this product, we
+  // stamp this. Updated on both cache hits AND fresh scrapes — it's "the last time any
+  // channel talked about this product", regardless of whether we went to the store or not.
+  // Lets the admin see which channels are repeatedly posting the same product.
+  lastTelegramSeenAt: {
+    type: Date,
+    default: null
+  },
   lastChecked: {
     type: Date,
     default: Date.now
@@ -162,6 +177,7 @@ productSchema.index({ isActive: 1, country: 1, lastChecked: -1 });
 productSchema.index({ category: 1, isActive: 1, lastChecked: -1 });
 productSchema.index({ merchant: 1, category: 1 });
 productSchema.index({ lastChecked: 1 });
+productSchema.index({ lastStoreSyncAt: 1 });
 productSchema.index({ updatedAt: -1 });
 
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema, 'products');
