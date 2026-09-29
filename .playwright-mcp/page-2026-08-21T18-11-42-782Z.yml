@@ -1,0 +1,220 @@
+- generic [active] [ref=f46e1]:
+  - generic [ref=f46e2]:
+    - complementary [ref=f46e3]:
+      - generic [ref=f46e4]:
+        - img "Admin Icon" [ref=f46e5]
+        - heading "ShoppersDeals" [level=2] [ref=f46e6]
+      - navigation [ref=f46e7]:
+        - link "dashboard Dashboard" [ref=f46e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f46e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f46e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f46e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f46e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f46e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f46e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f46e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f46e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f46e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f46e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f46e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f46e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f46e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f46e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f46e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f46e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f46e25]: account_tree
+          - text: Architecture
+      - generic [ref=f46e26]: Daemon Checking...
+      - generic [ref=f46e29]:
+        - generic [ref=f46e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f46e31]
+    - main [ref=f46e32]:
+      - generic [ref=f46e33]:
+        - heading "Catalog & Product Intelligence" [level=1] [ref=f46e34]
+        - generic [ref=f46e35]:
+          - generic [ref=f46e36]: "Queue: 0"
+          - generic [ref=f46e37]: "Deals Today: 0"
+          - generic [ref=f46e38]: "Products DB: 0"
+          - generic [ref=f46e39]: "Total Users: 0"
+      - generic [ref=f46e40]:
+        - generic [ref=f46e41]:
+          - generic [ref=f46e42]:
+            - generic [ref=f46e43]: Connecting to Server...
+            - generic [ref=f46e45]: Real-time synchronization across 0 cached products & 0 verified deals.
+          - button "refresh Sync Metrics" [ref=f46e47] [cursor=pointer]:
+            - generic [ref=f46e48]: refresh
+            - text: Sync Metrics
+        - generic [ref=f46e49]:
+          - generic [ref=f46e50]:
+            - generic [ref=f46e51]:
+              - generic [ref=f46e52]: Total Products In DB
+              - generic [ref=f46e53]: inventory_2
+            - generic [ref=f46e54]: "0"
+            - generic [ref=f46e55]:
+              - generic [ref=f46e56]: +0 in 24h
+              - generic [ref=f46e57]: +0 in 7d
+              - generic [ref=f46e58]: 0 in 30d
+          - generic [ref=f46e59]:
+            - generic [ref=f46e60]:
+              - generic [ref=f46e61]: Active Deals Feed
+              - generic [ref=f46e62]: local_offer
+            - generic [ref=f46e63]: "0"
+            - generic [ref=f46e64]:
+              - generic [ref=f46e65]: +0 in 24h
+              - generic [ref=f46e66]: +0 in 7d
+              - generic [ref=f46e67]: 0 in 30d
+          - generic [ref=f46e68]:
+            - generic [ref=f46e69]:
+              - generic [ref=f46e70]: Geographic Coverage
+              - generic [ref=f46e71]: public
+            - generic [ref=f46e72]:
+              - generic [ref=f46e73]:
+                - generic [ref=f46e74]: 🇮🇳 0
+                - generic [ref=f46e75]: India Market
+              - generic [ref=f46e76]:
+                - generic [ref=f46e77]: 🇺🇸 0
+                - generic [ref=f46e78]: USA Deals
+          - generic [ref=f46e80]:
+            - generic [ref=f46e81]:
+              - generic [ref=f46e82]: ScrapingAnt Token Pool
+              - generic [ref=f46e83]: vpn_key
+            - generic [ref=f46e84]:
+              - text: "0"
+              - generic [ref=f46e85]: / 0 Ready
+            - generic [ref=f46e86]:
+              - generic [ref=f46e87]: 0 Active Tokens
+              - generic [ref=f46e88]: 0 Cooldown
+        - generic [ref=f46e89]:
+          - generic [ref=f46e90]:
+            - heading "health_and_safety Catalog Data Quality & Hygiene Auditor" [level=3] [ref=f46e91]:
+              - generic [ref=f46e92]: health_and_safety
+              - text: Catalog Data Quality & Hygiene Auditor
+            - generic [ref=f46e93]: Click any card to filter & audit products below
+          - generic [ref=f46e94]:
+            - generic [ref=f46e95] [cursor=pointer]:
+              - generic [ref=f46e96]: hide_image
+              - generic [ref=f46e98]:
+                - generic [ref=f46e99]: Missing Images
+                - generic [ref=f46e100]: "0"
+                - generic [ref=f46e101]: Click to audit
+            - generic [ref=f46e102] [cursor=pointer]:
+              - generic [ref=f46e103]: price_change
+              - generic [ref=f46e105]:
+                - generic [ref=f46e106]: Missing MRP
+                - generic [ref=f46e107]: "0"
+                - generic [ref=f46e108]: Click to audit
+            - generic [ref=f46e109] [cursor=pointer]:
+              - generic [ref=f46e110]: money_off
+              - generic [ref=f46e112]:
+                - generic [ref=f46e113]: Missing Price
+                - generic [ref=f46e114]: "0"
+                - generic [ref=f46e115]: Click to audit
+            - generic [ref=f46e116] [cursor=pointer]:
+              - generic [ref=f46e117]: warning
+              - generic [ref=f46e119]:
+                - generic [ref=f46e120]: Abnormal MRP (>₹2k)
+                - generic [ref=f46e121]: "0"
+                - generic [ref=f46e122]: Click to audit
+            - generic [ref=f46e123] [cursor=pointer]:
+              - generic [ref=f46e124]: verified
+              - generic [ref=f46e126]:
+                - generic [ref=f46e127]: 100% Healthy
+                - generic [ref=f46e128]: "0"
+                - generic [ref=f46e129]: All assets verified
+        - generic [ref=f46e131]:
+          - heading "storefront Catalog Distribution by Merchant Store" [level=3] [ref=f46e132]:
+            - generic [ref=f46e133]: storefront
+            - text: Catalog Distribution by Merchant Store
+          - generic [ref=f46e134]: Total 0 Merchant Sources
+        - generic [ref=f46e135]:
+          - generic [ref=f46e137]:
+            - heading "manage_search Product Catalog Control Center" [level=3] [ref=f46e138]:
+              - generic [ref=f46e139]: manage_search
+              - text: Product Catalog Control Center
+            - generic [ref=f46e140]: Showing 0 of 0 filtered products.
+          - generic [ref=f46e141]:
+            - generic [ref=f46e142]:
+              - text: Search Catalog
+              - generic [ref=f46e143]:
+                - textbox "Search title, ASIN, SKU, URL..." [ref=f46e144]
+                - generic [ref=f46e145]: search
+            - generic [ref=f46e146]:
+              - text: Time Range
+              - combobox [ref=f46e147]:
+                - option "All Time" [selected]
+                - option "Added in Last 24 Hours"
+                - option "Added in Last 7 Days"
+                - option "Added in Last 30 Days"
+            - generic [ref=f46e148]:
+              - text: Market / Country
+              - combobox [ref=f46e149]:
+                - option "All Markets" [selected]
+                - option "🇮🇳 India (IN)"
+                - option "🇺🇸 United States (US)"
+            - generic [ref=f46e150]:
+              - text: Merchant Store
+              - combobox [ref=f46e151]:
+                - option "All Stores" [selected]
+                - option "Amazon"
+                - option "Flipkart"
+                - option "Croma"
+                - option "Myntra"
+                - option "Shopsy"
+                - option "Ajio"
+                - option "Vijay Sales"
+                - option "Cashify"
+            - generic [ref=f46e152]:
+              - text: Quality Hygiene
+              - combobox [ref=f46e153]:
+                - option "All Quality States" [selected]
+                - option "⚠️ Abnormal MRP (> ₹2k Gap)"
+                - option "🖼️ Missing Image"
+                - option "🏷️ Missing MRP"
+                - option "💰 Missing Price"
+                - option "✅ 100% Healthy"
+            - generic [ref=f46e154]:
+              - text: Sort By
+              - combobox [ref=f46e155]:
+                - option "Recently Added" [selected]
+                - option "Oldest First"
+                - 'option "Price: High to Low"'
+                - 'option "Price: Low to High"'
+                - option "Recently Verified"
+          - table [ref=f46e157]:
+            - rowgroup [ref=f46e158]:
+              - row [ref=f46e159]:
+                - columnheader "Product" [ref=f46e160]
+                - columnheader "Store & Market" [ref=f46e161]
+                - columnheader "Price & MRP" [ref=f46e162]
+                - columnheader "Deal Status" [ref=f46e163]
+                - columnheader "Quality Audit" [ref=f46e164]
+                - columnheader "Actions" [ref=f46e165]
+            - rowgroup [ref=f46e166]:
+              - row [ref=f46e167]:
+                - cell "sync Loading catalog products..." [ref=f46e168]:
+                  - generic [ref=f46e169]: sync
+                  - generic [ref=f46e170]: Loading catalog products...
+          - generic [ref=f46e171]:
+            - generic [ref=f46e172]: Page 1 of 1
+            - generic [ref=f46e173]:
+              - button "Previous" [disabled] [ref=f46e174] [cursor=pointer]
+              - button "Next" [disabled] [ref=f46e175] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f46e181] [cursor=pointer]
+  - alert [ref=f46e185]

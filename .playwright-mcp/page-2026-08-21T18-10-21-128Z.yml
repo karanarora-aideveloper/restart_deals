@@ -1,0 +1,712 @@
+- generic [active] [ref=f45e1]:
+  - generic [ref=f45e2]:
+    - complementary [ref=f45e3]:
+      - generic [ref=f45e4]:
+        - img "Admin Icon" [ref=f45e5]
+        - heading "ShoppersDeals" [level=2] [ref=f45e6]
+      - navigation [ref=f45e7]:
+        - link "dashboard Dashboard" [ref=f45e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f45e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f45e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f45e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f45e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f45e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f45e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f45e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f45e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f45e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f45e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f45e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f45e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f45e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f45e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f45e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f45e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f45e25]: account_tree
+          - text: Architecture
+      - generic [ref=f45e26]: Daemon Online
+      - generic [ref=f45e29]:
+        - generic [ref=f45e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f45e31]
+    - main [ref=f45e32]:
+      - generic [ref=f45e33]:
+        - heading "Catalog & Product Intelligence" [level=1] [ref=f45e34]
+        - generic [ref=f45e35]:
+          - generic [ref=f45e36]: "Queue: 0"
+          - generic [ref=f45e37]: "Deals Today: 146"
+          - generic [ref=f45e38]: "Products DB: 5163"
+          - generic [ref=f45e39]: "Total Users: 3"
+      - generic [ref=f45e40]:
+        - generic [ref=f45e41]:
+          - generic [ref=f45e42]:
+            - generic [ref=f45e43]: MongoDB Atlas & Redis Connected
+            - generic [ref=f45e45]: Real-time synchronization across 5163 cached products & 3610 verified deals.
+          - button "refresh Sync Metrics" [ref=f45e47] [cursor=pointer]:
+            - generic [ref=f45e48]: refresh
+            - text: Sync Metrics
+        - generic [ref=f45e49]:
+          - generic [ref=f45e50]:
+            - generic [ref=f45e51]:
+              - generic [ref=f45e52]: Total Products In DB
+              - generic [ref=f45e53]: inventory_2
+            - generic [ref=f45e54]: 5,163
+            - generic [ref=f45e55]:
+              - generic [ref=f45e56]: +172 in 24h
+              - generic [ref=f45e57]: +1862 in 7d
+              - generic [ref=f45e58]: 5163 in 30d
+          - generic [ref=f45e59]:
+            - generic [ref=f45e60]:
+              - generic [ref=f45e61]: Active Deals Feed
+              - generic [ref=f45e62]: local_offer
+            - generic [ref=f45e63]: 3,610
+            - generic [ref=f45e64]:
+              - generic [ref=f45e65]: +146 in 24h
+              - generic [ref=f45e66]: +1592 in 7d
+              - generic [ref=f45e67]: 3610 in 30d
+          - generic [ref=f45e68]:
+            - generic [ref=f45e69]:
+              - generic [ref=f45e70]: Geographic Coverage
+              - generic [ref=f45e71]: public
+            - generic [ref=f45e72]:
+              - generic [ref=f45e73]:
+                - generic [ref=f45e74]: 🇮🇳 3,778
+                - generic [ref=f45e75]: India Market
+              - generic [ref=f45e76]:
+                - generic [ref=f45e77]: 🇺🇸 1,385
+                - generic [ref=f45e78]: USA Deals
+          - generic [ref=f45e80]:
+            - generic [ref=f45e81]:
+              - generic [ref=f45e82]: ScrapingAnt Token Pool
+              - generic [ref=f45e83]: vpn_key
+            - generic [ref=f45e84]:
+              - text: "0"
+              - generic [ref=f45e85]: / 7 Ready
+            - generic [ref=f45e86]:
+              - generic [ref=f45e87]: 0 Active Tokens
+              - generic [ref=f45e88]: 7 Cooldown
+        - generic [ref=f45e89]:
+          - generic [ref=f45e90]:
+            - heading "health_and_safety Catalog Data Quality & Hygiene Auditor" [level=3] [ref=f45e91]:
+              - generic [ref=f45e92]: health_and_safety
+              - text: Catalog Data Quality & Hygiene Auditor
+            - generic [ref=f45e93]: Click any card to filter & audit products below
+          - generic [ref=f45e94]:
+            - generic [ref=f45e95] [cursor=pointer]:
+              - generic [ref=f45e96]: hide_image
+              - generic [ref=f45e98]:
+                - generic [ref=f45e99]: Missing Images
+                - generic [ref=f45e100]: 1,066
+                - generic [ref=f45e101]: Click to audit
+            - generic [ref=f45e102] [cursor=pointer]:
+              - generic [ref=f45e103]: price_change
+              - generic [ref=f45e105]:
+                - generic [ref=f45e106]: Missing MRP
+                - generic [ref=f45e107]: 1,190
+                - generic [ref=f45e108]: Click to audit
+            - generic [ref=f45e109] [cursor=pointer]:
+              - generic [ref=f45e110]: money_off
+              - generic [ref=f45e112]:
+                - generic [ref=f45e113]: Missing Price
+                - generic [ref=f45e114]: "180"
+                - generic [ref=f45e115]: Click to audit
+            - generic [ref=f45e116] [cursor=pointer]:
+              - generic [ref=f45e117]: warning
+              - generic [ref=f45e119]:
+                - generic [ref=f45e120]: Abnormal MRP (>₹2k)
+                - generic [ref=f45e121]: "897"
+                - generic [ref=f45e122]: ● Filtering
+            - generic [ref=f45e123] [cursor=pointer]:
+              - generic [ref=f45e124]: verified
+              - generic [ref=f45e126]:
+                - generic [ref=f45e127]: 100% Healthy
+                - generic [ref=f45e128]: 2,727
+                - generic [ref=f45e129]: All assets verified
+        - generic [ref=f45e130]:
+          - generic [ref=f45e131]:
+            - heading "storefront Catalog Distribution by Merchant Store" [level=3] [ref=f45e132]:
+              - generic [ref=f45e133]: storefront
+              - text: Catalog Distribution by Merchant Store
+            - generic [ref=f45e134]: Total 8 Merchant Sources
+          - generic [ref=f45e188]:
+            - generic [ref=f45e189] [cursor=pointer]:
+              - generic [ref=f45e190]:
+                - generic [ref=f45e191]: amazon
+                - generic [ref=f45e192]: 85%
+              - generic [ref=f45e193]: 4,409
+            - generic [ref=f45e196] [cursor=pointer]:
+              - generic [ref=f45e197]:
+                - generic [ref=f45e198]: flipkart
+                - generic [ref=f45e199]: 10%
+              - generic [ref=f45e200]: "500"
+            - generic [ref=f45e203] [cursor=pointer]:
+              - generic [ref=f45e204]:
+                - generic [ref=f45e205]: myntra
+                - generic [ref=f45e206]: 2%
+              - generic [ref=f45e207]: "114"
+            - generic [ref=f45e210] [cursor=pointer]:
+              - generic [ref=f45e211]:
+                - generic [ref=f45e212]: shopsy
+                - generic [ref=f45e213]: 2%
+              - generic [ref=f45e214]: "103"
+            - generic [ref=f45e217] [cursor=pointer]:
+              - generic [ref=f45e218]:
+                - generic [ref=f45e219]: generic
+                - generic [ref=f45e220]: 0%
+              - generic [ref=f45e221]: "18"
+            - generic [ref=f45e223] [cursor=pointer]:
+              - generic [ref=f45e224]:
+                - generic [ref=f45e225]: ajio
+                - generic [ref=f45e226]: 0%
+              - generic [ref=f45e227]: "10"
+            - generic [ref=f45e229] [cursor=pointer]:
+              - generic [ref=f45e230]:
+                - generic [ref=f45e231]: croma
+                - generic [ref=f45e232]: 0%
+              - generic [ref=f45e233]: "3"
+            - generic [ref=f45e235] [cursor=pointer]:
+              - generic [ref=f45e236]:
+                - generic [ref=f45e237]: vijaysales
+                - generic [ref=f45e238]: 0%
+              - generic [ref=f45e239]: "2"
+        - generic [ref=f45e135]:
+          - generic [ref=f45e136]:
+            - generic [ref=f45e137]:
+              - heading "manage_search Product Catalog Control Center" [level=3] [ref=f45e138]:
+                - generic [ref=f45e139]: manage_search
+                - text: Product Catalog Control Center
+              - generic [ref=f45e140]: Showing 15 of 897 filtered products.
+            - button "filter_alt_off Reset All Filters" [ref=f45e242] [cursor=pointer]:
+              - generic [ref=f45e243]: filter_alt_off
+              - text: Reset All Filters
+          - generic [ref=f45e141]:
+            - generic [ref=f45e142]:
+              - text: Search Catalog
+              - generic [ref=f45e143]:
+                - textbox "Search title, ASIN, SKU, URL..." [ref=f45e144]
+                - generic [ref=f45e145]: search
+            - generic [ref=f45e146]:
+              - text: Time Range
+              - combobox [ref=f45e147]:
+                - option "All Time" [selected]
+                - option "Added in Last 24 Hours"
+                - option "Added in Last 7 Days"
+                - option "Added in Last 30 Days"
+            - generic [ref=f45e148]:
+              - text: Market / Country
+              - combobox [ref=f45e149]:
+                - option "All Markets" [selected]
+                - option "🇮🇳 India (IN)"
+                - option "🇺🇸 United States (US)"
+            - generic [ref=f45e150]:
+              - text: Merchant Store
+              - combobox [ref=f45e151]:
+                - option "All Stores" [selected]
+                - option "Amazon"
+                - option "Flipkart"
+                - option "Croma"
+                - option "Myntra"
+                - option "Shopsy"
+                - option "Ajio"
+                - option "Vijay Sales"
+                - option "Cashify"
+            - generic [ref=f45e152]:
+              - text: Quality Hygiene
+              - combobox [ref=f45e153]:
+                - option "All Quality States"
+                - option "⚠️ Abnormal MRP (> ₹2k Gap)" [selected]
+                - option "🖼️ Missing Image"
+                - option "🏷️ Missing MRP"
+                - option "💰 Missing Price"
+                - option "✅ 100% Healthy"
+            - generic [ref=f45e154]:
+              - text: Sort By
+              - combobox [ref=f45e155]:
+                - option "Recently Added" [selected]
+                - option "Oldest First"
+                - 'option "Price: High to Low"'
+                - 'option "Price: Low to High"'
+                - option "Recently Verified"
+          - table [ref=f45e157]:
+            - rowgroup [ref=f45e158]:
+              - row [ref=f45e159]:
+                - columnheader "Product" [ref=f45e160]
+                - columnheader "Store & Market" [ref=f45e161]
+                - columnheader "Price & MRP" [ref=f45e162]
+                - columnheader "Deal Status" [ref=f45e163]
+                - columnheader "Quality Audit" [ref=f45e164]
+                - columnheader "Actions" [ref=f45e165]
+            - rowgroup [ref=f45e166]:
+              - row [ref=f45e244]:
+                - cell "Google Pixel 9 Pro XL Refurbished 6053_1239 buy-refurbished-mobile-phones/renewed-google-pixel-9-pro-xl • electronics" [ref=f45e245]:
+                  - generic [ref=f45e248]:
+                    - generic "Google Pixel 9 Pro XL Refurbished 6053_1239" [ref=f45e249]
+                    - generic [ref=f45e250]:
+                      - generic [ref=f45e251]: buy-refurbished-mobile-phones/renewed-google-pixel-9-pro-xl
+                      - generic [ref=f45e252]: •
+                      - generic [ref=f45e253]: electronics
+                - cell "cashify 🇮🇳" [ref=f45e254]:
+                  - generic [ref=f45e255]:
+                    - generic [ref=f45e256]: cashify
+                    - generic [ref=f45e257]: 🇮🇳
+                - 'cell "₹64,599 ₹74,899 Gap: ₹10,300" [ref=f45e258]':
+                  - generic [ref=f45e259]: ₹64,599
+                  - generic [ref=f45e260]:
+                    - generic [ref=f45e261]: ₹74,899
+                    - 'generic "Abnormal MRP Gap: ₹10,300 higher than price" [ref=f45e262]': "Gap: ₹10,300"
+                - cell "bolt Active Deal (14% OFF)" [ref=f45e263]:
+                  - generic [ref=f45e264]:
+                    - generic [ref=f45e265]: bolt
+                    - text: Active Deal (14% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e266]
+                - cell [ref=f45e267]:
+                  - generic [ref=f45e268]:
+                    - button "edit" [ref=f45e269] [cursor=pointer]
+                    - button "visibility" [ref=f45e271] [cursor=pointer]
+                    - button "refresh" [ref=f45e273] [cursor=pointer]
+                    - button "delete" [ref=f45e275] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e277] [cursor=pointer]:
+                      - /url: https://www.cashify.in/buy-refurbished-mobile-phones/renewed-google-pixel-9-pro-xl
+              - row [ref=f45e279]:
+                - cell "Samsung Galaxy A57 5G Awesome Navy 8GB RAM 256GB Storage Exynos 1680 Octa Core Processor 50MP 12MP AI Dual Camera 12MP Front Camera 6 7 63_127338169 B0H955K976 • electronics" [ref=f45e280]:
+                  - generic [ref=f45e283]:
+                    - generic "Samsung Galaxy A57 5G Awesome Navy 8GB RAM 256GB Storage Exynos 1680 Octa Core Processor 50MP 12MP AI Dual Camera 12MP Front Camera 6 7 63_127338169" [ref=f45e284]
+                    - generic [ref=f45e285]:
+                      - generic [ref=f45e286]: B0H955K976
+                      - generic [ref=f45e287]: •
+                      - generic [ref=f45e288]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e289]:
+                  - generic [ref=f45e290]:
+                    - generic [ref=f45e291]: amazon
+                    - generic [ref=f45e292]: 🇮🇳
+                - 'cell "₹49,990 ₹53,449 Gap: ₹3,459" [ref=f45e293]':
+                  - generic [ref=f45e294]: ₹49,990
+                  - generic [ref=f45e295]:
+                    - generic [ref=f45e296]: ₹53,449
+                    - 'generic "Abnormal MRP Gap: ₹3,459 higher than price" [ref=f45e297]': "Gap: ₹3,459"
+                - cell "bolt Active Deal (6% OFF)" [ref=f45e298]:
+                  - generic [ref=f45e299]:
+                    - generic [ref=f45e300]: bolt
+                    - text: Active Deal (6% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e301]
+                - cell [ref=f45e302]:
+                  - generic [ref=f45e303]:
+                    - button "edit" [ref=f45e304] [cursor=pointer]
+                    - button "visibility" [ref=f45e306] [cursor=pointer]
+                    - button "refresh" [ref=f45e308] [cursor=pointer]
+                    - button "delete" [ref=f45e310] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e312] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0H955K976
+              - row [ref=f45e314]:
+                - cell "Apple iPhone Air 256GB Storage Cloud White 6645_13605 245222 • electronics" [ref=f45e315]:
+                  - generic [ref=f45e318]:
+                    - generic "Apple iPhone Air 256GB Storage Cloud White 6645_13605" [ref=f45e319]
+                    - generic [ref=f45e320]:
+                      - generic [ref=f45e321]: "245222"
+                      - generic [ref=f45e322]: •
+                      - generic [ref=f45e323]: electronics
+                - cell "vijaysales 🇮🇳" [ref=f45e324]:
+                  - generic [ref=f45e325]:
+                    - generic [ref=f45e326]: vijaysales
+                    - generic [ref=f45e327]: 🇮🇳
+                - 'cell "₹94,990 ₹119,900 Gap: ₹24,910" [ref=f45e328]':
+                  - generic [ref=f45e329]: ₹94,990
+                  - generic [ref=f45e330]:
+                    - generic [ref=f45e331]: ₹119,900
+                    - 'generic "Abnormal MRP Gap: ₹24,910 higher than price" [ref=f45e332]': "Gap: ₹24,910"
+                - cell "bolt Active Deal (21% OFF)" [ref=f45e333]:
+                  - generic [ref=f45e334]:
+                    - generic [ref=f45e335]: bolt
+                    - text: Active Deal (21% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e336]
+                - cell [ref=f45e337]:
+                  - generic [ref=f45e338]:
+                    - button "edit" [ref=f45e339] [cursor=pointer]
+                    - button "visibility" [ref=f45e341] [cursor=pointer]
+                    - button "refresh" [ref=f45e343] [cursor=pointer]
+                    - button "delete" [ref=f45e345] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e347] [cursor=pointer]:
+                      - /url: https://www.vijaysales.com/p/245222/abc
+              - row [ref=f45e349]:
+                - cell "Motorola Edge 70 Fusion 5G Pantone Silhouette 12GB RAM 512GB Storage AI Features 6 78 inch 144Hz AMOLED Snapdragon 7s Gen 4 50MP 13MP Ca 63_126200266 B0H7556DV3 • electronics" [ref=f45e350]:
+                  - generic [ref=f45e353]:
+                    - generic "Motorola Edge 70 Fusion 5G Pantone Silhouette 12GB RAM 512GB Storage AI Features 6 78 inch 144Hz AMOLED Snapdragon 7s Gen 4 50MP 13MP Ca 63_126200266" [ref=f45e354]
+                    - generic [ref=f45e355]:
+                      - generic [ref=f45e356]: B0H7556DV3
+                      - generic [ref=f45e357]: •
+                      - generic [ref=f45e358]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e359]:
+                  - generic [ref=f45e360]:
+                    - generic [ref=f45e361]: amazon
+                    - generic [ref=f45e362]: 🇮🇳
+                - 'cell "₹39,700 ₹41,990 Gap: ₹2,290" [ref=f45e363]':
+                  - generic [ref=f45e364]: ₹39,700
+                  - generic [ref=f45e365]:
+                    - generic [ref=f45e366]: ₹41,990
+                    - 'generic "Abnormal MRP Gap: ₹2,290 higher than price" [ref=f45e367]': "Gap: ₹2,290"
+                - cell "bolt Active Deal (5% OFF)" [ref=f45e368]:
+                  - generic [ref=f45e369]:
+                    - generic [ref=f45e370]: bolt
+                    - text: Active Deal (5% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e371]
+                - cell [ref=f45e372]:
+                  - generic [ref=f45e373]:
+                    - button "edit" [ref=f45e374] [cursor=pointer]
+                    - button "visibility" [ref=f45e376] [cursor=pointer]
+                    - button "refresh" [ref=f45e378] [cursor=pointer]
+                    - button "delete" [ref=f45e380] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e382] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0H7556DV3
+              - row [ref=f45e384]:
+                - cell "Samsung Galaxy S26 Ultra 5g cobalt Violet 1024 Gb 5000 Mah 2_181359935 MOBHKGAPMASN63J5 • electronics" [ref=f45e385]:
+                  - generic [ref=f45e388]:
+                    - generic "Samsung Galaxy S26 Ultra 5g cobalt Violet 1024 Gb 5000 Mah 2_181359935" [ref=f45e389]
+                    - generic [ref=f45e390]:
+                      - generic [ref=f45e391]: MOBHKGAPMASN63J5
+                      - generic [ref=f45e392]: •
+                      - generic [ref=f45e393]: electronics
+                - cell "flipkart 🇮🇳" [ref=f45e394]:
+                  - generic [ref=f45e395]:
+                    - generic [ref=f45e396]: flipkart
+                    - generic [ref=f45e397]: 🇮🇳
+                - 'cell "₹174,999 ₹189,999 Gap: ₹15,000" [ref=f45e398]':
+                  - generic [ref=f45e399]: ₹174,999
+                  - generic [ref=f45e400]:
+                    - generic [ref=f45e401]: ₹189,999
+                    - 'generic "Abnormal MRP Gap: ₹15,000 higher than price" [ref=f45e402]': "Gap: ₹15,000"
+                - cell "bolt Active Deal (8% OFF)" [ref=f45e403]:
+                  - generic [ref=f45e404]:
+                    - generic [ref=f45e405]: bolt
+                    - text: Active Deal (8% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e406]
+                - cell [ref=f45e407]:
+                  - generic [ref=f45e408]:
+                    - button "edit" [ref=f45e409] [cursor=pointer]
+                    - button "visibility" [ref=f45e411] [cursor=pointer]
+                    - button "refresh" [ref=f45e413] [cursor=pointer]
+                    - button "delete" [ref=f45e415] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e417] [cursor=pointer]:
+                      - /url: http://www.flipkart.com/pelonis-as823e4j-s-23-l-convection-microwave-oven/p/itme7mye5tnyk3n9
+              - row [ref=f45e419]:
+                - cell "Apple iPhone 17 Pro 256GB Storage Cosmic Orange 6645_13622 245195 • electronics" [ref=f45e420]:
+                  - generic [ref=f45e423]:
+                    - generic "Apple iPhone 17 Pro 256GB Storage Cosmic Orange 6645_13622" [ref=f45e424]
+                    - generic [ref=f45e425]:
+                      - generic [ref=f45e426]: "245195"
+                      - generic [ref=f45e427]: •
+                      - generic [ref=f45e428]: electronics
+                - cell "vijaysales 🇮🇳" [ref=f45e429]:
+                  - generic [ref=f45e430]:
+                    - generic [ref=f45e431]: vijaysales
+                    - generic [ref=f45e432]: 🇮🇳
+                - 'cell "₹125,490 ₹134,900 Gap: ₹9,410" [ref=f45e433]':
+                  - generic [ref=f45e434]: ₹125,490
+                  - generic [ref=f45e435]:
+                    - generic [ref=f45e436]: ₹134,900
+                    - 'generic "Abnormal MRP Gap: ₹9,410 higher than price" [ref=f45e437]': "Gap: ₹9,410"
+                - cell "bolt Active Deal (7% OFF)" [ref=f45e438]:
+                  - generic [ref=f45e439]:
+                    - generic [ref=f45e440]: bolt
+                    - text: Active Deal (7% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e441]
+                - cell [ref=f45e442]:
+                  - generic [ref=f45e443]:
+                    - button "edit" [ref=f45e444] [cursor=pointer]
+                    - button "visibility" [ref=f45e446] [cursor=pointer]
+                    - button "refresh" [ref=f45e448] [cursor=pointer]
+                    - button "delete" [ref=f45e450] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e452] [cursor=pointer]:
+                      - /url: https://www.vijaysales.com/p/245195/abc
+              - row [ref=f45e454]:
+                - cell "Samsung Galaxy S25 Ultra 5G 12GB RAM 256GB Storage Titanium Silver 63_77249659 B0DVC6RV6P • electronics" [ref=f45e455]:
+                  - generic [ref=f45e458]:
+                    - generic "Samsung Galaxy S25 Ultra 5G 12GB RAM 256GB Storage Titanium Silver 63_77249659" [ref=f45e459]
+                    - generic [ref=f45e460]:
+                      - generic [ref=f45e461]: B0DVC6RV6P
+                      - generic [ref=f45e462]: •
+                      - generic [ref=f45e463]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e464]:
+                  - generic [ref=f45e465]:
+                    - generic [ref=f45e466]: amazon
+                    - generic [ref=f45e467]: 🇮🇳
+                - 'cell "₹89,500 ₹129,999 Gap: ₹40,499" [ref=f45e468]':
+                  - generic [ref=f45e469]: ₹89,500
+                  - generic [ref=f45e470]:
+                    - generic [ref=f45e471]: ₹129,999
+                    - 'generic "Abnormal MRP Gap: ₹40,499 higher than price" [ref=f45e472]': "Gap: ₹40,499"
+                - cell "bolt Active Deal (31% OFF)" [ref=f45e473]:
+                  - generic [ref=f45e474]:
+                    - generic [ref=f45e475]: bolt
+                    - text: Active Deal (31% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e476]
+                - cell [ref=f45e477]:
+                  - generic [ref=f45e478]:
+                    - button "edit" [ref=f45e479] [cursor=pointer]
+                    - button "visibility" [ref=f45e481] [cursor=pointer]
+                    - button "refresh" [ref=f45e483] [cursor=pointer]
+                    - button "delete" [ref=f45e485] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e487] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0DVC6RV6P
+              - row [ref=f45e489]:
+                - cell "Apple iPhone 17 Pro Max 1TB Cosmic Orange 71_67054 317444 • electronics" [ref=f45e490]:
+                  - generic [ref=f45e493]:
+                    - generic "Apple iPhone 17 Pro Max 1TB Cosmic Orange 71_67054" [ref=f45e494]
+                    - generic [ref=f45e495]:
+                      - generic [ref=f45e496]: "317444"
+                      - generic [ref=f45e497]: •
+                      - generic [ref=f45e498]: electronics
+                - cell "croma 🇮🇳" [ref=f45e499]:
+                  - generic [ref=f45e500]:
+                    - generic [ref=f45e501]: croma
+                    - generic [ref=f45e502]: 🇮🇳
+                - 'cell "₹182,490 ₹189,900 Gap: ₹7,410" [ref=f45e503]':
+                  - generic [ref=f45e504]: ₹182,490
+                  - generic [ref=f45e505]:
+                    - generic [ref=f45e506]: ₹189,900
+                    - 'generic "Abnormal MRP Gap: ₹7,410 higher than price" [ref=f45e507]': "Gap: ₹7,410"
+                - cell "bolt Active Deal (4% OFF)" [ref=f45e508]:
+                  - generic [ref=f45e509]:
+                    - generic [ref=f45e510]: bolt
+                    - text: Active Deal (4% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e511]
+                - cell [ref=f45e512]:
+                  - generic [ref=f45e513]:
+                    - button "edit" [ref=f45e514] [cursor=pointer]
+                    - button "visibility" [ref=f45e516] [cursor=pointer]
+                    - button "refresh" [ref=f45e518] [cursor=pointer]
+                    - button "delete" [ref=f45e520] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e522] [cursor=pointer]:
+                      - /url: https://www.croma.com/elica-703-ct-vetro-blk-toughened-glass-top-3-burner-manual-gas-stove-isi-certified-black-/p/317444
+              - row [ref=f45e524]:
+                - cell "Oppo Reno16c 5G Stellar Purple 8GB 128GB 50MP 3 5X Telephoto Camera 4K Video AI Remix Collage 7000mAh 80W SUPERVOOC ColorOS 16 IP69K 63_123180713 B0H5C68PCK • electronics" [ref=f45e525]:
+                  - generic [ref=f45e528]:
+                    - generic "Oppo Reno16c 5G Stellar Purple 8GB 128GB 50MP 3 5X Telephoto Camera 4K Video AI Remix Collage 7000mAh 80W SUPERVOOC ColorOS 16 IP69K 63_123180713" [ref=f45e529]
+                    - generic [ref=f45e530]:
+                      - generic [ref=f45e531]: B0H5C68PCK
+                      - generic [ref=f45e532]: •
+                      - generic [ref=f45e533]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e534]:
+                  - generic [ref=f45e535]:
+                    - generic [ref=f45e536]: amazon
+                    - generic [ref=f45e537]: 🇮🇳
+                - 'cell "₹39,829 ₹49,999 Gap: ₹10,170" [ref=f45e538]':
+                  - generic [ref=f45e539]: ₹39,829
+                  - generic [ref=f45e540]:
+                    - generic [ref=f45e541]: ₹49,999
+                    - 'generic "Abnormal MRP Gap: ₹10,170 higher than price" [ref=f45e542]': "Gap: ₹10,170"
+                - cell "bolt Active Deal (20% OFF)" [ref=f45e543]:
+                  - generic [ref=f45e544]:
+                    - generic [ref=f45e545]: bolt
+                    - text: Active Deal (20% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e546]
+                - cell [ref=f45e547]:
+                  - generic [ref=f45e548]:
+                    - button "edit" [ref=f45e549] [cursor=pointer]
+                    - button "visibility" [ref=f45e551] [cursor=pointer]
+                    - button "refresh" [ref=f45e553] [cursor=pointer]
+                    - button "delete" [ref=f45e555] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e557] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0H5C68PCK
+              - row [ref=f45e559]:
+                - cell "Apple iPhone 17 Pro 1TB Cosmic Orange 71_67063 317428 • electronics" [ref=f45e560]:
+                  - generic [ref=f45e563]:
+                    - generic "Apple iPhone 17 Pro 1TB Cosmic Orange 71_67063" [ref=f45e564]
+                    - generic [ref=f45e565]:
+                      - generic [ref=f45e566]: "317428"
+                      - generic [ref=f45e567]: •
+                      - generic [ref=f45e568]: electronics
+                - cell "croma 🇮🇳" [ref=f45e569]:
+                  - generic [ref=f45e570]:
+                    - generic [ref=f45e571]: croma
+                    - generic [ref=f45e572]: 🇮🇳
+                - 'cell "₹167,990 ₹174,900 Gap: ₹6,910" [ref=f45e573]':
+                  - generic [ref=f45e574]: ₹167,990
+                  - generic [ref=f45e575]:
+                    - generic [ref=f45e576]: ₹174,900
+                    - 'generic "Abnormal MRP Gap: ₹6,910 higher than price" [ref=f45e577]': "Gap: ₹6,910"
+                - cell "bolt Active Deal (4% OFF)" [ref=f45e578]:
+                  - generic [ref=f45e579]:
+                    - generic [ref=f45e580]: bolt
+                    - text: Active Deal (4% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e581]
+                - cell [ref=f45e582]:
+                  - generic [ref=f45e583]:
+                    - button "edit" [ref=f45e584] [cursor=pointer]
+                    - button "visibility" [ref=f45e586] [cursor=pointer]
+                    - button "refresh" [ref=f45e588] [cursor=pointer]
+                    - button "delete" [ref=f45e590] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e592] [cursor=pointer]:
+                      - /url: https://www.croma.com/elica-703-ct-vetro-blk-toughened-glass-top-3-burner-manual-gas-stove-isi-certified-black-/p/317428
+              - row [ref=f45e594]:
+                - cell "Nothing Phone 4b Blue 8GB 256GB 63_125435086 B0H8XM6BQT • electronics" [ref=f45e595]:
+                  - generic [ref=f45e598]:
+                    - generic "Nothing Phone 4b Blue 8GB 256GB 63_125435086" [ref=f45e599]
+                    - generic [ref=f45e600]:
+                      - generic [ref=f45e601]: B0H8XM6BQT
+                      - generic [ref=f45e602]: •
+                      - generic [ref=f45e603]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e604]:
+                  - generic [ref=f45e605]:
+                    - generic [ref=f45e606]: amazon
+                    - generic [ref=f45e607]: 🇮🇳
+                - 'cell "₹36,184 ₹39,999 Gap: ₹3,815" [ref=f45e608]':
+                  - generic [ref=f45e609]: ₹36,184
+                  - generic [ref=f45e610]:
+                    - generic [ref=f45e611]: ₹39,999
+                    - 'generic "Abnormal MRP Gap: ₹3,815 higher than price" [ref=f45e612]': "Gap: ₹3,815"
+                - cell "bolt Active Deal (10% OFF)" [ref=f45e613]:
+                  - generic [ref=f45e614]:
+                    - generic [ref=f45e615]: bolt
+                    - text: Active Deal (10% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e616]
+                - cell [ref=f45e617]:
+                  - generic [ref=f45e618]:
+                    - button "edit" [ref=f45e619] [cursor=pointer]
+                    - button "visibility" [ref=f45e621] [cursor=pointer]
+                    - button "refresh" [ref=f45e623] [cursor=pointer]
+                    - button "delete" [ref=f45e625] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e627] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0H8XM6BQT
+              - row [ref=f45e629]:
+                - cell "Apple iPhone 17 Pro Max 512GB Cosmic Orange 71_67055 317439 • electronics" [ref=f45e630]:
+                  - generic [ref=f45e633]:
+                    - generic "Apple iPhone 17 Pro Max 512GB Cosmic Orange 71_67055" [ref=f45e634]
+                    - generic [ref=f45e635]:
+                      - generic [ref=f45e636]: "317439"
+                      - generic [ref=f45e637]: •
+                      - generic [ref=f45e638]: electronics
+                - cell "croma 🇮🇳" [ref=f45e639]:
+                  - generic [ref=f45e640]:
+                    - generic [ref=f45e641]: croma
+                    - generic [ref=f45e642]: 🇮🇳
+                - 'cell "₹163,490 ₹169,900 Gap: ₹6,410" [ref=f45e643]':
+                  - generic [ref=f45e644]: ₹163,490
+                  - generic [ref=f45e645]:
+                    - generic [ref=f45e646]: ₹169,900
+                    - 'generic "Abnormal MRP Gap: ₹6,410 higher than price" [ref=f45e647]': "Gap: ₹6,410"
+                - cell "bolt Active Deal (4% OFF)" [ref=f45e648]:
+                  - generic [ref=f45e649]:
+                    - generic [ref=f45e650]: bolt
+                    - text: Active Deal (4% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e651]
+                - cell [ref=f45e652]:
+                  - generic [ref=f45e653]:
+                    - button "edit" [ref=f45e654] [cursor=pointer]
+                    - button "visibility" [ref=f45e656] [cursor=pointer]
+                    - button "refresh" [ref=f45e658] [cursor=pointer]
+                    - button "delete" [ref=f45e660] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e662] [cursor=pointer]:
+                      - /url: https://www.croma.com/elica-703-ct-vetro-blk-toughened-glass-top-3-burner-manual-gas-stove-isi-certified-black-/p/317439
+              - row [ref=f45e664]:
+                - cell "Samsung Galaxy S26 Ultra 5G White 12GB RAM 256GB Storage with Built in Privacy Display AI Phone Photo Assist Creative Studio 200MP Camera 500 63_105279509 B0GL8H5TY1 • electronics" [ref=f45e665]:
+                  - generic [ref=f45e668]:
+                    - generic "Samsung Galaxy S26 Ultra 5G White 12GB RAM 256GB Storage with Built in Privacy Display AI Phone Photo Assist Creative Studio 200MP Camera 500 63_105279509" [ref=f45e669]
+                    - generic [ref=f45e670]:
+                      - generic [ref=f45e671]: B0GL8H5TY1
+                      - generic [ref=f45e672]: •
+                      - generic [ref=f45e673]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e674]:
+                  - generic [ref=f45e675]:
+                    - generic [ref=f45e676]: amazon
+                    - generic [ref=f45e677]: 🇮🇳
+                - 'cell "₹124,999 ₹139,999 Gap: ₹15,000" [ref=f45e678]':
+                  - generic [ref=f45e679]: ₹124,999
+                  - generic [ref=f45e680]:
+                    - generic [ref=f45e681]: ₹139,999
+                    - 'generic "Abnormal MRP Gap: ₹15,000 higher than price" [ref=f45e682]': "Gap: ₹15,000"
+                - cell "bolt Active Deal (11% OFF)" [ref=f45e683]:
+                  - generic [ref=f45e684]:
+                    - generic [ref=f45e685]: bolt
+                    - text: Active Deal (11% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e686]
+                - cell [ref=f45e687]:
+                  - generic [ref=f45e688]:
+                    - button "edit" [ref=f45e689] [cursor=pointer]
+                    - button "visibility" [ref=f45e691] [cursor=pointer]
+                    - button "refresh" [ref=f45e693] [cursor=pointer]
+                    - button "delete" [ref=f45e695] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e697] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0GL8H5TY1
+              - row [ref=f45e699]:
+                - cell "Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014 B0GL8HZF8R • electronics" [ref=f45e700]:
+                  - generic [ref=f45e703]:
+                    - generic "Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014" [ref=f45e704]
+                    - generic [ref=f45e705]:
+                      - generic [ref=f45e706]: B0GL8HZF8R
+                      - generic [ref=f45e707]: •
+                      - generic [ref=f45e708]: electronics
+                - cell "amazon 🇮🇳" [ref=f45e709]:
+                  - generic [ref=f45e710]:
+                    - generic [ref=f45e711]: amazon
+                    - generic [ref=f45e712]: 🇮🇳
+                - 'cell "₹79,999 ₹87,999 Gap: ₹8,000" [ref=f45e713]':
+                  - generic [ref=f45e714]: ₹79,999
+                  - generic [ref=f45e715]:
+                    - generic [ref=f45e716]: ₹87,999
+                    - 'generic "Abnormal MRP Gap: ₹8,000 higher than price" [ref=f45e717]': "Gap: ₹8,000"
+                - cell "bolt Active Deal (9% OFF)" [ref=f45e718]:
+                  - generic [ref=f45e719]:
+                    - generic [ref=f45e720]: bolt
+                    - text: Active Deal (9% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e721]
+                - cell [ref=f45e722]:
+                  - generic [ref=f45e723]:
+                    - button "edit" [ref=f45e724] [cursor=pointer]
+                    - button "visibility" [ref=f45e726] [cursor=pointer]
+                    - button "refresh" [ref=f45e728] [cursor=pointer]
+                    - button "delete" [ref=f45e730] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e732] [cursor=pointer]:
+                      - /url: http://www.amazon.in/gp/product/B0GL8HZF8R
+              - row [ref=f45e734]:
+                - cell "Havells Signa 5L Instant Water Heater(Geyser) with Anti Rust Aqua Shield| Twin LED Indicator| Shock Proof Body| ISI Marked| Fire Retardant Power Cord| Warranty- 5Yr on inner tank & 2Yr comprehensive B0FBLWPTN3 • home" [ref=f45e735]:
+                  - generic [ref=f45e738]:
+                    - generic "Havells Signa 5L Instant Water Heater(Geyser) with Anti Rust Aqua Shield| Twin LED Indicator| Shock Proof Body| ISI Marked| Fire Retardant Power Cord| Warranty- 5Yr on inner tank & 2Yr comprehensive" [ref=f45e739]
+                    - generic [ref=f45e740]:
+                      - generic [ref=f45e741]: B0FBLWPTN3
+                      - generic [ref=f45e742]: •
+                      - generic [ref=f45e743]: home
+                - cell "amazon 🇮🇳" [ref=f45e744]:
+                  - generic [ref=f45e745]:
+                    - generic [ref=f45e746]: amazon
+                    - generic [ref=f45e747]: 🇮🇳
+                - 'cell "₹4,163 ₹8,290 Gap: ₹4,127" [ref=f45e748]':
+                  - generic [ref=f45e749]: ₹4,163
+                  - generic [ref=f45e750]:
+                    - generic [ref=f45e751]: ₹8,290
+                    - 'generic "Abnormal MRP Gap: ₹4,127 higher than price" [ref=f45e752]': "Gap: ₹4,127"
+                - cell "bolt Active Deal (50% OFF)" [ref=f45e753]:
+                  - generic [ref=f45e754]:
+                    - generic [ref=f45e755]: bolt
+                    - text: Active Deal (50% OFF)
+                - cell "⚠️ High MRP Gap" [ref=f45e756]
+                - cell [ref=f45e757]:
+                  - generic [ref=f45e758]:
+                    - button "edit" [ref=f45e759] [cursor=pointer]
+                    - button "visibility" [ref=f45e761] [cursor=pointer]
+                    - button "refresh" [ref=f45e763] [cursor=pointer]
+                    - button "delete" [ref=f45e765] [cursor=pointer]
+                    - link "open_in_new" [ref=f45e767] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B0FBLWPTN3
+          - generic [ref=f45e171]:
+            - generic [ref=f45e172]: Page 1 of 60
+            - generic [ref=f45e173]:
+              - button "Previous" [disabled] [ref=f45e174] [cursor=pointer]
+              - button "Next" [ref=f45e175] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f45e181] [cursor=pointer]
+  - alert [ref=f45e185]

@@ -1,0 +1,65 @@
+{
+  "cookies": [
+    {
+      "name": "_GRECAPTCHA",
+      "value": "09ABCLyOGouqxIvUKVNkTI0T8EYzzS_e0Zr2ogGfc-HNQWZImfetPGnssljZA_dAar8aT7BZXRyuJEPOhM_8v1BG8",
+      "domain": "www.google.com",
+      "path": "/recaptcha",
+      "expires": 1782638334.386807,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6Ilp2VE1lWldNck0xQzhHWjc3ekp5R1E9PSIsInZhbHVlIjoieGIvS2lxdnI2bkV6KzRvb3FRSjFwdUp3SXJuU0p6ZUNMTWQrMG9LVTFTV2V6STQvdzJSYk9zRnVMRXFpWDJxQ053L0RYVzJCNEswWmhyUkZJdkk2T0dqckgwd1p1ekUyWWE1ZEZtYThOa1JlMHJUMGZCV0R2YlliQWdQQVVCQlgiLCJtYWMiOiIxZWY1MWE0MDQ0NDM2NDkzNDQ1ZDc3YTM0MzA5YjE5OWMxZTc0NjRlYWRmOWNkYjQ4MmY3NDM1MjUxZjdmMzMyIiwidGFnIjoiIn0%3D",
+      "domain": "my.sonjj.com",
+      "path": "/",
+      "expires": 1767089937.449394,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sonjj_session",
+      "value": "eyJpdiI6IjNPRHBJdFV1alpCT2lrWGZmUWtOWkE9PSIsInZhbHVlIjoiZEVQN3oyRmNheCt3bkZOVDdJVHJXQmh4R3lQL3lDK3NPQzZGUGltRGlOUXJXOEpKUmtFVU1Yc0g1RkNlSnhqd2NXbUc4MTVIbXhGWTdGaVY1aDRDT3paekZ0SEEzSmNvVk1OUVRpekFsYUoxREhDUjdWMjhydGJ2cFVubU5rd3QiLCJtYWMiOiI4YWZlNWJmNWE1YTU5ZWEyNGZlNmUyNDU1MjNhZGJlODJkNWNlZWJiNWJkZGMzYmUyMmE2OTA4MzkzMjU1ZjYxIiwidGFnIjoiIn0%3D",
+      "domain": "my.sonjj.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6InV1R1ovdjRmSHZrSjB4bFNqVFo0SUE9PSIsInZhbHVlIjoiZERaUnV5WGdFOE1LTU9EOEEyYy9kTEk5c01wQVMxSW9yY25kY3lQZkZPQkRocjkzV3VLN3A3Qkp4TEpBalZuNDNYL1kzUFdTSFpER2xremw0cm0wSWJQK0t0aXhtMXdWS3duN0lMYzFkaDN3UjN4N2Y0YlBEVnhseEpHMnFBdFIiLCJtYWMiOiI1YzIwNTk0ZWRhNTkwZGRjMDM5MGEyNjM1ZDU1ZjU2OGU1ZWJmZWU4MjNjYjIxNjY4Njk1NDY0ODc4NDhlMjJkIiwidGFnIjoiIn0%3D",
+      "domain": "smailpro.com",
+      "path": "/",
+      "expires": 1767089938.708264,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sonjj_session",
+      "value": "eyJpdiI6Im92SURxMkE1QkhjV0ppSk5XV1hCdlE9PSIsInZhbHVlIjoiL211WnRtMCs1SHROcG1EZTZBeDl2VHFDRTRRSUdsM2pFSm8zVlN4MktVSjViY3pQR3hGTDBralhYMGJuRHRPQlg4TjhSS1BETnVIVko3N1JUMCtFbmxKNzJKU1lwVnFRSDFZMGwreS85S1FFUXZNZE1VNGFLRTFyRTVhSDdVS3QiLCJtYWMiOiIzMjJkNDY1NzEyOGQwMjkyOGRiNDcyOGZmOGMzNjMwYjExOGUxZTk4MWEwY2JjZTNlODVhY2Y3NTBhNzVkOGNlIiwidGFnIjoiIn0%3D",
+      "domain": "smailpro.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "localStorage": {
+    "sessionToken": "c2dee56b2336c3ade1e826c6db295fde00bcdd2b1784796ea4bac30a174d084f",
+    "query": "{\"username\":\"random\",\"type\":\"alias\",\"domain\":\"gmail.com\",\"server\":\"1\"}",
+    "temporary_email_data": "{\"email\":\"w31vhfzr8mtv@solerbe.net\",\"expired_at\":1763801891,\"action\":\"created\"}",
+    "_grecaptcha": "09ABCLyOEmLCfastU7j1T_cs_sHhxrefJoyLyUZCHxxkReDB2pwYrYQB3svVJpLIqjH6C--jROjV50paE_MnFfVimIsB_RWsnKU7bFRGRg52VHr_ibQrG4a67xKwwjb62r",
+    "version": "1.0.0"
+  },
+  "sessionStorage": {},
+  "url": "https://smailpro.com/",
+  "timestamp": 660523.1671245,
+  "login_date": "2025-12-30"
+}

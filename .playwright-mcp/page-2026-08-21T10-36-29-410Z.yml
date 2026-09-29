@@ -1,0 +1,315 @@
+- generic [active] [ref=f4e1]:
+  - banner [ref=f4e2]:
+    - paragraph [ref=f4e5]: ⚡ LIVE DEALS · Amazon · Flipkart · Myntra — refreshed every few seconds
+    - generic [ref=f4e8]:
+      - link "ShoppersDeals Logo ShoppersDeals" [ref=f4e9] [cursor=pointer]:
+        - /url: /
+        - img "ShoppersDeals Logo" [ref=f4e10]
+        - generic [ref=f4e11]: ShoppersDeals
+      - navigation "Primary" [ref=f4e12]:
+        - link "Live Feed" [ref=f4e13] [cursor=pointer]:
+          - /url: /
+        - link "Hot Deals" [ref=f4e14] [cursor=pointer]:
+          - /url: /hot
+        - link "Track Prices" [ref=f4e15] [cursor=pointer]:
+          - /url: /products
+        - link "Categories" [ref=f4e16] [cursor=pointer]:
+          - /url: /categories
+      - searchbox "Search deals" [ref=f4e21]
+      - generic [ref=f4e22]:
+        - link "Wishlist" [ref=f4e23] [cursor=pointer]:
+          - /url: /saved
+        - link "Sign In" [ref=f4e28] [cursor=pointer]:
+          - /url: /profile
+    - generic [ref=f4e35]:
+      - link "🔥 Live Deals" [ref=f4e36] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f4e37]: 🔥
+        - generic [ref=f4e38]: Live Deals
+      - link "📱 Mobiles & Tech" [ref=f4e39] [cursor=pointer]:
+        - /url: /?category=electronics
+        - generic [ref=f4e40]: 📱
+        - generic [ref=f4e41]: Mobiles & Tech
+      - link "👗 Fashion Loot" [ref=f4e42] [cursor=pointer]:
+        - /url: /?category=fashion
+        - generic [ref=f4e43]: 👗
+        - generic [ref=f4e44]: Fashion Loot
+      - link "🏠 Home & Kitchen" [ref=f4e45] [cursor=pointer]:
+        - /url: /?category=home
+        - generic [ref=f4e46]: 🏠
+        - generic [ref=f4e47]: Home & Kitchen
+      - link "💄 Beauty & Care" [ref=f4e48] [cursor=pointer]:
+        - /url: /?category=beauty
+        - generic [ref=f4e49]: 💄
+        - generic [ref=f4e50]: Beauty & Care
+      - link "⚡ 50%+ Drops" [ref=f4e51] [cursor=pointer]:
+        - /url: /hot
+        - generic [ref=f4e52]: ⚡
+        - generic [ref=f4e53]: 50%+ Drops
+      - link "📊 Price Tracker" [ref=f4e54] [cursor=pointer]:
+        - /url: /products
+        - generic [ref=f4e55]: 📊
+        - generic [ref=f4e56]: Price Tracker
+      - link "❤️ Wishlist & Alerts" [ref=f4e57] [cursor=pointer]:
+        - /url: /saved
+        - generic [ref=f4e58]: ❤️
+        - generic [ref=f4e59]: Wishlist & Alerts
+  - main [ref=f4e60]:
+    - generic [ref=f4e61]:
+      - generic [ref=f4e63]:
+        - link "Back to Price Tracker" [ref=f4e64] [cursor=pointer]:
+          - /url: /products
+        - generic [ref=f4e67]:
+          - generic [ref=f4e68]: general
+          - generic [ref=f4e69]: /
+          - generic [ref=f4e70]: amazon
+      - main [ref=f4e71]:
+        - generic [ref=f4e72]:
+          - generic [ref=f4e73]:
+            - generic [ref=f4e75]:
+              - generic [ref=f4e76]:
+                - generic [ref=f4e77]: 🔥
+                - generic [ref=f4e78]: JUST DROPPED • 75% OFF
+              - img "Amazon" [ref=f4e80]
+              - img "Window Curtains 5 Feet Long Set of 10 | Floral Design | Polyester | Light Filtering Curtains | Curtains for Living Room | (118 x 152 cm, Black) | Perfect for Home Decor" [ref=f4e81]
+            - generic [ref=f4e82]:
+              - generic [ref=f4e83]:
+                - generic [ref=f4e84]: ✅ Great Deal
+                - paragraph [ref=f4e86]: Current price is ₹-50 below the historical average.
+              - generic [ref=f4e87]:
+                - generic [ref=f4e88]:
+                  - text: Current Price
+                  - paragraph [ref=f4e89]: ₹299
+                - generic [ref=f4e90]:
+                  - text: 🟢 Lowest Ever
+                  - paragraph [ref=f4e91]: ₹149
+                  - paragraph [ref=f4e92]: 21 Aug
+                - generic [ref=f4e93]:
+                  - text: 🔴 Highest Price
+                  - paragraph [ref=f4e94]: ₹299
+                  - paragraph [ref=f4e95]: 21 Aug
+                - generic [ref=f4e96]:
+                  - text: 🟡 Average Price
+                  - paragraph [ref=f4e97]: ₹249
+              - generic [ref=f4e98]:
+                - generic [ref=f4e99]:
+                  - heading "Price Trend & History" [level=3] [ref=f4e100]
+                  - generic [ref=f4e101]: Live Tracker
+                - generic [ref=f4e102]:
+                  - button "1M" [ref=f4e103]
+                  - button "3M" [ref=f4e104]
+                  - button "6M" [ref=f4e105]
+                  - button "ALL" [ref=f4e106]
+              - generic [ref=f4e107]:
+                - img [ref=f4e108]:
+                  - generic [ref=f4e109]: ₹299
+                  - generic [ref=f4e111]: ₹224
+                  - generic [ref=f4e113]: ₹149
+                  - generic [ref=f4e119]:
+                    - generic [ref=f4e120]: 21 Aug 2026
+                    - generic [ref=f4e121]: 21 Aug 2026
+                - generic:
+                  - generic:
+                    - generic: 📅 21 Aug 2026
+                    - generic: 03:57 pm
+                  - generic:
+                    - generic: ₹299
+                    - generic: ₹1,199
+              - generic [ref=f4e122]:
+                - generic [ref=f4e123]:
+                  - generic [ref=f4e124]: 👆
+                  - text: Hover/drag over the graph to inspect exact date and historical price
+                - generic [ref=f4e125]: 🕒 24-Hour Continuous Refresh Active
+            - generic [ref=f4e126]:
+              - heading "📋 Product Highlights & Details" [level=3] [ref=f4e127]
+              - generic [ref=f4e128]:
+                - generic [ref=f4e129]:
+                  - generic [ref=f4e130]: ✓
+                  - generic [ref=f4e131]:
+                    - strong [ref=f4e132]: "Tracked Merchant:"
+                    - img "Amazon" [ref=f4e133]
+                - generic [ref=f4e134]:
+                  - generic [ref=f4e135]: ✓
+                  - generic [ref=f4e136]:
+                    - strong [ref=f4e137]: "Category:"
+                    - text: general
+                - generic [ref=f4e138]:
+                  - generic [ref=f4e139]: ✓
+                  - generic [ref=f4e140]:
+                    - strong [ref=f4e141]: "Price Verification:"
+                    - text: Continuous 24h scraping schedule active
+            - generic [ref=f4e142]:
+              - generic [ref=f4e143]:
+                - heading "Frequently Asked Questions" [level=3] [ref=f4e144]
+                - paragraph [ref=f4e145]: Everything you need to know about price tracking and smart shopping
+              - generic [ref=f4e146]:
+                - generic [ref=f4e147]:
+                  - button "How accurate is the price history for Window Curtains 5 Feet Long Set of 10 | Floral Design | Polyester | Light Filtering Curtains | Curtains for Living Room | (118 x 152 cm, Black) | Perfect for Home Decor? −" [ref=f4e148]:
+                    - generic [ref=f4e149]: How accurate is the price history for Window Curtains 5 Feet Long Set of 10 | Floral Design | Polyester | Light Filtering Curtains | Curtains for Living Room | (118 x 152 cm, Black) | Perfect for Home Decor?
+                    - generic [ref=f4e150]: −
+                  - generic [ref=f4e151]: Our automated scrapers and Telegram verifiers track live price updates from Amazon multiple times daily. The graph captures real recorded sale prices, deal drops, and MRP strike-through changes.
+                - button "How do I know if a deal on Amazon is genuine? +" [ref=f4e153]:
+                  - generic [ref=f4e154]: How do I know if a deal on Amazon is genuine?
+                  - generic [ref=f4e155]: +
+                - button "How do WhatsApp and Email price drop alerts work? +" [ref=f4e157]:
+                  - generic [ref=f4e158]: How do WhatsApp and Email price drop alerts work?
+                  - generic [ref=f4e159]: +
+                - button "Can I track products from other stores like Flipkart or Myntra? +" [ref=f4e161]:
+                  - generic [ref=f4e162]: Can I track products from other stores like Flipkart or Myntra?
+                  - generic [ref=f4e163]: +
+          - generic [ref=f4e165]:
+            - generic [ref=f4e167]:
+              - generic [ref=f4e168]: general
+              - img "Amazon" [ref=f4e170]
+            - heading "Window Curtains 5 Feet Long Set of 10 | Floral Design | Polyester | Light Filtering Curtains | Curtains for Living Room | (118 x 152 cm, Black) | Perfect for Home Decor" [level=1] [ref=f4e171]
+            - generic [ref=f4e172]:
+              - generic [ref=f4e173]: ₹299
+              - generic [ref=f4e174]: ₹1,199
+              - generic [ref=f4e175]: 75% OFF
+            - paragraph [ref=f4e176]: 🎉 You save ₹900 off the MRP!
+            - generic [ref=f4e177]:
+              - generic [ref=f4e182]:
+                - generic [ref=f4e183]: Live Verified on
+                - img "Amazon" [ref=f4e184]
+                - generic [ref=f4e185]: (9m ago)
+              - button "⚡ Re-check Live Price" [ref=f4e186]:
+                - generic [ref=f4e187]: ⚡
+                - text: Re-check Live Price
+            - generic [ref=f4e188]:
+              - link "Buy on Amazon at ₹299" [ref=f4e189] [cursor=pointer]:
+                - /url: https://www.amazon.in/dp/B0FNMVLFFN?tag=shoppersdea03-21
+                - generic [ref=f4e190]: Buy on
+                - img "Amazon" [ref=f4e191]
+                - generic [ref=f4e192]: at ₹299
+              - button "🔔 Set Price Alert" [ref=f4e197]:
+                - generic [ref=f4e198]: 🔔
+                - text: Set Price Alert
+            - generic [ref=f4e200]:
+              - generic [ref=f4e201]:
+                - generic [ref=f4e202]:
+                  - generic [ref=f4e203]: ₹
+                  - 'heading "Potential Extra Savings: ₹150 (50% Off)" [level=3] [ref=f4e204]'
+                - paragraph [ref=f4e205]: This product was recorded at a low of ₹149. You can save an extra ₹150 if you wait for the next price drop.
+              - button "🔔 Alert Me at ₹149" [ref=f4e206]
+  - contentinfo [ref=f4e207]:
+    - generic [ref=f4e209]:
+      - heading "How We Curate the Best Deals of the Day" [level=2] [ref=f4e210]
+      - paragraph [ref=f4e211]: Most deal platforms work the same way - they pull data from an API, put a "SALE" badge on it, and call it a day. That's not how ShoppersDeals operates.
+      - paragraph [ref=f4e212]: Our deals of the day go through a two-layer verification process before they ever appear on this page. First, our proprietary price-tracking system - the same engine that monitors price drops in real-time - continuously monitors product prices across major platforms, including Amazon, Flipkart, Myntra, Ajio, and more. The system flags a product only when its current price drops meaningfully below its historical average, not just a marginal dip that barely moves the needle.
+      - paragraph [ref=f4e213]: "But data alone isn't enough. Our team at ShoppersDeals manually reviews every flagged deal to verify three things: whether the discount is genuine and not an inflated MRP trick, whether the product is actually in stock at the time of listing, and whether the savings hold up against both the 30-day and 90-day average price - not just what it cost yesterday."
+      - paragraph [ref=f4e214]: We also cross-reference with our AI engines and partner deal data to identify where additional savings can be stacked on top of the listed price. This combination of algorithmic tracking and human verification is what separates ShoppersDeals's daily deals from the noise you'll find on every other platform.
+      - paragraph [ref=f4e215]: "The result is straightforward: every deal on this page represents a verified, real-time price drop backed by original price research - not a sponsored listing or a promotional badge a brand paid to place here. When we say it's a deal, we've done the homework to prove it."
+      - heading "Smart Shopping Guide - Get the Most Out of Daily Deals" [level=3] [ref=f4e216]
+      - paragraph [ref=f4e217]: Online shopping involves real financial decisions. And in a market flooded with sale banners and discount badges, knowing how to separate a genuine deal from a marketing gimmick is one of the most valuable skills a shopper can have. Here's what you need to know before hitting "Buy Now."
+      - heading "How to Identify Deceptive Discounts" [level=4] [ref=f4e218]
+      - paragraph [ref=f4e219]: Not every "70% off" is what it looks like. A well-documented pattern across Indian e-commerce platforms involves inflating a product's MRP before a sale window and then "discounting" it back to its original price. The percentage looks impressive. The actual saving is zero.
+      - paragraph [ref=f4e220]: "Here's how to call the bluff every single time:"
+      - list [ref=f4e221]:
+        - listitem [ref=f4e222]: • Check the price history graph before buying. If a product has been sitting at the "discounted" price for months, it was never really on sale.
+        - listitem [ref=f4e223]: • Compare the current price against the 90-day average, not just what it cost yesterday.
+        - listitem [ref=f4e224]: • Be skeptical of deals that appear exclusively during major sale events with suspiciously round discount figures, "originally ₹9,999, now ₹4,999" is a classic pattern.
+        - listitem [ref=f4e225]: • Look for products where the price has genuinely dropped below its historical floor, that's where real, actionable savings exist.
+      - heading "Why Daily Deals Expire Fast - And How to Secure Them" [level=4] [ref=f4e226]
+      - paragraph [ref=f4e227]: Genuine price drops attract demand quickly. When a product hits its lowest recorded price, stock clears fast - often within a few hours of the deal going live. This isn't artificial scarcity; it's what happens when a real deal reaches a deal-aware audience.
+      - paragraph [ref=f4e228]: "Here's how to stay consistently ahead:"
+      - list [ref=f4e229]:
+        - listitem [ref=f4e230]: • Check our live feed regularly. You'll get notified the moment the price falls to your target.
+        - listitem [ref=f4e231]: • Don't add to the wishlist and wait to act when the alert arrives. Genuine deals don't wait for you.
+        - listitem [ref=f4e232]: • Check the deals page early morning, many price drops go live between midnight and 8 AM IST, before broader traffic arrives.
+        - listitem [ref=f4e233]: • Always verify stock availability before spending time comparing bank offers or cashback stacking options.
+      - heading "Category-Wise Deal Breakdown - Where the Real Savings Are" [level=3] [ref=f4e234]
+      - paragraph [ref=f4e235]: Different product categories behave very differently in pricing patterns, discount cycles, and the depth of genuine savings available. Here's how ShoppersDeals approaches each major category on the deals page - and what you should keep in mind when shopping each one.
+      - list [ref=f4e236]:
+        - listitem [ref=f4e237]:
+          - strong [ref=f4e238]: "Electronics:"
+          - text: Price tracking delivers the highest return here. Smartphone prices, for instance, tend to drop sharply 2-3 months after a launch as inventory builds and newer models enter the pipeline. In the electronics category, ShoppersDeals prioritizes deals offering at least 20% genuine savings compared to the 3-month average price. For high-value items like laptops, smart TVs, and audio equipment, even a 10-15% real price drop translates to thousands of rupees in actual savings - especially when stacked with a bank offer.
+        - listitem [ref=f4e239]:
+          - strong [ref=f4e240]: "Fashion and Accessories:"
+          - text: Fashion pricing is volatile and moves fast. Discounts on clothing and footwear can swing dramatically within the same week, depending on inventory levels and platform promotions. In this category, we focus on deals where the current price sits below the 30-day average with verified stock. End-of-season clearance events typically offer the deepest and most legitimate cuts in fashion - those get flagged and highlighted prominently on the deals page as they appear.
+        - listitem [ref=f4e241]:
+          - strong [ref=f4e242]: "Home Essentials & Appliances:"
+          - text: Home appliances - air coolers, water purifiers, kitchen gadgets, and storage solutions - tend to see their best prices during festive season sales. Outside of major sale windows, genuine deals in this category are less frequent but more significant when they appear. ShoppersDeals tracks these products daily and flags deals only when the price crosses below its historical floor, not just a marginal dip.
+        - listitem [ref=f4e243]:
+          - strong [ref=f4e244]: "Grooming & Personal Care:"
+          - text: FMCG and personal care products rotate quickly, and deals in this category are best evaluated on a per-unit-price basis. Combo packs and bundle offers often deliver more mathematical value than single-product discounts. ShoppersDeals tracks unit pricing across pack sizes so that the "deal" you see is one that actually makes economic sense - not just one that looks large on the label.
+      - 'heading "Average Savings Comparison: Regular Shopping vs. Daily Deals" [level=3] [ref=f4e245]'
+      - paragraph [ref=f4e246]: "Here's a data-backed breakdown of what verified daily deals on ShoppersDeals deliver compared to standard untracked online shopping:"
+      - table [ref=f4e248]:
+        - rowgroup [ref=f4e249]:
+          - row [ref=f4e250]:
+            - columnheader "Savings Factor" [ref=f4e251]
+            - columnheader "Regular Shopping" [ref=f4e252]
+            - columnheader "Daily Deals (ShoppersDeals Verified)" [ref=f4e253]
+        - rowgroup [ref=f4e254]:
+          - row [ref=f4e255]:
+            - cell "Avg. Discount on Electronics" [ref=f4e256]
+            - cell "5 - 10%" [ref=f4e257]
+            - cell "20 - 40%" [ref=f4e258]
+          - row [ref=f4e259]:
+            - cell "Price Verification" [ref=f4e260]
+            - cell "None" [ref=f4e261]
+            - cell "Cross-checked via price history" [ref=f4e262]
+          - row [ref=f4e263]:
+            - cell "Bank Offers" [ref=f4e264]
+            - cell "Not tracked" [ref=f4e265]
+            - cell "Stackable tracked" [ref=f4e266]
+          - row [ref=f4e267]:
+            - cell "Price History Check" [ref=f4e268]
+            - cell "Manual effort" [ref=f4e269]
+            - cell "Automated via ShoppersDeals AI" [ref=f4e270]
+          - row [ref=f4e271]:
+            - cell "Deal Authenticity" [ref=f4e272]
+            - cell "Unverified" [ref=f4e273]
+            - cell "Manually reviewed" [ref=f4e274]
+          - row [ref=f4e275]:
+            - cell "Stock Availability Check" [ref=f4e276]
+            - cell "No" [ref=f4e277]
+            - cell "Yes - real-time" [ref=f4e278]
+      - paragraph [ref=f4e279]: Savings estimates based on ShoppersDeals historical price tracking data across Amazon, Flipkart, and partner platforms.
+      - heading "Frequently Asked Questions" [level=3] [ref=f4e280]
+      - paragraph [ref=f4e281]: We heard you. Get reliable, verified answers here.
+      - list [ref=f4e282]:
+        - listitem [ref=f4e283]:
+          - strong [ref=f4e284]: How frequently are deals updated?
+          - text: Deals are updated in real-time. Our AI engine scans deals 24/7 and updates the feed instantly.
+        - listitem [ref=f4e285]:
+          - strong [ref=f4e286]: Are the deals verified?
+          - text: Yes. Every deal goes through an automated price-history check and a manual review to ensure it's a genuine price drop.
+    - generic [ref=f4e287]:
+      - generic [ref=f4e288]:
+        - heading "ShoppersDeals" [level=2] [ref=f4e289]
+        - paragraph [ref=f4e290]: ShoppersDeals is India's premier live deal tracking platform. We scan Amazon, Flipkart, and Myntra 24/7 to bring you the biggest discounts, lightning deals, and price drops on smartphones, laptops, and fashion before they expire.
+      - generic [ref=f4e291]:
+        - heading "Explore" [level=3] [ref=f4e292]
+        - list [ref=f4e293]:
+          - listitem [ref=f4e294]:
+            - link "Live Feed" [ref=f4e295] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f4e296]:
+            - link "Hot Deals 🔥" [ref=f4e297] [cursor=pointer]:
+              - /url: /hot
+          - listitem [ref=f4e298]:
+            - link "Shopping Guides" [ref=f4e299] [cursor=pointer]:
+              - /url: /blog
+          - listitem [ref=f4e300]:
+            - link "Browse Categories" [ref=f4e301] [cursor=pointer]:
+              - /url: /categories
+      - generic [ref=f4e302]:
+        - heading "Legal" [level=3] [ref=f4e303]
+        - list [ref=f4e304]:
+          - listitem [ref=f4e305]:
+            - link "Privacy Policy" [ref=f4e306] [cursor=pointer]:
+              - /url: /privacy
+          - listitem [ref=f4e307]:
+            - link "Delete Your Account" [ref=f4e308] [cursor=pointer]:
+              - /url: /delete-account
+          - listitem [ref=f4e309]:
+            - link "Affiliate Disclosure" [ref=f4e310] [cursor=pointer]:
+              - /url: /affiliate-disclosure
+          - listitem [ref=f4e311]: Terms of Service
+          - listitem [ref=f4e312]:
+            - link "Support" [ref=f4e313] [cursor=pointer]:
+              - /url: /support
+    - paragraph [ref=f4e315]: © 2026 ShoppersDeals. All rights reserved. As an Amazon Associate we earn from qualifying purchases.
+  - button "Open Next.js Dev Tools" [ref=f4e321] [cursor=pointer]
+  - alert [ref=f4e325]

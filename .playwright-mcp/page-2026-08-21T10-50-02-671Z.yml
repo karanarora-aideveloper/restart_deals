@@ -1,0 +1,137 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - complementary [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - img "Admin Icon" [ref=f6e5]
+        - heading "ShoppersDeals" [level=2] [ref=f6e6]
+      - navigation [ref=f6e7]:
+        - link "dashboard Dashboard" [ref=f6e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f6e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f6e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f6e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f6e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f6e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f6e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f6e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f6e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f6e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f6e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f6e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f6e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f6e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f6e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f6e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f6e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f6e25]: account_tree
+          - text: Architecture
+      - generic [ref=f6e26]: Daemon Checking...
+      - generic [ref=f6e29]:
+        - generic [ref=f6e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f6e31]
+    - main [ref=f6e32]:
+      - generic [ref=f6e33]:
+        - heading "System Configuration" [level=1] [ref=f6e34]
+        - generic [ref=f6e35]:
+          - generic [ref=f6e36]: "Queue: 0"
+          - generic [ref=f6e37]: "Deals Today: 0"
+          - generic [ref=f6e38]: "Products DB: 0"
+          - generic [ref=f6e39]: "Total Users: 0"
+      - generic [ref=f6e41]:
+        - link "database Master Data" [ref=f6e42] [cursor=pointer]:
+          - /url: /settings/master
+          - generic [ref=f6e43]: database
+          - text: Master Data
+        - link "vpn_key API Tokens" [ref=f6e44] [cursor=pointer]:
+          - /url: /settings/tokens
+          - generic [ref=f6e45]: vpn_key
+          - text: API Tokens
+        - link "terminal System Logs" [ref=f6e46] [cursor=pointer]:
+          - /url: /settings/logs
+          - generic [ref=f6e47]: terminal
+          - text: System Logs
+      - generic [ref=f6e48]:
+        - generic [ref=f6e49]:
+          - generic [ref=f6e50]:
+            - generic [ref=f6e51]:
+              - heading "Scraping Engine & Proxy Pool" [level=1] [ref=f6e52]
+              - generic [ref=f6e53]: Pool Exhausted
+            - paragraph [ref=f6e55]: High-concurrency scraping token rotation pool and real-time request activity logs.
+          - generic [ref=f6e56]:
+            - button "download Export CSV" [ref=f6e57] [cursor=pointer]:
+              - generic [ref=f6e58]: download
+              - text: Export CSV
+            - button "sync Sync Tokens" [ref=f6e59] [cursor=pointer]:
+              - generic [ref=f6e60]: sync
+              - text: Sync Tokens
+        - generic [ref=f6e61]:
+          - button "key ScrapingAnt Token Pool (0)" [ref=f6e62] [cursor=pointer]:
+            - generic [ref=f6e63]: key
+            - text: ScrapingAnt Token Pool (0)
+          - button "receipt_long Scraping Logs & Activity Tracker" [ref=f6e64] [cursor=pointer]:
+            - generic [ref=f6e65]: receipt_long
+            - text: Scraping Logs & Activity Tracker
+        - generic [ref=f6e66]:
+          - generic [ref=f6e67]:
+            - generic [ref=f6e68]: key
+            - generic [ref=f6e70]: "0"
+            - generic [ref=f6e71]: Total Tokens in Pool
+            - generic [ref=f6e72]: Configured keys
+          - generic [ref=f6e73]:
+            - generic [ref=f6e74]: check_circle
+            - generic [ref=f6e76]: "0"
+            - generic [ref=f6e77]: Active & Ready
+            - generic [ref=f6e78]: 0% pool health
+          - generic [ref=f6e79]:
+            - generic [ref=f6e80]: battery_alert
+            - generic [ref=f6e82]: "0"
+            - generic [ref=f6e83]: Exhausted (429)
+            - generic [ref=f6e84]: No exhausted keys
+          - generic [ref=f6e85]:
+            - generic [ref=f6e86]: query_stats
+            - generic [ref=f6e88]: "0"
+            - generic [ref=f6e89]: Total API Scrapes
+            - generic [ref=f6e90]: Lifetime requests made
+        - generic [ref=f6e91]:
+          - heading "Add ScrapingAnt Tokens" [level=3] [ref=f6e92]
+          - generic [ref=f6e94]:
+            - textbox "Paste ScrapingAnt token (e.g. 24269827...)" [ref=f6e95]
+            - button "Add Token" [disabled] [ref=f6e96]
+        - generic [ref=f6e97]:
+          - generic [ref=f6e99]:
+            - textbox "Search token..." [ref=f6e100]
+            - combobox [ref=f6e101]:
+              - option "All Status" [selected]
+              - option "Active"
+              - option "Exhausted"
+          - table [ref=f6e104]:
+            - rowgroup [ref=f6e105]:
+              - row [ref=f6e106]:
+                - columnheader [ref=f6e107]:
+                  - checkbox [ref=f6e108]
+                - columnheader "API Token" [ref=f6e109]
+                - columnheader "Status" [ref=f6e110]
+                - columnheader "Usage Count" [ref=f6e111]
+                - columnheader "Last Used" [ref=f6e112]
+                - columnheader "Actions" [ref=f6e113]
+            - rowgroup [ref=f6e114]:
+              - row [ref=f6e115]:
+                - cell "No tokens found." [ref=f6e116]
+  - button "Open Next.js Dev Tools" [ref=f6e122] [cursor=pointer]
+  - alert [ref=f6e126]

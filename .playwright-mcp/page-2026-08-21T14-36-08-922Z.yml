@@ -1,0 +1,93 @@
+- generic [ref=f31e4]:
+  - generic [ref=f31e6]:
+    - generic [ref=f31e7]:
+      - text: The store doesn't want you to see this price history. We do.
+      - link [ref=f31e8] [cursor=pointer]:
+        - /url: https://e.buyhatke.com/internalTopBar_homepage-6
+        - img "install" [ref=f31e9]
+        - text: Reveal the Truth
+    - generic [ref=f31e10]:
+      - button [ref=f31e12] [cursor=pointer]:
+        - img "country" [ref=f31e13]
+        - text: India
+      - button [ref=f31e15] [cursor=pointer]:
+        - img "language" [ref=f31e16]
+        - text: English
+  - generic [ref=f31e19]:
+    - generic [ref=f31e20]:
+      - link [ref=f31e21] [cursor=pointer]:
+        - /url: /
+        - img "logo" [ref=f31e22]
+      - generic [ref=f31e24]:
+        - button "Show all categories":
+          - generic:
+            - generic:
+              - img "Deals"
+            - generic:
+              - img "Compare"
+            - generic:
+              - img "Lens"
+            - generic:
+              - img "Gift card"
+            - generic:
+              - img "Alerts"
+            - generic:
+              - img "Refer & win"
+          - generic: View All
+        - generic [ref=f31e25]:
+          - link [ref=f31e26] [cursor=pointer]:
+            - /url: /deals
+            - img "Deals" [ref=f31e27]
+            - text: Deals
+          - link [ref=f31e28] [cursor=pointer]:
+            - /url: /flights
+            - img "Compare" [ref=f31e29]
+            - text: Compare
+          - link [ref=f31e30] [cursor=pointer]:
+            - /url: /product-lens
+            - img "Lens" [ref=f31e31]
+            - text: Lens
+          - link [ref=f31e32] [cursor=pointer]:
+            - /url: /gift-cards
+            - img "Gift card" [ref=f31e33]
+            - text: Gift card
+          - link [ref=f31e34] [cursor=pointer]:
+            - /url: /flight-alerts
+            - img "Alerts" [ref=f31e35]
+            - text: Alerts
+          - link [ref=f31e36] [cursor=pointer]:
+            - /url: /gift-cards/referral
+            - img "Refer & win" [ref=f31e37]
+            - text: Refer & win
+    - generic [ref=f31e38]:
+      - link [ref=f31e39] [cursor=pointer]:
+        - /url: /wishlist
+        - img "OneList" [ref=f31e40]
+      - button "Login" [ref=f31e41] [cursor=pointer]
+  - main [ref=f31e43]:
+    - button "back icon Home / Deals" [ref=f31e45] [cursor=pointer]:
+      - link [ref=f31e46]:
+        - /url: /
+        - img "back icon" [ref=f31e47]
+      - generic [ref=f31e48]:
+        - link "Home" [ref=f31e49]:
+          - /url: /
+        - generic [ref=f31e50]: /
+        - generic [ref=f31e51]: Deals
+    - generic [ref=f31e52]:
+      - generic [ref=f31e53]:
+        - heading "Buyhatke 2026 Verified Deals" [level=1] [ref=f31e54]
+        - paragraph [ref=f31e55]: Deals that passed the scanner test.
+      - generic [ref=f31e57]:
+        - generic [ref=f31e58]:
+          - generic [ref=f31e59]:
+            - textbox "Search deals..." [ref=f31e63]
+            - generic [ref=f31e64]:
+              - paragraph [ref=f31e65]: "Sort By:"
+              - button "Popularity" [ref=f31e67] [cursor=pointer]
+          - generic [ref=f31e72]:
+            - generic [ref=f31e73]: Deals starting from ₹34,999
+            - button "Clear price filter" [ref=f31e74] [cursor=pointer]:
+              - img "Clear price filter" [ref=f31e75]
+        - iframe [ref=f31e76]:
+          

@@ -1,0 +1,321 @@
+- generic [active] [ref=f43e1]:
+  - banner [ref=f43e2]:
+    - paragraph [ref=f43e5]: ⚡ LIVE DEALS · Amazon · Flipkart · Myntra — refreshed every few seconds
+    - generic [ref=f43e8]:
+      - link "ShoppersDeals Logo ShoppersDeals" [ref=f43e9] [cursor=pointer]:
+        - /url: /
+        - img "ShoppersDeals Logo" [ref=f43e10]
+        - generic [ref=f43e11]: ShoppersDeals
+      - navigation "Primary" [ref=f43e12]:
+        - link "Live Feed" [ref=f43e13] [cursor=pointer]:
+          - /url: /
+        - link "Hot Deals" [ref=f43e14] [cursor=pointer]:
+          - /url: /hot
+        - link "Track Prices" [ref=f43e15] [cursor=pointer]:
+          - /url: /products
+        - link "Categories" [ref=f43e16] [cursor=pointer]:
+          - /url: /categories
+      - searchbox "Search deals" [ref=f43e21]
+      - generic [ref=f43e22]:
+        - link "Wishlist" [ref=f43e23] [cursor=pointer]:
+          - /url: /saved
+        - link "Sign In" [ref=f43e28] [cursor=pointer]:
+          - /url: /profile
+    - generic [ref=f43e35]:
+      - link "🔥 Live Deals" [ref=f43e36] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f43e37]: 🔥
+        - generic [ref=f43e38]: Live Deals
+      - link "📱 Mobiles & Tech" [ref=f43e39] [cursor=pointer]:
+        - /url: /?category=electronics
+        - generic [ref=f43e40]: 📱
+        - generic [ref=f43e41]: Mobiles & Tech
+      - link "👗 Fashion Loot" [ref=f43e42] [cursor=pointer]:
+        - /url: /?category=fashion
+        - generic [ref=f43e43]: 👗
+        - generic [ref=f43e44]: Fashion Loot
+      - link "🏠 Home & Kitchen" [ref=f43e45] [cursor=pointer]:
+        - /url: /?category=home
+        - generic [ref=f43e46]: 🏠
+        - generic [ref=f43e47]: Home & Kitchen
+      - link "💄 Beauty & Care" [ref=f43e48] [cursor=pointer]:
+        - /url: /?category=beauty
+        - generic [ref=f43e49]: 💄
+        - generic [ref=f43e50]: Beauty & Care
+      - link "⚡ 50%+ Drops" [ref=f43e51] [cursor=pointer]:
+        - /url: /hot
+        - generic [ref=f43e52]: ⚡
+        - generic [ref=f43e53]: 50%+ Drops
+      - link "📊 Price Tracker" [ref=f43e54] [cursor=pointer]:
+        - /url: /products
+        - generic [ref=f43e55]: 📊
+        - generic [ref=f43e56]: Price Tracker
+      - link "❤️ Wishlist & Alerts" [ref=f43e57] [cursor=pointer]:
+        - /url: /saved
+        - generic [ref=f43e58]: ❤️
+        - generic [ref=f43e59]: Wishlist & Alerts
+  - main [ref=f43e60]:
+    - generic [ref=f43e61]:
+      - generic [ref=f43e63]:
+        - link "Back to Price Tracker" [ref=f43e64] [cursor=pointer]:
+          - /url: /products
+        - generic [ref=f43e67]:
+          - generic [ref=f43e68]: electronics
+          - generic [ref=f43e69]: /
+          - generic [ref=f43e70]: amazon
+      - main [ref=f43e71]:
+        - generic [ref=f43e72]:
+          - generic [ref=f43e73]:
+            - generic [ref=f43e74]:
+              - generic [ref=f43e75]:
+                - generic [ref=f43e76]:
+                  - generic [ref=f43e77]: 🔥
+                  - generic [ref=f43e78]: JUST DROPPED • 9% OFF
+                - img "Amazon" [ref=f43e80]
+                - img "Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014" [ref=f43e81]
+              - generic [ref=f43e82]:
+                - button [ref=f43e83]:
+                  - img "Thumbnail 1" [ref=f43e84]
+                - button [ref=f43e85]:
+                  - img "Thumbnail 2" [ref=f43e86]
+                - button [ref=f43e87]:
+                  - img "Thumbnail 3" [ref=f43e88]
+                - button [ref=f43e89]:
+                  - img "Thumbnail 4" [ref=f43e90]
+                - button [ref=f43e91]:
+                  - img "Thumbnail 5" [ref=f43e92]
+            - generic [ref=f43e93]:
+              - generic [ref=f43e94]:
+                - generic [ref=f43e95]: 🔥 All-Time Low! Buy Now
+                - paragraph [ref=f43e97]: Price is at its lowest recorded level (₹79,999). Great time to buy!
+              - generic [ref=f43e98]:
+                - generic [ref=f43e99]:
+                  - text: Current Price
+                  - paragraph [ref=f43e100]: ₹79,999
+                - generic [ref=f43e101]:
+                  - text: 🟢 Lowest Ever
+                  - paragraph [ref=f43e102]: ₹79,999
+                  - paragraph [ref=f43e103]: 21 Aug
+                - generic [ref=f43e104]:
+                  - text: 🔴 Highest Price
+                  - paragraph [ref=f43e105]: ₹79,999
+                  - paragraph [ref=f43e106]: 21 Aug
+                - generic [ref=f43e107]:
+                  - text: 🟡 Average Price
+                  - paragraph [ref=f43e108]: ₹79,999
+              - generic [ref=f43e109]:
+                - generic [ref=f43e110]:
+                  - heading "Price Trend & History" [level=3] [ref=f43e111]
+                  - generic [ref=f43e112]: Live Tracker
+                - generic [ref=f43e113]:
+                  - button "1M" [ref=f43e114]
+                  - button "3M" [ref=f43e115]
+                  - button "6M" [ref=f43e116]
+                  - button "ALL" [ref=f43e117]
+              - generic [ref=f43e118]:
+                - img [ref=f43e119]:
+                  - generic [ref=f43e120]: ₹92.0k
+                  - generic [ref=f43e122]: ₹80.0k
+                  - generic [ref=f43e124]: ₹68.0k
+                  - generic [ref=f43e129]:
+                    - generic [ref=f43e130]: 20 Aug 2026
+                    - generic [ref=f43e131]: 21 Aug 2026
+                - generic:
+                  - generic:
+                    - generic: 📅 21 Aug 2026
+                    - generic: 08:09 pm
+                  - generic:
+                    - generic: ₹79,999
+                    - generic: ₹87,999
+                  - generic: 🟢 All-Time Lowest Price
+              - generic [ref=f43e132]:
+                - generic [ref=f43e133]:
+                  - generic [ref=f43e134]: 👆
+                  - text: Hover/drag over the graph to inspect exact date and historical price
+                - generic [ref=f43e135]: 🕒 24-Hour Continuous Refresh Active
+            - generic [ref=f43e136]:
+              - heading "📋 Product Highlights & Details" [level=3] [ref=f43e137]
+              - generic [ref=f43e138]:
+                - generic [ref=f43e139]:
+                  - generic [ref=f43e140]: ✓
+                  - generic [ref=f43e141]:
+                    - strong [ref=f43e142]: "Tracked Merchant:"
+                    - img "Amazon" [ref=f43e143]
+                - generic [ref=f43e144]:
+                  - generic [ref=f43e145]: ✓
+                  - generic [ref=f43e146]:
+                    - strong [ref=f43e147]: "Category:"
+                    - text: electronics
+                - generic [ref=f43e148]:
+                  - generic [ref=f43e149]: ✓
+                  - generic [ref=f43e150]:
+                    - strong [ref=f43e151]: "Price Verification:"
+                    - text: Continuous 24h scraping schedule active
+            - generic [ref=f43e152]:
+              - generic [ref=f43e153]:
+                - heading "Frequently Asked Questions" [level=3] [ref=f43e154]
+                - paragraph [ref=f43e155]: Everything you need to know about price tracking and smart shopping
+              - generic [ref=f43e156]:
+                - generic [ref=f43e157]:
+                  - button "How accurate is the price history for Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014? −" [ref=f43e158]:
+                    - generic [ref=f43e159]: How accurate is the price history for Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014?
+                    - generic [ref=f43e160]: −
+                  - generic [ref=f43e161]: Our automated scrapers and Telegram verifiers track live price updates from Amazon multiple times daily. The graph captures real recorded sale prices, deal drops, and MRP strike-through changes.
+                - button "How do I know if a deal on Amazon is genuine? +" [ref=f43e163]:
+                  - generic [ref=f43e164]: How do I know if a deal on Amazon is genuine?
+                  - generic [ref=f43e165]: +
+                - button "How do WhatsApp and Email price drop alerts work? +" [ref=f43e167]:
+                  - generic [ref=f43e168]: How do WhatsApp and Email price drop alerts work?
+                  - generic [ref=f43e169]: +
+                - button "Can I track products from other stores like Flipkart or Myntra? +" [ref=f43e171]:
+                  - generic [ref=f43e172]: Can I track products from other stores like Flipkart or Myntra?
+                  - generic [ref=f43e173]: +
+          - generic [ref=f43e175]:
+            - generic [ref=f43e177]:
+              - generic [ref=f43e178]: electronics
+              - img "Amazon" [ref=f43e180]
+            - heading "Samsung Galaxy S26 5G Sky Blue 12GB RAM 256GB Storage AI Phone Photo Assist Creative Studio 50MP Camera with ProVisual Engine Powerful Custom 63_105116014" [level=1] [ref=f43e181]
+            - generic [ref=f43e182]:
+              - generic [ref=f43e183]: ₹79,999
+              - generic [ref=f43e184]: ₹87,999
+              - generic [ref=f43e185]: 9% OFF
+            - paragraph [ref=f43e186]: 🎉 You save ₹8,000 off the MRP!
+            - generic [ref=f43e187]:
+              - generic [ref=f43e192]:
+                - generic [ref=f43e193]: Live Verified on
+                - img "Amazon" [ref=f43e194]
+                - generic [ref=f43e195]: (1m ago)
+              - button "⚡ Re-check Live Price" [ref=f43e196]:
+                - generic [ref=f43e197]: ⚡
+                - text: Re-check Live Price
+            - generic [ref=f43e198]:
+              - link "Buy on Amazon at ₹79,999" [ref=f43e199] [cursor=pointer]:
+                - /url: http://www.amazon.in/gp/product/B0GL8HZF8R?tag=shoppersdea03-21
+                - generic [ref=f43e200]: Buy on
+                - img "Amazon" [ref=f43e201]
+                - generic [ref=f43e202]: at ₹79,999
+              - button "🔔 Set Price Alert" [ref=f43e207]:
+                - generic [ref=f43e208]: 🔔
+                - text: Set Price Alert
+  - contentinfo [ref=f43e209]:
+    - generic [ref=f43e211]:
+      - heading "How We Curate the Best Deals of the Day" [level=2] [ref=f43e212]
+      - paragraph [ref=f43e213]: Most deal platforms work the same way - they pull data from an API, put a "SALE" badge on it, and call it a day. That's not how ShoppersDeals operates.
+      - paragraph [ref=f43e214]: Our deals of the day go through a two-layer verification process before they ever appear on this page. First, our proprietary price-tracking system - the same engine that monitors price drops in real-time - continuously monitors product prices across major platforms, including Amazon, Flipkart, Myntra, Ajio, and more. The system flags a product only when its current price drops meaningfully below its historical average, not just a marginal dip that barely moves the needle.
+      - paragraph [ref=f43e215]: "But data alone isn't enough. Our team at ShoppersDeals manually reviews every flagged deal to verify three things: whether the discount is genuine and not an inflated MRP trick, whether the product is actually in stock at the time of listing, and whether the savings hold up against both the 30-day and 90-day average price - not just what it cost yesterday."
+      - paragraph [ref=f43e216]: We also cross-reference with our AI engines and partner deal data to identify where additional savings can be stacked on top of the listed price. This combination of algorithmic tracking and human verification is what separates ShoppersDeals's daily deals from the noise you'll find on every other platform.
+      - paragraph [ref=f43e217]: "The result is straightforward: every deal on this page represents a verified, real-time price drop backed by original price research - not a sponsored listing or a promotional badge a brand paid to place here. When we say it's a deal, we've done the homework to prove it."
+      - heading "Smart Shopping Guide - Get the Most Out of Daily Deals" [level=3] [ref=f43e218]
+      - paragraph [ref=f43e219]: Online shopping involves real financial decisions. And in a market flooded with sale banners and discount badges, knowing how to separate a genuine deal from a marketing gimmick is one of the most valuable skills a shopper can have. Here's what you need to know before hitting "Buy Now."
+      - heading "How to Identify Deceptive Discounts" [level=4] [ref=f43e220]
+      - paragraph [ref=f43e221]: Not every "70% off" is what it looks like. A well-documented pattern across Indian e-commerce platforms involves inflating a product's MRP before a sale window and then "discounting" it back to its original price. The percentage looks impressive. The actual saving is zero.
+      - paragraph [ref=f43e222]: "Here's how to call the bluff every single time:"
+      - list [ref=f43e223]:
+        - listitem [ref=f43e224]: • Check the price history graph before buying. If a product has been sitting at the "discounted" price for months, it was never really on sale.
+        - listitem [ref=f43e225]: • Compare the current price against the 90-day average, not just what it cost yesterday.
+        - listitem [ref=f43e226]: • Be skeptical of deals that appear exclusively during major sale events with suspiciously round discount figures, "originally ₹9,999, now ₹4,999" is a classic pattern.
+        - listitem [ref=f43e227]: • Look for products where the price has genuinely dropped below its historical floor, that's where real, actionable savings exist.
+      - heading "Why Daily Deals Expire Fast - And How to Secure Them" [level=4] [ref=f43e228]
+      - paragraph [ref=f43e229]: Genuine price drops attract demand quickly. When a product hits its lowest recorded price, stock clears fast - often within a few hours of the deal going live. This isn't artificial scarcity; it's what happens when a real deal reaches a deal-aware audience.
+      - paragraph [ref=f43e230]: "Here's how to stay consistently ahead:"
+      - list [ref=f43e231]:
+        - listitem [ref=f43e232]: • Check our live feed regularly. You'll get notified the moment the price falls to your target.
+        - listitem [ref=f43e233]: • Don't add to the wishlist and wait to act when the alert arrives. Genuine deals don't wait for you.
+        - listitem [ref=f43e234]: • Check the deals page early morning, many price drops go live between midnight and 8 AM IST, before broader traffic arrives.
+        - listitem [ref=f43e235]: • Always verify stock availability before spending time comparing bank offers or cashback stacking options.
+      - heading "Category-Wise Deal Breakdown - Where the Real Savings Are" [level=3] [ref=f43e236]
+      - paragraph [ref=f43e237]: Different product categories behave very differently in pricing patterns, discount cycles, and the depth of genuine savings available. Here's how ShoppersDeals approaches each major category on the deals page - and what you should keep in mind when shopping each one.
+      - list [ref=f43e238]:
+        - listitem [ref=f43e239]:
+          - strong [ref=f43e240]: "Electronics:"
+          - text: Price tracking delivers the highest return here. Smartphone prices, for instance, tend to drop sharply 2-3 months after a launch as inventory builds and newer models enter the pipeline. In the electronics category, ShoppersDeals prioritizes deals offering at least 20% genuine savings compared to the 3-month average price. For high-value items like laptops, smart TVs, and audio equipment, even a 10-15% real price drop translates to thousands of rupees in actual savings - especially when stacked with a bank offer.
+        - listitem [ref=f43e241]:
+          - strong [ref=f43e242]: "Fashion and Accessories:"
+          - text: Fashion pricing is volatile and moves fast. Discounts on clothing and footwear can swing dramatically within the same week, depending on inventory levels and platform promotions. In this category, we focus on deals where the current price sits below the 30-day average with verified stock. End-of-season clearance events typically offer the deepest and most legitimate cuts in fashion - those get flagged and highlighted prominently on the deals page as they appear.
+        - listitem [ref=f43e243]:
+          - strong [ref=f43e244]: "Home Essentials & Appliances:"
+          - text: Home appliances - air coolers, water purifiers, kitchen gadgets, and storage solutions - tend to see their best prices during festive season sales. Outside of major sale windows, genuine deals in this category are less frequent but more significant when they appear. ShoppersDeals tracks these products daily and flags deals only when the price crosses below its historical floor, not just a marginal dip.
+        - listitem [ref=f43e245]:
+          - strong [ref=f43e246]: "Grooming & Personal Care:"
+          - text: FMCG and personal care products rotate quickly, and deals in this category are best evaluated on a per-unit-price basis. Combo packs and bundle offers often deliver more mathematical value than single-product discounts. ShoppersDeals tracks unit pricing across pack sizes so that the "deal" you see is one that actually makes economic sense - not just one that looks large on the label.
+      - 'heading "Average Savings Comparison: Regular Shopping vs. Daily Deals" [level=3] [ref=f43e247]'
+      - paragraph [ref=f43e248]: "Here's a data-backed breakdown of what verified daily deals on ShoppersDeals deliver compared to standard untracked online shopping:"
+      - table [ref=f43e250]:
+        - rowgroup [ref=f43e251]:
+          - row [ref=f43e252]:
+            - columnheader "Savings Factor" [ref=f43e253]
+            - columnheader "Regular Shopping" [ref=f43e254]
+            - columnheader "Daily Deals (ShoppersDeals Verified)" [ref=f43e255]
+        - rowgroup [ref=f43e256]:
+          - row [ref=f43e257]:
+            - cell "Avg. Discount on Electronics" [ref=f43e258]
+            - cell "5 - 10%" [ref=f43e259]
+            - cell "20 - 40%" [ref=f43e260]
+          - row [ref=f43e261]:
+            - cell "Price Verification" [ref=f43e262]
+            - cell "None" [ref=f43e263]
+            - cell "Cross-checked via price history" [ref=f43e264]
+          - row [ref=f43e265]:
+            - cell "Bank Offers" [ref=f43e266]
+            - cell "Not tracked" [ref=f43e267]
+            - cell "Stackable tracked" [ref=f43e268]
+          - row [ref=f43e269]:
+            - cell "Price History Check" [ref=f43e270]
+            - cell "Manual effort" [ref=f43e271]
+            - cell "Automated via ShoppersDeals AI" [ref=f43e272]
+          - row [ref=f43e273]:
+            - cell "Deal Authenticity" [ref=f43e274]
+            - cell "Unverified" [ref=f43e275]
+            - cell "Manually reviewed" [ref=f43e276]
+          - row [ref=f43e277]:
+            - cell "Stock Availability Check" [ref=f43e278]
+            - cell "No" [ref=f43e279]
+            - cell "Yes - real-time" [ref=f43e280]
+      - paragraph [ref=f43e281]: Savings estimates based on ShoppersDeals historical price tracking data across Amazon, Flipkart, and partner platforms.
+      - heading "Frequently Asked Questions" [level=3] [ref=f43e282]
+      - paragraph [ref=f43e283]: We heard you. Get reliable, verified answers here.
+      - list [ref=f43e284]:
+        - listitem [ref=f43e285]:
+          - strong [ref=f43e286]: How frequently are deals updated?
+          - text: Deals are updated in real-time. Our AI engine scans deals 24/7 and updates the feed instantly.
+        - listitem [ref=f43e287]:
+          - strong [ref=f43e288]: Are the deals verified?
+          - text: Yes. Every deal goes through an automated price-history check and a manual review to ensure it's a genuine price drop.
+    - generic [ref=f43e289]:
+      - generic [ref=f43e290]:
+        - heading "ShoppersDeals" [level=2] [ref=f43e291]
+        - paragraph [ref=f43e292]: ShoppersDeals is India's premier live deal tracking platform. We scan Amazon, Flipkart, and Myntra 24/7 to bring you the biggest discounts, lightning deals, and price drops on smartphones, laptops, and fashion before they expire.
+      - generic [ref=f43e293]:
+        - heading "Explore" [level=3] [ref=f43e294]
+        - list [ref=f43e295]:
+          - listitem [ref=f43e296]:
+            - link "Live Feed" [ref=f43e297] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=f43e298]:
+            - link "Hot Deals 🔥" [ref=f43e299] [cursor=pointer]:
+              - /url: /hot
+          - listitem [ref=f43e300]:
+            - link "Shopping Guides" [ref=f43e301] [cursor=pointer]:
+              - /url: /blog
+          - listitem [ref=f43e302]:
+            - link "Browse Categories" [ref=f43e303] [cursor=pointer]:
+              - /url: /categories
+      - generic [ref=f43e304]:
+        - heading "Legal" [level=3] [ref=f43e305]
+        - list [ref=f43e306]:
+          - listitem [ref=f43e307]:
+            - link "Privacy Policy" [ref=f43e308] [cursor=pointer]:
+              - /url: /privacy
+          - listitem [ref=f43e309]:
+            - link "Delete Your Account" [ref=f43e310] [cursor=pointer]:
+              - /url: /delete-account
+          - listitem [ref=f43e311]:
+            - link "Affiliate Disclosure" [ref=f43e312] [cursor=pointer]:
+              - /url: /affiliate-disclosure
+          - listitem [ref=f43e313]: Terms of Service
+          - listitem [ref=f43e314]:
+            - link "Support" [ref=f43e315] [cursor=pointer]:
+              - /url: /support
+    - paragraph [ref=f43e317]: © 2026 ShoppersDeals. All rights reserved. As an Amazon Associate we earn from qualifying purchases.
+  - button "Open Next.js Dev Tools" [ref=f43e323] [cursor=pointer]
+  - alert [ref=f43e327]

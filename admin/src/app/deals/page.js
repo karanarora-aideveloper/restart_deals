@@ -145,7 +145,7 @@ export default function DealsPage() {
   // Taxonomy & Base
   const [knownCategories, setKnownCategories] = useState([]);
   const [subcategoryMeta, setSubcategoryMeta] = useState({});
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -158,10 +158,17 @@ export default function DealsPage() {
   }, []);
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {
-    const base = apiBase.replace(/\/+$/, '');
-    const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
     const headers = { ...(options.headers || {}), ...(adminApiKey ? { 'x-admin-key': adminApiKey } : {}) };
-    return fetch(url, { ...options, headers });
+    try {
+      const base = apiBase ? apiBase.replace(/\/+$/, '') : '';
+      const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
+      return await fetch(url, { ...options, headers });
+    } catch (err) {
+      if (!endpoint.startsWith('http')) {
+        return await fetch(endpoint, { ...options, headers });
+      }
+      throw err;
+    }
   }, [apiBase, adminApiKey]);
 
   // Fetch Master Stores

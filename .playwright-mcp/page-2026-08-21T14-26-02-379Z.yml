@@ -1,0 +1,69 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - img "Admin Icon" [ref=f7e5]
+        - heading "ShoppersDeals" [level=2] [ref=f7e6]
+      - navigation [ref=f7e7]:
+        - link "dashboard Dashboard" [ref=f7e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f7e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f7e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f7e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f7e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f7e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f7e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f7e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f7e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f7e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f7e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f7e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f7e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f7e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f7e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f7e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f7e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f7e25]: account_tree
+          - text: Architecture
+      - generic [ref=f7e26]: Daemon Checking...
+      - generic [ref=f7e29]:
+        - generic [ref=f7e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f7e31]
+    - main [ref=f7e32]:
+      - generic [ref=f7e33]:
+        - heading "System Architecture" [level=1] [ref=f7e34]
+        - generic [ref=f7e35]:
+          - generic [ref=f7e36]: "Queue: 0"
+          - generic [ref=f7e37]: "Deals Today: 0"
+          - generic [ref=f7e38]: "Products DB: 0"
+          - generic [ref=f7e39]: "Total Users: 0"
+      - generic [ref=f7e40]:
+        - generic [ref=f7e41]:
+          - generic [ref=f7e42]:
+            - heading "Live Data Flow" [level=2] [ref=f7e43]
+            - paragraph [ref=f7e44]: Telegram capture → link resolution → verification → publish, drawn from the actual listener code. Click any node for detail; nodes with a red badge are known open issues.
+          - button "print Print / Save as PDF" [ref=f7e45] [cursor=pointer]:
+            - generic [ref=f7e46]: print
+            - text: Print / Save as PDF
+        - application [ref=f7e49] [cursor=pointer]:
+          - generic "Control Panel" [ref=f7e52]:
+            - button "Zoom In" [ref=f7e53]
+            - button "Zoom Out" [ref=f7e56]
+            - button "Fit View" [ref=f7e59]
+  - button "Open Next.js Dev Tools" [ref=f7e68] [cursor=pointer]

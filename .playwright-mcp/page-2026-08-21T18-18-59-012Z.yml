@@ -1,0 +1,173 @@
+- generic [active] [ref=f47e1]:
+  - generic [ref=f47e2]:
+    - complementary [ref=f47e3]:
+      - generic [ref=f47e4]:
+        - img "Admin Icon" [ref=f47e5]
+        - heading "ShoppersDeals" [level=2] [ref=f47e6]
+      - navigation [ref=f47e7]:
+        - link "dashboard Dashboard" [ref=f47e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f47e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f47e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f47e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f47e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f47e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f47e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f47e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f47e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f47e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f47e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f47e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f47e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f47e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f47e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f47e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f47e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f47e25]: account_tree
+          - text: Architecture
+      - generic [ref=f47e26]: Daemon Checking...
+      - generic [ref=f47e29]:
+        - generic [ref=f47e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f47e31]
+    - main [ref=f47e32]:
+      - generic [ref=f47e33]:
+        - heading "System Configuration" [level=1] [ref=f47e34]
+        - generic [ref=f47e35]:
+          - generic [ref=f47e36]: "Queue: 0"
+          - generic [ref=f47e37]: "Deals Today: 0"
+          - generic [ref=f47e38]: "Products DB: 0"
+          - generic [ref=f47e39]: "Total Users: 0"
+      - generic [ref=f47e41]:
+        - link "database Master Data" [ref=f47e42] [cursor=pointer]:
+          - /url: /settings/master
+          - generic [ref=f47e43]: database
+          - text: Master Data
+        - link "vpn_key API Tokens" [ref=f47e44] [cursor=pointer]:
+          - /url: /settings/tokens
+          - generic [ref=f47e45]: vpn_key
+          - text: API Tokens
+        - link "terminal System Logs" [ref=f47e46] [cursor=pointer]:
+          - /url: /settings/logs
+          - generic [ref=f47e47]: terminal
+          - text: System Logs
+      - generic [ref=f47e48]:
+        - generic [ref=f47e49]:
+          - generic [ref=f47e50]:
+            - generic [ref=f47e51]:
+              - heading "Scraping Engine & Proxy Pool" [level=2] [ref=f47e52]
+              - generic [ref=f47e53]: 0 Ready
+            - paragraph [ref=f47e55]: High-concurrency scraping token rotation pool, automated token extractor script, and real-time activity logs.
+          - generic [ref=f47e56]:
+            - button "bolt Auto-Scrape Tokens" [ref=f47e57] [cursor=pointer]:
+              - generic [ref=f47e58]: bolt
+              - text: Auto-Scrape Tokens
+            - button "science Run Test Run" [ref=f47e59] [cursor=pointer]:
+              - generic [ref=f47e60]: science
+              - text: Run Test Run
+            - button "download Export CSV" [ref=f47e61] [cursor=pointer]:
+              - generic [ref=f47e62]: download
+              - text: Export CSV
+            - button "sync Sync Tokens" [ref=f47e63] [cursor=pointer]:
+              - generic [ref=f47e64]: sync
+              - text: Sync Tokens
+        - generic [ref=f47e65]:
+          - button "key ScrapingAnt Token Pool (0)" [ref=f47e66] [cursor=pointer]:
+            - generic [ref=f47e67]: key
+            - text: ScrapingAnt Token Pool (0)
+          - button "receipt_long Scraping Logs & Activity Tracker" [ref=f47e68] [cursor=pointer]:
+            - generic [ref=f47e69]: receipt_long
+            - text: Scraping Logs & Activity Tracker
+        - generic [ref=f47e70]:
+          - generic [ref=f47e71]:
+            - generic [ref=f47e72]: key
+            - generic [ref=f47e74]: "0"
+            - generic [ref=f47e75]: Total Tokens in Pool
+            - generic [ref=f47e76]: Configured keys
+          - generic [ref=f47e77]:
+            - generic [ref=f47e78]: check_circle
+            - generic [ref=f47e80]: "0"
+            - generic [ref=f47e81]: Active & Ready
+            - generic [ref=f47e82]: 0% pool health
+          - generic [ref=f47e83]:
+            - generic [ref=f47e84]: battery_alert
+            - generic [ref=f47e86]: "0"
+            - generic [ref=f47e87]: Exhausted (429)
+            - generic [ref=f47e88]: No exhausted keys
+          - generic [ref=f47e89]:
+            - generic [ref=f47e90]: query_stats
+            - generic [ref=f47e92]: "0"
+            - generic [ref=f47e93]: Total API Scrapes
+            - generic [ref=f47e94]: Lifetime requests made
+        - generic [ref=f47e95]:
+          - generic [ref=f47e96]:
+            - generic [ref=f47e97]:
+              - button "smart_toy Automated Token Scraper (Script)" [ref=f47e98] [cursor=pointer]:
+                - generic [ref=f47e99]: smart_toy
+                - text: Automated Token Scraper (Script)
+              - button "edit_note Manual Token Import" [ref=f47e100] [cursor=pointer]:
+                - generic [ref=f47e101]: edit_note
+                - text: Manual Token Import
+            - generic [ref=f47e102]: "Script Status: Idle"
+          - generic [ref=f47e103]:
+            - generic [ref=f47e104]:
+              - generic [ref=f47e105]:
+                - generic [ref=f47e106]: ScrapingAnt Automated Account & Token Extractor
+                - generic [ref=f47e107]: Automatically provisions disposable email, registers ScrapingAnt account, solves anti-bot Captcha via 2Captcha, verifies email, and adds extracted tokens to database.
+              - generic [ref=f47e108]:
+                - generic [ref=f47e109]: "Quantity:"
+                - button "1" [ref=f47e110] [cursor=pointer]
+                - button "3" [ref=f47e111] [cursor=pointer]
+                - button "5" [ref=f47e112] [cursor=pointer]
+                - button "10" [ref=f47e113] [cursor=pointer]
+                - button "bolt Start Auto-Scrape (3)" [ref=f47e114] [cursor=pointer]:
+                  - generic [ref=f47e115]: bolt
+                  - text: Start Auto-Scrape (3)
+                - button "science Test Run" [ref=f47e116] [cursor=pointer]:
+                  - generic [ref=f47e117]: science
+                  - text: Test Run
+            - generic [ref=f47e118]:
+              - generic [ref=f47e119]:
+                - generic [ref=f47e120]: "⚡ Terminal Monitor: IDLE"
+                - generic [ref=f47e121]: "Mode: N/A | Success: 0 | Failed: 0"
+              - generic [ref=f47e122]: "✓ Test Result: Login check passed!"
+        - generic [ref=f47e123]:
+          - generic [ref=f47e125]:
+            - textbox "Search token..." [ref=f47e126]
+            - combobox [ref=f47e127]:
+              - option "All Statuses" [selected]
+              - option "Active Only"
+              - option "Exhausted (429)"
+          - table [ref=f47e130]:
+            - rowgroup [ref=f47e131]:
+              - row [ref=f47e132]:
+                - columnheader [ref=f47e133]:
+                  - checkbox [ref=f47e134]
+                - columnheader "Token Key" [ref=f47e135]
+                - columnheader "Status" [ref=f47e136]
+                - columnheader "Lifetime Requests" [ref=f47e137]
+                - columnheader "Last Used" [ref=f47e138]
+                - columnheader "Added On" [ref=f47e139]
+                - columnheader "Actions" [ref=f47e140]
+            - rowgroup [ref=f47e141]:
+              - row [ref=f47e142]:
+                - cell "sync Loading token pool..." [ref=f47e143]:
+                  - generic [ref=f47e144]: sync
+                  - generic [ref=f47e145]: Loading token pool...
+  - button "Open Next.js Dev Tools" [ref=f47e151] [cursor=pointer]
+  - alert [ref=f47e155]

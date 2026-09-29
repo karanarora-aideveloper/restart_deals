@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "/Users/karanarora/dealpanda parent/scraping_tokens_extraction_automation/scraping_ant_token_extractor.py", line 19, in <module>
+    from playwright.async_api import async_playwright
+ModuleNotFoundError: No module named 'playwright'
+
+================================================================================
+🤖 AUTOMATED TOKEN GENERATION SYSTEM
+================================================================================
+🎯 Available Services:
+   • ScrapingDog - Original automation with premium features
+   • ScrapingBee - New automation with enhanced reCAPTCHA handling
+   • ScrapingAnt - ScrapingAnt token extraction automation
+
+🔄 Features:
+   • Loop Mode - Continuous token generation
+   • Status Monitoring - Real-time progress tracking
+   • Error Handling - Automatic retry and fallback
+   • Session Management - Manual login with persistence
+   • Browser Configuration - Simplified on/off toggles
+================================================================================
+
+🚀 Starting ScrapingAnt automation...
+📋 Mode: LOOP
+🔄 Max Cycles: Unlimited
+⏰ Delay: 60 seconds
+🎯 Command: python3 scraping_ant_token_extractor.py --mode loop
+
+================================================================================
+Press Ctrl+C to stop the automation at any time
+================================================================================
+
+
+❌ ScrapingAnt automation failed with exit code 1

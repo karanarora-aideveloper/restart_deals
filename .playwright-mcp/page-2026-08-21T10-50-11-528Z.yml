@@ -1,0 +1,634 @@
+- generic [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - complementary [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - img "Admin Icon" [ref=f6e5]
+        - heading "ShoppersDeals" [level=2] [ref=f6e6]
+      - navigation [ref=f6e7]:
+        - link "dashboard Dashboard" [ref=f6e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f6e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f6e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f6e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f6e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f6e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f6e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f6e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f6e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f6e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f6e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f6e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f6e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f6e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f6e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f6e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f6e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f6e25]: account_tree
+          - text: Architecture
+      - generic [ref=f6e26]: Daemon Online
+      - generic [ref=f6e29]:
+        - generic [ref=f6e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f6e31]
+    - main [ref=f6e32]:
+      - generic [ref=f6e33]:
+        - heading "System Configuration" [level=1] [ref=f6e34]
+        - generic [ref=f6e35]:
+          - generic [ref=f6e36]: "Queue: 0"
+          - generic [ref=f6e37]: "Deals Today: 44"
+          - generic [ref=f6e38]: "Products DB: 5146"
+          - generic [ref=f6e39]: "Total Users: 3"
+      - generic [ref=f6e41]:
+        - link "database Master Data" [ref=f6e42] [cursor=pointer]:
+          - /url: /settings/master
+          - generic [ref=f6e43]: database
+          - text: Master Data
+        - link "vpn_key API Tokens" [ref=f6e44] [cursor=pointer]:
+          - /url: /settings/tokens
+          - generic [ref=f6e45]: vpn_key
+          - text: API Tokens
+        - link "terminal System Logs" [ref=f6e46] [cursor=pointer]:
+          - /url: /settings/logs
+          - generic [ref=f6e47]: terminal
+          - text: System Logs
+      - generic [ref=f6e48]:
+        - generic [ref=f6e49]:
+          - generic [ref=f6e50]:
+            - generic [ref=f6e51]:
+              - heading "Scraping Engine & Proxy Pool" [level=1] [ref=f6e52]
+              - generic [ref=f6e53]: 1 Ready
+            - paragraph [ref=f6e55]: High-concurrency scraping token rotation pool and real-time request activity logs.
+          - generic [ref=f6e56]:
+            - button "download Export CSV" [ref=f6e57] [cursor=pointer]:
+              - generic [ref=f6e58]: download
+              - text: Export CSV
+            - button "sync Sync Tokens" [ref=f6e59] [cursor=pointer]:
+              - generic [ref=f6e60]: sync
+              - text: Sync Tokens
+        - generic [ref=f6e61]:
+          - button "key ScrapingAnt Token Pool (7)" [ref=f6e127] [cursor=pointer]:
+            - generic [ref=f6e63]: key
+            - text: ScrapingAnt Token Pool (7)
+          - button "receipt_long Scraping Logs & Activity Tracker 73" [active] [ref=f6e128] [cursor=pointer]:
+            - generic [ref=f6e65]: receipt_long
+            - text: Scraping Logs & Activity Tracker
+            - generic [ref=f6e129]: "73"
+        - generic [ref=f6e130]:
+          - generic [ref=f6e131]:
+            - generic [ref=f6e132]: analytics
+            - generic [ref=f6e134]: "73"
+            - generic [ref=f6e135]: Scrapes (Last 24h)
+            - generic [ref=f6e136]: Across all engines
+          - generic [ref=f6e137]:
+            - generic [ref=f6e138]: verified
+            - generic [ref=f6e140]: 45%
+            - generic [ref=f6e141]: Scrape Success Rate
+            - generic [ref=f6e142]: 0 409 collisions
+          - generic [ref=f6e143]:
+            - generic [ref=f6e144]: bolt
+            - generic [ref=f6e146]: 31 / 42
+            - generic [ref=f6e147]: Direct / Proxy Split
+            - generic [ref=f6e148]: Fast-path saves API tokens
+          - generic [ref=f6e149]:
+            - generic [ref=f6e150]: speed
+            - generic [ref=f6e152]: 2659 ms
+            - generic [ref=f6e153]: Average Response Time
+            - generic [ref=f6e154]: Speed benchmark
+        - generic [ref=f6e155]:
+          - generic [ref=f6e156]:
+            - generic [ref=f6e157]:
+              - textbox "Search URL, title, token..." [ref=f6e158]
+              - combobox [ref=f6e159]:
+                - option "All Statuses" [selected]
+                - option "✅ 200 Success"
+                - option "❌ Error"
+                - option "⚠️ 409 Concurrency"
+                - option "⛔ 403 Exhausted"
+              - combobox [ref=f6e160]:
+                - option "All Sources" [selected]
+                - option "⚡ Interactive (P1)"
+                - option "📢 Telegram (P2)"
+                - option "🕒 24h Refresher (P3)"
+                - option "⭐ Bestseller (P4)"
+              - combobox [ref=f6e161]:
+                - option "All Modes" [selected]
+                - option "⚡ Direct Fast-Path"
+                - option "🛡️ ScrapingAnt"
+              - button "filter_alt Apply" [ref=f6e162] [cursor=pointer]:
+                - generic [ref=f6e163]: filter_alt
+                - text: Apply
+            - generic [ref=f6e164]:
+              - generic [ref=f6e165] [cursor=pointer]:
+                - checkbox "Live Polling (6s)" [checked] [ref=f6e166]
+                - text: Live Polling (6s)
+              - button "refresh Refresh" [ref=f6e167] [cursor=pointer]:
+                - generic [ref=f6e168]: refresh
+                - text: Refresh
+          - table [ref=f6e171]:
+            - rowgroup [ref=f6e172]:
+              - row [ref=f6e173]:
+                - columnheader "Timestamp" [ref=f6e174]
+                - columnheader "Source & Mode" [ref=f6e175]
+                - columnheader "Target URL & Data" [ref=f6e176]
+                - columnheader "Token Used" [ref=f6e177]
+                - columnheader "Status" [ref=f6e178]
+                - columnheader "Latency" [ref=f6e179]
+                - columnheader "Inspect" [ref=f6e180]
+            - rowgroup [ref=f6e181]:
+              - row [ref=f6e182]:
+                - cell "04:19:42 pm 21 Aug 2026" [ref=f6e183]:
+                  - generic [ref=f6e184]: 04:19:42 pm
+                  - generic [ref=f6e185]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e186]:
+                  - generic [ref=f6e187]:
+                    - generic [ref=f6e188]: 🕒 24h Refresh
+                    - generic [ref=f6e189]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0889FY7Y3 ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e190]:
+                  - generic [ref=f6e191]:
+                    - generic [ref=f6e192]: amazon
+                    - link "https://www.amazon.com/dp/B0889FY7Y3" [ref=f6e193] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0889FY7Y3
+                  - generic [ref=f6e194]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e195]
+                - cell "✕ 409" [ref=f6e196]
+                - cell "1385ms" [ref=f6e198]
+                - cell [ref=f6e199]:
+                  - button "Inspect" [ref=f6e200] [cursor=pointer]
+              - row [ref=f6e201]:
+                - cell "04:19:39 pm 21 Aug 2026" [ref=f6e202]:
+                  - generic [ref=f6e203]: 04:19:39 pm
+                  - generic [ref=f6e204]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e205]:
+                  - generic [ref=f6e206]:
+                    - generic [ref=f6e207]: 🕒 24h Refresh
+                    - generic [ref=f6e208]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B000JJKG7Y ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e209]:
+                  - generic [ref=f6e210]:
+                    - generic [ref=f6e211]: amazon
+                    - link "https://www.amazon.com/dp/B000JJKG7Y" [ref=f6e212] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B000JJKG7Y
+                  - generic [ref=f6e213]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e214]
+                - cell "✕ 409" [ref=f6e215]
+                - cell "1330ms" [ref=f6e217]
+                - cell [ref=f6e218]:
+                  - button "Inspect" [ref=f6e219] [cursor=pointer]
+              - row [ref=f6e220]:
+                - cell "04:19:37 pm 21 Aug 2026" [ref=f6e221]:
+                  - generic [ref=f6e222]: 04:19:37 pm
+                  - generic [ref=f6e223]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e224]:
+                  - generic [ref=f6e225]:
+                    - generic [ref=f6e226]: ⭐ Bestseller
+                    - generic [ref=f6e227]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B07XVMHS1H ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e228]:
+                  - generic [ref=f6e229]:
+                    - generic [ref=f6e230]: amazon
+                    - link "https://www.amazon.in/dp/B07XVMHS1H" [ref=f6e231] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B07XVMHS1H
+                  - generic [ref=f6e232]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e233]
+                - cell "✕ 409" [ref=f6e234]
+                - cell "1669ms" [ref=f6e236]
+                - cell [ref=f6e237]:
+                  - button "Inspect" [ref=f6e238] [cursor=pointer]
+              - row [ref=f6e239]:
+                - cell "04:19:36 pm 21 Aug 2026" [ref=f6e240]:
+                  - generic [ref=f6e241]: 04:19:36 pm
+                  - generic [ref=f6e242]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e243]:
+                  - generic [ref=f6e244]:
+                    - generic [ref=f6e245]: 🕒 24h Refresh
+                    - generic [ref=f6e246]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B000JJKG7Y ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e247]:
+                  - generic [ref=f6e248]:
+                    - generic [ref=f6e249]: amazon
+                    - link "https://www.amazon.com/dp/B000JJKG7Y" [ref=f6e250] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B000JJKG7Y
+                  - generic [ref=f6e251]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e252]
+                - cell "✕ 409" [ref=f6e253]
+                - cell "1230ms" [ref=f6e255]
+                - cell [ref=f6e256]:
+                  - button "Inspect" [ref=f6e257] [cursor=pointer]
+              - row [ref=f6e258]:
+                - cell "04:19:36 pm 21 Aug 2026" [ref=f6e259]:
+                  - generic [ref=f6e260]: 04:19:36 pm
+                  - generic [ref=f6e261]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e262]:
+                  - generic [ref=f6e263]:
+                    - generic [ref=f6e264]: ⭐ Bestseller
+                    - generic [ref=f6e265]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B081QTNF7V ⚠️ The operation was aborted due to timeout" [ref=f6e266]:
+                  - generic [ref=f6e267]:
+                    - generic [ref=f6e268]: amazon
+                    - link "https://www.amazon.in/dp/B081QTNF7V" [ref=f6e269] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B081QTNF7V
+                  - generic [ref=f6e270]: ⚠️ The operation was aborted due to timeout
+                - cell "242698••••c6e8" [ref=f6e271]
+                - cell "✕ 500" [ref=f6e272]
+                - cell "25003ms" [ref=f6e274]
+                - cell [ref=f6e275]:
+                  - button "Inspect" [ref=f6e276] [cursor=pointer]
+              - row [ref=f6e277]:
+                - cell "04:19:33 pm 21 Aug 2026" [ref=f6e278]:
+                  - generic [ref=f6e279]: 04:19:33 pm
+                  - generic [ref=f6e280]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e281]:
+                  - generic [ref=f6e282]:
+                    - generic [ref=f6e283]: 🕒 24h Refresh
+                    - generic [ref=f6e284]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B000JJKG7Y ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e285]:
+                  - generic [ref=f6e286]:
+                    - generic [ref=f6e287]: amazon
+                    - link "https://www.amazon.com/dp/B000JJKG7Y" [ref=f6e288] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B000JJKG7Y
+                  - generic [ref=f6e289]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e290]
+                - cell "✕ 409" [ref=f6e291]
+                - cell "1445ms" [ref=f6e293]
+                - cell [ref=f6e294]:
+                  - button "Inspect" [ref=f6e295] [cursor=pointer]
+              - row [ref=f6e296]:
+                - cell "04:19:29 pm 21 Aug 2026" [ref=f6e297]:
+                  - generic [ref=f6e298]: 04:19:29 pm
+                  - generic [ref=f6e299]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e300]:
+                  - generic [ref=f6e301]:
+                    - generic [ref=f6e302]: 🕒 24h Refresh
+                    - generic [ref=f6e303]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B000JJKG7Y ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e304]:
+                  - generic [ref=f6e305]:
+                    - generic [ref=f6e306]: amazon
+                    - link "https://www.amazon.com/dp/B000JJKG7Y" [ref=f6e307] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B000JJKG7Y
+                  - generic [ref=f6e308]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e309]
+                - cell "✕ 409" [ref=f6e310]
+                - cell "1316ms" [ref=f6e312]
+                - cell [ref=f6e313]:
+                  - button "Inspect" [ref=f6e314] [cursor=pointer]
+              - row [ref=f6e315]:
+                - cell "04:19:26 pm 21 Aug 2026" [ref=f6e316]:
+                  - generic [ref=f6e317]: 04:19:26 pm
+                  - generic [ref=f6e318]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e319]:
+                  - generic [ref=f6e320]:
+                    - generic [ref=f6e321]: 🕒 24h Refresh
+                    - generic [ref=f6e322]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B08N7X2GM7 ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e323]:
+                  - generic [ref=f6e324]:
+                    - generic [ref=f6e325]: amazon
+                    - link "https://www.amazon.in/dp/B08N7X2GM7" [ref=f6e326] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B08N7X2GM7
+                  - generic [ref=f6e327]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e328]
+                - cell "✕ 409" [ref=f6e329]
+                - cell "1331ms" [ref=f6e331]
+                - cell [ref=f6e332]:
+                  - button "Inspect" [ref=f6e333] [cursor=pointer]
+              - row [ref=f6e334]:
+                - cell "04:19:23 pm 21 Aug 2026" [ref=f6e335]:
+                  - generic [ref=f6e336]: 04:19:23 pm
+                  - generic [ref=f6e337]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e338]:
+                  - generic [ref=f6e339]:
+                    - generic [ref=f6e340]: 🕒 24h Refresh
+                    - generic [ref=f6e341]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B08N7X2GM7 ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e342]:
+                  - generic [ref=f6e343]:
+                    - generic [ref=f6e344]: amazon
+                    - link "https://www.amazon.in/dp/B08N7X2GM7" [ref=f6e345] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B08N7X2GM7
+                  - generic [ref=f6e346]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e347]
+                - cell "✕ 409" [ref=f6e348]
+                - cell "1380ms" [ref=f6e350]
+                - cell [ref=f6e351]:
+                  - button "Inspect" [ref=f6e352] [cursor=pointer]
+              - row [ref=f6e353]:
+                - cell "04:19:19 pm 21 Aug 2026" [ref=f6e354]:
+                  - generic [ref=f6e355]: 04:19:19 pm
+                  - generic [ref=f6e356]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e357]:
+                  - generic [ref=f6e358]:
+                    - generic [ref=f6e359]: 🕒 24h Refresh
+                    - generic [ref=f6e360]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B08N7X2GM7 ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e361]:
+                  - generic [ref=f6e362]:
+                    - generic [ref=f6e363]: amazon
+                    - link "https://www.amazon.in/dp/B08N7X2GM7" [ref=f6e364] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B08N7X2GM7
+                  - generic [ref=f6e365]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e366]
+                - cell "✕ 409" [ref=f6e367]
+                - cell "1217ms" [ref=f6e369]
+                - cell [ref=f6e370]:
+                  - button "Inspect" [ref=f6e371] [cursor=pointer]
+              - row [ref=f6e372]:
+                - cell "04:19:16 pm 21 Aug 2026" [ref=f6e373]:
+                  - generic [ref=f6e374]: 04:19:16 pm
+                  - generic [ref=f6e375]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e376]:
+                  - generic [ref=f6e377]:
+                    - generic [ref=f6e378]: 🕒 24h Refresh
+                    - generic [ref=f6e379]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B08N7X2GM7 ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e380]:
+                  - generic [ref=f6e381]:
+                    - generic [ref=f6e382]: amazon
+                    - link "https://www.amazon.in/dp/B08N7X2GM7" [ref=f6e383] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B08N7X2GM7
+                  - generic [ref=f6e384]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e385]
+                - cell "✕ 409" [ref=f6e386]
+                - cell "1377ms" [ref=f6e388]
+                - cell [ref=f6e389]:
+                  - button "Inspect" [ref=f6e390] [cursor=pointer]
+              - row [ref=f6e391]:
+                - cell "04:19:13 pm 21 Aug 2026" [ref=f6e392]:
+                  - generic [ref=f6e393]: 04:19:13 pm
+                  - generic [ref=f6e394]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e395]:
+                  - generic [ref=f6e396]:
+                    - generic [ref=f6e397]: 🕒 24h Refresh
+                    - generic [ref=f6e398]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0D369ZM2S ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e399]:
+                  - generic [ref=f6e400]:
+                    - generic [ref=f6e401]: amazon
+                    - link "https://www.amazon.com/dp/B0D369ZM2S" [ref=f6e402] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0D369ZM2S
+                  - generic [ref=f6e403]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e404]
+                - cell "✕ 409" [ref=f6e405]
+                - cell "1354ms" [ref=f6e407]
+                - cell [ref=f6e408]:
+                  - button "Inspect" [ref=f6e409] [cursor=pointer]
+              - row [ref=f6e410]:
+                - cell "04:19:10 pm 21 Aug 2026" [ref=f6e411]:
+                  - generic [ref=f6e412]: 04:19:10 pm
+                  - generic [ref=f6e413]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e414]:
+                  - generic [ref=f6e415]:
+                    - generic [ref=f6e416]: 🕒 24h Refresh
+                    - generic [ref=f6e417]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0D369ZM2S ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e418]:
+                  - generic [ref=f6e419]:
+                    - generic [ref=f6e420]: amazon
+                    - link "https://www.amazon.com/dp/B0D369ZM2S" [ref=f6e421] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0D369ZM2S
+                  - generic [ref=f6e422]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e423]
+                - cell "✕ 409" [ref=f6e424]
+                - cell "1303ms" [ref=f6e426]
+                - cell [ref=f6e427]:
+                  - button "Inspect" [ref=f6e428] [cursor=pointer]
+              - row [ref=f6e429]:
+                - cell "04:19:08 pm 21 Aug 2026" [ref=f6e430]:
+                  - generic [ref=f6e431]: 04:19:08 pm
+                  - generic [ref=f6e432]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e433]:
+                  - generic [ref=f6e434]:
+                    - generic [ref=f6e435]: ⭐ Bestseller
+                    - generic [ref=f6e436]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B07XVMHS1H ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e437]:
+                  - generic [ref=f6e438]:
+                    - generic [ref=f6e439]: amazon
+                    - link "https://www.amazon.in/dp/B07XVMHS1H" [ref=f6e440] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B07XVMHS1H
+                  - generic [ref=f6e441]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e442]
+                - cell "✕ 409" [ref=f6e443]
+                - cell "1280ms" [ref=f6e445]
+                - cell [ref=f6e446]:
+                  - button "Inspect" [ref=f6e447] [cursor=pointer]
+              - row [ref=f6e448]:
+                - cell "04:19:07 pm 21 Aug 2026" [ref=f6e449]:
+                  - generic [ref=f6e450]: 04:19:07 pm
+                  - generic [ref=f6e451]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e452]:
+                  - generic [ref=f6e453]:
+                    - generic [ref=f6e454]: 🕒 24h Refresh
+                    - generic [ref=f6e455]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0D369ZM2S ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e456]:
+                  - generic [ref=f6e457]:
+                    - generic [ref=f6e458]: amazon
+                    - link "https://www.amazon.com/dp/B0D369ZM2S" [ref=f6e459] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0D369ZM2S
+                  - generic [ref=f6e460]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e461]
+                - cell "✕ 409" [ref=f6e462]
+                - cell "1333ms" [ref=f6e464]
+                - cell [ref=f6e465]:
+                  - button "Inspect" [ref=f6e466] [cursor=pointer]
+              - row [ref=f6e467]:
+                - cell "04:19:05 pm 21 Aug 2026" [ref=f6e468]:
+                  - generic [ref=f6e469]: 04:19:05 pm
+                  - generic [ref=f6e470]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e471]:
+                  - generic [ref=f6e472]:
+                    - generic [ref=f6e473]: ⭐ Bestseller
+                    - generic [ref=f6e474]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B081QTNF7V ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e475]:
+                  - generic [ref=f6e476]:
+                    - generic [ref=f6e477]: amazon
+                    - link "https://www.amazon.in/dp/B081QTNF7V" [ref=f6e478] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B081QTNF7V
+                  - generic [ref=f6e479]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e480]
+                - cell "✕ 409" [ref=f6e481]
+                - cell "1325ms" [ref=f6e483]
+                - cell [ref=f6e484]:
+                  - button "Inspect" [ref=f6e485] [cursor=pointer]
+              - row [ref=f6e486]:
+                - cell "04:19:03 pm 21 Aug 2026" [ref=f6e487]:
+                  - generic [ref=f6e488]: 04:19:03 pm
+                  - generic [ref=f6e489]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e490]:
+                  - generic [ref=f6e491]:
+                    - generic [ref=f6e492]: 🕒 24h Refresh
+                    - generic [ref=f6e493]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0D369ZM2S ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e494]:
+                  - generic [ref=f6e495]:
+                    - generic [ref=f6e496]: amazon
+                    - link "https://www.amazon.com/dp/B0D369ZM2S" [ref=f6e497] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0D369ZM2S
+                  - generic [ref=f6e498]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e499]
+                - cell "✕ 409" [ref=f6e500]
+                - cell "1320ms" [ref=f6e502]
+                - cell [ref=f6e503]:
+                  - button "Inspect" [ref=f6e504] [cursor=pointer]
+              - row [ref=f6e505]:
+                - cell "04:19:02 pm 21 Aug 2026" [ref=f6e506]:
+                  - generic [ref=f6e507]: 04:19:02 pm
+                  - generic [ref=f6e508]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e509]:
+                  - generic [ref=f6e510]:
+                    - generic [ref=f6e511]: ⭐ Bestseller
+                    - generic [ref=f6e512]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B07XVMHS1H ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e513]:
+                  - generic [ref=f6e514]:
+                    - generic [ref=f6e515]: amazon
+                    - link "https://www.amazon.in/dp/B07XVMHS1H" [ref=f6e516] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B07XVMHS1H
+                  - generic [ref=f6e517]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e518]
+                - cell "✕ 409" [ref=f6e519]
+                - cell "1360ms" [ref=f6e521]
+                - cell [ref=f6e522]:
+                  - button "Inspect" [ref=f6e523] [cursor=pointer]
+              - row [ref=f6e524]:
+                - cell "04:19:00 pm 21 Aug 2026" [ref=f6e525]:
+                  - generic [ref=f6e526]: 04:19:00 pm
+                  - generic [ref=f6e527]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e528]:
+                  - generic [ref=f6e529]:
+                    - generic [ref=f6e530]: 🕒 24h Refresh
+                    - generic [ref=f6e531]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B0FPG5ZPT6 📦 Add to your order" [ref=f6e532]:
+                  - generic [ref=f6e533]:
+                    - generic [ref=f6e534]: amazon
+                    - link "https://www.amazon.in/dp/B0FPG5ZPT6" [ref=f6e535] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B0FPG5ZPT6
+                  - generic [ref=f6e536]: 📦 Add to your order
+                - cell "242698••••c6e8" [ref=f6e537]
+                - cell "✓ 200 OK" [ref=f6e538]
+                - cell "10824ms" [ref=f6e540]
+                - cell [ref=f6e541]:
+                  - button "Inspect" [ref=f6e542] [cursor=pointer]
+              - row [ref=f6e543]:
+                - cell "04:18:58 pm 21 Aug 2026" [ref=f6e544]:
+                  - generic [ref=f6e545]: 04:18:58 pm
+                  - generic [ref=f6e546]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e547]:
+                  - generic [ref=f6e548]:
+                    - generic [ref=f6e549]: ⭐ Bestseller
+                    - generic [ref=f6e550]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B081QTNF7V ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e551]:
+                  - generic [ref=f6e552]:
+                    - generic [ref=f6e553]: amazon
+                    - link "https://www.amazon.in/dp/B081QTNF7V" [ref=f6e554] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B081QTNF7V
+                  - generic [ref=f6e555]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e556]
+                - cell "✕ 409" [ref=f6e557]
+                - cell "1365ms" [ref=f6e559]
+                - cell [ref=f6e560]:
+                  - button "Inspect" [ref=f6e561] [cursor=pointer]
+              - row [ref=f6e562]:
+                - cell "04:18:55 pm 21 Aug 2026" [ref=f6e563]:
+                  - generic [ref=f6e564]: 04:18:55 pm
+                  - generic [ref=f6e565]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e566]:
+                  - generic [ref=f6e567]:
+                    - generic [ref=f6e568]: ⭐ Bestseller
+                    - generic [ref=f6e569]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B07XVMHS1H ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e570]:
+                  - generic [ref=f6e571]:
+                    - generic [ref=f6e572]: amazon
+                    - link "https://www.amazon.in/dp/B07XVMHS1H" [ref=f6e573] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B07XVMHS1H
+                  - generic [ref=f6e574]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e575]
+                - cell "✕ 409" [ref=f6e576]
+                - cell "1259ms" [ref=f6e578]
+                - cell [ref=f6e579]:
+                  - button "Inspect" [ref=f6e580] [cursor=pointer]
+              - row [ref=f6e581]:
+                - cell "04:18:51 pm 21 Aug 2026" [ref=f6e582]:
+                  - generic [ref=f6e583]: 04:18:51 pm
+                  - generic [ref=f6e584]: 21 Aug 2026
+                - cell "⭐ Bestseller 🛡️ ScrapingAnt" [ref=f6e585]:
+                  - generic [ref=f6e586]:
+                    - generic [ref=f6e587]: ⭐ Bestseller
+                    - generic [ref=f6e588]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B081QTNF7V ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e589]:
+                  - generic [ref=f6e590]:
+                    - generic [ref=f6e591]: amazon
+                    - link "https://www.amazon.in/dp/B081QTNF7V" [ref=f6e592] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B081QTNF7V
+                  - generic [ref=f6e593]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e594]
+                - cell "✕ 409" [ref=f6e595]
+                - cell "1367ms" [ref=f6e597]
+                - cell [ref=f6e598]:
+                  - button "Inspect" [ref=f6e599] [cursor=pointer]
+              - row [ref=f6e600]:
+                - cell "04:18:50 pm 21 Aug 2026" [ref=f6e601]:
+                  - generic [ref=f6e602]: 04:18:50 pm
+                  - generic [ref=f6e603]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e604]:
+                  - generic [ref=f6e605]:
+                    - generic [ref=f6e606]: 🕒 24h Refresh
+                    - generic [ref=f6e607]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.in/dp/B0BV23KFGY 📦 Potential Savings" [ref=f6e608]:
+                  - generic [ref=f6e609]:
+                    - generic [ref=f6e610]: amazon
+                    - link "https://www.amazon.in/dp/B0BV23KFGY" [ref=f6e611] [cursor=pointer]:
+                      - /url: https://www.amazon.in/dp/B0BV23KFGY
+                  - generic [ref=f6e612]: 📦 Potential Savings
+                - cell "242698••••c6e8" [ref=f6e613]
+                - cell "✓ 200 OK" [ref=f6e614]
+                - cell "12226ms" [ref=f6e616]
+                - cell [ref=f6e617]:
+                  - button "Inspect" [ref=f6e618] [cursor=pointer]
+              - row [ref=f6e619]:
+                - cell "04:18:47 pm 21 Aug 2026" [ref=f6e620]:
+                  - generic [ref=f6e621]: 04:18:47 pm
+                  - generic [ref=f6e622]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e623]:
+                  - generic [ref=f6e624]:
+                    - generic [ref=f6e625]: 🕒 24h Refresh
+                    - generic [ref=f6e626]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0002UENQA ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e627]:
+                  - generic [ref=f6e628]:
+                    - generic [ref=f6e629]: amazon
+                    - link "https://www.amazon.com/dp/B0002UENQA" [ref=f6e630] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0002UENQA
+                  - generic [ref=f6e631]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e632]
+                - cell "✕ 409" [ref=f6e633]
+                - cell "1376ms" [ref=f6e635]
+                - cell [ref=f6e636]:
+                  - button "Inspect" [ref=f6e637] [cursor=pointer]
+              - row [ref=f6e638]:
+                - cell "04:18:44 pm 21 Aug 2026" [ref=f6e639]:
+                  - generic [ref=f6e640]: 04:18:44 pm
+                  - generic [ref=f6e641]: 21 Aug 2026
+                - cell "🕒 24h Refresh 🛡️ ScrapingAnt" [ref=f6e642]:
+                  - generic [ref=f6e643]:
+                    - generic [ref=f6e644]: 🕒 24h Refresh
+                    - generic [ref=f6e645]: 🛡️ ScrapingAnt
+                - cell "amazon https://www.amazon.com/dp/B0002UENQA ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing." [ref=f6e646]:
+                  - generic [ref=f6e647]:
+                    - generic [ref=f6e648]: amazon
+                    - link "https://www.amazon.com/dp/B0002UENQA" [ref=f6e649] [cursor=pointer]:
+                      - /url: https://www.amazon.com/dp/B0002UENQA
+                  - generic [ref=f6e650]: ⚠️ ScrapingAnt token concurrency limit hit. Re-queuing.
+                - cell "242698••••c6e8" [ref=f6e651]
+                - cell "✕ 409" [ref=f6e652]
+                - cell "1363ms" [ref=f6e654]
+                - cell [ref=f6e655]:
+                  - button "Inspect" [ref=f6e656] [cursor=pointer]
+          - generic [ref=f6e657]:
+            - generic [ref=f6e658]: Showing 25 of 73 logs (Page 1 of 3)
+            - generic [ref=f6e659]:
+              - button "Previous" [disabled] [ref=f6e660] [cursor=pointer]
+              - button "Next" [ref=f6e661] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f6e122] [cursor=pointer]
+  - alert [ref=f6e126]

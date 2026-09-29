@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 export default function AdminShell({ children, title }) {
   const pathname = usePathname();
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const [adminApiKey, setAdminApiKey] = useState('');
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [statusData, setStatusData] = useState({
@@ -69,7 +69,7 @@ export default function AdminShell({ children, title }) {
   const handleApiBaseChange = (e) => {
     // Manual override via Settings UI (only active when no env var is set)
     const val = e.target.value.trim();
-    setApiBase(val || process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+    setApiBase(val || process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   };
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {

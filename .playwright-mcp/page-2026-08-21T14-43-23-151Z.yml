@@ -1,0 +1,213 @@
+- generic [active] [ref=f44e1]:
+  - generic [ref=f44e2]:
+    - complementary [ref=f44e3]:
+      - generic [ref=f44e4]:
+        - img "Admin Icon" [ref=f44e5]
+        - heading "ShoppersDeals" [level=2] [ref=f44e6]
+      - navigation [ref=f44e7]:
+        - link "dashboard Dashboard" [ref=f44e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f44e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f44e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f44e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f44e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f44e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f44e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f44e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f44e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f44e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f44e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f44e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f44e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f44e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f44e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f44e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f44e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f44e25]: account_tree
+          - text: Architecture
+      - generic [ref=f44e26]: Daemon Checking...
+      - generic [ref=f44e29]:
+        - generic [ref=f44e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f44e31]
+    - main [ref=f44e32]:
+      - generic [ref=f44e33]:
+        - heading "Catalog & Product Intelligence" [level=1] [ref=f44e34]
+        - generic [ref=f44e35]:
+          - generic [ref=f44e36]: "Queue: 0"
+          - generic [ref=f44e37]: "Deals Today: 0"
+          - generic [ref=f44e38]: "Products DB: 0"
+          - generic [ref=f44e39]: "Total Users: 0"
+      - generic [ref=f44e40]:
+        - generic [ref=f44e41]:
+          - generic [ref=f44e42]:
+            - generic [ref=f44e43]: Connecting to Server...
+            - generic [ref=f44e45]: Real-time synchronization across 0 cached products & 0 verified deals.
+          - button "refresh Sync Metrics" [ref=f44e47] [cursor=pointer]:
+            - generic [ref=f44e48]: refresh
+            - text: Sync Metrics
+        - generic [ref=f44e49]:
+          - generic [ref=f44e50]:
+            - generic [ref=f44e51]:
+              - generic [ref=f44e52]: Total Products In DB
+              - generic [ref=f44e53]: inventory_2
+            - generic [ref=f44e54]: "0"
+            - generic [ref=f44e55]:
+              - generic [ref=f44e56]: +0 in 24h
+              - generic [ref=f44e57]: +0 in 7d
+              - generic [ref=f44e58]: 0 in 30d
+          - generic [ref=f44e59]:
+            - generic [ref=f44e60]:
+              - generic [ref=f44e61]: Active Deals Feed
+              - generic [ref=f44e62]: local_offer
+            - generic [ref=f44e63]: "0"
+            - generic [ref=f44e64]:
+              - generic [ref=f44e65]: +0 in 24h
+              - generic [ref=f44e66]: +0 in 7d
+              - generic [ref=f44e67]: 0 in 30d
+          - generic [ref=f44e68]:
+            - generic [ref=f44e69]:
+              - generic [ref=f44e70]: Geographic Coverage
+              - generic [ref=f44e71]: public
+            - generic [ref=f44e72]:
+              - generic [ref=f44e73]:
+                - generic [ref=f44e74]: 🇮🇳 0
+                - generic [ref=f44e75]: India Market
+              - generic [ref=f44e76]:
+                - generic [ref=f44e77]: 🇺🇸 0
+                - generic [ref=f44e78]: USA Deals
+          - generic [ref=f44e80]:
+            - generic [ref=f44e81]:
+              - generic [ref=f44e82]: ScrapingAnt Token Pool
+              - generic [ref=f44e83]: vpn_key
+            - generic [ref=f44e84]:
+              - text: "0"
+              - generic [ref=f44e85]: / 0 Ready
+            - generic [ref=f44e86]:
+              - generic [ref=f44e87]: 0 Active Tokens
+              - generic [ref=f44e88]: 0 Cooldown
+        - generic [ref=f44e89]:
+          - generic [ref=f44e90]:
+            - heading "health_and_safety Catalog Data Quality & Hygiene Auditor" [level=3] [ref=f44e91]:
+              - generic [ref=f44e92]: health_and_safety
+              - text: Catalog Data Quality & Hygiene Auditor
+            - generic [ref=f44e93]: Click any card to immediately filter & inspect affected products below
+          - generic [ref=f44e94]:
+            - generic [ref=f44e95] [cursor=pointer]:
+              - generic [ref=f44e96]: hide_image
+              - generic [ref=f44e98]:
+                - generic [ref=f44e99]: Missing Images
+                - generic [ref=f44e100]: "0"
+                - generic [ref=f44e101]: Click to audit
+            - generic [ref=f44e102] [cursor=pointer]:
+              - generic [ref=f44e103]: price_change
+              - generic [ref=f44e105]:
+                - generic [ref=f44e106]: Missing MRP
+                - generic [ref=f44e107]: "0"
+                - generic [ref=f44e108]: Click to audit
+            - generic [ref=f44e109] [cursor=pointer]:
+              - generic [ref=f44e110]: money_off
+              - generic [ref=f44e112]:
+                - generic [ref=f44e113]: Missing Price
+                - generic [ref=f44e114]: "0"
+                - generic [ref=f44e115]: Click to audit
+            - generic [ref=f44e116] [cursor=pointer]:
+              - generic [ref=f44e117]: verified
+              - generic [ref=f44e119]:
+                - generic [ref=f44e120]: 100% Healthy
+                - generic [ref=f44e121]: "0"
+                - generic [ref=f44e122]: All assets verified
+        - generic [ref=f44e124]:
+          - heading "storefront Catalog Distribution by Merchant Store" [level=3] [ref=f44e125]:
+            - generic [ref=f44e126]: storefront
+            - text: Catalog Distribution by Merchant Store
+          - generic [ref=f44e127]: Total 0 Merchant Sources
+        - generic [ref=f44e128]:
+          - generic [ref=f44e130]:
+            - heading "manage_search Product Catalog Control Center" [level=3] [ref=f44e131]:
+              - generic [ref=f44e132]: manage_search
+              - text: Product Catalog Control Center
+            - generic [ref=f44e133]: Showing 0 of 0 filtered products.
+          - generic [ref=f44e134]:
+            - generic [ref=f44e135]:
+              - text: Search Catalog
+              - generic [ref=f44e136]:
+                - textbox "Search title, ASIN, SKU, URL..." [ref=f44e137]
+                - generic [ref=f44e138]: search
+            - generic [ref=f44e139]:
+              - text: Time Range
+              - combobox [ref=f44e140]:
+                - option "All Time" [selected]
+                - option "Added in Last 24 Hours"
+                - option "Added in Last 7 Days"
+                - option "Added in Last 30 Days"
+            - generic [ref=f44e141]:
+              - text: Market / Country
+              - combobox [ref=f44e142]:
+                - option "All Markets" [selected]
+                - option "🇮🇳 India (IN)"
+                - option "🇺🇸 United States (US)"
+            - generic [ref=f44e143]:
+              - text: Merchant Store
+              - combobox [ref=f44e144]:
+                - option "All Stores" [selected]
+                - option "Amazon"
+                - option "Flipkart"
+                - option "Croma"
+                - option "Myntra"
+                - option "Shopsy"
+                - option "Ajio"
+                - option "Vijay Sales"
+                - option "Cashify"
+            - generic [ref=f44e145]:
+              - text: Quality Hygiene
+              - combobox [ref=f44e146]:
+                - option "All Quality States" [selected]
+                - option "🖼️ Missing Image"
+                - option "🏷️ Missing MRP"
+                - option "💰 Missing Price"
+                - option "✅ 100% Healthy"
+            - generic [ref=f44e147]:
+              - text: Sort By
+              - combobox [ref=f44e148]:
+                - option "Recently Added" [selected]
+                - option "Oldest First"
+                - 'option "Price: High to Low"'
+                - 'option "Price: Low to High"'
+                - option "Recently Verified"
+          - table [ref=f44e150]:
+            - rowgroup [ref=f44e151]:
+              - row [ref=f44e152]:
+                - columnheader "Product" [ref=f44e153]
+                - columnheader "Store & Market" [ref=f44e154]
+                - columnheader "Price & MRP" [ref=f44e155]
+                - columnheader "Deal Status" [ref=f44e156]
+                - columnheader "Quality Audit" [ref=f44e157]
+                - columnheader "Actions" [ref=f44e158]
+            - rowgroup [ref=f44e159]:
+              - row [ref=f44e160]:
+                - cell "sync Loading catalog products..." [ref=f44e161]:
+                  - generic [ref=f44e162]: sync
+                  - generic [ref=f44e163]: Loading catalog products...
+          - generic [ref=f44e164]:
+            - generic [ref=f44e165]: Page 1 of 1
+            - generic [ref=f44e166]:
+              - button "Previous" [disabled] [ref=f44e167] [cursor=pointer]
+              - button "Next" [disabled] [ref=f44e168] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f44e174] [cursor=pointer]
+  - alert [ref=f44e178]

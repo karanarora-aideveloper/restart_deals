@@ -1,0 +1,36 @@
+[     118ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[     141ms] [LOG] [HMR] connected @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  135166ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[  135170ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[  152088ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  152097ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  152097ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[  155166ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[  155171ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[  158092ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  158097ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  158097ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[  160168ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[  160175ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[  164103ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  164107ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[  164107ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[  165168ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[  165175ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[ 1052058ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 1052064ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 1052065ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[ 6085191ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[ 6085202ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[ 6086075ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 6086080ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 6086082ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[ 6224073ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 6224077ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/tokens/logs?page=1&limit=25&status=all&source=all&mode=all&q=:0
+[ 6224078ms] [ERROR] Fetch logs error: SyntaxError: Unexpected token 'I', "Internal S"... is not valid JSON @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[11310195ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/admin/status:0
+[11310199ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3002/api/admin/status:0
+[12929199ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[12929583ms] [LOG] [Fast Refresh] done in 402ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[12950384ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[12950438ms] [LOG] [Fast Refresh] done in 76ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776

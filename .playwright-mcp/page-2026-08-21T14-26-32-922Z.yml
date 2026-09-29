@@ -1,0 +1,258 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - img "Admin Icon" [ref=f7e5]
+        - heading "ShoppersDeals" [level=2] [ref=f7e6]
+      - navigation [ref=f7e7]:
+        - link "dashboard Dashboard" [ref=f7e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f7e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f7e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f7e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f7e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f7e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f7e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f7e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f7e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f7e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f7e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f7e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f7e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f7e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f7e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f7e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f7e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f7e25]: account_tree
+          - text: Architecture
+      - generic [ref=f7e26]: Daemon Online
+      - generic [ref=f7e29]:
+        - generic [ref=f7e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f7e31]
+    - main [ref=f7e32]:
+      - generic [ref=f7e33]:
+        - heading "System Architecture" [level=1] [ref=f7e34]
+        - generic [ref=f7e35]:
+          - generic [ref=f7e36]: "Queue: 0"
+          - generic [ref=f7e37]: "Deals Today: 75"
+          - generic [ref=f7e38]: "Products DB: 5148"
+          - generic [ref=f7e39]: "Total Users: 3"
+      - generic [ref=f7e40]:
+        - generic [ref=f7e41]:
+          - generic [ref=f7e42]:
+            - heading "Live Data Flow" [level=2] [ref=f7e43]
+            - paragraph [ref=f7e44]: Telegram capture → link resolution → verification → publish, drawn from the actual listener code. Click any node for detail; nodes with a red badge are known open issues.
+          - button "print Print / Save as PDF" [ref=f7e45] [cursor=pointer]:
+            - generic [ref=f7e46]: print
+            - text: Print / Save as PDF
+        - application [ref=f7e49] [cursor=pointer]:
+          - generic [ref=f7e51]:
+            - generic:
+              - generic:
+                - img:
+                  - group "Edge from producer-telegram to step-resolve" [ref=f7e72]
+                - img:
+                  - group "Edge from step-resolve to step-deepseek" [ref=f7e75]
+                - img:
+                  - group "Edge from step-deepseek to step-dedup" [ref=f7e78]
+                - img:
+                  - group "Edge from step-dedup to node-bullmq" [ref=f7e81]
+                - img:
+                  - group "Edge from producer-refresher to node-bullmq" [ref=f7e84]
+                - img:
+                  - group "Edge from producer-crawler to node-bullmq" [ref=f7e87]
+                - img:
+                  - group "Edge from producer-interactive to node-bullmq" [ref=f7e90]
+                - img:
+                  - group "Edge from node-bullmq to node-limiter" [ref=f7e93]
+                - img:
+                  - group "Edge from node-limiter to node-worker" [ref=f7e96]
+                - img:
+                  - group "Edge from node-worker to node-logs" [ref=f7e99]
+                - img:
+                  - group "Edge from node-worker to node-upsert-product" [ref=f7e102]
+                - img:
+                  - group "Edge from node-upsert-product to node-history" [ref=f7e105]
+                - img:
+                  - group "Edge from node-history to node-subset-gate" [ref=f7e108]
+                - img:
+                  - group "Edge from node-subset-gate to node-synthesizer" [ref=f7e111]
+                - img:
+                  - group "Edge from node-synthesizer to out-telegram" [ref=f7e114]
+                - img:
+                  - group "Edge from node-synthesizer to out-whatsapp" [ref=f7e117]
+                - img:
+                  - group "Edge from node-synthesizer to out-twitter" [ref=f7e120]
+                - img:
+                  - group "Edge from node-synthesizer to out-algolia" [ref=f7e123]
+                - img:
+                  - group "Edge from node-synthesizer to out-webapp" [ref=f7e126]
+              - generic:
+                - group [ref=f7e129]:
+                  - generic [ref=f7e130]: 1. Ingestion & Discovery Producers
+                - group [ref=f7e132]:
+                  - generic [ref=f7e133]:
+                    - generic [ref=f7e134]: Priority 2
+                    - generic [ref=f7e137]: telegram
+                    - generic [ref=f7e139]:
+                      - generic [ref=f7e140]: Telegram Stream
+                      - generic [ref=f7e141]: Live GramJS Event + 30s Poller
+                - group [active] [ref=f7e144]:
+                  - generic [ref=f7e145]:
+                    - generic [ref=f7e146]: Priority 3
+                    - generic [ref=f7e149]: schedule
+                    - generic [ref=f7e151]:
+                      - generic [ref=f7e152]: 24h Price Refresher
+                      - generic [ref=f7e153]: Auto-scans >24h stale catalog
+                - group [ref=f7e156]:
+                  - generic [ref=f7e157]:
+                    - generic [ref=f7e158]: Priority 4
+                    - generic [ref=f7e161]: star
+                    - generic [ref=f7e163]:
+                      - generic [ref=f7e164]: Category Bestseller Crawler
+                      - generic [ref=f7e165]: 11 categories (Mobiles, Audio, TV...)
+                - group [ref=f7e168]:
+                  - generic [ref=f7e169]:
+                    - generic [ref=f7e170]: Priority 1 (Urgent)
+                    - generic [ref=f7e173]: touch_app
+                    - generic [ref=f7e175]:
+                      - generic [ref=f7e176]: User Live Re-check
+                      - generic [ref=f7e177]: On-demand click & URL search
+                - group [ref=f7e180]:
+                  - generic [ref=f7e181]: 2. Normalization & AI Parsing
+                - group [ref=f7e183]:
+                  - generic [ref=f7e184]:
+                    - generic [ref=f7e187]: link
+                    - generic [ref=f7e189]:
+                      - generic [ref=f7e190]: URL Unshortener & ASIN
+                      - generic [ref=f7e191]: Follows 3xx redirects & extracts PID
+                - group [ref=f7e194]:
+                  - generic [ref=f7e195]:
+                    - generic [ref=f7e198]: psychology
+                    - generic [ref=f7e200]:
+                      - generic [ref=f7e201]: DeepSeek NLP Parser
+                      - generic [ref=f7e202]: Title, Price, MRP, Coupon, Category
+                - group [ref=f7e205]:
+                  - generic [ref=f7e206]:
+                    - generic [ref=f7e209]: filter_alt
+                    - generic [ref=f7e211]:
+                      - generic [ref=f7e212]: 60-Minute Deduplicator
+                      - generic [ref=f7e213]: Prevents redundant re-scrapes
+                - group [ref=f7e216]:
+                  - generic [ref=f7e217]: 3. Central Distributed Scraping Engine (BullMQ + Redis)
+                - group [ref=f7e219]:
+                  - generic [ref=f7e220]:
+                    - generic [ref=f7e223]: dns
+                    - generic [ref=f7e225]:
+                      - generic [ref=f7e226]: Redis BullMQ Queue
+                      - generic [ref=f7e227]: Active
+                      - generic [ref=f7e228]: Central "scraper-queue" (Multi-Machine)
+                - group [ref=f7e231]:
+                  - generic [ref=f7e232]:
+                    - generic [ref=f7e233]: 0 Collisions
+                    - generic [ref=f7e236]: speed
+                    - generic [ref=f7e238]:
+                      - generic [ref=f7e239]: Global Rate Limiter
+                      - generic [ref=f7e240]: Strictly 1 req / 2.5s globally
+                - group [ref=f7e243]:
+                  - generic [ref=f7e244]:
+                    - generic [ref=f7e247]: vpn_key
+                    - generic [ref=f7e249]:
+                      - generic [ref=f7e250]: Scraping Worker & Token Pool
+                      - generic [ref=f7e251]: 1 Ready
+                      - generic [ref=f7e252]: ScrapingAnt token rotation + &country
+                - group [ref=f7e255]:
+                  - generic [ref=f7e256]:
+                    - generic [ref=f7e259]: receipt_long
+                    - generic [ref=f7e261]:
+                      - generic [ref=f7e262]: Scraping Activity Logger
+                      - generic [ref=f7e263]: Real-time inspection & latencies
+                - group [ref=f7e266]:
+                  - generic [ref=f7e267]: 4. Database Integrity & History (Deals ⊆ Products)
+                - group [ref=f7e269]:
+                  - generic [ref=f7e270]:
+                    - generic [ref=f7e273]: inventory_2
+                    - generic [ref=f7e275]:
+                      - generic [ref=f7e276]: Product Canonical Record
+                      - generic [ref=f7e277]: 5148 Products
+                      - generic [ref=f7e278]: Canonical images, ASIN, MRP, categories
+                - group [ref=f7e281]:
+                  - generic [ref=f7e282]:
+                    - generic [ref=f7e285]: show_chart
+                    - generic [ref=f7e287]:
+                      - generic [ref=f7e288]: Daily Checkpoints & Bezier
+                      - generic [ref=f7e289]: Continuous crosshair price trend graph
+                - group [ref=f7e292]:
+                  - generic [ref=f7e293]:
+                    - generic [ref=f7e296]: verified
+                    - generic [ref=f7e298]:
+                      - generic [ref=f7e299]: Subset Invariant Gate
+                      - generic [ref=f7e300]: Guarantees Deals ⊆ Products (100% matched)
+                - group [ref=f7e303]:
+                  - generic [ref=f7e304]:
+                    - generic [ref=f7e307]: auto_awesome
+                    - generic [ref=f7e309]:
+                      - generic [ref=f7e310]: Autonomous Deal Synthesizer
+                      - generic [ref=f7e311]: 3539 Deals
+                      - generic [ref=f7e312]: Auto-publishes deals on >=15% drop
+                - group [ref=f7e315]:
+                  - generic [ref=f7e316]: 5. Omnichannel Broadcasting
+                - group [ref=f7e318]:
+                  - generic [ref=f7e319]:
+                    - generic [ref=f7e322]: send
+                    - generic [ref=f7e324]:
+                      - generic [ref=f7e325]: Telegram Output Channels
+                      - generic [ref=f7e326]: HTML deal cards with buy links
+                - group [ref=f7e329]:
+                  - generic [ref=f7e330]:
+                    - generic [ref=f7e333]: chat
+                    - generic [ref=f7e335]:
+                      - generic [ref=f7e336]: WhatsApp Communities
+                      - generic [ref=f7e337]: Broadcaster groups & channels
+                - group [ref=f7e340]:
+                  - generic [ref=f7e341]:
+                    - generic [ref=f7e344]: flutter_dash
+                    - generic [ref=f7e346]:
+                      - generic [ref=f7e347]: Twitter / X Deal Bot
+                      - generic [ref=f7e348]: USA & India deal tweets with media
+                - group [ref=f7e351]:
+                  - generic [ref=f7e352]:
+                    - generic [ref=f7e355]: travel_explore
+                    - generic [ref=f7e357]:
+                      - generic [ref=f7e358]: Algolia Search Index
+                      - generic [ref=f7e359]: Instant sub-millisecond full-text search
+                - group [ref=f7e362]:
+                  - generic [ref=f7e363]:
+                    - generic [ref=f7e366]: devices
+                    - generic [ref=f7e368]:
+                      - generic [ref=f7e369]: Web & Mobile App Feed
+                      - generic [ref=f7e370]: Live price tracking & interactive chart
+          - generic "Control Panel" [ref=f7e52]:
+            - button "Zoom In" [ref=f7e53]
+            - button "Zoom Out" [ref=f7e56]
+            - button "Fit View" [ref=f7e59]
+        - generic [ref=f7e373]:
+          - generic [ref=f7e374]:
+            - generic [ref=f7e375]:
+              - generic [ref=f7e376]: schedule
+              - heading "24h Price Refresher" [level=3] [ref=f7e377]
+            - button "close" [ref=f7e378] [cursor=pointer]
+          - paragraph [ref=f7e380]: "24-Hour Autonomous Price Refresher: Regularly queries products in MongoDB whose lastChecked is older than 24 hours. Normalizes daily checkpoints and pushes to BullMQ at Priority 3."
+  - button "Open Next.js Dev Tools" [ref=f7e68] [cursor=pointer]
+  - alert [ref=f7e381]

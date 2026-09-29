@@ -1,0 +1,2434 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e3]:
+    - generic [ref=f8e4]:
+      - generic [ref=f8e6]:
+        - generic [ref=f8e7]:
+          - text: Set It and Forget It. We'll send you a push notification the second the price drops.
+          - link [ref=f8e8] [cursor=pointer]:
+            - /url: https://e.buyhatke.com/internalTopBar_alert-3
+            - img "install" [ref=f8e9]
+            - text: Track This Price
+        - generic [ref=f8e10]:
+          - button [ref=f8e12] [cursor=pointer]:
+            - img "country" [ref=f8e13]
+            - text: India
+          - button [ref=f8e15] [cursor=pointer]:
+            - img "language" [ref=f8e16]
+            - text: English
+      - generic [ref=f8e19]:
+        - generic [ref=f8e20]:
+          - link [ref=f8e21] [cursor=pointer]:
+            - /url: /
+            - img "logo" [ref=f8e22]
+          - generic [ref=f8e24]:
+            - button "Show all categories":
+              - generic:
+                - generic:
+                  - img "Deals"
+                - generic:
+                  - img "Compare"
+                - generic:
+                  - img "Lens"
+                - generic:
+                  - img "Gift card"
+                - generic:
+                  - img "Alerts"
+                - generic:
+                  - img "Refer & win"
+              - generic: View All
+            - generic [ref=f8e25]:
+              - link [ref=f8e26] [cursor=pointer]:
+                - /url: /deals
+                - img "Deals" [ref=f8e27]
+                - text: Deals
+              - link [ref=f8e28] [cursor=pointer]:
+                - /url: /flights
+                - img "Compare" [ref=f8e29]
+                - text: Compare
+              - link [ref=f8e30] [cursor=pointer]:
+                - /url: /product-lens
+                - img "Lens" [ref=f8e31]
+                - text: Lens
+              - link [ref=f8e32] [cursor=pointer]:
+                - /url: /gift-cards
+                - img "Gift card" [ref=f8e33]
+                - text: Gift card
+              - link [ref=f8e34] [cursor=pointer]:
+                - /url: /flight-alerts
+                - img "Alerts" [ref=f8e35]
+                - text: Alerts
+              - link [ref=f8e36] [cursor=pointer]:
+                - /url: /gift-cards/referral
+                - img "Refer & win" [ref=f8e37]
+                - text: Refer & win
+        - generic [ref=f8e42]:
+          - button "Search" [ref=f8e43] [cursor=pointer]:
+            - img "Search" [ref=f8e44]
+          - generic [ref=f8e45]:
+            - textbox "Find best prices" [ref=f8e46]:
+              - /placeholder: ""
+            - generic: Find best prices
+          - button [ref=f8e48] [cursor=pointer]:
+            - img "microphone" [ref=f8e49]
+        - generic [ref=f8e50]:
+          - link [ref=f8e51] [cursor=pointer]:
+            - /url: /wishlist
+            - img "OneList" [ref=f8e52]
+          - button "Login" [ref=f8e53] [cursor=pointer]
+      - main [ref=f8e55]:
+        - button "back icon Home / Deals" [ref=f8e57] [cursor=pointer]:
+          - link [ref=f8e58]:
+            - /url: /
+            - img "back icon" [ref=f8e59]
+          - generic [ref=f8e60]:
+            - link "Home" [ref=f8e61]:
+              - /url: /
+            - generic [ref=f8e62]: /
+            - generic [ref=f8e63]: Deals
+        - generic [ref=f8e64]:
+          - generic [ref=f8e65]:
+            - heading "Buyhatke 2026 Verified Deals" [level=1] [ref=f8e66]
+            - paragraph [ref=f8e67]: Deals that passed the scanner test.
+          - generic [ref=f8e69]:
+            - generic [ref=f8e70]:
+              - generic [ref=f8e71]:
+                - textbox "Search deals..." [ref=f8e75]
+                - generic [ref=f8e76]:
+                  - paragraph [ref=f8e77]: "Sort By:"
+                  - button "Popularity" [ref=f8e79] [cursor=pointer]
+              - generic [ref=f8e83]:
+                - generic [ref=f8e84]:
+                  - generic [ref=f8e85]: Deals starting from ₹34,999
+                  - button "Clear price filter" [ref=f8e86] [cursor=pointer]:
+                    - img "Clear price filter" [ref=f8e87]
+                - generic [ref=f8e88]:
+                  - generic [ref=f8e89]: Smartphones
+                  - button "Clear Smartphones filter" [ref=f8e90] [cursor=pointer]:
+                    - img "Clear category filter" [ref=f8e91]
+            - iframe [ref=f8e92]:
+              
+          - generic [ref=f8e93]:
+            - generic [ref=f8e95]:
+              - generic [ref=f8e96]:
+                - heading "Filter" [level=3] [ref=f8e97]
+                - button "Clear All" [ref=f8e98] [cursor=pointer]
+              - heading "Categories" [level=4] [ref=f8e99]
+              - generic [ref=f8e100]:
+                - generic [ref=f8e101]:
+                  - button "Electronics Expand" [ref=f8e102] [cursor=pointer]:
+                    - generic [ref=f8e103]: Electronics
+                    - img "Expand" [ref=f8e104]
+                  - generic [ref=f8e105]:
+                    - generic [ref=f8e106] [cursor=pointer]:
+                      - checkbox "Computers & Accessories" [ref=f8e107]
+                      - generic [ref=f8e108]: Computers & Accessories
+                    - generic [ref=f8e109] [cursor=pointer]:
+                      - checkbox "Accessories & Peripherals" [ref=f8e110]
+                      - generic [ref=f8e111]: Accessories & Peripherals
+                    - generic [ref=f8e112] [cursor=pointer]:
+                      - checkbox "Cameras & Photography" [ref=f8e113]
+                      - generic [ref=f8e114]: Cameras & Photography
+                    - generic [ref=f8e115] [cursor=pointer]:
+                      - checkbox "Headphones, Earbuds & Accessories" [ref=f8e116]
+                      - generic [ref=f8e117]: Headphones, Earbuds & Accessories
+                    - generic [ref=f8e118] [cursor=pointer]:
+                      - checkbox "Ethernet Cables" [ref=f8e119]
+                      - generic [ref=f8e120]: Ethernet Cables
+                    - generic [ref=f8e121] [cursor=pointer]:
+                      - checkbox "Home Audio" [ref=f8e122]
+                      - generic [ref=f8e123]: Home Audio
+                    - generic [ref=f8e124] [cursor=pointer]:
+                      - checkbox "Webcams & VoIP Equipment" [ref=f8e125]
+                      - generic [ref=f8e126]: Webcams & VoIP Equipment
+                    - generic [ref=f8e127] [cursor=pointer]:
+                      - checkbox "Network Adapters" [ref=f8e128]
+                      - generic [ref=f8e129]: Network Adapters
+                    - generic [ref=f8e130] [cursor=pointer]:
+                      - checkbox "PC Gaming Peripherals" [ref=f8e131]
+                      - generic [ref=f8e132]: PC Gaming Peripherals
+                    - generic [ref=f8e133] [cursor=pointer]:
+                      - checkbox "Mobiles & Accessories" [ref=f8e134]
+                      - generic [ref=f8e135]: Mobiles & Accessories
+                    - generic [ref=f8e136] [cursor=pointer]:
+                      - checkbox "Home Theater, TV & Video" [ref=f8e137]
+                      - generic [ref=f8e138]: Home Theater, TV & Video
+                    - generic [ref=f8e139] [cursor=pointer]:
+                      - checkbox "Power Accessories" [ref=f8e140]
+                      - generic [ref=f8e141]: Power Accessories
+                    - generic [ref=f8e142] [cursor=pointer]:
+                      - checkbox "Memory Cards" [ref=f8e143]
+                      - generic [ref=f8e144]: Memory Cards
+                    - generic [ref=f8e145] [cursor=pointer]:
+                      - checkbox "General Purpose Batteries & Battery Chargers" [ref=f8e146]
+                      - generic [ref=f8e147]: General Purpose Batteries & Battery Chargers
+                    - generic [ref=f8e148] [cursor=pointer]:
+                      - checkbox "Printers" [ref=f8e149]
+                      - generic [ref=f8e150]: Printers
+                    - generic [ref=f8e151] [cursor=pointer]:
+                      - checkbox "USB Gadgets" [ref=f8e152]
+                      - generic [ref=f8e153]: USB Gadgets
+                    - generic [ref=f8e154] [cursor=pointer]:
+                      - checkbox "GPS & Accessories" [ref=f8e155]
+                      - generic [ref=f8e156]: GPS & Accessories
+                    - generic [ref=f8e157] [cursor=pointer]:
+                      - checkbox "Camera Lenses" [ref=f8e158]
+                      - generic [ref=f8e159]: Camera Lenses
+                    - generic [ref=f8e160] [cursor=pointer]:
+                      - checkbox "Camera Cases" [ref=f8e161]
+                      - generic [ref=f8e162]: Camera Cases
+                    - generic [ref=f8e163] [cursor=pointer]:
+                      - checkbox "Keyboard & Mice Accessories" [ref=f8e164]
+                      - generic [ref=f8e165]: Keyboard & Mice Accessories
+                    - generic [ref=f8e166] [cursor=pointer]:
+                      - checkbox "TV Mounts, Stands & Turntables" [ref=f8e167]
+                      - generic [ref=f8e168]: TV Mounts, Stands & Turntables
+                    - generic [ref=f8e169] [cursor=pointer]:
+                      - checkbox "Mobile Photo & Video Accessories" [ref=f8e170]
+                      - generic [ref=f8e171]: Mobile Photo & Video Accessories
+                    - generic [ref=f8e172] [cursor=pointer]:
+                      - checkbox "Wearable Technology" [ref=f8e173]
+                      - generic [ref=f8e174]: Wearable Technology
+                    - generic [ref=f8e175] [cursor=pointer]:
+                      - checkbox "Smartphones" [checked] [ref=f8e176]: ✓
+                      - generic [ref=f8e177]: Smartphones
+                    - generic [ref=f8e178] [cursor=pointer]:
+                      - checkbox "Televisions" [ref=f8e179]
+                      - generic [ref=f8e180]: Televisions
+                    - generic [ref=f8e181] [cursor=pointer]:
+                      - checkbox "Laptops" [ref=f8e182]
+                      - generic [ref=f8e183]: Laptops
+                    - generic [ref=f8e184] [cursor=pointer]:
+                      - checkbox "Speaker" [ref=f8e185]
+                      - generic [ref=f8e186]: Speaker
+                - button "Health & Personal Care Expand" [ref=f8e188] [cursor=pointer]:
+                  - generic [ref=f8e189]: Health & Personal Care
+                  - img "Expand" [ref=f8e190]
+                - button "Home Improvement Expand" [ref=f8e192] [cursor=pointer]:
+                  - generic [ref=f8e193]: Home Improvement
+                  - img "Expand" [ref=f8e194]
+                - button "Computers & Accessories Expand" [ref=f8e196] [cursor=pointer]:
+                  - generic [ref=f8e197]: Computers & Accessories
+                  - img "Expand" [ref=f8e198]
+                - button "Shoes Expand" [ref=f8e200] [cursor=pointer]:
+                  - generic [ref=f8e201]: Shoes
+                  - img "Expand" [ref=f8e202]
+                - button "Sports, Fitness & Outdoors Expand" [ref=f8e204] [cursor=pointer]:
+                  - generic [ref=f8e205]: Sports, Fitness & Outdoors
+                  - img "Expand" [ref=f8e206]
+                - button "Home & Kitchen Expand" [ref=f8e208] [cursor=pointer]:
+                  - generic [ref=f8e209]: Home & Kitchen
+                  - img "Expand" [ref=f8e210]
+                - button "Grocery & Gourmet Foods Expand" [ref=f8e212] [cursor=pointer]:
+                  - generic [ref=f8e213]: Grocery & Gourmet Foods
+                  - img "Expand" [ref=f8e214]
+                - button "Clothing & Accessories Expand" [ref=f8e216] [cursor=pointer]:
+                  - generic [ref=f8e217]: Clothing & Accessories
+                  - img "Expand" [ref=f8e218]
+                - button "Beauty Expand" [ref=f8e220] [cursor=pointer]:
+                  - generic [ref=f8e221]: Beauty
+                  - img "Expand" [ref=f8e222]
+                - button "Watches Expand" [ref=f8e224] [cursor=pointer]:
+                  - generic [ref=f8e225]: Watches
+                  - img "Expand" [ref=f8e226]
+                - button "Car & Motorbike Expand" [ref=f8e228] [cursor=pointer]:
+                  - generic [ref=f8e229]: Car & Motorbike
+                  - img "Expand" [ref=f8e230]
+                - button "Toys & Games Expand" [ref=f8e232] [cursor=pointer]:
+                  - generic [ref=f8e233]: Toys & Games
+                  - img "Expand" [ref=f8e234]
+                - button "Musical Instruments Expand" [ref=f8e236] [cursor=pointer]:
+                  - generic [ref=f8e237]: Musical Instruments
+                  - img "Expand" [ref=f8e238]
+                - button "Jewellery Expand" [ref=f8e240] [cursor=pointer]:
+                  - generic [ref=f8e241]: Jewellery
+                  - img "Expand" [ref=f8e242]
+                - button "Office Products Expand" [ref=f8e244] [cursor=pointer]:
+                  - generic [ref=f8e245]: Office Products
+                  - img "Expand" [ref=f8e246]
+                - button "Kindle Store Expand" [ref=f8e248] [cursor=pointer]:
+                  - generic [ref=f8e249]: Kindle Store
+                  - img "Expand" [ref=f8e250]
+                - button "Outdoor Living Expand" [ref=f8e252] [cursor=pointer]:
+                  - generic [ref=f8e253]: Outdoor Living
+                  - img "Expand" [ref=f8e254]
+                - button "Video Games Expand" [ref=f8e256] [cursor=pointer]:
+                  - generic [ref=f8e257]: Video Games
+                  - img "Expand" [ref=f8e258]
+                - button "Pet Supplies Expand" [ref=f8e260] [cursor=pointer]:
+                  - generic [ref=f8e261]: Pet Supplies
+                  - img "Expand" [ref=f8e262]
+                - button "Home Medical Supplies & Equipment Expand" [ref=f8e264] [cursor=pointer]:
+                  - generic [ref=f8e265]: Home Medical Supplies & Equipment
+                  - img "Expand" [ref=f8e266]
+                - button "Software Expand" [ref=f8e268] [cursor=pointer]:
+                  - generic [ref=f8e269]: Software
+                  - img "Expand" [ref=f8e270]
+                - button "Bags, Wallets & Luggage Expand" [ref=f8e272] [cursor=pointer]:
+                  - generic [ref=f8e273]: Bags, Wallets & Luggage
+                  - img "Expand" [ref=f8e274]
+              - generic [ref=f8e276]:
+                - button [ref=f8e278] [cursor=pointer]:
+                  - heading "Platform" [level=4] [ref=f8e279]
+                  - img "Toggle" [ref=f8e280]
+                - generic [ref=f8e281]:
+                  - generic [ref=f8e282] [cursor=pointer]:
+                    - checkbox "Amazon Amazon" [ref=f8e283]
+                    - img "Amazon" [ref=f8e284]
+                    - generic [ref=f8e285]: Amazon
+                  - generic [ref=f8e286] [cursor=pointer]:
+                    - checkbox "Myntra Myntra" [ref=f8e287]
+                    - img "Myntra" [ref=f8e288]
+                    - generic [ref=f8e289]: Myntra
+                  - generic [ref=f8e290] [cursor=pointer]:
+                    - checkbox "Flipkart Flipkart" [ref=f8e291]
+                    - img "Flipkart" [ref=f8e292]
+                    - generic [ref=f8e293]: Flipkart
+                  - generic [ref=f8e294] [cursor=pointer]:
+                    - checkbox "Ajio Ajio" [ref=f8e295]
+                    - img "Ajio" [ref=f8e296]
+                    - generic [ref=f8e297]: Ajio
+                  - generic [ref=f8e298] [cursor=pointer]:
+                    - checkbox "Meesho Meesho" [ref=f8e299]
+                    - img "Meesho" [ref=f8e300]
+                    - generic [ref=f8e301]: Meesho
+                  - generic [ref=f8e302] [cursor=pointer]:
+                    - checkbox "TatacliQ TatacliQ" [ref=f8e303]
+                    - img "TatacliQ" [ref=f8e304]
+                    - generic [ref=f8e305]: TatacliQ
+                  - generic [ref=f8e306] [cursor=pointer]:
+                    - checkbox "Adidas Adidas" [ref=f8e307]
+                    - img "Adidas" [ref=f8e308]
+                    - generic [ref=f8e309]: Adidas
+                  - generic [ref=f8e310] [cursor=pointer]:
+                    - checkbox "Zara Zara" [ref=f8e311]
+                    - img "Zara" [ref=f8e312]
+                    - generic [ref=f8e313]: Zara
+                  - generic [ref=f8e314] [cursor=pointer]:
+                    - checkbox "firstcry firstcry" [ref=f8e315]
+                    - img "firstcry" [ref=f8e316]
+                    - generic [ref=f8e317]: firstcry
+                  - generic [ref=f8e318] [cursor=pointer]:
+                    - checkbox "Puma Puma" [ref=f8e319]
+                    - img "Puma" [ref=f8e320]
+                    - generic [ref=f8e321]: Puma
+                  - generic [ref=f8e322] [cursor=pointer]:
+                    - checkbox "Levis India Levis India" [ref=f8e323]
+                    - img "Levis India" [ref=f8e324]
+                    - generic [ref=f8e325]: Levis India
+                  - generic [ref=f8e326] [cursor=pointer]:
+                    - checkbox "JioMart JioMart" [ref=f8e327]
+                    - img "JioMart" [ref=f8e328]
+                    - generic [ref=f8e329]: JioMart
+                  - generic [ref=f8e330] [cursor=pointer]:
+                    - checkbox "Shein India Shein India" [ref=f8e331]
+                    - img "Shein India" [ref=f8e332]
+                    - generic [ref=f8e333]: Shein India
+                  - generic [ref=f8e334] [cursor=pointer]:
+                    - checkbox "shoppersstop shoppersstop" [ref=f8e335]
+                    - img "shoppersstop" [ref=f8e336]
+                    - generic [ref=f8e337]: shoppersstop
+                  - generic [ref=f8e338] [cursor=pointer]:
+                    - checkbox "Deodap Deodap" [ref=f8e339]
+                    - img "Deodap" [ref=f8e340]
+                    - generic [ref=f8e341]: Deodap
+                  - generic [ref=f8e342] [cursor=pointer]:
+                    - checkbox "Bata India Bata India" [ref=f8e343]
+                    - img "Bata India" [ref=f8e344]
+                    - generic [ref=f8e345]: Bata India
+                  - generic [ref=f8e346] [cursor=pointer]:
+                    - checkbox "NNNow NNNow" [ref=f8e347]
+                    - img "NNNow" [ref=f8e348]
+                    - generic [ref=f8e349]: NNNow
+                  - generic [ref=f8e350] [cursor=pointer]:
+                    - checkbox "Savana Savana" [ref=f8e351]
+                    - img "Savana" [ref=f8e352]
+                    - generic [ref=f8e353]: Savana
+                  - generic [ref=f8e354] [cursor=pointer]:
+                    - checkbox "Louis Philippe Louis Philippe" [ref=f8e355]
+                    - img "Louis Philippe" [ref=f8e356]
+                    - generic [ref=f8e357]: Louis Philippe
+                  - generic [ref=f8e358] [cursor=pointer]:
+                    - checkbox "Tira Beauty Tira Beauty" [ref=f8e359]
+                    - img "Tira Beauty" [ref=f8e360]
+                    - generic [ref=f8e361]: Tira Beauty
+                  - generic [ref=f8e362] [cursor=pointer]:
+                    - checkbox "Rare Rabbit Rare Rabbit" [ref=f8e363]
+                    - img "Rare Rabbit" [ref=f8e364]
+                    - generic [ref=f8e365]: Rare Rabbit
+                  - generic [ref=f8e366] [cursor=pointer]:
+                    - checkbox "IKEA IKEA" [ref=f8e367]
+                    - img "IKEA" [ref=f8e368]
+                    - generic [ref=f8e369]: IKEA
+                  - generic [ref=f8e370] [cursor=pointer]:
+                    - checkbox "Netmeds Netmeds" [ref=f8e371]
+                    - img "Netmeds" [ref=f8e372]
+                    - generic [ref=f8e373]: Netmeds
+                  - generic [ref=f8e374] [cursor=pointer]:
+                    - checkbox "Decathlon Decathlon" [ref=f8e375]
+                    - img "Decathlon" [ref=f8e376]
+                    - generic [ref=f8e377]: Decathlon
+                  - generic [ref=f8e378] [cursor=pointer]:
+                    - checkbox "1mg 1mg" [ref=f8e379]
+                    - img "1mg" [ref=f8e380]
+                    - generic [ref=f8e381]: 1mg
+                  - generic [ref=f8e382] [cursor=pointer]:
+                    - checkbox "jackjones jackjones" [ref=f8e383]
+                    - img "jackjones" [ref=f8e384]
+                    - generic [ref=f8e385]: jackjones
+                  - generic [ref=f8e386] [cursor=pointer]:
+                    - checkbox "NewMeAsia NewMeAsia" [ref=f8e387]
+                    - img "NewMeAsia" [ref=f8e388]
+                    - generic [ref=f8e389]: NewMeAsia
+                  - generic [ref=f8e390] [cursor=pointer]:
+                    - checkbox "Wakefit Wakefit" [ref=f8e391]
+                    - img "Wakefit" [ref=f8e392]
+                    - generic [ref=f8e393]: Wakefit
+                  - generic [ref=f8e394] [cursor=pointer]:
+                    - checkbox "Ajio Lux Ajio Lux" [ref=f8e395]
+                    - img "Ajio Lux" [ref=f8e396]
+                    - generic [ref=f8e397]: Ajio Lux
+                  - generic [ref=f8e398] [cursor=pointer]:
+                    - checkbox "Skechers Skechers" [ref=f8e399]
+                    - img "Skechers" [ref=f8e400]
+                    - generic [ref=f8e401]: Skechers
+                  - generic [ref=f8e402] [cursor=pointer]:
+                    - checkbox "Robu Robu" [ref=f8e403]
+                    - img "Robu" [ref=f8e404]
+                    - generic [ref=f8e405]: Robu
+                  - generic [ref=f8e406] [cursor=pointer]:
+                    - checkbox "Croma Croma" [ref=f8e407]
+                    - img "Croma" [ref=f8e408]
+                    - generic [ref=f8e409]: Croma
+                  - generic [ref=f8e410] [cursor=pointer]:
+                    - checkbox "Vijay Sales Vijay Sales" [ref=f8e411]
+                    - img "Vijay Sales" [ref=f8e412]
+                    - generic [ref=f8e413]: Vijay Sales
+                  - generic [ref=f8e414] [cursor=pointer]:
+                    - checkbox "Cult Store Cult Store" [ref=f8e415]
+                    - img "Cult Store" [ref=f8e416]
+                    - generic [ref=f8e417]: Cult Store
+                  - generic [ref=f8e418] [cursor=pointer]:
+                    - checkbox "LensKart LensKart" [ref=f8e419]
+                    - img "LensKart" [ref=f8e420]
+                    - generic [ref=f8e421]: LensKart
+                  - generic [ref=f8e422] [cursor=pointer]:
+                    - checkbox "Thesouledstore Thesouledstore" [ref=f8e423]
+                    - img "Thesouledstore" [ref=f8e424]
+                    - generic [ref=f8e425]: Thesouledstore
+                  - generic [ref=f8e426] [cursor=pointer]:
+                    - checkbox "biba biba" [ref=f8e427]
+                    - img "biba" [ref=f8e428]
+                    - generic [ref=f8e429]: biba
+                  - generic [ref=f8e430] [cursor=pointer]:
+                    - checkbox "Libas Libas" [ref=f8e431]
+                    - img "Libas" [ref=f8e432]
+                    - generic [ref=f8e433]: Libas
+                  - generic [ref=f8e434] [cursor=pointer]:
+                    - checkbox "United Colors of Benetton United Colors of Benetton" [ref=f8e435]
+                    - img "United Colors of Benetton" [ref=f8e436]
+                    - generic [ref=f8e437]: United Colors of Benetton
+                  - generic [ref=f8e438] [cursor=pointer]:
+                    - checkbox "Just In Time Just In Time" [ref=f8e439]
+                    - img "Just In Time" [ref=f8e440]
+                    - generic [ref=f8e441]: Just In Time
+                  - generic [ref=f8e442] [cursor=pointer]:
+                    - checkbox "Palmonas Palmonas" [ref=f8e443]
+                    - img "Palmonas" [ref=f8e444]
+                    - generic [ref=f8e445]: Palmonas
+                  - generic [ref=f8e446] [cursor=pointer]:
+                    - checkbox "Zivame Zivame" [ref=f8e447]
+                    - img "Zivame" [ref=f8e448]
+                    - generic [ref=f8e449]: Zivame
+                  - generic [ref=f8e450] [cursor=pointer]:
+                    - checkbox "NykaaMan NykaaMan" [ref=f8e451]
+                    - img "NykaaMan" [ref=f8e452]
+                    - generic [ref=f8e453]: NykaaMan
+                  - generic [ref=f8e454] [cursor=pointer]:
+                    - checkbox "Titan Titan" [ref=f8e455]
+                    - img "Titan" [ref=f8e456]
+                    - generic [ref=f8e457]: Titan
+                  - generic [ref=f8e458] [cursor=pointer]:
+                    - checkbox "Snitch Snitch" [ref=f8e459]
+                    - img "Snitch" [ref=f8e460]
+                    - generic [ref=f8e461]: Snitch
+                  - generic [ref=f8e462] [cursor=pointer]:
+                    - checkbox "Wrogn Wrogn" [ref=f8e463]
+                    - img "Wrogn" [ref=f8e464]
+                    - generic [ref=f8e465]: Wrogn
+                  - generic [ref=f8e466] [cursor=pointer]:
+                    - checkbox "RedTape RedTape" [ref=f8e467]
+                    - img "RedTape" [ref=f8e468]
+                    - generic [ref=f8e469]: RedTape
+                  - generic [ref=f8e470] [cursor=pointer]:
+                    - checkbox "Campus Shoes Campus Shoes" [ref=f8e471]
+                    - img "Campus Shoes" [ref=f8e472]
+                    - generic [ref=f8e473]: Campus Shoes
+                  - generic [ref=f8e474] [cursor=pointer]:
+                    - checkbox "Tatacliq Luxury Tatacliq Luxury" [ref=f8e475]
+                    - img "Tatacliq Luxury" [ref=f8e476]
+                    - generic [ref=f8e477]: Tatacliq Luxury
+                  - generic [ref=f8e478] [cursor=pointer]:
+                    - checkbox "Timex Timex" [ref=f8e479]
+                    - img "Timex" [ref=f8e480]
+                    - generic [ref=f8e481]: Timex
+                  - generic [ref=f8e482] [cursor=pointer]:
+                    - checkbox "cashify cashify" [ref=f8e483]
+                    - img "cashify" [ref=f8e484]
+                    - generic [ref=f8e485]: cashify
+                  - generic [ref=f8e486] [cursor=pointer]:
+                    - checkbox "Snapmint Snapmint" [ref=f8e487]
+                    - img "Snapmint" [ref=f8e488]
+                    - generic [ref=f8e489]: Snapmint
+                  - generic [ref=f8e490] [cursor=pointer]:
+                    - checkbox "zebronics zebronics" [ref=f8e491]
+                    - img "zebronics" [ref=f8e492]
+                    - generic [ref=f8e493]: zebronics
+                  - generic [ref=f8e494] [cursor=pointer]:
+                    - checkbox "Fastrack Fastrack" [ref=f8e495]
+                    - img "Fastrack" [ref=f8e496]
+                    - generic [ref=f8e497]: Fastrack
+                  - generic [ref=f8e498] [cursor=pointer]:
+                    - checkbox "Clovia Clovia" [ref=f8e499]
+                    - img "Clovia" [ref=f8e500]
+                    - generic [ref=f8e501]: Clovia
+                  - generic [ref=f8e502] [cursor=pointer]:
+                    - checkbox "Wildcraft Wildcraft" [ref=f8e503]
+                    - img "Wildcraft" [ref=f8e504]
+                    - generic [ref=f8e505]: Wildcraft
+                  - generic [ref=f8e506] [cursor=pointer]:
+                    - checkbox "Etsy Etsy" [ref=f8e507]
+                    - img "Etsy" [ref=f8e508]
+                    - generic [ref=f8e509]: Etsy
+                  - generic [ref=f8e510] [cursor=pointer]:
+                    - checkbox "Birkenstock Birkenstock" [ref=f8e511]
+                    - img "Birkenstock" [ref=f8e512]
+                    - generic [ref=f8e513]: Birkenstock
+                  - generic [ref=f8e514] [cursor=pointer]:
+                    - checkbox "Shopsy Shopsy" [ref=f8e515]
+                    - img "Shopsy" [ref=f8e516]
+                    - generic [ref=f8e517]: Shopsy
+                  - generic [ref=f8e518] [cursor=pointer]:
+                    - checkbox "NOBERO NOBERO" [ref=f8e519]
+                    - img "NOBERO" [ref=f8e520]
+                    - generic [ref=f8e521]: NOBERO
+                  - generic [ref=f8e522] [cursor=pointer]:
+                    - checkbox "GIVA GIVA" [ref=f8e523]
+                    - img "GIVA" [ref=f8e524]
+                    - generic [ref=f8e525]: GIVA
+                  - generic [ref=f8e526] [cursor=pointer]:
+                    - checkbox "Vero Moda Vero Moda" [ref=f8e527]
+                    - img "Vero Moda" [ref=f8e528]
+                    - generic [ref=f8e529]: Vero Moda
+                  - generic [ref=f8e530] [cursor=pointer]:
+                    - checkbox "Crocs Crocs" [ref=f8e531]
+                    - img "Crocs" [ref=f8e532]
+                    - generic [ref=f8e533]: Crocs
+                  - generic [ref=f8e534] [cursor=pointer]:
+                    - checkbox "homecentre homecentre" [ref=f8e535]
+                    - img "homecentre" [ref=f8e536]
+                    - generic [ref=f8e537]: homecentre
+                  - generic [ref=f8e538] [cursor=pointer]:
+                    - checkbox "Only Only" [ref=f8e539]
+                    - img "Only" [ref=f8e540]
+                    - generic [ref=f8e541]: Only
+                  - generic [ref=f8e542] [cursor=pointer]:
+                    - checkbox "Lifestylestores Lifestylestores" [ref=f8e543]
+                    - img "Lifestylestores" [ref=f8e544]
+                    - generic [ref=f8e545]: Lifestylestores
+                  - generic [ref=f8e546] [cursor=pointer]:
+                    - checkbox "Max Max" [ref=f8e547]
+                    - img "Max" [ref=f8e548]
+                    - generic [ref=f8e549]: Max
+                  - generic [ref=f8e550] [cursor=pointer]:
+                    - checkbox "Meckeys Meckeys" [ref=f8e551]
+                    - img "Meckeys" [ref=f8e552]
+                    - generic [ref=f8e553]: Meckeys
+                  - generic [ref=f8e554] [cursor=pointer]:
+                    - checkbox "Pantaloons Pantaloons" [ref=f8e555]
+                    - img "Pantaloons" [ref=f8e556]
+                    - generic [ref=f8e557]: Pantaloons
+                  - generic [ref=f8e558] [cursor=pointer]:
+                    - checkbox "montecarlo montecarlo" [ref=f8e559]
+                    - img "montecarlo" [ref=f8e560]
+                    - generic [ref=f8e561]: montecarlo
+                  - generic [ref=f8e562] [cursor=pointer]:
+                    - checkbox "Boat Lifestyle Boat Lifestyle" [ref=f8e563]
+                    - img "Boat Lifestyle" [ref=f8e564]
+                    - generic [ref=f8e565]: Boat Lifestyle
+                  - generic [ref=f8e566] [cursor=pointer]:
+                    - checkbox "MD Computers MD Computers" [ref=f8e567]
+                    - img "MD Computers" [ref=f8e568]
+                    - generic [ref=f8e569]: MD Computers
+                  - generic [ref=f8e570] [cursor=pointer]:
+                    - checkbox "Purplle Purplle" [ref=f8e571]
+                    - img "Purplle" [ref=f8e572]
+                    - generic [ref=f8e573]: Purplle
+                  - generic [ref=f8e574] [cursor=pointer]:
+                    - checkbox "Caratlane Caratlane" [ref=f8e575]
+                    - img "Caratlane" [ref=f8e576]
+                    - generic [ref=f8e577]: Caratlane
+                  - generic [ref=f8e578] [cursor=pointer]:
+                    - checkbox "Bananaclub Bananaclub" [ref=f8e579]
+                    - img "Bananaclub" [ref=f8e580]
+                    - generic [ref=f8e581]: Bananaclub
+                  - generic [ref=f8e582] [cursor=pointer]:
+                    - checkbox "sephorain sephorain" [ref=f8e583]
+                    - img "sephorain" [ref=f8e584]
+                    - generic [ref=f8e585]: sephorain
+                  - generic [ref=f8e586] [cursor=pointer]:
+                    - checkbox "Swarovski India Swarovski India" [ref=f8e587]
+                    - img "Swarovski India" [ref=f8e588]
+                    - generic [ref=f8e589]: Swarovski India
+                  - generic [ref=f8e590] [cursor=pointer]:
+                    - checkbox "Ethos Watches Ethos Watches" [ref=f8e591]
+                    - img "Ethos Watches" [ref=f8e592]
+                    - generic [ref=f8e593]: Ethos Watches
+                  - generic [ref=f8e594] [cursor=pointer]:
+                    - checkbox "IGP.com IGP.com" [ref=f8e595]
+                    - img "IGP.com" [ref=f8e596]
+                    - generic [ref=f8e597]: IGP.com
+                  - generic [ref=f8e598] [cursor=pointer]:
+                    - checkbox "lenovo lenovo" [ref=f8e599]
+                    - img "lenovo" [ref=f8e600]
+                    - generic [ref=f8e601]: lenovo
+                  - generic [ref=f8e602] [cursor=pointer]:
+                    - checkbox "Snapdeal Snapdeal" [ref=f8e603]
+                    - img "Snapdeal" [ref=f8e604]
+                    - generic [ref=f8e605]: Snapdeal
+                  - generic [ref=f8e606] [cursor=pointer]:
+                    - checkbox "Sangeetha Mobiles Sangeetha Mobiles" [ref=f8e607]
+                    - img "Sangeetha Mobiles" [ref=f8e608]
+                    - generic [ref=f8e609]: Sangeetha Mobiles
+                  - generic [ref=f8e610] [cursor=pointer]:
+                    - checkbox "Bewakoof Bewakoof" [ref=f8e611]
+                    - img "Bewakoof" [ref=f8e612]
+                    - generic [ref=f8e613]: Bewakoof
+                  - generic [ref=f8e614] [cursor=pointer]:
+                    - checkbox "UrbanLadder UrbanLadder" [ref=f8e615]
+                    - img "UrbanLadder" [ref=f8e616]
+                    - generic [ref=f8e617]: UrbanLadder
+                  - generic [ref=f8e618] [cursor=pointer]:
+                    - checkbox "damensch damensch" [ref=f8e619]
+                    - img "damensch" [ref=f8e620]
+                    - generic [ref=f8e621]: damensch
+                  - generic [ref=f8e622] [cursor=pointer]:
+                    - checkbox "Veirdo Veirdo" [ref=f8e623]
+                    - img "Veirdo" [ref=f8e624]
+                    - generic [ref=f8e625]: Veirdo
+                  - generic [ref=f8e626] [cursor=pointer]:
+                    - checkbox "hopscotch hopscotch" [ref=f8e627]
+                    - img "hopscotch" [ref=f8e628]
+                    - generic [ref=f8e629]: hopscotch
+                  - generic [ref=f8e630] [cursor=pointer]:
+                    - checkbox "Hamleys Hamleys" [ref=f8e631]
+                    - img "Hamleys" [ref=f8e632]
+                    - generic [ref=f8e633]: Hamleys
+                  - generic [ref=f8e634] [cursor=pointer]:
+                    - checkbox "The Bear House The Bear House" [ref=f8e635]
+                    - img "The Bear House" [ref=f8e636]
+                    - generic [ref=f8e637]: The Bear House
+                  - generic [ref=f8e638] [cursor=pointer]:
+                    - checkbox "asus asus" [ref=f8e639]
+                    - img "asus" [ref=f8e640]
+                    - generic [ref=f8e641]: asus
+                  - generic [ref=f8e642] [cursor=pointer]:
+                    - checkbox "apple apple" [ref=f8e643]
+                    - img "apple" [ref=f8e644]
+                    - generic [ref=f8e645]: apple
+                  - generic [ref=f8e646] [cursor=pointer]:
+                    - checkbox "Aurelia Aurelia" [ref=f8e647]
+                    - img "Aurelia" [ref=f8e648]
+                    - generic [ref=f8e649]: Aurelia
+                  - generic [ref=f8e650] [cursor=pointer]:
+                    - checkbox "Crossword Crossword" [ref=f8e651]
+                    - img "Crossword" [ref=f8e652]
+                    - generic [ref=f8e653]: Crossword
+                  - generic [ref=f8e654] [cursor=pointer]:
+                    - checkbox "Dailyobjects Dailyobjects" [ref=f8e655]
+                    - img "Dailyobjects" [ref=f8e656]
+                    - generic [ref=f8e657]: Dailyobjects
+                  - generic [ref=f8e658] [cursor=pointer]:
+                    - checkbox "Funcorp Funcorp" [ref=f8e659]
+                    - img "Funcorp" [ref=f8e660]
+                    - generic [ref=f8e661]: Funcorp
+                  - generic [ref=f8e662] [cursor=pointer]:
+                    - checkbox "HyugaLife HyugaLife" [ref=f8e663]
+                    - img "HyugaLife" [ref=f8e664]
+                    - generic [ref=f8e665]: HyugaLife
+                  - generic [ref=f8e666] [cursor=pointer]:
+                    - checkbox "MuscleBlaze MuscleBlaze" [ref=f8e667]
+                    - img "MuscleBlaze" [ref=f8e668]
+                    - generic [ref=f8e669]: MuscleBlaze
+                  - generic [ref=f8e670] [cursor=pointer]:
+                    - checkbox "Elitehubs Elitehubs" [ref=f8e671]
+                    - img "Elitehubs" [ref=f8e672]
+                    - generic [ref=f8e673]: Elitehubs
+                  - generic [ref=f8e674] [cursor=pointer]:
+                    - checkbox "Mega Jaipur Mega Jaipur" [ref=f8e675]
+                    - img "Mega Jaipur" [ref=f8e676]
+                    - generic [ref=f8e677]: Mega Jaipur
+                  - generic [ref=f8e678] [cursor=pointer]:
+                    - checkbox "Headphonezone Headphonezone" [ref=f8e679]
+                    - img "Headphonezone" [ref=f8e680]
+                    - generic [ref=f8e681]: Headphonezone
+                  - generic [ref=f8e682] [cursor=pointer]:
+                    - checkbox "supertails supertails" [ref=f8e683]
+                    - img "supertails" [ref=f8e684]
+                    - generic [ref=f8e685]: supertails
+                  - generic [ref=f8e686] [cursor=pointer]:
+                    - checkbox "Mi Mi" [ref=f8e687]
+                    - img "Mi" [ref=f8e688]
+                    - generic [ref=f8e689]: Mi
+                  - generic [ref=f8e690] [cursor=pointer]:
+                    - checkbox "Smytten Smytten" [ref=f8e691]
+                    - img "Smytten" [ref=f8e692]
+                    - generic [ref=f8e693]: Smytten
+                  - generic [ref=f8e694] [cursor=pointer]:
+                    - checkbox "Circlestore Circlestore" [ref=f8e695]
+                    - img "Circlestore" [ref=f8e696]
+                    - generic [ref=f8e697]: Circlestore
+                  - generic [ref=f8e698] [cursor=pointer]:
+                    - checkbox "Pharmeasy Pharmeasy" [ref=f8e699]
+                    - img "Pharmeasy" [ref=f8e700]
+                    - generic [ref=f8e701]: Pharmeasy
+                  - generic [ref=f8e702] [cursor=pointer]:
+                    - checkbox "bombayshaving bombayshaving" [ref=f8e703]
+                    - img "bombayshaving" [ref=f8e704]
+                    - generic [ref=f8e705]: bombayshaving
+                  - generic [ref=f8e706] [cursor=pointer]:
+                    - checkbox "Blissclub Blissclub" [ref=f8e707]
+                    - img "Blissclub" [ref=f8e708]
+                    - generic [ref=f8e709]: Blissclub
+                  - generic [ref=f8e710] [cursor=pointer]:
+                    - checkbox "thesleepcompany thesleepcompany" [ref=f8e711]
+                    - img "thesleepcompany" [ref=f8e712]
+                    - generic [ref=f8e713]: thesleepcompany
+                  - generic [ref=f8e714] [cursor=pointer]:
+                    - checkbox "Neemans Neemans" [ref=f8e715]
+                    - img "Neemans" [ref=f8e716]
+                    - generic [ref=f8e717]: Neemans
+                  - generic [ref=f8e718] [cursor=pointer]:
+                    - checkbox "Dermaco Dermaco" [ref=f8e719]
+                    - img "Dermaco" [ref=f8e720]
+                    - generic [ref=f8e721]: Dermaco
+                  - generic [ref=f8e722] [cursor=pointer]:
+                    - checkbox "Ambrane Ambrane" [ref=f8e723]
+                    - img "Ambrane" [ref=f8e724]
+                    - generic [ref=f8e725]: Ambrane
+                  - generic [ref=f8e726] [cursor=pointer]:
+                    - checkbox "BestBuy Canada BestBuy Canada" [ref=f8e727]
+                    - img "BestBuy Canada" [ref=f8e728]
+                    - generic [ref=f8e729]: BestBuy Canada
+                  - generic [ref=f8e730] [cursor=pointer]:
+                    - checkbox "Zoomin Zoomin" [ref=f8e731]
+                    - img "Zoomin" [ref=f8e732]
+                    - generic [ref=f8e733]: Zoomin
+                  - generic [ref=f8e734] [cursor=pointer]:
+                    - checkbox "Wforwoman Wforwoman" [ref=f8e735]
+                    - img "Wforwoman" [ref=f8e736]
+                    - generic [ref=f8e737]: Wforwoman
+                  - generic [ref=f8e738] [cursor=pointer]:
+                    - checkbox "Wonderchef Wonderchef" [ref=f8e739]
+                    - img "Wonderchef" [ref=f8e740]
+                    - generic [ref=f8e741]: Wonderchef
+                  - generic [ref=f8e742] [cursor=pointer]:
+                    - checkbox "fnp.com fnp.com" [ref=f8e743]
+                    - img "fnp.com" [ref=f8e744]
+                    - generic [ref=f8e745]: fnp.com
+                  - generic [ref=f8e746] [cursor=pointer]:
+                    - checkbox "sochstore sochstore" [ref=f8e747]
+                    - img "sochstore" [ref=f8e748]
+                    - generic [ref=f8e749]: sochstore
+                  - generic [ref=f8e750] [cursor=pointer]:
+                    - checkbox "Dell Dell" [ref=f8e751]
+                    - img "Dell" [ref=f8e752]
+                    - generic [ref=f8e753]: Dell
+                  - generic [ref=f8e754] [cursor=pointer]:
+                    - checkbox "LG LG" [ref=f8e755]
+                    - img "LG" [ref=f8e756]
+                    - generic [ref=f8e757]: LG
+                  - generic [ref=f8e758] [cursor=pointer]:
+                    - checkbox "Vishal Mega Mart Vishal Mega Mart" [ref=f8e759]
+                    - img "Vishal Mega Mart" [ref=f8e760]
+                    - generic [ref=f8e761]: Vishal Mega Mart
+                  - generic [ref=f8e762] [cursor=pointer]:
+                    - checkbox "Chumbak Chumbak" [ref=f8e763]
+                    - img "Chumbak" [ref=f8e764]
+                    - generic [ref=f8e765]: Chumbak
+                  - generic [ref=f8e766] [cursor=pointer]:
+                    - checkbox "Swiss military India Swiss military India" [ref=f8e767]
+                    - img "Swiss military India" [ref=f8e768]
+                    - generic [ref=f8e769]: Swiss military India
+                  - generic [ref=f8e770] [cursor=pointer]:
+                    - checkbox "The Loom The Loom" [ref=f8e771]
+                    - img "The Loom" [ref=f8e772]
+                    - generic [ref=f8e773]: The Loom
+                  - generic [ref=f8e774] [cursor=pointer]:
+                    - checkbox "HK Vitals HK Vitals" [ref=f8e775]
+                    - img "HK Vitals" [ref=f8e776]
+                    - generic [ref=f8e777]: HK Vitals
+                  - generic [ref=f8e778] [cursor=pointer]:
+                    - checkbox "Manyavar Manyavar" [ref=f8e779]
+                    - img "Manyavar" [ref=f8e780]
+                    - generic [ref=f8e781]: Manyavar
+                  - generic [ref=f8e782] [cursor=pointer]:
+                    - checkbox "paiinternational paiinternational" [ref=f8e783]
+                    - img "paiinternational" [ref=f8e784]
+                    - generic [ref=f8e785]: paiinternational
+                  - generic [ref=f8e786] [cursor=pointer]:
+                    - checkbox "Urban Monkey Urban Monkey" [ref=f8e787]
+                    - img "Urban Monkey" [ref=f8e788]
+                    - generic [ref=f8e789]: Urban Monkey
+                  - generic [ref=f8e790] [cursor=pointer]:
+                    - checkbox "Limeroad Limeroad" [ref=f8e791]
+                    - img "Limeroad" [ref=f8e792]
+                    - generic [ref=f8e793]: Limeroad
+                  - generic [ref=f8e794] [cursor=pointer]:
+                    - checkbox "Mia by Tanishq Mia by Tanishq" [ref=f8e795]
+                    - img "Mia by Tanishq" [ref=f8e796]
+                    - generic [ref=f8e797]: Mia by Tanishq
+                  - generic [ref=f8e798] [cursor=pointer]:
+                    - checkbox "Slikk Slikk" [ref=f8e799]
+                    - img "Slikk" [ref=f8e800]
+                    - generic [ref=f8e801]: Slikk
+                  - generic [ref=f8e802] [cursor=pointer]:
+                    - checkbox "Plum Goodness Plum Goodness" [ref=f8e803]
+                    - img "Plum Goodness" [ref=f8e804]
+                    - generic [ref=f8e805]: Plum Goodness
+                  - generic [ref=f8e806] [cursor=pointer]:
+                    - checkbox "kindlife kindlife" [ref=f8e807]
+                    - img "kindlife" [ref=f8e808]
+                    - generic [ref=f8e809]: kindlife
+                  - generic [ref=f8e810] [cursor=pointer]:
+                    - checkbox "Boodmo Boodmo" [ref=f8e811]
+                    - img "Boodmo" [ref=f8e812]
+                    - generic [ref=f8e813]: Boodmo
+                  - generic [ref=f8e814] [cursor=pointer]:
+                    - checkbox "MedPlusSmart MedPlusSmart" [ref=f8e815]
+                    - img "MedPlusSmart" [ref=f8e816]
+                    - generic [ref=f8e817]: MedPlusSmart
+                  - generic [ref=f8e818] [cursor=pointer]:
+                    - checkbox "Blackberrys Blackberrys" [ref=f8e819]
+                    - img "Blackberrys" [ref=f8e820]
+                    - generic [ref=f8e821]: Blackberrys
+                  - generic [ref=f8e822] [cursor=pointer]:
+                    - checkbox "WinstonIndian WinstonIndian" [ref=f8e823]
+                    - img "WinstonIndian" [ref=f8e824]
+                    - generic [ref=f8e825]: WinstonIndian
+                  - generic [ref=f8e826] [cursor=pointer]:
+                    - checkbox "Trends Ajio Trends Ajio" [ref=f8e827]
+                    - img "Trends Ajio" [ref=f8e828]
+                    - generic [ref=f8e829]: Trends Ajio
+                  - generic [ref=f8e830] [cursor=pointer]:
+                    - checkbox "Vishal Peripherals Vishal Peripherals" [ref=f8e831]
+                    - img "Vishal Peripherals" [ref=f8e832]
+                    - generic [ref=f8e833]: Vishal Peripherals
+                  - generic [ref=f8e834] [cursor=pointer]:
+                    - checkbox "gonoise gonoise" [ref=f8e835]
+                    - img "gonoise" [ref=f8e836]
+                    - generic [ref=f8e837]: gonoise
+                  - generic [ref=f8e838] [cursor=pointer]:
+                    - checkbox "Poorvika Mobile Poorvika Mobile" [ref=f8e839]
+                    - img "Poorvika Mobile" [ref=f8e840]
+                    - generic [ref=f8e841]: Poorvika Mobile
+                  - generic [ref=f8e842] [cursor=pointer]:
+                    - checkbox "Oppo Oppo" [ref=f8e843]
+                    - img "Oppo" [ref=f8e844]
+                    - generic [ref=f8e845]: Oppo
+                  - generic [ref=f8e846] [cursor=pointer]:
+                    - checkbox "Cilory Cilory" [ref=f8e847]
+                    - img "Cilory" [ref=f8e848]
+                    - generic [ref=f8e849]: Cilory
+                  - generic [ref=f8e850] [cursor=pointer]:
+                    - checkbox "Heads Up For Tails Heads Up For Tails" [ref=f8e851]
+                    - img "Heads Up For Tails" [ref=f8e852]
+                    - generic [ref=f8e853]: Heads Up For Tails
+                  - generic [ref=f8e854] [cursor=pointer]:
+                    - checkbox "Aarfragrances Aarfragrances" [ref=f8e855]
+                    - img "Aarfragrances" [ref=f8e856]
+                    - generic [ref=f8e857]: Aarfragrances
+                  - generic [ref=f8e858] [cursor=pointer]:
+                    - checkbox "Tanishq Tanishq" [ref=f8e859]
+                    - img "Tanishq" [ref=f8e860]
+                    - generic [ref=f8e861]: Tanishq
+                  - generic [ref=f8e862] [cursor=pointer]:
+                    - checkbox "Dot and Key Dot and Key" [ref=f8e863]
+                    - img "Dot and Key" [ref=f8e864]
+                    - generic [ref=f8e865]: Dot and Key
+                  - generic [ref=f8e866] [cursor=pointer]:
+                    - checkbox "Motorola Motorola" [ref=f8e867]
+                    - img "Motorola" [ref=f8e868]
+                    - generic [ref=f8e869]: Motorola
+                  - generic [ref=f8e870] [cursor=pointer]:
+                    - checkbox "Costco Canada Costco Canada" [ref=f8e871]
+                    - img "Costco Canada" [ref=f8e872]
+                    - generic [ref=f8e873]: Costco Canada
+                  - generic [ref=f8e874] [cursor=pointer]:
+                    - checkbox "JBL India JBL India" [ref=f8e875]
+                    - img "JBL India" [ref=f8e876]
+                    - generic [ref=f8e877]: JBL India
+                  - generic [ref=f8e878] [cursor=pointer]:
+                    - checkbox "Clinkally Clinkally" [ref=f8e879]
+                    - img "Clinkally" [ref=f8e880]
+                    - generic [ref=f8e881]: Clinkally
+                  - generic [ref=f8e882] [cursor=pointer]:
+                    - checkbox "Realme Realme" [ref=f8e883]
+                    - img "Realme" [ref=f8e884]
+                    - generic [ref=f8e885]: Realme
+                  - generic [ref=f8e886] [cursor=pointer]:
+                    - checkbox "Amul Amul" [ref=f8e887]
+                    - img "Amul" [ref=f8e888]
+                    - generic [ref=f8e889]: Amul
+                  - generic [ref=f8e890] [cursor=pointer]:
+                    - checkbox "Bonkers Corner Bonkers Corner" [ref=f8e891]
+                    - img "Bonkers Corner" [ref=f8e892]
+                    - generic [ref=f8e893]: Bonkers Corner
+                  - generic [ref=f8e894] [cursor=pointer]:
+                    - checkbox "Boult Audio Boult Audio" [ref=f8e895]
+                    - img "Boult Audio" [ref=f8e896]
+                    - generic [ref=f8e897]: Boult Audio
+                  - generic [ref=f8e898] [cursor=pointer]:
+                    - checkbox "Desertcart India Desertcart India" [ref=f8e899]
+                    - img "Desertcart India" [ref=f8e900]
+                    - generic [ref=f8e901]: Desertcart India
+                  - generic [ref=f8e902] [cursor=pointer]:
+                    - checkbox "Jockey India Jockey India" [ref=f8e903]
+                    - img "Jockey India" [ref=f8e904]
+                    - generic [ref=f8e905]: Jockey India
+                  - generic [ref=f8e906] [cursor=pointer]:
+                    - checkbox "Ten x You Ten x You" [ref=f8e907]
+                    - img "Ten x You" [ref=f8e908]
+                    - generic [ref=f8e909]: Ten x You
+                  - generic [ref=f8e910] [cursor=pointer]:
+                    - checkbox "Healthkart Healthkart" [ref=f8e911]
+                    - img "Healthkart" [ref=f8e912]
+                    - generic [ref=f8e913]: Healthkart
+                  - generic [ref=f8e914] [cursor=pointer]:
+                    - checkbox "Manmatters Manmatters" [ref=f8e915]
+                    - img "Manmatters" [ref=f8e916]
+                    - generic [ref=f8e917]: Manmatters
+                  - generic [ref=f8e918] [cursor=pointer]:
+                    - checkbox "Borosil Borosil" [ref=f8e919]
+                    - img "Borosil" [ref=f8e920]
+                    - generic [ref=f8e921]: Borosil
+                  - generic [ref=f8e922] [cursor=pointer]:
+                    - checkbox "Foxtale Foxtale" [ref=f8e923]
+                    - img "Foxtale" [ref=f8e924]
+                    - generic [ref=f8e925]: Foxtale
+                  - generic [ref=f8e926] [cursor=pointer]:
+                    - checkbox "Nestasia Nestasia" [ref=f8e927]
+                    - img "Nestasia" [ref=f8e928]
+                    - generic [ref=f8e929]: Nestasia
+                  - generic [ref=f8e930] [cursor=pointer]:
+                    - checkbox "Sony Sony" [ref=f8e931]
+                    - img "Sony" [ref=f8e932]
+                    - generic [ref=f8e933]: Sony
+                  - generic [ref=f8e934] [cursor=pointer]:
+                    - checkbox "Mokobara Mokobara" [ref=f8e935]
+                    - img "Mokobara" [ref=f8e936]
+                    - generic [ref=f8e937]: Mokobara
+                  - generic [ref=f8e938] [cursor=pointer]:
+                    - checkbox "Bank of electronics Bank of electronics" [ref=f8e939]
+                    - img "Bank of electronics" [ref=f8e940]
+                    - generic [ref=f8e941]: Bank of electronics
+                  - generic [ref=f8e942] [cursor=pointer]:
+                    - checkbox "Skinbae Skinbae" [ref=f8e943]
+                    - img "Skinbae" [ref=f8e944]
+                    - generic [ref=f8e945]: Skinbae
+                  - generic [ref=f8e946] [cursor=pointer]:
+                    - checkbox "Panasonic Panasonic" [ref=f8e947]
+                    - img "Panasonic" [ref=f8e948]
+                    - generic [ref=f8e949]: Panasonic
+                  - generic [ref=f8e950] [cursor=pointer]:
+                    - checkbox "oneplus oneplus" [ref=f8e951]
+                    - img "oneplus" [ref=f8e952]
+                    - generic [ref=f8e953]: oneplus
+                  - generic [ref=f8e954] [cursor=pointer]:
+                    - checkbox "Kapiva Kapiva" [ref=f8e955]
+                    - img "Kapiva" [ref=f8e956]
+                    - generic [ref=f8e957]: Kapiva
+                  - generic [ref=f8e958] [cursor=pointer]:
+                    - checkbox "Mothercare Mothercare" [ref=f8e959]
+                    - img "Mothercare" [ref=f8e960]
+                    - generic [ref=f8e961]: Mothercare
+                  - generic [ref=f8e962] [cursor=pointer]:
+                    - checkbox "Truemeds Truemeds" [ref=f8e963]
+                    - img "Truemeds" [ref=f8e964]
+                    - generic [ref=f8e965]: Truemeds
+                  - generic [ref=f8e966] [cursor=pointer]:
+                    - checkbox "Vega Vega" [ref=f8e967]
+                    - img "Vega" [ref=f8e968]
+                    - generic [ref=f8e969]: Vega
+                  - generic [ref=f8e970] [cursor=pointer]:
+                    - checkbox "Aldo Aldo" [ref=f8e971]
+                    - img "Aldo" [ref=f8e972]
+                    - generic [ref=f8e973]: Aldo
+                  - generic [ref=f8e974] [cursor=pointer]:
+                    - checkbox "The Whole Truth The Whole Truth" [ref=f8e975]
+                    - img "The Whole Truth" [ref=f8e976]
+                    - generic [ref=f8e977]: The Whole Truth
+                  - generic [ref=f8e978] [cursor=pointer]:
+                    - checkbox "BlueStone BlueStone" [ref=f8e979]
+                    - img "BlueStone" [ref=f8e980]
+                    - generic [ref=f8e981]: BlueStone
+                  - generic [ref=f8e982] [cursor=pointer]:
+                    - checkbox "healthxp healthxp" [ref=f8e983]
+                    - img "healthxp" [ref=f8e984]
+                    - generic [ref=f8e985]: healthxp
+                  - generic [ref=f8e986] [cursor=pointer]:
+                    - checkbox "Vivo Vivo" [ref=f8e987]
+                    - img "Vivo" [ref=f8e988]
+                    - generic [ref=f8e989]: Vivo
+                  - generic [ref=f8e990] [cursor=pointer]:
+                    - checkbox "Dyson Dyson" [ref=f8e991]
+                    - img "Dyson" [ref=f8e992]
+                    - generic [ref=f8e993]: Dyson
+                  - generic [ref=f8e994] [cursor=pointer]:
+                    - checkbox "Bombay Shirt Company Bombay Shirt Company" [ref=f8e995]
+                    - img "Bombay Shirt Company" [ref=f8e996]
+                    - generic [ref=f8e997]: Bombay Shirt Company
+                  - generic [ref=f8e998] [cursor=pointer]:
+                    - checkbox "Posterized Posterized" [ref=f8e999]
+                    - img "Posterized" [ref=f8e1000]
+                    - generic [ref=f8e1001]: Posterized
+                  - generic [ref=f8e1002] [cursor=pointer]:
+                    - checkbox "Tecsox Tecsox" [ref=f8e1003]
+                    - img "Tecsox" [ref=f8e1004]
+                    - generic [ref=f8e1005]: Tecsox
+                  - generic [ref=f8e1006] [cursor=pointer]:
+                    - checkbox "Urvann Urvann" [ref=f8e1007]
+                    - img "Urvann" [ref=f8e1008]
+                    - generic [ref=f8e1009]: Urvann
+                  - generic [ref=f8e1010] [cursor=pointer]:
+                    - checkbox "Naaptol Naaptol" [ref=f8e1011]
+                    - img "Naaptol" [ref=f8e1012]
+                    - generic [ref=f8e1013]: Naaptol
+                  - generic [ref=f8e1014] [cursor=pointer]:
+                    - checkbox "mcaffeine mcaffeine" [ref=f8e1015]
+                    - img "mcaffeine" [ref=f8e1016]
+                    - generic [ref=f8e1017]: mcaffeine
+                  - generic [ref=f8e1018] [cursor=pointer]:
+                    - checkbox "Ubuy Ubuy" [ref=f8e1019]
+                    - img "Ubuy" [ref=f8e1020]
+                    - generic [ref=f8e1021]: Ubuy
+                  - generic [ref=f8e1022] [cursor=pointer]:
+                    - checkbox "Hammer Hammer" [ref=f8e1023]
+                    - img "Hammer" [ref=f8e1024]
+                    - generic [ref=f8e1025]: Hammer
+                  - generic [ref=f8e1026] [cursor=pointer]:
+                    - checkbox "Renee Cosmetics Renee Cosmetics" [ref=f8e1027]
+                    - img "Renee Cosmetics" [ref=f8e1028]
+                    - generic [ref=f8e1029]: Renee Cosmetics
+                  - generic [ref=f8e1030] [cursor=pointer]:
+                    - checkbox "Gulmahal Gulmahal" [ref=f8e1031]
+                    - img "Gulmahal" [ref=f8e1032]
+                    - generic [ref=f8e1033]: Gulmahal
+                  - generic [ref=f8e1034] [cursor=pointer]:
+                    - checkbox "Longway India Longway India" [ref=f8e1035]
+                    - img "Longway India" [ref=f8e1036]
+                    - generic [ref=f8e1037]: Longway India
+                  - generic [ref=f8e1038] [cursor=pointer]:
+                    - checkbox "Blaupunktaudio Blaupunktaudio" [ref=f8e1039]
+                    - img "Blaupunktaudio" [ref=f8e1040]
+                    - generic [ref=f8e1041]: Blaupunktaudio
+                  - generic [ref=f8e1042] [cursor=pointer]:
+                    - checkbox "Zbotic Zbotic" [ref=f8e1043]
+                    - img "Zbotic" [ref=f8e1044]
+                    - generic [ref=f8e1045]: Zbotic
+                  - generic [ref=f8e1046] [cursor=pointer]:
+                    - checkbox "Gully sports Gully sports" [ref=f8e1047]
+                    - img "Gully sports" [ref=f8e1048]
+                    - generic [ref=f8e1049]: Gully sports
+                  - generic [ref=f8e1050] [cursor=pointer]:
+                    - checkbox "Home run Home run" [ref=f8e1051]
+                    - img "Home run" [ref=f8e1052]
+                    - generic [ref=f8e1053]: Home run
+              - generic [ref=f8e1055]:
+                - button [ref=f8e1056] [cursor=pointer]:
+                  - heading "Discount %" [level=4] [ref=f8e1057]
+                  - img "Toggle" [ref=f8e1058]
+                - generic [ref=f8e1059]:
+                  - generic [ref=f8e1060] [cursor=pointer]:
+                    - radio "Min 30% Off" [ref=f8e1061]
+                    - generic [ref=f8e1062]: Min 30% Off
+                  - generic [ref=f8e1063] [cursor=pointer]:
+                    - radio "Min 40% Off" [ref=f8e1064]
+                    - generic [ref=f8e1065]: Min 40% Off
+                  - generic [ref=f8e1066] [cursor=pointer]:
+                    - radio "Min 50% Off" [ref=f8e1067]
+                    - generic [ref=f8e1068]: Min 50% Off
+                  - generic [ref=f8e1069] [cursor=pointer]:
+                    - radio "Min 60% Off" [ref=f8e1070]
+                    - generic [ref=f8e1071]: Min 60% Off
+                  - generic [ref=f8e1072] [cursor=pointer]:
+                    - radio "Min 70% Off" [ref=f8e1073]
+                    - generic [ref=f8e1074]: Min 70% Off
+              - generic [ref=f8e1076]:
+                - button [ref=f8e1077] [cursor=pointer]:
+                  - heading "Price" [level=4] [ref=f8e1078]
+                  - img "Toggle" [ref=f8e1079]
+                - generic [ref=f8e1080]:
+                  - generic [ref=f8e1081] [cursor=pointer]:
+                    - radio "Under ₹99" [ref=f8e1082]
+                    - generic [ref=f8e1083]: Under ₹99
+                  - generic [ref=f8e1084] [cursor=pointer]:
+                    - radio "Under ₹199" [ref=f8e1085]
+                    - generic [ref=f8e1086]: Under ₹199
+                  - generic [ref=f8e1087] [cursor=pointer]:
+                    - radio "Under ₹499" [ref=f8e1088]
+                    - generic [ref=f8e1089]: Under ₹499
+                  - generic [ref=f8e1090] [cursor=pointer]:
+                    - radio "Under ₹899" [ref=f8e1091]
+                    - generic [ref=f8e1092]: Under ₹899
+                  - generic [ref=f8e1093] [cursor=pointer]:
+                    - radio "Under ₹999" [ref=f8e1094]
+                    - generic [ref=f8e1095]: Under ₹999
+                  - generic [ref=f8e1096] [cursor=pointer]:
+                    - radio "Under ₹1999" [ref=f8e1097]
+                    - generic [ref=f8e1098]: Under ₹1999
+                  - generic [ref=f8e1099] [cursor=pointer]:
+                    - radio "Under ₹2999" [ref=f8e1100]
+                    - generic [ref=f8e1101]: Under ₹2999
+            - generic [ref=f8e1102]:
+              - generic [ref=f8e1103]:
+                - generic:
+                  - insertion
+                - link "Samsung Galaxy S26 5G (Sky Blue, 12GB RAM, 256GB Storage), AI Phone, Assist, Creative Studio, 50MP Camera with ProVisual Engine, Powerful Custom Lowest Ever 82 4.4 (278) Samsung Galaxy S26 5G (Sky Blue, 12GB RAM, 25... Amazon ₹79,999 Usually ₹81,866 2% less Buy Now" [ref=f8e1104] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-s26-5g-sky-blue-12gb-ram-256gb-storage-ai-phone-photo-assist-creative-studio-50mp-camera-with-provisual-engine-powerful-custom-price-in-india-63-105116014
+                  - generic [ref=f8e1105]:
+                    - img "Samsung Galaxy S26 5G (Sky Blue, 12GB RAM, 256GB Storage), AI Phone, Assist, Creative Studio, 50MP Camera with ProVisual Engine, Powerful Custom" [ref=f8e1106]
+                    - paragraph [ref=f8e1107]:
+                      - generic [ref=f8e1108]: 🏆
+                      - generic [ref=f8e1109]: Lowest Ever
+                  - generic [ref=f8e1110]:
+                    - generic [ref=f8e1111]:
+                      - generic [ref=f8e1112]: "82"
+                      - generic [ref=f8e1116]:
+                        - generic [ref=f8e1119]: "4.4"
+                        - generic [ref=f8e1120]: (278)
+                    - paragraph [ref=f8e1121]: Samsung Galaxy S26 5G (Sky Blue, 12GB RAM, 25...
+                    - generic [ref=f8e1122]:
+                      - img "Amazon" [ref=f8e1123]
+                      - paragraph [ref=f8e1124]:
+                        - superscript [ref=f8e1125]: ₹
+                        - text: 79,999
+                    - generic [ref=f8e1126]:
+                      - paragraph [ref=f8e1127]:
+                        - text: Usually
+                        - superscript [ref=f8e1128]: ₹
+                        - text: 81,866
+                      - generic [ref=f8e1129]: 2% less
+                    - generic [ref=f8e1130]: Buy Now
+                - link "Samsung Galaxy S26 Ultra 5G (White, 12GB RAM, 256GB Storage) with Built-in Privacy Display, AI Phone, Assist, Creative Studio, 200MP Camera, 500 Lowest Ever 84 4.5 (180) Samsung Galaxy S26 Ultra 5G (White, 12GB RAM,... Amazon ₹1,24,999 Usually ₹1,31,580 5% less Buy Now" [ref=f8e1131] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-s26-ultra-5g-white-12gb-ram-256gb-storage-with-built-in-privacy-display-ai-phone-photo-assist-creative-studio-200mp-camera-500-price-in-india-63-105279509
+                  - generic [ref=f8e1132]:
+                    - img "Samsung Galaxy S26 Ultra 5G (White, 12GB RAM, 256GB Storage) with Built-in Privacy Display, AI Phone, Assist, Creative Studio, 200MP Camera, 500" [ref=f8e1133]
+                    - paragraph [ref=f8e1134]:
+                      - generic [ref=f8e1135]: 🏆
+                      - generic [ref=f8e1136]: Lowest Ever
+                  - generic [ref=f8e1137]:
+                    - generic [ref=f8e1138]:
+                      - generic [ref=f8e1139]: "84"
+                      - generic [ref=f8e1143]:
+                        - generic [ref=f8e1146]: "4.5"
+                        - generic [ref=f8e1147]: (180)
+                    - paragraph [ref=f8e1148]: Samsung Galaxy S26 Ultra 5G (White, 12GB RAM,...
+                    - generic [ref=f8e1149]:
+                      - img "Amazon" [ref=f8e1150]
+                      - paragraph [ref=f8e1151]:
+                        - superscript [ref=f8e1152]: ₹
+                        - text: 1,24,999
+                    - generic [ref=f8e1153]:
+                      - paragraph [ref=f8e1154]:
+                        - text: Usually
+                        - superscript [ref=f8e1155]: ₹
+                        - text: 1,31,580
+                      - generic [ref=f8e1156]: 5% less
+                    - generic [ref=f8e1157]: Buy Now
+                - link "Apple iPhone 17 Pro Max (512GB, Cosmic Orange)*##*Cosmic Orange~512 GB Lowest Ever 90 Apple iPhone 17 Pro Max (512GB, Cosmic Orange... Croma ₹1,63,490 Usually ₹1,66,441 2% less Buy Now" [ref=f8e1158] [cursor=pointer]:
+                  - /url: /croma-apple-iphone-17-pro-max-512gb-cosmic-orange-cosmic-orange-512-gb-price-in-india-71-67055
+                  - generic [ref=f8e1159]:
+                    - img "Apple iPhone 17 Pro Max (512GB, Cosmic Orange)*##*Cosmic Orange~512 GB" [ref=f8e1160]
+                    - paragraph [ref=f8e1161]:
+                      - generic [ref=f8e1162]: 🏆
+                      - generic [ref=f8e1163]: Lowest Ever
+                  - generic [ref=f8e1164]:
+                    - generic [ref=f8e1165]: "90"
+                    - paragraph [ref=f8e1170]: Apple iPhone 17 Pro Max (512GB, Cosmic Orange...
+                    - generic [ref=f8e1171]:
+                      - img "Croma" [ref=f8e1172]
+                      - paragraph [ref=f8e1173]:
+                        - superscript [ref=f8e1174]: ₹
+                        - text: 1,63,490
+                    - generic [ref=f8e1175]:
+                      - paragraph [ref=f8e1176]:
+                        - text: Usually
+                        - superscript [ref=f8e1177]: ₹
+                        - text: 1,66,441
+                      - generic [ref=f8e1178]: 2% less
+                    - generic [ref=f8e1179]: Buy Now
+                - link "Nothing ??? (4 ??), ???? (8 ????, 256 ????) Below Avg Price 85 3.3 (7) Nothing ??? (4 ??), ???? (8 ????, 256 ????) Amazon ₹36,300 Usually ₹37,570 3% less Buy Now" [ref=f8e1180] [cursor=pointer]:
+                  - /url: /amazon-nothing-4-8-256-price-in-india-63-125435086
+                  - generic [ref=f8e1181]:
+                    - img "Nothing ??? (4 ??), ???? (8 ????, 256 ????)" [ref=f8e1182]
+                    - paragraph [ref=f8e1183]:
+                      - generic [ref=f8e1184]: 👍
+                      - generic [ref=f8e1185]: Below Avg Price
+                  - generic [ref=f8e1186]:
+                    - generic [ref=f8e1187]:
+                      - generic [ref=f8e1188]: "85"
+                      - generic [ref=f8e1192]:
+                        - generic [ref=f8e1195]: "3.3"
+                        - generic [ref=f8e1196]: (7)
+                    - paragraph [ref=f8e1197]: Nothing ??? (4 ??), ???? (8 ????, 256 ????)
+                    - generic [ref=f8e1198]:
+                      - img "Amazon" [ref=f8e1199]
+                      - paragraph [ref=f8e1200]:
+                        - superscript [ref=f8e1201]: ₹
+                        - text: 36,300
+                    - generic [ref=f8e1202]:
+                      - paragraph [ref=f8e1203]:
+                        - text: Usually
+                        - superscript [ref=f8e1204]: ₹
+                        - text: 37,570
+                      - generic [ref=f8e1205]: 3% less
+                    - generic [ref=f8e1206]: Buy Now
+                - link "Apple iPhone 17 Pro (1TB, Cosmic Orange)*##*Cosmic Orange~256 GB Lowest Ever 90 Apple iPhone 17 Pro (1TB, Cosmic Orange)*##*C... Croma ₹1,67,990 Usually ₹1,71,164 2% less Buy Now" [ref=f8e1207] [cursor=pointer]:
+                  - /url: /croma-apple-iphone-17-pro-1tb-cosmic-orange-cosmic-orange-256-gb-price-in-india-71-67063
+                  - generic [ref=f8e1208]:
+                    - img "Apple iPhone 17 Pro (1TB, Cosmic Orange)*##*Cosmic Orange~256 GB" [ref=f8e1209]
+                    - paragraph [ref=f8e1210]:
+                      - generic [ref=f8e1211]: 🏆
+                      - generic [ref=f8e1212]: Lowest Ever
+                  - generic [ref=f8e1213]:
+                    - generic [ref=f8e1214]: "90"
+                    - paragraph [ref=f8e1219]: Apple iPhone 17 Pro (1TB, Cosmic Orange)*##*C...
+                    - generic [ref=f8e1220]:
+                      - img "Croma" [ref=f8e1221]
+                      - paragraph [ref=f8e1222]:
+                        - superscript [ref=f8e1223]: ₹
+                        - text: 1,67,990
+                    - generic [ref=f8e1224]:
+                      - paragraph [ref=f8e1225]:
+                        - text: Usually
+                        - superscript [ref=f8e1226]: ₹
+                        - text: 1,71,164
+                      - generic [ref=f8e1227]: 2% less
+                    - generic [ref=f8e1228]: Buy Now
+                - link "Oppo Reno16c 5G (Stellar Purple, 8GB, 128GB) | 50MP 3.5X Telephoto Camera | 4K Video | AI Remix Collage | 7000mAh 80W SUPERVOOC | ColorOS 16 | IP69K | Below Avg Price 90 4.0 (21) Oppo Reno16c 5G (Stellar Purple, 8GB, 128GB) ... Amazon ₹39,829.69 Usually ₹46,847 15% less Buy Now" [ref=f8e1229] [cursor=pointer]:
+                  - /url: /amazon-oppo-reno16c-5g-stellar-purple-8gb-128gb-50mp-3-5x-telephoto-camera-4k-video-ai-remix-collage-7000mah-80w-supervooc-coloros-16-ip69k-price-in-india-63-123180713
+                  - generic [ref=f8e1230]:
+                    - img "Oppo Reno16c 5G (Stellar Purple, 8GB, 128GB) | 50MP 3.5X Telephoto Camera | 4K Video | AI Remix Collage | 7000mAh 80W SUPERVOOC | ColorOS 16 | IP69K |" [ref=f8e1231]
+                    - paragraph [ref=f8e1232]:
+                      - generic [ref=f8e1233]: 👍
+                      - generic [ref=f8e1234]: Below Avg Price
+                  - generic [ref=f8e1235]:
+                    - generic [ref=f8e1236]:
+                      - generic [ref=f8e1237]: "90"
+                      - generic [ref=f8e1241]:
+                        - generic [ref=f8e1244]: "4.0"
+                        - generic [ref=f8e1245]: (21)
+                    - paragraph [ref=f8e1246]: Oppo Reno16c 5G (Stellar Purple, 8GB, 128GB) ...
+                    - generic [ref=f8e1247]:
+                      - img "Amazon" [ref=f8e1248]
+                      - paragraph [ref=f8e1249]:
+                        - superscript [ref=f8e1250]: ₹
+                        - text: 39,829.69
+                    - generic [ref=f8e1251]:
+                      - paragraph [ref=f8e1252]:
+                        - text: Usually
+                        - superscript [ref=f8e1253]: ₹
+                        - text: 46,847
+                      - generic [ref=f8e1254]: 15% less
+                    - generic [ref=f8e1255]: Buy Now
+                - link "Apple iPhone 17 Pro Max (1TB, Cosmic Orange)*##*Cosmic Orange~1 TB Lowest Ever 90 Apple iPhone 17 Pro Max (1TB, Cosmic Orange)*... Croma ₹1,82,490 Usually ₹1,85,930 2% less Buy Now" [ref=f8e1256] [cursor=pointer]:
+                  - /url: /croma-apple-iphone-17-pro-max-1tb-cosmic-orange-cosmic-orange-1-tb-price-in-india-71-67054
+                  - generic [ref=f8e1257]:
+                    - img "Apple iPhone 17 Pro Max (1TB, Cosmic Orange)*##*Cosmic Orange~1 TB" [ref=f8e1258]
+                    - paragraph [ref=f8e1259]:
+                      - generic [ref=f8e1260]: 🏆
+                      - generic [ref=f8e1261]: Lowest Ever
+                  - generic [ref=f8e1262]:
+                    - generic [ref=f8e1263]: "90"
+                    - paragraph [ref=f8e1268]: Apple iPhone 17 Pro Max (1TB, Cosmic Orange)*...
+                    - generic [ref=f8e1269]:
+                      - img "Croma" [ref=f8e1270]
+                      - paragraph [ref=f8e1271]:
+                        - superscript [ref=f8e1272]: ₹
+                        - text: 1,82,490
+                    - generic [ref=f8e1273]:
+                      - paragraph [ref=f8e1274]:
+                        - text: Usually
+                        - superscript [ref=f8e1275]: ₹
+                        - text: 1,85,930
+                      - generic [ref=f8e1276]: 2% less
+                    - generic [ref=f8e1277]: Buy Now
+                - link "Samsung Galaxy S25 Ultra 5G (12GB RAM + 256GB Storage) Titanium Silver*##*Titanium Whitesilver~256 GB Better than bbd2025 83 3.4 (132) Samsung Galaxy S25 Ultra 5G (12GB RAM + 256GB... Amazon ₹90,999 Usually ₹92,802 2% less Buy Now" [ref=f8e1278] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-s25-ultra-5g-12gb-ram-256gb-storage-titanium-silver-titanium-whitesilver-256-gb-price-in-india-63-77249659
+                  - generic [ref=f8e1279]:
+                    - img "Samsung Galaxy S25 Ultra 5G (12GB RAM + 256GB Storage) Titanium Silver*##*Titanium Whitesilver~256 GB" [ref=f8e1280]
+                    - paragraph [ref=f8e1281]:
+                      - generic [ref=f8e1282]: 🎉
+                      - generic [ref=f8e1283]: Better than bbd2025
+                  - generic [ref=f8e1284]:
+                    - generic [ref=f8e1285]:
+                      - generic [ref=f8e1286]: "83"
+                      - generic [ref=f8e1290]:
+                        - generic [ref=f8e1293]: "3.4"
+                        - generic [ref=f8e1294]: (132)
+                    - paragraph [ref=f8e1295]: Samsung Galaxy S25 Ultra 5G (12GB RAM + 256GB...
+                    - generic [ref=f8e1296]:
+                      - img "Amazon" [ref=f8e1297]
+                      - paragraph [ref=f8e1298]:
+                        - superscript [ref=f8e1299]: ₹
+                        - text: 90,999
+                    - generic [ref=f8e1300]:
+                      - paragraph [ref=f8e1301]:
+                        - text: Usually
+                        - superscript [ref=f8e1302]: ₹
+                        - text: 92,802
+                      - generic [ref=f8e1303]: 2% less
+                    - generic [ref=f8e1304]: Buy Now
+                - link "Apple iPhone 17 Pro (256GB Storage, Cosmic Orange) Apple iPhone 17 Pro (256GB Storage, Cosmic Orange) Better than bbd2025 81 4.0 (4k) Apple iPhone 17 Pro (256GB Storage, Cosmic Or... Vijay Sales ₹1,29,590 Usually ₹1,29,931 Buy Now" [ref=f8e1305] [cursor=pointer]:
+                  - /url: /vijay-sales-apple-iphone-17-pro-256gb-storage-cosmic-orange-apple-iphone-17-pro-256gb-storage-cosmic-orange-price-in-india-6645-13622
+                  - generic [ref=f8e1306]:
+                    - img "Apple iPhone 17 Pro (256GB Storage, Cosmic Orange) Apple iPhone 17 Pro (256GB Storage, Cosmic Orange)" [ref=f8e1307]
+                    - paragraph [ref=f8e1308]:
+                      - generic [ref=f8e1309]: 🎉
+                      - generic [ref=f8e1310]: Better than bbd2025
+                  - generic [ref=f8e1311]:
+                    - generic [ref=f8e1312]:
+                      - generic [ref=f8e1313]: "81"
+                      - generic [ref=f8e1317]:
+                        - generic [ref=f8e1320]: "4.0"
+                        - generic [ref=f8e1321]: (4k)
+                    - paragraph [ref=f8e1322]: Apple iPhone 17 Pro (256GB Storage, Cosmic Or...
+                    - generic [ref=f8e1323]:
+                      - img "Vijay Sales" [ref=f8e1324]
+                      - paragraph [ref=f8e1325]:
+                        - superscript [ref=f8e1326]: ₹
+                        - text: 1,29,590
+                    - paragraph [ref=f8e1328]:
+                      - text: Usually
+                      - superscript [ref=f8e1329]: ₹
+                      - text: 1,29,931
+                    - generic [ref=f8e1330]: Buy Now
+                - link "Samsung Galaxy S26 Ultra 5g (cobalt Violet, 1024 Gb, 5000 Mah)*##*Cobalt Violet~16GB / 1TB Lowest Ever 86 Samsung Galaxy S26 Ultra 5g (cobalt Violet, 1... Flipkart ₹1,74,999 Usually ₹1,81,132 3% less Buy Now" [ref=f8e1331] [cursor=pointer]:
+                  - /url: /flipkart-samsung-galaxy-s26-ultra-5g-cobalt-violet-1024-gb-5000-mah-cobalt-violet-16gb-1tb-price-in-india-2-181359935
+                  - generic [ref=f8e1332]:
+                    - img "Samsung Galaxy S26 Ultra 5g (cobalt Violet, 1024 Gb, 5000 Mah)*##*Cobalt Violet~16GB / 1TB" [ref=f8e1333]
+                    - paragraph [ref=f8e1334]:
+                      - generic [ref=f8e1335]: 🏆
+                      - generic [ref=f8e1336]: Lowest Ever
+                  - generic [ref=f8e1337]:
+                    - generic [ref=f8e1338]: "86"
+                    - paragraph [ref=f8e1343]: Samsung Galaxy S26 Ultra 5g (cobalt Violet, 1...
+                    - generic [ref=f8e1344]:
+                      - img "Flipkart" [ref=f8e1345]
+                      - paragraph [ref=f8e1346]:
+                        - superscript [ref=f8e1347]: ₹
+                        - text: 1,74,999
+                    - generic [ref=f8e1348]:
+                      - paragraph [ref=f8e1349]:
+                        - text: Usually
+                        - superscript [ref=f8e1350]: ₹
+                        - text: 1,81,132
+                      - generic [ref=f8e1351]: 3% less
+                    - generic [ref=f8e1352]: Buy Now
+                - link "Samsung Galaxy S24 Ultra 5G - Refurbished Below Avg Price 81 4.8 (183) Samsung Galaxy S24 Ultra 5G - Refurbished cashify ₹67,299 Usually ₹68,426 2% less Buy Now" [ref=f8e1353] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s24-ultra-5g-refurbished-price-in-india-6053-75
+                  - generic [ref=f8e1354]:
+                    - img "Samsung Galaxy S24 Ultra 5G - Refurbished" [ref=f8e1355]
+                    - paragraph [ref=f8e1356]:
+                      - generic [ref=f8e1357]: 👍
+                      - generic [ref=f8e1358]: Below Avg Price
+                  - generic [ref=f8e1359]:
+                    - generic [ref=f8e1360]:
+                      - generic [ref=f8e1361]: "81"
+                      - generic [ref=f8e1365]:
+                        - generic [ref=f8e1368]: "4.8"
+                        - generic [ref=f8e1369]: (183)
+                    - paragraph [ref=f8e1370]: Samsung Galaxy S24 Ultra 5G - Refurbished
+                    - generic [ref=f8e1371]:
+                      - img "cashify" [ref=f8e1372]
+                      - paragraph [ref=f8e1373]:
+                        - superscript [ref=f8e1374]: ₹
+                        - text: 67,299
+                    - generic [ref=f8e1375]:
+                      - paragraph [ref=f8e1376]:
+                        - text: Usually
+                        - superscript [ref=f8e1377]: ₹
+                        - text: 68,426
+                      - generic [ref=f8e1378]: 2% less
+                    - generic [ref=f8e1379]: Buy Now
+                - link "Motorola Edge 70 Fusion 5G (Pantone Silhouette, 12GB RAM, 512GB Storage) | AI Features | 6.78-inch 144Hz AMOLED | Snapdragon 7s Gen 4 | 50MP + 13MP Ca All-time Low 87 4.1 Motorola Edge 70 Fusion 5G (Pantone Silhouett... Amazon ₹39,610 Usually ₹40,529 2% less Buy Now" [ref=f8e1380] [cursor=pointer]:
+                  - /url: /amazon-motorola-edge-70-fusion-5g-pantone-silhouette-12gb-ram-512gb-storage-ai-features-6-78-inch-144hz-amoled-snapdragon-7s-gen-4-50mp-13mp-ca-price-in-india-63-126200266
+                  - generic [ref=f8e1381]:
+                    - img "Motorola Edge 70 Fusion 5G (Pantone Silhouette, 12GB RAM, 512GB Storage) | AI Features | 6.78-inch 144Hz AMOLED | Snapdragon 7s Gen 4 | 50MP + 13MP Ca" [ref=f8e1382]
+                    - paragraph [ref=f8e1383]:
+                      - generic [ref=f8e1384]: 💎
+                      - generic [ref=f8e1385]: All-time Low
+                  - generic [ref=f8e1386]:
+                    - generic [ref=f8e1387]:
+                      - generic [ref=f8e1388]: "87"
+                      - generic [ref=f8e1392]: "4.1"
+                    - paragraph [ref=f8e1396]: Motorola Edge 70 Fusion 5G (Pantone Silhouett...
+                    - generic [ref=f8e1397]:
+                      - img "Amazon" [ref=f8e1398]
+                      - paragraph [ref=f8e1399]:
+                        - superscript [ref=f8e1400]: ₹
+                        - text: 39,610
+                    - generic [ref=f8e1401]:
+                      - paragraph [ref=f8e1402]:
+                        - text: Usually
+                        - superscript [ref=f8e1403]: ₹
+                        - text: 40,529
+                      - generic [ref=f8e1404]: 2% less
+                    - generic [ref=f8e1405]: Buy Now
+                - link "Apple iPhone Air (256GB Storage, Cloud White)*##*Cloud White~256 GB Better than bbd2025 80 4.7 (28) Apple iPhone Air (256GB Storage, Cloud White)... Vijay Sales ₹96,990 Usually ₹99,580 3% less Buy Now" [ref=f8e1406] [cursor=pointer]:
+                  - /url: /vijay-sales-apple-iphone-air-256gb-storage-cloud-white-cloud-white-256-gb-price-in-india-6645-13605
+                  - generic [ref=f8e1407]:
+                    - img "Apple iPhone Air (256GB Storage, Cloud White)*##*Cloud White~256 GB" [ref=f8e1408]
+                    - paragraph [ref=f8e1409]:
+                      - generic [ref=f8e1410]: 🎉
+                      - generic [ref=f8e1411]: Better than bbd2025
+                  - generic [ref=f8e1412]:
+                    - generic [ref=f8e1413]:
+                      - generic [ref=f8e1414]: "80"
+                      - generic [ref=f8e1418]:
+                        - generic [ref=f8e1421]: "4.7"
+                        - generic [ref=f8e1422]: (28)
+                    - paragraph [ref=f8e1423]: Apple iPhone Air (256GB Storage, Cloud White)...
+                    - generic [ref=f8e1424]:
+                      - img "Vijay Sales" [ref=f8e1425]
+                      - paragraph [ref=f8e1426]:
+                        - superscript [ref=f8e1427]: ₹
+                        - text: 96,990
+                    - generic [ref=f8e1428]:
+                      - paragraph [ref=f8e1429]:
+                        - text: Usually
+                        - superscript [ref=f8e1430]: ₹
+                        - text: 99,580
+                      - generic [ref=f8e1431]: 3% less
+                    - generic [ref=f8e1432]: Buy Now
+                - link "Samsung Galaxy A57 5G (Awesome Navy, 8GB RAM, 256GB Storage) | Exynos 1680 Octa-Core Processor | 50MP + 12MP AI Dual Camera | 12MP Front Camera | 6.7- All-time Low 87 Samsung Galaxy A57 5G (Awesome Navy, 8GB RAM,... Amazon ₹49,990 Usually ₹52,027 4% less Buy Now" [ref=f8e1433] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-a57-5g-awesome-navy-8gb-ram-256gb-storage-exynos-1680-octa-core-processor-50mp-12mp-ai-dual-camera-12mp-front-camera-6-7-price-in-india-63-127338169
+                  - generic [ref=f8e1434]:
+                    - img "Samsung Galaxy A57 5G (Awesome Navy, 8GB RAM, 256GB Storage) | Exynos 1680 Octa-Core Processor | 50MP + 12MP AI Dual Camera | 12MP Front Camera | 6.7-" [ref=f8e1435]
+                    - paragraph [ref=f8e1436]:
+                      - generic [ref=f8e1437]: 💎
+                      - generic [ref=f8e1438]: All-time Low
+                  - generic [ref=f8e1439]:
+                    - generic [ref=f8e1440]: "87"
+                    - paragraph [ref=f8e1445]: Samsung Galaxy A57 5G (Awesome Navy, 8GB RAM,...
+                    - generic [ref=f8e1446]:
+                      - img "Amazon" [ref=f8e1447]
+                      - paragraph [ref=f8e1448]:
+                        - superscript [ref=f8e1449]: ₹
+                        - text: 49,990
+                    - generic [ref=f8e1450]:
+                      - paragraph [ref=f8e1451]:
+                        - text: Usually
+                        - superscript [ref=f8e1452]: ₹
+                        - text: 52,027
+                      - generic [ref=f8e1453]: 4% less
+                    - generic [ref=f8e1454]: Buy Now
+                - link "Google Pixel 9 Pro XL - Refurbished Below Avg Price 86 4.8 (18) Google Pixel 9 Pro XL - Refurbished cashify ₹64,699 Usually ₹68,880 6% less Buy Now" [ref=f8e1455] [cursor=pointer]:
+                  - /url: /cashify-google-pixel-9-pro-xl-refurbished-price-in-india-6053-1239
+                  - generic [ref=f8e1456]:
+                    - img "Google Pixel 9 Pro XL - Refurbished" [ref=f8e1457]
+                    - paragraph [ref=f8e1458]:
+                      - generic [ref=f8e1459]: 👍
+                      - generic [ref=f8e1460]: Below Avg Price
+                  - generic [ref=f8e1461]:
+                    - generic [ref=f8e1462]:
+                      - generic [ref=f8e1463]: "86"
+                      - generic [ref=f8e1467]:
+                        - generic [ref=f8e1470]: "4.8"
+                        - generic [ref=f8e1471]: (18)
+                    - paragraph [ref=f8e1472]: Google Pixel 9 Pro XL - Refurbished
+                    - generic [ref=f8e1473]:
+                      - img "cashify" [ref=f8e1474]
+                      - paragraph [ref=f8e1475]:
+                        - superscript [ref=f8e1476]: ₹
+                        - text: 64,699
+                    - generic [ref=f8e1477]:
+                      - paragraph [ref=f8e1478]:
+                        - text: Usually
+                        - superscript [ref=f8e1479]: ₹
+                        - text: 68,880
+                      - generic [ref=f8e1480]: 6% less
+                    - generic [ref=f8e1481]: Buy Now
+                - link "OPPO Reno 16 C 5G 8GB+256GB ????? ???? ????? All-time Low 87 OPPO Reno 16 C 5G 8GB+256GB ????? ???? ????? Amazon ₹45,988 Usually ₹47,620 3% less Buy Now" [ref=f8e1482] [cursor=pointer]:
+                  - /url: /amazon-oppo-reno-16-c-5g-8gb-256gb-price-in-india-63-128200342
+                  - generic [ref=f8e1483]:
+                    - img "OPPO Reno 16 C 5G 8GB+256GB ????? ???? ?????" [ref=f8e1484]
+                    - paragraph [ref=f8e1485]:
+                      - generic [ref=f8e1486]: 💎
+                      - generic [ref=f8e1487]: All-time Low
+                  - generic [ref=f8e1488]:
+                    - generic [ref=f8e1489]: "87"
+                    - paragraph [ref=f8e1494]: OPPO Reno 16 C 5G 8GB+256GB ????? ???? ?????
+                    - generic [ref=f8e1495]:
+                      - img "Amazon" [ref=f8e1496]
+                      - paragraph [ref=f8e1497]:
+                        - superscript [ref=f8e1498]: ₹
+                        - text: 45,988
+                    - generic [ref=f8e1499]:
+                      - paragraph [ref=f8e1500]:
+                        - text: Usually
+                        - superscript [ref=f8e1501]: ₹
+                        - text: 47,620
+                      - generic [ref=f8e1502]: 3% less
+                    - generic [ref=f8e1503]: Buy Now
+                - link "Samsung Galaxy S25 Plus 5G - Refurbished Below Avg Price 87 4.8 (15) Samsung Galaxy S25 Plus 5G - Refurbished cashify ₹54,899 Usually ₹59,295 7% less Buy Now" [ref=f8e1504] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s25-plus-5g-refurbished-price-in-india-6053-488
+                  - generic [ref=f8e1505]:
+                    - img "Samsung Galaxy S25 Plus 5G - Refurbished" [ref=f8e1506]
+                    - paragraph [ref=f8e1507]:
+                      - generic [ref=f8e1508]: 👍
+                      - generic [ref=f8e1509]: Below Avg Price
+                  - generic [ref=f8e1510]:
+                    - generic [ref=f8e1511]:
+                      - generic [ref=f8e1512]: "87"
+                      - generic [ref=f8e1516]:
+                        - generic [ref=f8e1519]: "4.8"
+                        - generic [ref=f8e1520]: (15)
+                    - paragraph [ref=f8e1521]: Samsung Galaxy S25 Plus 5G - Refurbished
+                    - generic [ref=f8e1522]:
+                      - img "cashify" [ref=f8e1523]
+                      - paragraph [ref=f8e1524]:
+                        - superscript [ref=f8e1525]: ₹
+                        - text: 54,899
+                    - generic [ref=f8e1526]:
+                      - paragraph [ref=f8e1527]:
+                        - text: Usually
+                        - superscript [ref=f8e1528]: ₹
+                        - text: 59,295
+                      - generic [ref=f8e1529]: 7% less
+                    - generic [ref=f8e1530]: Buy Now
+                - link "Samsung Galaxy S25 Edge - Refurbished Lowest Ever 89 4.8 (6) Samsung Galaxy S25 Edge - Refurbished cashify ₹52,299 Usually ₹56,939 8% less Buy Now" [ref=f8e1531] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s25-edge-refurbished-price-in-india-6053-16
+                  - generic [ref=f8e1532]:
+                    - img "Samsung Galaxy S25 Edge - Refurbished" [ref=f8e1533]
+                    - paragraph [ref=f8e1534]:
+                      - generic [ref=f8e1535]: 🏆
+                      - generic [ref=f8e1536]: Lowest Ever
+                  - generic [ref=f8e1537]:
+                    - generic [ref=f8e1538]:
+                      - generic [ref=f8e1539]: "89"
+                      - generic [ref=f8e1543]:
+                        - generic [ref=f8e1546]: "4.8"
+                        - generic [ref=f8e1547]: (6)
+                    - paragraph [ref=f8e1548]: Samsung Galaxy S25 Edge - Refurbished
+                    - generic [ref=f8e1549]:
+                      - img "cashify" [ref=f8e1550]
+                      - paragraph [ref=f8e1551]:
+                        - superscript [ref=f8e1552]: ₹
+                        - text: 52,299
+                    - generic [ref=f8e1553]:
+                      - paragraph [ref=f8e1554]:
+                        - text: Usually
+                        - superscript [ref=f8e1555]: ₹
+                        - text: 56,939
+                      - generic [ref=f8e1556]: 8% less
+                    - generic [ref=f8e1557]: Buy Now
+                - link "iPhone 17 Pro Max 512GB Silver Lowest Ever 93 iPhone 17 Pro Max 512GB Silver apple ₹1,34,900 Usually ₹1,51,567 11% less Buy Now" [ref=f8e1558] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-512gb-silver-price-in-india-6676-37908
+                  - generic [ref=f8e1559]:
+                    - img "iPhone 17 Pro Max 512GB Silver" [ref=f8e1560]
+                    - paragraph [ref=f8e1561]:
+                      - generic [ref=f8e1562]: 🏆
+                      - generic [ref=f8e1563]: Lowest Ever
+                  - generic [ref=f8e1564]:
+                    - generic [ref=f8e1565]: "93"
+                    - paragraph [ref=f8e1570]: iPhone 17 Pro Max 512GB Silver
+                    - generic [ref=f8e1571]:
+                      - img "apple" [ref=f8e1572]
+                      - paragraph [ref=f8e1573]:
+                        - superscript [ref=f8e1574]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1575]:
+                      - paragraph [ref=f8e1576]:
+                        - text: Usually
+                        - superscript [ref=f8e1577]: ₹
+                        - text: 1,51,567
+                      - generic [ref=f8e1578]: 11% less
+                    - generic [ref=f8e1579]: Buy Now
+                - link "iPhone 17 Pro Max 512GB Deep Blue Lowest Ever 94 iPhone 17 Pro Max 512GB Deep Blue apple ₹1,34,900 Usually ₹1,56,150 14% less Buy Now" [ref=f8e1580] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-512gb-deep-blue-price-in-india-6676-37853
+                  - generic [ref=f8e1581]:
+                    - img "iPhone 17 Pro Max 512GB Deep Blue" [ref=f8e1582]
+                    - paragraph [ref=f8e1583]:
+                      - generic [ref=f8e1584]: 🏆
+                      - generic [ref=f8e1585]: Lowest Ever
+                  - generic [ref=f8e1586]:
+                    - generic [ref=f8e1587]: "94"
+                    - paragraph [ref=f8e1592]: iPhone 17 Pro Max 512GB Deep Blue
+                    - generic [ref=f8e1593]:
+                      - img "apple" [ref=f8e1594]
+                      - paragraph [ref=f8e1595]:
+                        - superscript [ref=f8e1596]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1597]:
+                      - paragraph [ref=f8e1598]:
+                        - text: Usually
+                        - superscript [ref=f8e1599]: ₹
+                        - text: 1,56,150
+                      - generic [ref=f8e1600]: 14% less
+                    - generic [ref=f8e1601]: Buy Now
+                - link "Samsung ???????? S26 ??????? 5G (????? ????, 12GB RAM, 256GB ???????)_ ???? ???? ?? ??? Below Avg Price 82 4.5 (180) Samsung ???????? S26 ??????? 5G (????? ????, ... Amazon ₹1,16,780 Usually ₹1,19,833 3% less Buy Now" [ref=f8e1602] [cursor=pointer]:
+                  - /url: /amazon-samsung-s26-5g-12gb-ram-256gb-price-in-india-63-108697595
+                  - generic [ref=f8e1603]:
+                    - img "Samsung ???????? S26 ??????? 5G (????? ????, 12GB RAM, 256GB ???????)_ ???? ???? ?? ???" [ref=f8e1604]
+                    - paragraph [ref=f8e1605]:
+                      - generic [ref=f8e1606]: 👍
+                      - generic [ref=f8e1607]: Below Avg Price
+                  - generic [ref=f8e1608]:
+                    - generic [ref=f8e1609]:
+                      - generic [ref=f8e1610]: "82"
+                      - generic [ref=f8e1614]:
+                        - generic [ref=f8e1617]: "4.5"
+                        - generic [ref=f8e1618]: (180)
+                    - paragraph [ref=f8e1619]: Samsung ???????? S26 ??????? 5G (????? ????, ...
+                    - generic [ref=f8e1620]:
+                      - img "Amazon" [ref=f8e1621]
+                      - paragraph [ref=f8e1622]:
+                        - superscript [ref=f8e1623]: ₹
+                        - text: 1,16,780
+                    - generic [ref=f8e1624]:
+                      - paragraph [ref=f8e1625]:
+                        - text: Usually
+                        - superscript [ref=f8e1626]: ₹
+                        - text: 1,19,833
+                      - generic [ref=f8e1627]: 3% less
+                    - generic [ref=f8e1628]: Buy Now
+                - link "iPhone 17 Pro Max 2TB Deep Blue Lowest Ever 100 iPhone 17 Pro Max 2TB Deep Blue apple ₹1,34,900 Usually ₹1,96,150 31% less Buy Now" [ref=f8e1629] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-2tb-deep-blue-price-in-india-6676-37842
+                  - generic [ref=f8e1630]:
+                    - img "iPhone 17 Pro Max 2TB Deep Blue"
+                    - paragraph [ref=f8e1631]:
+                      - generic [ref=f8e1632]: 🏆
+                      - generic [ref=f8e1633]: Lowest Ever
+                  - generic [ref=f8e1634]:
+                    - generic [ref=f8e1635]: "100"
+                    - paragraph [ref=f8e1640]: iPhone 17 Pro Max 2TB Deep Blue
+                    - generic [ref=f8e1641]:
+                      - img "apple" [ref=f8e1642]
+                      - paragraph [ref=f8e1643]:
+                        - superscript [ref=f8e1644]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1645]:
+                      - paragraph [ref=f8e1646]:
+                        - text: Usually
+                        - superscript [ref=f8e1647]: ₹
+                        - text: 1,96,150
+                      - generic [ref=f8e1648]: 31% less
+                    - generic [ref=f8e1649]: Buy Now
+                - link "iPhone 17 Pro Max 2TB Cosmic Orange Lowest Ever 100 iPhone 17 Pro Max 2TB Cosmic Orange apple ₹1,34,900 Usually ₹2,05,019 34% less Buy Now" [ref=f8e1650] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-2tb-cosmic-orange-price-in-india-6676-37747
+                  - generic [ref=f8e1651]:
+                    - img "iPhone 17 Pro Max 2TB Cosmic Orange"
+                    - paragraph [ref=f8e1652]:
+                      - generic [ref=f8e1653]: 🏆
+                      - generic [ref=f8e1654]: Lowest Ever
+                  - generic [ref=f8e1655]:
+                    - generic [ref=f8e1656]: "100"
+                    - paragraph [ref=f8e1661]: iPhone 17 Pro Max 2TB Cosmic Orange
+                    - generic [ref=f8e1662]:
+                      - img "apple" [ref=f8e1663]
+                      - paragraph [ref=f8e1664]:
+                        - superscript [ref=f8e1665]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1666]:
+                      - paragraph [ref=f8e1667]:
+                        - text: Usually
+                        - superscript [ref=f8e1668]: ₹
+                        - text: 2,05,019
+                      - generic [ref=f8e1669]: 34% less
+                    - generic [ref=f8e1670]: Buy Now
+                - link "iPhone 17 Pro Max 2TB Silver Lowest Ever 98 iPhone 17 Pro Max 2TB Silver apple ₹1,34,900 Usually ₹1,95,971 31% less Buy Now" [ref=f8e1671] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-2tb-silver-price-in-india-6676-37700
+                  - generic [ref=f8e1672]:
+                    - img "iPhone 17 Pro Max 2TB Silver"
+                    - paragraph [ref=f8e1673]:
+                      - generic [ref=f8e1674]: 🏆
+                      - generic [ref=f8e1675]: Lowest Ever
+                  - generic [ref=f8e1676]:
+                    - generic [ref=f8e1677]: "98"
+                    - paragraph [ref=f8e1682]: iPhone 17 Pro Max 2TB Silver
+                    - generic [ref=f8e1683]:
+                      - img "apple" [ref=f8e1684]
+                      - paragraph [ref=f8e1685]:
+                        - superscript [ref=f8e1686]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1687]:
+                      - paragraph [ref=f8e1688]:
+                        - text: Usually
+                        - superscript [ref=f8e1689]: ₹
+                        - text: 1,95,971
+                      - generic [ref=f8e1690]: 31% less
+                    - generic [ref=f8e1691]: Buy Now
+                - link "iPhone 17 Pro Max 1TB Cosmic Orange Lowest Ever 97 iPhone 17 Pro Max 1TB Cosmic Orange apple ₹1,34,900 Usually ₹1,76,150 23% less Buy Now" [ref=f8e1692] [cursor=pointer]:
+                  - /url: /apple-iphone-17-pro-max-1tb-cosmic-orange-price-in-india-6676-37638
+                  - generic [ref=f8e1693]:
+                    - img "iPhone 17 Pro Max 1TB Cosmic Orange"
+                    - paragraph [ref=f8e1694]:
+                      - generic [ref=f8e1695]: 🏆
+                      - generic [ref=f8e1696]: Lowest Ever
+                  - generic [ref=f8e1697]:
+                    - generic [ref=f8e1698]: "97"
+                    - paragraph [ref=f8e1703]: iPhone 17 Pro Max 1TB Cosmic Orange
+                    - generic [ref=f8e1704]:
+                      - img "apple" [ref=f8e1705]
+                      - paragraph [ref=f8e1706]:
+                        - superscript [ref=f8e1707]: ₹
+                        - text: 1,34,900
+                    - generic [ref=f8e1708]:
+                      - paragraph [ref=f8e1709]:
+                        - text: Usually
+                        - superscript [ref=f8e1710]: ₹
+                        - text: 1,76,150
+                      - generic [ref=f8e1711]: 23% less
+                    - generic [ref=f8e1712]: Buy Now
+                - link "iPhone Air (256 GB) - AppleCare ???????? ?? ??? ?????????+ ?? ??? ???? ????? Below Avg Price 82 iPhone Air (256 GB) - AppleCare ???????? ?? ?... Amazon ₹1,14,899 Usually ₹1,19,935 4% less Buy Now" [ref=f8e1713] [cursor=pointer]:
+                  - /url: /amazon-iphone-air-256-gb-applecare-price-in-india-63-108903674
+                  - generic [ref=f8e1714]:
+                    - img "iPhone Air (256 GB) - AppleCare ???????? ?? ??? ?????????+ ?? ??? ???? ?????" [ref=f8e1715]
+                    - paragraph [ref=f8e1716]:
+                      - generic [ref=f8e1717]: 👍
+                      - generic [ref=f8e1718]: Below Avg Price
+                  - generic [ref=f8e1719]:
+                    - generic [ref=f8e1720]: "82"
+                    - paragraph [ref=f8e1725]: iPhone Air (256 GB) - AppleCare ???????? ?? ?...
+                    - generic [ref=f8e1726]:
+                      - img "Amazon" [ref=f8e1727]
+                      - paragraph [ref=f8e1728]:
+                        - superscript [ref=f8e1729]: ₹
+                        - text: 1,14,899
+                    - generic [ref=f8e1730]:
+                      - paragraph [ref=f8e1731]:
+                        - text: Usually
+                        - superscript [ref=f8e1732]: ₹
+                        - text: 1,19,935
+                      - generic [ref=f8e1733]: 4% less
+                    - generic [ref=f8e1734]: Buy Now
+                - link "Samsung Galaxy A57 5G (Awesome Lilac, 8GB RAM, 256GB Storage) | Exynos 1680 Octa-Core Processor | 50MP + 12MP AI Dual Camera | 12MP Front Camera | 6.7 All-time Low 87 4.3 (7) Samsung Galaxy A57 5G (Awesome Lilac, 8GB RAM... Amazon ₹49,990 Usually ₹51,925 4% less Buy Now" [ref=f8e1735] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-a57-5g-awesome-lilac-8gb-ram-256gb-storage-exynos-1680-octa-core-processor-50mp-12mp-ai-dual-camera-12mp-front-camera-6-7-price-in-india-63-127321068
+                  - generic [ref=f8e1736]:
+                    - img "Samsung Galaxy A57 5G (Awesome Lilac, 8GB RAM, 256GB Storage) | Exynos 1680 Octa-Core Processor | 50MP + 12MP AI Dual Camera | 12MP Front Camera | 6.7" [ref=f8e1737]
+                    - paragraph [ref=f8e1738]:
+                      - generic [ref=f8e1739]: 💎
+                      - generic [ref=f8e1740]: All-time Low
+                  - generic [ref=f8e1741]:
+                    - generic [ref=f8e1742]:
+                      - generic [ref=f8e1743]: "87"
+                      - generic [ref=f8e1747]:
+                        - generic [ref=f8e1750]: "4.3"
+                        - generic [ref=f8e1751]: (7)
+                    - paragraph [ref=f8e1752]: Samsung Galaxy A57 5G (Awesome Lilac, 8GB RAM...
+                    - generic [ref=f8e1753]:
+                      - img "Amazon" [ref=f8e1754]
+                      - paragraph [ref=f8e1755]:
+                        - superscript [ref=f8e1756]: ₹
+                        - text: 49,990
+                    - generic [ref=f8e1757]:
+                      - paragraph [ref=f8e1758]:
+                        - text: Usually
+                        - superscript [ref=f8e1759]: ₹
+                        - text: 51,925
+                      - generic [ref=f8e1760]: 4% less
+                    - generic [ref=f8e1761]: Buy Now
+                - link "Samsung Galaxy Z Fold6 5G - Refurbished Lowest Ever 88 4.9 (20) Samsung Galaxy Z Fold6 5G - Refurbished cashify ₹77,199 Usually ₹81,427 5% less Buy Now" [ref=f8e1762] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-z-fold6-5g-refurbished-price-in-india-6053-2226
+                  - generic [ref=f8e1763]:
+                    - img "Samsung Galaxy Z Fold6 5G - Refurbished" [ref=f8e1764]
+                    - paragraph [ref=f8e1765]:
+                      - generic [ref=f8e1766]: 🏆
+                      - generic [ref=f8e1767]: Lowest Ever
+                  - generic [ref=f8e1768]:
+                    - generic [ref=f8e1769]:
+                      - generic [ref=f8e1770]: "88"
+                      - generic [ref=f8e1774]:
+                        - generic [ref=f8e1777]: "4.9"
+                        - generic [ref=f8e1778]: (20)
+                    - paragraph [ref=f8e1779]: Samsung Galaxy Z Fold6 5G - Refurbished
+                    - generic [ref=f8e1780]:
+                      - img "cashify" [ref=f8e1781]
+                      - paragraph [ref=f8e1782]:
+                        - superscript [ref=f8e1783]: ₹
+                        - text: 77,199
+                    - generic [ref=f8e1784]:
+                      - paragraph [ref=f8e1785]:
+                        - text: Usually
+                        - superscript [ref=f8e1786]: ₹
+                        - text: 81,427
+                      - generic [ref=f8e1787]: 5% less
+                    - generic [ref=f8e1788]: Buy Now
+                - link "Google Pixel 10 Pro XL - Refurbished Below Avg Price 84 5.0 (4) Google Pixel 10 Pro XL - Refurbished cashify ₹82,299 Usually ₹87,063 5% less Buy Now" [ref=f8e1789] [cursor=pointer]:
+                  - /url: /cashify-google-pixel-10-pro-xl-refurbished-price-in-india-6053-795
+                  - generic [ref=f8e1790]:
+                    - img "Google Pixel 10 Pro XL - Refurbished" [ref=f8e1791]
+                    - paragraph [ref=f8e1792]:
+                      - generic [ref=f8e1793]: 👍
+                      - generic [ref=f8e1794]: Below Avg Price
+                  - generic [ref=f8e1795]:
+                    - generic [ref=f8e1796]:
+                      - generic [ref=f8e1797]: "84"
+                      - generic [ref=f8e1801]:
+                        - generic [ref=f8e1804]: "5.0"
+                        - generic [ref=f8e1805]: (4)
+                    - paragraph [ref=f8e1806]: Google Pixel 10 Pro XL - Refurbished
+                    - generic [ref=f8e1807]:
+                      - img "cashify" [ref=f8e1808]
+                      - paragraph [ref=f8e1809]:
+                        - superscript [ref=f8e1810]: ₹
+                        - text: 82,299
+                    - generic [ref=f8e1811]:
+                      - paragraph [ref=f8e1812]:
+                        - text: Usually
+                        - superscript [ref=f8e1813]: ₹
+                        - text: 87,063
+                      - generic [ref=f8e1814]: 5% less
+                    - generic [ref=f8e1815]: Buy Now
+                - link "Ikko MindOne Pro AI Smartphone (Jet Black, 8GB RAM, 256GB Storage) All-time Low 94 1.0 (1) Ikko MindOne Pro AI Smartphone (Jet Black, 8G... Amazon ₹42,364.4 Usually ₹51,895 18% less Buy Now" [ref=f8e1816] [cursor=pointer]:
+                  - /url: /amazon-ikko-mindone-pro-ai-smartphone-jet-black-8gb-ram-256gb-storage-price-in-india-63-123882067
+                  - generic [ref=f8e1817]:
+                    - img "Ikko MindOne Pro AI Smartphone (Jet Black, 8GB RAM, 256GB Storage)" [ref=f8e1818]
+                    - paragraph [ref=f8e1819]:
+                      - generic [ref=f8e1820]: 💎
+                      - generic [ref=f8e1821]: All-time Low
+                  - generic [ref=f8e1822]:
+                    - generic [ref=f8e1823]:
+                      - generic [ref=f8e1824]: "94"
+                      - generic [ref=f8e1828]:
+                        - generic [ref=f8e1831]: "1.0"
+                        - generic [ref=f8e1832]: (1)
+                    - paragraph [ref=f8e1833]: Ikko MindOne Pro AI Smartphone (Jet Black, 8G...
+                    - generic [ref=f8e1834]:
+                      - img "Amazon" [ref=f8e1835]
+                      - paragraph [ref=f8e1836]:
+                        - superscript [ref=f8e1837]: ₹
+                        - text: 42,364.4
+                    - generic [ref=f8e1838]:
+                      - paragraph [ref=f8e1839]:
+                        - text: Usually
+                        - superscript [ref=f8e1840]: ₹
+                        - text: 51,895
+                      - generic [ref=f8e1841]: 18% less
+                    - generic [ref=f8e1842]: Buy Now
+                - link "realme 16 Pro+ 5G Smartphone 8GB+128GB Gold | 7000mAh Battery, 80W SuperVOOC, 6.8-Inch Screen, 144Hz AMOLED Display, Rear 200MP+Front 50MP Camera, Sna All-time Low 87 4.5 (29) realme 16 Pro+ 5G Smartphone 8GB+128GB Gold |... Amazon ₹49,999 Usually ₹51,637 3% less Buy Now" [ref=f8e1843] [cursor=pointer]:
+                  - /url: /amazon-realme-16-pro-5g-smartphone-8gb-128gb-gold-7000mah-battery-80w-supervooc-6-8-inch-screen-144hz-amoled-display-rear-200mp-front-50mp-camera-sna-price-in-india-63-127845848
+                  - generic [ref=f8e1844]:
+                    - img "realme 16 Pro+ 5G Smartphone 8GB+128GB Gold | 7000mAh Battery, 80W SuperVOOC, 6.8-Inch Screen, 144Hz AMOLED Display, Rear 200MP+Front 50MP Camera, Sna" [ref=f8e1845]
+                    - paragraph [ref=f8e1846]:
+                      - generic [ref=f8e1847]: 💎
+                      - generic [ref=f8e1848]: All-time Low
+                  - generic [ref=f8e1849]:
+                    - generic [ref=f8e1850]:
+                      - generic [ref=f8e1851]: "87"
+                      - generic [ref=f8e1855]:
+                        - generic [ref=f8e1858]: "4.5"
+                        - generic [ref=f8e1859]: (29)
+                    - paragraph [ref=f8e1860]: realme 16 Pro+ 5G Smartphone 8GB+128GB Gold |...
+                    - generic [ref=f8e1861]:
+                      - img "Amazon" [ref=f8e1862]
+                      - paragraph [ref=f8e1863]:
+                        - superscript [ref=f8e1864]: ₹
+                        - text: 49,999
+                    - generic [ref=f8e1865]:
+                      - paragraph [ref=f8e1866]:
+                        - text: Usually
+                        - superscript [ref=f8e1867]: ₹
+                        - text: 51,637
+                      - generic [ref=f8e1868]: 3% less
+                    - generic [ref=f8e1869]: Buy Now
+                - link "iPhone 16 Plus 256GB Black Lowest Ever 96 iPhone 16 Plus 256GB Black apple ₹69,900 Usually ₹85,376 18% less Buy Now" [ref=f8e1870] [cursor=pointer]:
+                  - /url: /apple-iphone-16-plus-256gb-black-price-in-india-6676-36669
+                  - generic [ref=f8e1871]:
+                    - img "iPhone 16 Plus 256GB Black"
+                    - paragraph [ref=f8e1872]:
+                      - generic [ref=f8e1873]: 🏆
+                      - generic [ref=f8e1874]: Lowest Ever
+                  - generic [ref=f8e1875]:
+                    - generic [ref=f8e1876]: "96"
+                    - paragraph [ref=f8e1881]: iPhone 16 Plus 256GB Black
+                    - generic [ref=f8e1882]:
+                      - img "apple" [ref=f8e1883]
+                      - paragraph [ref=f8e1884]:
+                        - superscript [ref=f8e1885]: ₹
+                        - text: 69,900
+                    - generic [ref=f8e1886]:
+                      - paragraph [ref=f8e1887]:
+                        - text: Usually
+                        - superscript [ref=f8e1888]: ₹
+                        - text: 85,376
+                      - generic [ref=f8e1889]: 18% less
+                    - generic [ref=f8e1890]: Buy Now
+                - link "iPhone 16 Plus 256GB Ultramarine Lowest Ever 96 iPhone 16 Plus 256GB Ultramarine apple ₹69,900 Usually ₹87,043 20% less Buy Now" [ref=f8e1891] [cursor=pointer]:
+                  - /url: /apple-iphone-16-plus-256gb-ultramarine-price-in-india-6676-37224
+                  - generic [ref=f8e1892]:
+                    - img "iPhone 16 Plus 256GB Ultramarine" [ref=f8e1893]
+                    - paragraph [ref=f8e1894]:
+                      - generic [ref=f8e1895]: 🏆
+                      - generic [ref=f8e1896]: Lowest Ever
+                  - generic [ref=f8e1897]:
+                    - generic [ref=f8e1898]: "96"
+                    - paragraph [ref=f8e1903]: iPhone 16 Plus 256GB Ultramarine
+                    - generic [ref=f8e1904]:
+                      - img "apple" [ref=f8e1905]
+                      - paragraph [ref=f8e1906]:
+                        - superscript [ref=f8e1907]: ₹
+                        - text: 69,900
+                    - generic [ref=f8e1908]:
+                      - paragraph [ref=f8e1909]:
+                        - text: Usually
+                        - superscript [ref=f8e1910]: ₹
+                        - text: 87,043
+                      - generic [ref=f8e1911]: 20% less
+                    - generic [ref=f8e1912]: Buy Now
+                - link "iPhone 16 Plus 256GB Teal Lowest Ever 96 iPhone 16 Plus 256GB Teal apple ₹69,900 Usually ₹87,757 20% less Buy Now" [ref=f8e1913] [cursor=pointer]:
+                  - /url: /apple-iphone-16-plus-256gb-teal-price-in-india-6676-36943
+                  - generic [ref=f8e1914]:
+                    - img "iPhone 16 Plus 256GB Teal" [ref=f8e1915]
+                    - paragraph [ref=f8e1916]:
+                      - generic [ref=f8e1917]: 🏆
+                      - generic [ref=f8e1918]: Lowest Ever
+                  - generic [ref=f8e1919]:
+                    - generic [ref=f8e1920]: "96"
+                    - paragraph [ref=f8e1925]: iPhone 16 Plus 256GB Teal
+                    - generic [ref=f8e1926]:
+                      - img "apple" [ref=f8e1927]
+                      - paragraph [ref=f8e1928]:
+                        - superscript [ref=f8e1929]: ₹
+                        - text: 69,900
+                    - generic [ref=f8e1930]:
+                      - paragraph [ref=f8e1931]:
+                        - text: Usually
+                        - superscript [ref=f8e1932]: ₹
+                        - text: 87,757
+                      - generic [ref=f8e1933]: 20% less
+                    - generic [ref=f8e1934]: Buy Now
+                - link "iPhone 16 Plus 128GB White 6M Low 87 iPhone 16 Plus 128GB White apple ₹69,900 Usually ₹78,591 11% less Buy Now" [ref=f8e1935] [cursor=pointer]:
+                  - /url: /apple-iphone-16-plus-128gb-white-price-in-india-6676-37163
+                  - generic [ref=f8e1936]:
+                    - img "iPhone 16 Plus 128GB White" [ref=f8e1937]
+                    - paragraph [ref=f8e1938]:
+                      - generic [ref=f8e1939]: 📉
+                      - generic [ref=f8e1940]: 6M Low
+                  - generic [ref=f8e1941]:
+                    - generic [ref=f8e1942]: "87"
+                    - paragraph [ref=f8e1947]: iPhone 16 Plus 128GB White
+                    - generic [ref=f8e1948]:
+                      - img "apple" [ref=f8e1949]
+                      - paragraph [ref=f8e1950]:
+                        - superscript [ref=f8e1951]: ₹
+                        - text: 69,900
+                    - generic [ref=f8e1952]:
+                      - paragraph [ref=f8e1953]:
+                        - text: Usually
+                        - superscript [ref=f8e1954]: ₹
+                        - text: 78,591
+                      - generic [ref=f8e1955]: 11% less
+                    - generic [ref=f8e1956]: Buy Now
+                - link "motorola edge 50 ultra motorola-edge-50-ultra-12GB/512GB Nordic-Wood*##*Nordic-Wood Lowest Ever 95 motorola edge 50 ultra motorola-edge-50-ultra... Motorola ₹34,999 Usually ₹41,332 15% less Buy Now" [ref=f8e1957] [cursor=pointer]:
+                  - /url: /motorola-motorola-edge-50-ultra-motorola-edge-50-ultra-12gb-512gb-nordic-wood-nordic-wood-price-in-india-8483-181
+                  - generic [ref=f8e1958]:
+                    - img "motorola edge 50 ultra motorola-edge-50-ultra-12GB/512GB Nordic-Wood*##*Nordic-Wood"
+                    - paragraph [ref=f8e1959]:
+                      - generic [ref=f8e1960]: 🏆
+                      - generic [ref=f8e1961]: Lowest Ever
+                  - generic [ref=f8e1962]:
+                    - generic [ref=f8e1963]: "95"
+                    - paragraph [ref=f8e1968]: motorola edge 50 ultra motorola-edge-50-ultra...
+                    - generic [ref=f8e1969]:
+                      - img "Motorola" [ref=f8e1970]
+                      - paragraph [ref=f8e1971]:
+                        - superscript [ref=f8e1972]: ₹
+                        - text: 34,999
+                    - generic [ref=f8e1973]:
+                      - paragraph [ref=f8e1974]:
+                        - text: Usually
+                        - superscript [ref=f8e1975]: ₹
+                        - text: 41,332
+                      - generic [ref=f8e1976]: 15% less
+                    - generic [ref=f8e1977]: Buy Now
+                - link "Samsung Galaxy S25 Edge - Refurbished All-time Low 89 4.8 (6) Samsung Galaxy S25 Edge - Refurbished cashify ₹52,299 Usually ₹56,957 8% less Buy Now" [ref=f8e1978] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s25-edge-refurbished-price-in-india-6053-9525
+                  - generic [ref=f8e1979]:
+                    - img "Samsung Galaxy S25 Edge - Refurbished" [ref=f8e1980]
+                    - paragraph [ref=f8e1981]:
+                      - generic [ref=f8e1982]: 💎
+                      - generic [ref=f8e1983]: All-time Low
+                  - generic [ref=f8e1984]:
+                    - generic [ref=f8e1985]:
+                      - generic [ref=f8e1986]: "89"
+                      - generic [ref=f8e1990]:
+                        - generic [ref=f8e1993]: "4.8"
+                        - generic [ref=f8e1994]: (6)
+                    - paragraph [ref=f8e1995]: Samsung Galaxy S25 Edge - Refurbished
+                    - generic [ref=f8e1996]:
+                      - img "cashify" [ref=f8e1997]
+                      - paragraph [ref=f8e1998]:
+                        - superscript [ref=f8e1999]: ₹
+                        - text: 52,299
+                    - generic [ref=f8e2000]:
+                      - paragraph [ref=f8e2001]:
+                        - text: Usually
+                        - superscript [ref=f8e2002]: ₹
+                        - text: 56,957
+                      - generic [ref=f8e2003]: 8% less
+                    - generic [ref=f8e2004]: Buy Now
+                - link "motorola edge 50 ultra motorola-edge-50-ultra-12GB/512GB- Forest- Grey Lowest Ever 94 motorola edge 50 ultra motorola-edge-50-ultra... Motorola ₹34,999 Usually ₹41,135 15% less Buy Now" [ref=f8e2005] [cursor=pointer]:
+                  - /url: /motorola-motorola-edge-50-ultra-motorola-edge-50-ultra-12gb-512gb-forest-grey-price-in-india-8483-182
+                  - generic [ref=f8e2006]:
+                    - img "motorola edge 50 ultra motorola-edge-50-ultra-12GB/512GB- Forest- Grey" [ref=f8e2007]
+                    - paragraph [ref=f8e2008]:
+                      - generic [ref=f8e2009]: 🏆
+                      - generic [ref=f8e2010]: Lowest Ever
+                  - generic [ref=f8e2011]:
+                    - generic [ref=f8e2012]: "94"
+                    - paragraph [ref=f8e2017]: motorola edge 50 ultra motorola-edge-50-ultra...
+                    - generic [ref=f8e2018]:
+                      - img "Motorola" [ref=f8e2019]
+                      - paragraph [ref=f8e2020]:
+                        - superscript [ref=f8e2021]: ₹
+                        - text: 34,999
+                    - generic [ref=f8e2022]:
+                      - paragraph [ref=f8e2023]:
+                        - text: Usually
+                        - superscript [ref=f8e2024]: ₹
+                        - text: 41,135
+                      - generic [ref=f8e2025]: 15% less
+                    - generic [ref=f8e2026]: Buy Now
+                - link "Apple iPhone 15 Plus - Refurbished Below Avg Price 80 4.8 (336) Apple iPhone 15 Plus - Refurbished cashify ₹62,799 Usually ₹64,289 2% less Buy Now" [ref=f8e2027] [cursor=pointer]:
+                  - /url: /cashify-apple-iphone-15-plus-refurbished-price-in-india-6053-30
+                  - generic [ref=f8e2028]:
+                    - img "Apple iPhone 15 Plus - Refurbished" [ref=f8e2029]
+                    - paragraph [ref=f8e2030]:
+                      - generic [ref=f8e2031]: 👍
+                      - generic [ref=f8e2032]: Below Avg Price
+                  - generic [ref=f8e2033]:
+                    - generic [ref=f8e2034]:
+                      - generic [ref=f8e2035]: "80"
+                      - generic [ref=f8e2039]:
+                        - generic [ref=f8e2042]: "4.8"
+                        - generic [ref=f8e2043]: (336)
+                    - paragraph [ref=f8e2044]: Apple iPhone 15 Plus - Refurbished
+                    - generic [ref=f8e2045]:
+                      - img "cashify" [ref=f8e2046]
+                      - paragraph [ref=f8e2047]:
+                        - superscript [ref=f8e2048]: ₹
+                        - text: 62,799
+                    - generic [ref=f8e2049]:
+                      - paragraph [ref=f8e2050]:
+                        - text: Usually
+                        - superscript [ref=f8e2051]: ₹
+                        - text: 64,289
+                      - generic [ref=f8e2052]: 2% less
+                    - generic [ref=f8e2053]: Buy Now
+                - link "SAMSUNG Galaxy S26 Ultra 5G (12GB RAM, 256GB, Sky Blue)*##*Sky Blue~16GB / 1TB Lowest Ever 86 SAMSUNG Galaxy S26 Ultra 5G (12GB RAM, 256GB,... Croma ₹1,24,999 Usually ₹1,31,699 5% less Buy Now" [ref=f8e2054] [cursor=pointer]:
+                  - /url: /croma-samsung-galaxy-s26-ultra-5g-12gb-ram-256gb-sky-blue-sky-blue-16gb-1tb-price-in-india-71-69926
+                  - generic [ref=f8e2055]:
+                    - img "SAMSUNG Galaxy S26 Ultra 5G (12GB RAM, 256GB, Sky Blue)*##*Sky Blue~16GB / 1TB" [ref=f8e2056]
+                    - paragraph [ref=f8e2057]:
+                      - generic [ref=f8e2058]: 🏆
+                      - generic [ref=f8e2059]: Lowest Ever
+                  - generic [ref=f8e2060]:
+                    - generic [ref=f8e2061]: "86"
+                    - paragraph [ref=f8e2066]: SAMSUNG Galaxy S26 Ultra 5G (12GB RAM, 256GB,...
+                    - generic [ref=f8e2067]:
+                      - img "Croma" [ref=f8e2068]
+                      - paragraph [ref=f8e2069]:
+                        - superscript [ref=f8e2070]: ₹
+                        - text: 1,24,999
+                    - generic [ref=f8e2071]:
+                      - paragraph [ref=f8e2072]:
+                        - text: Usually
+                        - superscript [ref=f8e2073]: ₹
+                        - text: 1,31,699
+                      - generic [ref=f8e2074]: 5% less
+                    - generic [ref=f8e2075]: Buy Now
+                - link "Samsung Galaxy A37 5G (Awesome Charcoal, 8GB RAM, 256GB Storage) | Exynos 1480 Octa-Core Processor | 50MP + 8MP AI Dual Camera | 12MP Front Camera | 6 All-time Low 88 2.0 Samsung Galaxy A37 5G (Awesome Charcoal, 8GB ... Amazon ₹43,490 Usually ₹45,616 5% less Buy Now" [ref=f8e2076] [cursor=pointer]:
+                  - /url: /amazon-samsung-galaxy-a37-5g-awesome-charcoal-8gb-ram-256gb-storage-exynos-1480-octa-core-processor-50mp-8mp-ai-dual-camera-12mp-front-camera-6-price-in-india-63-127335031
+                  - generic [ref=f8e2077]:
+                    - img "Samsung Galaxy A37 5G (Awesome Charcoal, 8GB RAM, 256GB Storage) | Exynos 1480 Octa-Core Processor | 50MP + 8MP AI Dual Camera | 12MP Front Camera | 6" [ref=f8e2078]
+                    - paragraph [ref=f8e2079]:
+                      - generic [ref=f8e2080]: 💎
+                      - generic [ref=f8e2081]: All-time Low
+                  - generic [ref=f8e2082]:
+                    - generic [ref=f8e2083]:
+                      - generic [ref=f8e2084]: "88"
+                      - generic [ref=f8e2088]: "2.0"
+                    - paragraph [ref=f8e2092]: Samsung Galaxy A37 5G (Awesome Charcoal, 8GB ...
+                    - generic [ref=f8e2093]:
+                      - img "Amazon" [ref=f8e2094]
+                      - paragraph [ref=f8e2095]:
+                        - superscript [ref=f8e2096]: ₹
+                        - text: 43,490
+                    - generic [ref=f8e2097]:
+                      - paragraph [ref=f8e2098]:
+                        - text: Usually
+                        - superscript [ref=f8e2099]: ₹
+                        - text: 45,616
+                      - generic [ref=f8e2100]: 5% less
+                    - generic [ref=f8e2101]: Buy Now
+                - link "OPPO Find X8 Pro 5G - Refurbished Lowest Ever 88 5.0 (6) OPPO Find X8 Pro 5G - Refurbished cashify ₹52,599 Usually ₹55,448 5% less Buy Now" [ref=f8e2102] [cursor=pointer]:
+                  - /url: /cashify-oppo-find-x8-pro-5g-refurbished-price-in-india-6053-988
+                  - generic [ref=f8e2103]:
+                    - img "OPPO Find X8 Pro 5G - Refurbished" [ref=f8e2104]
+                    - paragraph [ref=f8e2105]:
+                      - generic [ref=f8e2106]: 🏆
+                      - generic [ref=f8e2107]: Lowest Ever
+                  - generic [ref=f8e2108]:
+                    - generic [ref=f8e2109]:
+                      - generic [ref=f8e2110]: "88"
+                      - generic [ref=f8e2114]:
+                        - generic [ref=f8e2117]: "5.0"
+                        - generic [ref=f8e2118]: (6)
+                    - paragraph [ref=f8e2119]: OPPO Find X8 Pro 5G - Refurbished
+                    - generic [ref=f8e2120]:
+                      - img "cashify" [ref=f8e2121]
+                      - paragraph [ref=f8e2122]:
+                        - superscript [ref=f8e2123]: ₹
+                        - text: 52,599
+                    - generic [ref=f8e2124]:
+                      - paragraph [ref=f8e2125]:
+                        - text: Usually
+                        - superscript [ref=f8e2126]: ₹
+                        - text: 55,448
+                      - generic [ref=f8e2127]: 5% less
+                    - generic [ref=f8e2128]: Buy Now
+                - link "Samsung Galaxy S26 Ultra - Refurbished Lowest Ever 90 5.0 (4) Samsung Galaxy S26 Ultra - Refurbished cashify ₹95,999 Usually ₹1,05,677 9% less Buy Now" [ref=f8e2129] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s26-ultra-refurbished-price-in-india-6053-9374
+                  - generic [ref=f8e2130]:
+                    - img "Samsung Galaxy S26 Ultra - Refurbished" [ref=f8e2131]
+                    - paragraph [ref=f8e2132]:
+                      - generic [ref=f8e2133]: 🏆
+                      - generic [ref=f8e2134]: Lowest Ever
+                  - generic [ref=f8e2135]:
+                    - generic [ref=f8e2136]:
+                      - generic [ref=f8e2137]: "90"
+                      - generic [ref=f8e2141]:
+                        - generic [ref=f8e2144]: "5.0"
+                        - generic [ref=f8e2145]: (4)
+                    - paragraph [ref=f8e2146]: Samsung Galaxy S26 Ultra - Refurbished
+                    - generic [ref=f8e2147]:
+                      - img "cashify" [ref=f8e2148]
+                      - paragraph [ref=f8e2149]:
+                        - superscript [ref=f8e2150]: ₹
+                        - text: 95,999
+                    - generic [ref=f8e2151]:
+                      - paragraph [ref=f8e2152]:
+                        - text: Usually
+                        - superscript [ref=f8e2153]: ₹
+                        - text: 1,05,677
+                      - generic [ref=f8e2154]: 9% less
+                    - generic [ref=f8e2155]: Buy Now
+                - link "Apple iPhone 17 Pro (256GB Storage, Deep Blue) Apple iPhone 17 Pro (256GB Storage, Deep Blue) Better than bbd2025 81 4.0 (3.9k) Apple iPhone 17 Pro (256GB Storage, Deep Blue... Vijay Sales ₹1,29,590 Usually ₹1,29,963 Buy Now" [ref=f8e2156] [cursor=pointer]:
+                  - /url: /vijay-sales-apple-iphone-17-pro-256gb-storage-deep-blue-apple-iphone-17-pro-256gb-storage-deep-blue-price-in-india-6645-13600
+                  - generic [ref=f8e2157]:
+                    - img "Apple iPhone 17 Pro (256GB Storage, Deep Blue) Apple iPhone 17 Pro (256GB Storage, Deep Blue)" [ref=f8e2158]
+                    - paragraph [ref=f8e2159]:
+                      - generic [ref=f8e2160]: 🎉
+                      - generic [ref=f8e2161]: Better than bbd2025
+                  - generic [ref=f8e2162]:
+                    - generic [ref=f8e2163]:
+                      - generic [ref=f8e2164]: "81"
+                      - generic [ref=f8e2168]:
+                        - generic [ref=f8e2171]: "4.0"
+                        - generic [ref=f8e2172]: (3.9k)
+                    - paragraph [ref=f8e2173]: Apple iPhone 17 Pro (256GB Storage, Deep Blue...
+                    - generic [ref=f8e2174]:
+                      - img "Vijay Sales" [ref=f8e2175]
+                      - paragraph [ref=f8e2176]:
+                        - superscript [ref=f8e2177]: ₹
+                        - text: 1,29,590
+                    - paragraph [ref=f8e2179]:
+                      - text: Usually
+                      - superscript [ref=f8e2180]: ₹
+                      - text: 1,29,963
+                    - generic [ref=f8e2181]: Buy Now
+                - link "realme 16T 5G Smartphone 8GB+256GB Green | 8000mAh Battery, 45W Fast Charging, 6.8-inch Screen, 144Hz Display, Rear50MP+Front16MP AI Camera, Dimensity All-time Low 88 4.2 (1k) realme 16T 5G Smartphone 8GB+256GB Green | 80... Amazon ₹34,999 Usually ₹37,039 6% less Buy Now" [ref=f8e2182] [cursor=pointer]:
+                  - /url: /amazon-realme-16t-5g-smartphone-8gb-256gb-green-8000mah-battery-45w-fast-charging-6-8-inch-screen-144hz-display-rear50mp-front16mp-ai-camera-dimensity-price-in-india-63-123157429
+                  - generic [ref=f8e2183]:
+                    - img "realme 16T 5G Smartphone 8GB+256GB Green | 8000mAh Battery, 45W Fast Charging, 6.8-inch Screen, 144Hz Display, Rear50MP+Front16MP AI Camera, Dimensity" [ref=f8e2184]
+                    - paragraph [ref=f8e2185]:
+                      - generic [ref=f8e2186]: 💎
+                      - generic [ref=f8e2187]: All-time Low
+                  - generic [ref=f8e2188]:
+                    - generic [ref=f8e2189]:
+                      - generic [ref=f8e2190]: "88"
+                      - generic [ref=f8e2194]:
+                        - generic [ref=f8e2197]: "4.2"
+                        - generic [ref=f8e2198]: (1k)
+                    - paragraph [ref=f8e2199]: realme 16T 5G Smartphone 8GB+256GB Green | 80...
+                    - generic [ref=f8e2200]:
+                      - img "Amazon" [ref=f8e2201]
+                      - paragraph [ref=f8e2202]:
+                        - superscript [ref=f8e2203]: ₹
+                        - text: 34,999
+                    - generic [ref=f8e2204]:
+                      - paragraph [ref=f8e2205]:
+                        - text: Usually
+                        - superscript [ref=f8e2206]: ₹
+                        - text: 37,039
+                      - generic [ref=f8e2207]: 6% less
+                    - generic [ref=f8e2208]: Buy Now
+                - link "OPPO F33 Pro 5G Smartphone (8GB RAM, 256GB Storage, Passion Red) |50MP Ultrawide Selfie Camera|7000 mAh Long Battery Life | 80W Fast Charging-with No All-time Low 89 OPPO F33 Pro 5G Smartphone (8GB RAM, 256GB St... Amazon ₹37,995 Usually ₹41,242 8% less Buy Now" [ref=f8e2209] [cursor=pointer]:
+                  - /url: /amazon-oppo-f33-pro-5g-smartphone-8gb-ram-256gb-storage-passion-red-50mp-ultrawide-selfie-camera-7000-mah-long-battery-life-80w-fast-charging-with-no-price-in-india-63-126818237
+                  - generic [ref=f8e2210]:
+                    - img "OPPO F33 Pro 5G Smartphone (8GB RAM, 256GB Storage, Passion Red) |50MP Ultrawide Selfie Camera|7000 mAh Long Battery Life | 80W Fast Charging-with No" [ref=f8e2211]
+                    - paragraph [ref=f8e2212]:
+                      - generic [ref=f8e2213]: 💎
+                      - generic [ref=f8e2214]: All-time Low
+                  - generic [ref=f8e2215]:
+                    - generic [ref=f8e2216]: "89"
+                    - paragraph [ref=f8e2221]: OPPO F33 Pro 5G Smartphone (8GB RAM, 256GB St...
+                    - generic [ref=f8e2222]:
+                      - img "Amazon" [ref=f8e2223]
+                      - paragraph [ref=f8e2224]:
+                        - superscript [ref=f8e2225]: ₹
+                        - text: 37,995
+                    - generic [ref=f8e2226]:
+                      - paragraph [ref=f8e2227]:
+                        - text: Usually
+                        - superscript [ref=f8e2228]: ₹
+                        - text: 41,242
+                      - generic [ref=f8e2229]: 8% less
+                    - generic [ref=f8e2230]: Buy Now
+                - link "Samsung Galaxy S25 Edge - Refurbished Lowest Ever 89 4.8 (6) Samsung Galaxy S25 Edge - Refurbished cashify ₹50,199 Usually ₹53,896 7% less Buy Now" [ref=f8e2231] [cursor=pointer]:
+                  - /url: /cashify-samsung-galaxy-s25-edge-refurbished-price-in-india-6053-1114
+                  - generic [ref=f8e2232]:
+                    - img "Samsung Galaxy S25 Edge - Refurbished" [ref=f8e2233]
+                    - paragraph [ref=f8e2234]:
+                      - generic [ref=f8e2235]: 🏆
+                      - generic [ref=f8e2236]: Lowest Ever
+                  - generic [ref=f8e2237]:
+                    - generic [ref=f8e2238]:
+                      - generic [ref=f8e2239]: "89"
+                      - generic [ref=f8e2243]:
+                        - generic [ref=f8e2246]: "4.8"
+                        - generic [ref=f8e2247]: (6)
+                    - paragraph [ref=f8e2248]: Samsung Galaxy S25 Edge - Refurbished
+                    - generic [ref=f8e2249]:
+                      - img "cashify" [ref=f8e2250]
+                      - paragraph [ref=f8e2251]:
+                        - superscript [ref=f8e2252]: ₹
+                        - text: 50,199
+                    - generic [ref=f8e2253]:
+                      - paragraph [ref=f8e2254]:
+                        - text: Usually
+                        - superscript [ref=f8e2255]: ₹
+                        - text: 53,896
+                      - generic [ref=f8e2256]: 7% less
+                    - generic [ref=f8e2257]: Buy Now
+                - link "Apple iPhone 16 Pro Max - Refurbished Below Avg Price 85 4.6 (33) Apple iPhone 16 Pro Max - Refurbished cashify ₹92,199 Usually ₹99,280 7% less Buy Now" [ref=f8e2258] [cursor=pointer]:
+                  - /url: /cashify-apple-iphone-16-pro-max-refurbished-price-in-india-6053-264
+                  - generic [ref=f8e2259]:
+                    - img "Apple iPhone 16 Pro Max - Refurbished" [ref=f8e2260]
+                    - paragraph [ref=f8e2261]:
+                      - generic [ref=f8e2262]: 👍
+                      - generic [ref=f8e2263]: Below Avg Price
+                  - generic [ref=f8e2264]:
+                    - generic [ref=f8e2265]:
+                      - generic [ref=f8e2266]: "85"
+                      - generic [ref=f8e2270]:
+                        - generic [ref=f8e2273]: "4.6"
+                        - generic [ref=f8e2274]: (33)
+                    - paragraph [ref=f8e2275]: Apple iPhone 16 Pro Max - Refurbished
+                    - generic [ref=f8e2276]:
+                      - img "cashify" [ref=f8e2277]
+                      - paragraph [ref=f8e2278]:
+                        - superscript [ref=f8e2279]: ₹
+                        - text: 92,199
+                    - generic [ref=f8e2280]:
+                      - paragraph [ref=f8e2281]:
+                        - text: Usually
+                        - superscript [ref=f8e2282]: ₹
+                        - text: 99,280
+                      - generic [ref=f8e2283]: 7% less
+                    - generic [ref=f8e2284]: Buy Now
+                - link "Apple iPhone 17 Pro (256 GB)*##*Deep Blue~256 GB Lowest Ever 87 4.8 Apple iPhone 17 Pro (256 GB)*##*Deep Blue~256... Circlestore ₹1,18,000 Usually ₹1,20,748 2% less Buy Now" [ref=f8e2285] [cursor=pointer]:
+                  - /url: /circlestore-apple-iphone-17-pro-256-gb-deep-blue-256-gb-price-in-india-25901-772
+                  - generic [ref=f8e2286]:
+                    - img "Apple iPhone 17 Pro (256 GB)*##*Deep Blue~256 GB" [ref=f8e2287]
+                    - paragraph [ref=f8e2288]:
+                      - generic [ref=f8e2289]: 🏆
+                      - generic [ref=f8e2290]: Lowest Ever
+                  - generic [ref=f8e2291]:
+                    - generic [ref=f8e2292]:
+                      - generic [ref=f8e2293]: "87"
+                      - generic [ref=f8e2297]: "4.8"
+                    - paragraph [ref=f8e2301]: Apple iPhone 17 Pro (256 GB)*##*Deep Blue~256...
+                    - generic [ref=f8e2302]:
+                      - img "Circlestore" [ref=f8e2303]
+                      - paragraph [ref=f8e2304]:
+                        - superscript [ref=f8e2305]: ₹
+                        - text: 1,18,000
+                    - generic [ref=f8e2306]:
+                      - paragraph [ref=f8e2307]:
+                        - text: Usually
+                        - superscript [ref=f8e2308]: ₹
+                        - text: 1,20,748
+                      - generic [ref=f8e2309]: 2% less
+                    - generic [ref=f8e2310]: Buy Now
+                - link "SAMSUNG Galaxy S26 5G (12GB RAM, 256GB, Sky Blue)*##*Sky Blue~256 GB Lowest Ever 84 SAMSUNG Galaxy S26 5G (12GB RAM, 256GB, Sky B... Croma ₹79,999 Usually ₹82,310 3% less Buy Now" [ref=f8e2311] [cursor=pointer]:
+                  - /url: /croma-samsung-galaxy-s26-5g-12gb-ram-256gb-sky-blue-sky-blue-256-gb-price-in-india-71-70012
+                  - generic [ref=f8e2312]:
+                    - img "SAMSUNG Galaxy S26 5G (12GB RAM, 256GB, Sky Blue)*##*Sky Blue~256 GB" [ref=f8e2313]
+                    - paragraph [ref=f8e2314]:
+                      - generic [ref=f8e2315]: 🏆
+                      - generic [ref=f8e2316]: Lowest Ever
+                  - generic [ref=f8e2317]:
+                    - generic [ref=f8e2318]: "84"
+                    - paragraph [ref=f8e2323]: SAMSUNG Galaxy S26 5G (12GB RAM, 256GB, Sky B...
+                    - generic [ref=f8e2324]:
+                      - img "Croma" [ref=f8e2325]
+                      - paragraph [ref=f8e2326]:
+                        - superscript [ref=f8e2327]: ₹
+                        - text: 79,999
+                    - generic [ref=f8e2328]:
+                      - paragraph [ref=f8e2329]:
+                        - text: Usually
+                        - superscript [ref=f8e2330]: ₹
+                        - text: 82,310
+                      - generic [ref=f8e2331]: 3% less
+                    - generic [ref=f8e2332]: Buy Now
+                - link "realme 16 Pro+ 5G Smartphone 8GB+256GB Gold | 7000mAh Battery, 80W SuperVOOC, 6.8-Inch Screen, 144Hz AMOLED Display, Rear 200MP+Front 50MP Camera, Sna All-time Low 88 4.5 (29) realme 16 Pro+ 5G Smartphone 8GB+256GB Gold |... Amazon ₹52,999 Usually ₹55,715 5% less Buy Now" [ref=f8e2333] [cursor=pointer]:
+                  - /url: /amazon-realme-16-pro-5g-smartphone-8gb-256gb-gold-7000mah-battery-80w-supervooc-6-8-inch-screen-144hz-amoled-display-rear-200mp-front-50mp-camera-sna-price-in-india-63-125545274
+                  - generic [ref=f8e2334]:
+                    - img "realme 16 Pro+ 5G Smartphone 8GB+256GB Gold | 7000mAh Battery, 80W SuperVOOC, 6.8-Inch Screen, 144Hz AMOLED Display, Rear 200MP+Front 50MP Camera, Sna" [ref=f8e2335]
+                    - paragraph [ref=f8e2336]:
+                      - generic [ref=f8e2337]: 💎
+                      - generic [ref=f8e2338]: All-time Low
+                  - generic [ref=f8e2339]:
+                    - generic [ref=f8e2340]:
+                      - generic [ref=f8e2341]: "88"
+                      - generic [ref=f8e2345]:
+                        - generic [ref=f8e2348]: "4.5"
+                        - generic [ref=f8e2349]: (29)
+                    - paragraph [ref=f8e2350]: realme 16 Pro+ 5G Smartphone 8GB+256GB Gold |...
+                    - generic [ref=f8e2351]:
+                      - img "Amazon" [ref=f8e2352]
+                      - paragraph [ref=f8e2353]:
+                        - superscript [ref=f8e2354]: ₹
+                        - text: 52,999
+                    - generic [ref=f8e2355]:
+                      - paragraph [ref=f8e2356]:
+                        - text: Usually
+                        - superscript [ref=f8e2357]: ₹
+                        - text: 55,715
+                      - generic [ref=f8e2358]: 5% less
+                    - generic [ref=f8e2359]: Buy Now
+                - link "Samsung Samsung S25 Ultra (256 GB) All-time Low 87 4.5 Samsung Samsung S25 Ultra (256 GB) Circlestore ₹72,500 Usually ₹74,928 3% less Buy Now" [ref=f8e2360] [cursor=pointer]:
+                  - /url: /circlestore-samsung-samsung-s25-ultra-256-gb-price-in-india-25901-30861
+                  - generic [ref=f8e2361]:
+                    - img "Samsung Samsung S25 Ultra (256 GB)" [ref=f8e2362]
+                    - paragraph [ref=f8e2363]:
+                      - generic [ref=f8e2364]: 💎
+                      - generic [ref=f8e2365]: All-time Low
+                  - generic [ref=f8e2366]:
+                    - generic [ref=f8e2367]:
+                      - generic [ref=f8e2368]: "87"
+                      - generic [ref=f8e2372]: "4.5"
+                    - paragraph [ref=f8e2376]: Samsung Samsung S25 Ultra (256 GB)
+                    - generic [ref=f8e2377]:
+                      - img "Circlestore" [ref=f8e2378]
+                      - paragraph [ref=f8e2379]:
+                        - superscript [ref=f8e2380]: ₹
+                        - text: 72,500
+                    - generic [ref=f8e2381]:
+                      - paragraph [ref=f8e2382]:
+                        - text: Usually
+                        - superscript [ref=f8e2383]: ₹
+                        - text: 74,928
+                      - generic [ref=f8e2384]: 3% less
+                    - generic [ref=f8e2385]: Buy Now
+              - button "View more" [ref=f8e2388] [cursor=pointer]
+    - generic [ref=f8e2391]:
+      - generic [ref=f8e2392]:
+        - link [ref=f8e2393] [cursor=pointer]:
+          - /url: /
+          - img "logo" [ref=f8e2394]
+        - generic [ref=f8e2395]:
+          - link "BuyHatke on Facebook" [ref=f8e2396] [cursor=pointer]:
+            - /url: https://www.facebook.com/BuyHatke
+          - link "BuyHatke on Instagram" [ref=f8e2397] [cursor=pointer]:
+            - /url: https://www.instagram.com/buyhatke/
+          - link "BuyHatke on X" [ref=f8e2398] [cursor=pointer]:
+            - /url: https://x.com/buyhatke
+          - link "BuyHatke on LinkedIn" [ref=f8e2399] [cursor=pointer]:
+            - /url: https://in.linkedin.com/company/buyhatke
+          - link "BuyHatke on YouTube" [ref=f8e2400] [cursor=pointer]:
+            - /url: https://www.youtube.com/@BuyHatke
+          - link "BuyHatke on Telegram" [ref=f8e2401] [cursor=pointer]:
+            - /url: https://telegram.me/+vKI3FIzze9thYzk1
+      - generic [ref=f8e2403]:
+        - generic [ref=f8e2404]:
+          - generic [ref=f8e2406]:
+            - img "QR Code for App Download" [ref=f8e2408]
+            - generic [ref=f8e2409]:
+              - button [ref=f8e2410] [cursor=pointer]:
+                - img "Download App from Apple Store" [ref=f8e2411]
+              - button [ref=f8e2412] [cursor=pointer]:
+                - img "Download App from Play Store" [ref=f8e2413]
+          - generic [ref=f8e2414]:
+            - button [ref=f8e2416] [cursor=pointer]:
+              - img "India" [ref=f8e2417]
+              - text: India
+            - button "English" [ref=f8e2419] [cursor=pointer]
+        - generic [ref=f8e2420]:
+          - heading "Products" [level=2] [ref=f8e2421]
+          - generic [ref=f8e2422]:
+            - link "Hot Deals" [ref=f8e2423] [cursor=pointer]:
+              - /url: https://buyhatke.com/deals
+            - link "Price Drop alerts" [ref=f8e2424] [cursor=pointer]:
+              - /url: https://buyhatke.com/price-alert
+            - link "Gift Cards" [ref=f8e2425] [cursor=pointer]:
+              - /url: https://buyhatke.com/gift-cards
+            - link "Referrals" [ref=f8e2426] [cursor=pointer]:
+              - /url: https://buyhatke.com/gift-cards/referral
+            - link "Goodies" [ref=f8e2427] [cursor=pointer]:
+              - /url: https://buyhatke.com/goodies
+        - generic [ref=f8e2428]:
+          - heading "Price History Tracker" [level=2] [ref=f8e2429]
+          - generic [ref=f8e2430]:
+            - link "Amazon Price History Tracker" [ref=f8e2431] [cursor=pointer]:
+              - /url: https://buyhatke.com/amazon-price-history-tracker
+            - link "Flipkart Price History Tracker" [ref=f8e2432] [cursor=pointer]:
+              - /url: https://buyhatke.com/flipkart-price-history-tracker
+            - link "Amazon Quiz Answers" [ref=f8e2433] [cursor=pointer]:
+              - /url: https://buyhatke.com/amazon-daily-quiz-answers-today
+        - generic [ref=f8e2434]:
+          - heading "Company" [level=2] [ref=f8e2435]
+          - generic [ref=f8e2436]:
+            - link "About" [ref=f8e2437] [cursor=pointer]:
+              - /url: https://buyhatke.com/about
+            - link "Contact Us" [ref=f8e2438] [cursor=pointer]:
+              - /url: https://buyhatke.com/contact-us
+            - link "What We Do" [ref=f8e2439] [cursor=pointer]:
+              - /url: https://buyhatke.com/what-we-do
+            - link "How We Earn" [ref=f8e2440] [cursor=pointer]:
+              - /url: https://buyhatke.com/how-we-earn
+        - generic [ref=f8e2441]:
+          - heading "Other" [level=2] [ref=f8e2442]
+          - generic [ref=f8e2443]:
+            - link "Supported Stores" [ref=f8e2444] [cursor=pointer]:
+              - /url: https://buyhatke.com/supported-stores
+            - link "Advertise With Us" [ref=f8e2445] [cursor=pointer]:
+              - /url: https://advertise.buyhatke.com
+            - link "Pricing Intelligence" [ref=f8e2446] [cursor=pointer]:
+              - /url: https://pricing-intelligence.buyhatke.com
+      - generic [ref=f8e2448]:
+        - generic [ref=f8e2449]:
+          - link "Buyhatke Internet Pvt Ltd." [ref=f8e2450] [cursor=pointer]:
+            - /url: /
+          - text: © 2012 - 2026
+        - generic [ref=f8e2451]:
+          - link "Legal Terms" [ref=f8e2452] [cursor=pointer]:
+            - /url: https://buyhatke.com/terms
+          - link "Privacy & Policies" [ref=f8e2454] [cursor=pointer]:
+            - /url: https://buyhatke.com/privacy
+  - complementary "Live chat widget":
+    - button "Chat Widget" [ref=f8e2457] [cursor=pointer]: 

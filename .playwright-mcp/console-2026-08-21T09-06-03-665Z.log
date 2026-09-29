@@ -1,0 +1,78 @@
+[     109ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[     121ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  132802ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  132813ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136231ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=2&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136231ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136285ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=3&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136285ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136327ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=4&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136327ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136345ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=5&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136345ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136379ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=6&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136379ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136412ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=7&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136412ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136445ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=8&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136445ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136478ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=9&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136478ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136510ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=10&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136510ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136544ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=11&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136544ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136578ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=12&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136578ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136610ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=13&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136610ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136652ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=14&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136652ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136677ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=15&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136677ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136711ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=16&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136711ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136744ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=17&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136744ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136778ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=18&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136778ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136811ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=19&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136811ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136844ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=20&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136844ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136877ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=21&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136877ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136882ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136882ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136911ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=22&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136911ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136944ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=23&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136944ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  136976ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=24&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  136976ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  137011ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=25&limit=40&q=&category=all&merchant=all&country=in&sort=newest:0
+[  137011ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  224003ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=home&merchant=all&country=in&sort=newest:0
+[  224003ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[  274564ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4259218ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/hmr?id=-zKbEg_J26TccnRcCdg-Q' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_90u2t._.js:16256
+[ 4260222ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4260808ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4260820ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4311119ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4311187ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4333139ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4340228ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4381901ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4383760ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=home&merchant=all&country=in&sort=newest:0
+[ 4383760ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4387764ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=home&merchant=all&country=in&sort=newest:0
+[ 4387764ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4415205ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4415381ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4696721ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=home&merchant=all&country=in&sort=newest:0
+[ 4696721ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4947505ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5001/api/deals?page=1&limit=40&q=&category=home&merchant=all&country=in&sort=newest:0
+[ 4947505ms] [WARNING] [DealsFeed] API server at http://localhost:5001 is unreachable (Failed to fetch). Showing cached/SSR items. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4948873ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[ 4966681ms] [LOG] [Fast Refresh] done in 5ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776

@@ -1,0 +1,226 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - complementary [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - img "Admin Icon" [ref=f5e5]
+        - heading "ShoppersDeals" [level=2] [ref=f5e6]
+      - navigation [ref=f5e7]:
+        - link "dashboard Dashboard" [ref=f5e8] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f5e9]: dashboard
+          - text: Dashboard
+        - link "local_offer Deals" [ref=f5e10] [cursor=pointer]:
+          - /url: /deals
+          - generic [ref=f5e11]: local_offer
+          - text: Deals
+        - link "inventory_2 Products" [ref=f5e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=f5e13]: inventory_2
+          - text: Products
+        - link "group Audience" [ref=f5e14] [cursor=pointer]:
+          - /url: /audience
+          - generic [ref=f5e15]: group
+          - text: Audience
+        - link "hub Channel Network" [ref=f5e16] [cursor=pointer]:
+          - /url: /network
+          - generic [ref=f5e17]: hub
+          - text: Channel Network
+        - link "notifications Notifications" [ref=f5e18] [cursor=pointer]:
+          - /url: /notifications
+          - generic [ref=f5e19]: notifications
+          - text: Notifications
+        - link "smart_toy X Bot (USA)" [ref=f5e20] [cursor=pointer]:
+          - /url: /x-bot
+          - generic [ref=f5e21]: smart_toy
+          - text: X Bot (USA)
+        - link "settings Settings" [ref=f5e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=f5e23]: settings
+          - text: Settings
+        - link "account_tree Architecture" [ref=f5e24] [cursor=pointer]:
+          - /url: /architecture
+          - generic [ref=f5e25]: account_tree
+          - text: Architecture
+      - generic [ref=f5e26]: Daemon Online
+      - generic [ref=f5e29]:
+        - generic [ref=f5e30]: API Server URL
+        - textbox "http://localhost:5001" [ref=f5e31]
+    - main [ref=f5e32]:
+      - generic [ref=f5e33]:
+        - heading "System Configuration" [level=1] [ref=f5e34]
+        - generic [ref=f5e35]:
+          - generic [ref=f5e36]: "Queue: 0"
+          - generic [ref=f5e37]: "Deals Today: 42"
+          - generic [ref=f5e38]: "Products DB: 5140"
+          - generic [ref=f5e39]: "Total Users: 3"
+      - generic [ref=f5e41]:
+        - link "database Master Data" [ref=f5e42] [cursor=pointer]:
+          - /url: /settings/master
+          - generic [ref=f5e43]: database
+          - text: Master Data
+        - link "vpn_key API Tokens" [ref=f5e44] [cursor=pointer]:
+          - /url: /settings/tokens
+          - generic [ref=f5e45]: vpn_key
+          - text: API Tokens
+        - link "terminal System Logs" [ref=f5e46] [cursor=pointer]:
+          - /url: /settings/logs
+          - generic [ref=f5e47]: terminal
+          - text: System Logs
+      - generic [ref=f5e48]:
+        - generic [ref=f5e49]:
+          - generic [ref=f5e50]:
+            - generic [ref=f5e51]:
+              - heading "Scraping Engine & Proxy Pool" [level=1] [ref=f5e52]
+              - generic [ref=f5e53]: 1 Ready
+            - paragraph [ref=f5e55]: High-concurrency scraping token rotation pool and real-time request activity logs.
+          - generic [ref=f5e56]:
+            - button "download Export CSV" [ref=f5e57] [cursor=pointer]:
+              - generic [ref=f5e58]: download
+              - text: Export CSV
+            - button "sync Sync Tokens" [ref=f5e59] [cursor=pointer]:
+              - generic [ref=f5e60]: sync
+              - text: Sync Tokens
+        - generic [ref=f5e61]:
+          - button "key ScrapingAnt Token Pool (7)" [ref=f5e62] [cursor=pointer]:
+            - generic [ref=f5e63]: key
+            - text: ScrapingAnt Token Pool (7)
+          - button "receipt_long Scraping Logs & Activity Tracker" [ref=f5e64] [cursor=pointer]:
+            - generic [ref=f5e65]: receipt_long
+            - text: Scraping Logs & Activity Tracker
+        - generic [ref=f5e66]:
+          - generic [ref=f5e67]:
+            - generic [ref=f5e68]: key
+            - generic [ref=f5e70]: "7"
+            - generic [ref=f5e71]: Total Tokens in Pool
+            - generic [ref=f5e72]: Configured keys
+          - generic [ref=f5e73]:
+            - generic [ref=f5e74]: check_circle
+            - generic [ref=f5e76]: "1"
+            - generic [ref=f5e77]: Active & Ready
+            - generic [ref=f5e78]: 14% pool health
+          - generic [ref=f5e79]:
+            - generic [ref=f5e80]: battery_alert
+            - generic [ref=f5e82]: "6"
+            - generic [ref=f5e83]: Exhausted (429)
+            - generic [ref=f5e84]: Needs reactivating
+          - generic [ref=f5e85]:
+            - generic [ref=f5e86]: query_stats
+            - generic [ref=f5e88]: 4,558
+            - generic [ref=f5e89]: Total API Scrapes
+            - generic [ref=f5e90]: Lifetime requests made
+        - generic [ref=f5e91]:
+          - heading "Add ScrapingAnt Tokens" [level=3] [ref=f5e92]
+          - generic [ref=f5e94]:
+            - textbox "Paste ScrapingAnt token (e.g. 24269827...)" [ref=f5e95]
+            - button "Add Token" [disabled] [ref=f5e96]
+        - generic [ref=f5e97]:
+          - generic [ref=f5e99]:
+            - textbox "Search token..." [ref=f5e100]
+            - combobox [ref=f5e101]:
+              - option "All Status" [selected]
+              - option "Active"
+              - option "Exhausted"
+          - table [ref=f5e104]:
+            - rowgroup [ref=f5e105]:
+              - row [ref=f5e106]:
+                - columnheader [ref=f5e107]:
+                  - checkbox [ref=f5e108]
+                - columnheader "API Token" [ref=f5e109]
+                - columnheader "Status" [ref=f5e110]
+                - columnheader "Usage Count" [ref=f5e111]
+                - columnheader "Last Used" [ref=f5e112]
+                - columnheader "Actions" [ref=f5e113]
+            - rowgroup [ref=f5e114]:
+              - row [ref=f5e115]:
+                - cell [ref=f5e116]:
+                  - checkbox [ref=f5e117]
+                - cell [ref=f5e118]:
+                  - text: 24269••••••••c6e8
+                  - button "visibility" [ref=f5e119] [cursor=pointer]
+                  - button "content_copy" [ref=f5e121] [cursor=pointer]
+                - cell "● Active" [ref=f5e123]
+                - cell "83" [ref=f5e125]
+                - cell "Just now" [ref=f5e126]
+                - cell [ref=f5e127]:
+                  - button "Mark Exhausted" [ref=f5e128] [cursor=pointer]
+                  - button "Delete" [ref=f5e129] [cursor=pointer]
+              - row [ref=f5e130]:
+                - cell [ref=f5e131]:
+                  - checkbox [ref=f5e132]
+                - cell [ref=f5e133]:
+                  - text: 21056••••••••e349
+                  - button "visibility" [ref=f5e134] [cursor=pointer]
+                  - button "content_copy" [ref=f5e136] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e138]
+                - cell "114" [ref=f5e140]
+                - cell "2h ago" [ref=f5e141]
+                - cell [ref=f5e142]:
+                  - button "Reactivate" [ref=f5e143] [cursor=pointer]
+                  - button "Delete" [ref=f5e144] [cursor=pointer]
+              - row [ref=f5e145]:
+                - cell [ref=f5e146]:
+                  - checkbox [ref=f5e147]
+                - cell [ref=f5e148]:
+                  - text: e8a19••••••••1cfb
+                  - button "visibility" [ref=f5e149] [cursor=pointer]
+                  - button "content_copy" [ref=f5e151] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e153]
+                - cell "109" [ref=f5e155]
+                - cell "2h ago" [ref=f5e156]
+                - cell [ref=f5e157]:
+                  - button "Reactivate" [ref=f5e158] [cursor=pointer]
+                  - button "Delete" [ref=f5e159] [cursor=pointer]
+              - row [ref=f5e160]:
+                - cell [ref=f5e161]:
+                  - checkbox [ref=f5e162]
+                - cell [ref=f5e163]:
+                  - text: 30456••••••••7f46
+                  - button "visibility" [ref=f5e164] [cursor=pointer]
+                  - button "content_copy" [ref=f5e166] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e168]
+                - cell "963" [ref=f5e170]
+                - cell "4d ago" [ref=f5e171]
+                - cell [ref=f5e172]:
+                  - button "Reactivate" [ref=f5e173] [cursor=pointer]
+                  - button "Delete" [ref=f5e174] [cursor=pointer]
+              - row [ref=f5e175]:
+                - cell [ref=f5e176]:
+                  - checkbox [ref=f5e177]
+                - cell [ref=f5e178]:
+                  - text: 4b0cb••••••••f127
+                  - button "visibility" [ref=f5e179] [cursor=pointer]
+                  - button "content_copy" [ref=f5e181] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e183]
+                - cell "995" [ref=f5e185]
+                - cell "9 Aug 02:13" [ref=f5e186]
+                - cell [ref=f5e187]:
+                  - button "Reactivate" [ref=f5e188] [cursor=pointer]
+                  - button "Delete" [ref=f5e189] [cursor=pointer]
+              - row [ref=f5e190]:
+                - cell [ref=f5e191]:
+                  - checkbox [ref=f5e192]
+                - cell [ref=f5e193]:
+                  - text: 0a250••••••••5bfd
+                  - button "visibility" [ref=f5e194] [cursor=pointer]
+                  - button "content_copy" [ref=f5e196] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e198]
+                - cell "1305" [ref=f5e200]
+                - cell "7 Aug 12:31" [ref=f5e201]
+                - cell [ref=f5e202]:
+                  - button "Reactivate" [ref=f5e203] [cursor=pointer]
+                  - button "Delete" [ref=f5e204] [cursor=pointer]
+              - row [ref=f5e205]:
+                - cell [ref=f5e206]:
+                  - checkbox [ref=f5e207]
+                - cell [ref=f5e208]:
+                  - text: 0e783••••••••24c5
+                  - button "visibility" [ref=f5e209] [cursor=pointer]
+                  - button "content_copy" [ref=f5e211] [cursor=pointer]
+                - cell "○ Exhausted" [ref=f5e213]
+                - cell "989" [ref=f5e215]
+                - cell "5 Aug 11:55" [ref=f5e216]
+                - cell [ref=f5e217]:
+                  - button "Reactivate" [ref=f5e218] [cursor=pointer]
+                  - button "Delete" [ref=f5e219] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=f5e225] [cursor=pointer]
+  - alert [ref=f5e229]
