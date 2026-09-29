@@ -228,6 +228,9 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  versionKey: false,
+  optimisticConcurrency: false
 });
 
 productSchema.index({ cleanUrl: 1 });
