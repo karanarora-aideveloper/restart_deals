@@ -16,7 +16,7 @@ const LEVEL_BADGE = {
 };
 
 export default function LogsPage() {
-  const [apiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const [adminKey] = useState(() => typeof localStorage !== 'undefined' ? (localStorage.getItem('ADMIN_API_KEY') || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '') : (process.env.NEXT_PUBLIC_ADMIN_API_KEY || ''));
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {

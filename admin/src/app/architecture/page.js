@@ -110,7 +110,7 @@ const FIXED_NOTES = {
 
 export default function ArchitecturePage() {
   const [statusData, setStatusData] = useState({});
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   useEffect(() => {

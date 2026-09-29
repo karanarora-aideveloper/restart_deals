@@ -3,19 +3,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminShell from '@/components/admin-shell';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in';
 
 function getAdminKey() {
   if (typeof localStorage === 'undefined') return process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   return localStorage.getItem('ADMIN_API_KEY') || process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 }
 
-function apiFetch(path, opts = {}) {
+async function apiFetch(path, opts = {}) {
   const key = getAdminKey();
-  return fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: { ...(opts.headers || {}), ...(key ? { 'x-admin-key': key } : {}) },
-  });
+  const headers = { ...(opts.headers || {}), ...(key ? { 'x-admin-key': key } : {}) };
+  try {
+    const base = API_BASE ? API_BASE.replace(/\/+$/, '') : '';
+    const url = path.startsWith('http') ? path : `${base}${path}`;
+    return await fetch(url, { ...opts, headers });
+  } catch (err) {
+    if (!path.startsWith('http')) {
+      return await fetch(path, { ...opts, headers });
+    }
+    throw err;
+  }
 }
 
 function fmtNum(n) {

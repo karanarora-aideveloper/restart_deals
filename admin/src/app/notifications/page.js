@@ -48,7 +48,7 @@ function StatusBanner({ status, apiBase }) {
 }
 
 export default function NotificationsPage() {
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [status, setStatus] = useState(null);
   const [history, setHistory] = useState([]);

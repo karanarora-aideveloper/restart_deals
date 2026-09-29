@@ -116,7 +116,7 @@ export default function TokensPage() {
   const [autoRefreshLogs, setAutoRefreshLogs] = useState(true);
   const [selectedLogDetail, setSelectedLogDetail] = useState(null);
 
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   // Distributed scraper worker fleet — live count + per-worker console logs, distinct

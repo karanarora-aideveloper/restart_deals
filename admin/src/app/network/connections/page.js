@@ -642,7 +642,7 @@ function XAccountsSection({ apiFetch }) {
 }
 
 export default function ChannelManagementPage() {
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'http://localhost:3001');
+  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
   const [channels, setChannels] = useState([]);
   const [daemonOnline, setDaemonOnline] = useState(null);
