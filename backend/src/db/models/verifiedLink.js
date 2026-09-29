@@ -58,6 +58,10 @@ const verifiedLinkSchema = new mongoose.Schema({
   originalPrice: {
     type: Number
   },
+  variant: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   isActive: { 
     type: Boolean, 
     default: true 

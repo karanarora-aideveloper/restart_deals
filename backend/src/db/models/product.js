@@ -158,6 +158,10 @@ const productSchema = new mongoose.Schema({
     weightGrams: { type: Number, default: null },
     packSize: { type: Number, default: 1 },
     totalGrams: { type: Number, default: null },
+    storageGb: { type: Number, default: null },
+    ramGb: { type: Number, default: null },
+    color: { type: String, default: null },
+    shade: { type: String, default: null },
     type: { type: String, default: null },
   },
   // Multi-shade/size SKUs for beauty & fashion

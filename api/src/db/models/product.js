@@ -147,12 +147,16 @@ const productSchema = new mongoose.Schema({
   // Used to detect mismatches when comparing prices across stores —
   // e.g. Amazon 2 kg vs Flipkart 1 kg should NOT be compared directly.
   variant: {
-    raw: { type: String, default: null },       // raw matched text, e.g. "2 kg"
-    display: { type: String, default: null },   // formatted label, e.g. "2 kg × 2"
+    raw: { type: String, default: null },       // raw matched text, e.g. "8 GB RAM / 256 GB • Blue"
+    display: { type: String, default: null },   // formatted label, e.g. "256 GB • Blue" or "Shade: 128 Warm Nude"
     weightGrams: { type: Number, default: null }, // single-unit weight in grams
     packSize: { type: Number, default: 1 },       // number of units in pack
     totalGrams: { type: Number, default: null }, // weightGrams * packSize
-    type: { type: String, default: null },       // 'weight'|'volume'|'count'|'piece'
+    storageGb: { type: Number, default: null },  // tech storage in GB
+    ramGb: { type: Number, default: null },      // tech RAM in GB
+    color: { type: String, default: null },      // tech/fashion color
+    shade: { type: String, default: null },      // cosmetic/beauty shade
+    type: { type: String, default: null },       // 'weight'|'volume'|'count'|'piece'|'tech_storage'|'shade'
   },
   // Multi-shade/size SKUs for beauty & fashion
   variants: [variantSkuSchema],

@@ -3,7 +3,8 @@
  *
  * Extracts and normalizes product variant/size information from product titles
  * so that cross-store price comparisons can detect mismatches (e.g., comparing
- * a 2 kg pack on Amazon against a 1 kg pack on Flipkart).
+ * a 2 kg pack on Amazon against a 1 kg pack on Flipkart, or a 128 GB phone against 256 GB,
+ * or Shade 128 vs Shade 220 in beauty/cosmetics).
  *
  * Exported:
  *   extractVariant(title)         → VariantInfo | null
@@ -14,12 +15,16 @@
 /**
  * VariantInfo shape:
  * {
- *   raw: string,           // The matched text, e.g. "2 kg (Pack of 1)"
- *   display: string,       // Clean display label, e.g. "2 kg"
- *   weightGrams: number|null,  // Normalised weight in grams (or ml for liquids)
- *   packSize: number,      // Number of units in the pack (default 1)
- *   totalGrams: number|null,   // weightGrams * packSize — the true comparable unit
- *   type: 'weight'|'volume'|'count'|'piece'|'unknown'
+ *   raw: string,              // The matched text, e.g. "8 GB RAM / 256 GB • Blue"
+ *   display: string,          // Clean display label, e.g. "256 GB • Blue" or "Shade: 128 Warm Nude"
+ *   weightGrams: number|null, // Normalised weight in grams (or ml for liquids)
+ *   packSize: number,         // Number of units in the pack (default 1)
+ *   totalGrams: number|null,  // weightGrams * packSize — the true comparable unit
+ *   storageGb: number|null,   // Internal storage in GB (e.g. 128, 256, 512, 1024)
+ *   ramGb: number|null,       // RAM in GB (e.g. 6, 8, 12, 16)
+ *   color: string|null,       // Color variant name (e.g. "Onyx Black", "Blue")
+ *   shade: string|null,       // Beauty shade code/name (e.g. "128 Warm Nude", "NC25")
+ *   type: 'weight'|'volume'|'count'|'piece'|'tech_storage'|'shade'|'unknown'
  * }
  */
 
@@ -68,13 +73,113 @@ function parsePackSize(text) {
 
 /**
  * Extract variant information from a product title string.
- * Returns null if no recognisable size/weight/quantity is found.
+ * Returns null if no recognisable size/weight/storage/shade is found.
  */
 export function extractVariant(title) {
   if (!title || typeof title !== 'string') return null;
 
-  // ---- 1. Weight / volume pattern: "2 kg", "500g", "1.5L", "250 ml", "500 gm" ----
-  const weightPattern = /(\d+(?:\.\d+)?)\s*(kg|kgs|kilogram|kilograms|g|gm|gms|gram|grams|mg|milligram|milligrams|l|lt|ltr|litre|litres|liter|liters|ml|milliliter|millilitre|milliliters|millilitres)\b/gi;
+  // ---- 1. Tech Storage & RAM (Smartphones, Tablets, Laptops) ----
+  let ramGb = null;
+  const ramMatch = title.match(/(\d+)\s*(?:GB|gb)\s*RAM\b/i);
+  if (ramMatch) ramGb = parseInt(ramMatch[1], 10);
+
+  let storageGb = null;
+  const tbMatch = title.match(/(\d+)\s*(?:TB|tb)\s*(?:storage|rom)?(?!\s*RAM)\b/i);
+  if (tbMatch) {
+    storageGb = parseInt(tbMatch[1], 10) * 1024;
+  } else {
+    // Avoid matching RAM as storage
+    const storageRegex = /(?:,\s*|\b)(\d+)\s*(?:GB|gb)\s*(?:storage|rom)?(?!\s*RAM)\b/gi;
+    let sm;
+    while ((sm = storageRegex.exec(title)) !== null) {
+      const val = parseInt(sm[1], 10);
+      if (val >= 16 && val <= 1024) {
+        if (!ramGb || val !== ramGb) {
+          storageGb = val;
+        }
+      }
+    }
+  }
+
+  if (storageGb || ramGb) {
+    let color = null;
+    // Flipkart syntax: (Color, 128 GB)
+    const fkMatch = title.match(/\(([^,()]+),\s*(?:\d+\s*(?:GB|TB))/i);
+    if (fkMatch) {
+      color = fkMatch[1].trim();
+    } else {
+      // Amazon syntax: (Color, 8GB RAM, 128GB Storage)
+      const amzMatch = title.match(/\(([^,()]+),\s*(?:\d+GB\s*RAM|\d+GB\s*Storage)/i);
+      if (amzMatch) color = amzMatch[1].trim();
+    }
+
+    let display = '';
+    if (ramGb && storageGb) {
+      display = `${ramGb} GB RAM / ${storageGb >= 1024 ? (storageGb / 1024) + ' TB' : storageGb + ' GB'}`;
+    } else if (storageGb) {
+      display = `${storageGb >= 1024 ? (storageGb / 1024) + ' TB' : storageGb + ' GB'}`;
+    } else if (ramGb) {
+      display = `${ramGb} GB RAM`;
+    }
+
+    if (color) display += ` • ${color}`;
+
+    return {
+      raw: display,
+      display,
+      weightGrams: null,
+      packSize: 1,
+      totalGrams: null,
+      storageGb,
+      ramGb,
+      color,
+      shade: null,
+      type: 'tech_storage',
+    };
+  }
+
+  // ---- 2. Cosmetic & Beauty Shade (Nykaa, Myntra, Amazon Beauty) ----
+  const shadeMatch = title.match(/(?:[-–|]\s*)([A-Za-z0-9\s/+#.]+?)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*(ml|g|gm|kg)\s*\))?$/i);
+  if (shadeMatch) {
+    const candidate = shadeMatch[1].trim();
+    const isBeautyShade =
+      /^\d{1,3}\b/.test(candidate) ||
+      /^N[CW]\d{2}\b/i.test(candidate) ||
+      /\b(?:shade|no\.)\b/i.test(candidate) ||
+      (candidate.length <= 25 && /^[A-Z][a-z]+(?:\s+[A-Z0-9][A-Za-z0-9]*)*$/.test(candidate));
+
+    if (isBeautyShade) {
+      let volumeGrams = null;
+      if (shadeMatch[2] && shadeMatch[3]) {
+        const vVal = parseFloat(shadeMatch[2]);
+        const vUnit = shadeMatch[3].toLowerCase();
+        const multiplier = WEIGHT_UNITS[vUnit] || 1;
+        volumeGrams = vVal * multiplier;
+      }
+
+      let display = `Shade: ${candidate}`;
+      if (volumeGrams) {
+        display += ` (${volumeGrams >= 1000 ? (volumeGrams / 1000) + ' L' : volumeGrams + ' ml'})`;
+      }
+
+      return {
+        raw: candidate,
+        display,
+        weightGrams: volumeGrams,
+        packSize: 1,
+        totalGrams: volumeGrams,
+        storageGb: null,
+        ramGb: null,
+        color: null,
+        shade: candidate,
+        type: 'shade',
+      };
+    }
+  }
+
+  // ---- 3. Weight / volume pattern: "2 kg", "500g", "1.5L", "250 ml", "500 gm" ----
+  // Negative lookahead to ensure bytes/ram like "GB" or "TB" are not matched as grams
+  const weightPattern = /(\d+(?:\.\d+)?)\s*(kg|kgs|kilogram|kilograms|g|gm|gms|gram|grams|mg|milligram|milligrams|l|lt|ltr|litre|litres|liter|liters|ml|milliliter|millilitre|milliliters|millilitres)\b(?!\s*(?:b|byte|bit|ram))/gi;
 
   let bestWeight = null;
   let bestUnit = null;
@@ -117,15 +222,15 @@ export function extractVariant(title) {
       weightGrams: bestWeight,
       packSize,
       totalGrams,
+      storageGb: null,
+      ramGb: null,
+      color: null,
+      shade: null,
       type,
     };
   }
 
-  // ---- 2. Count / piece pattern: "Pack of 6", "6 pcs", "Combo of 3" ----
-  const countPattern = /(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)\b/i
-    || /pack\s+of\s+(\d+)/i
-    || /combo\s+of\s+(\d+)/i;
-
+  // ---- 4. Count / piece pattern: "Pack of 6", "6 pcs", "Combo of 3" ----
   const countMatch = title.match(/(\d+)\s*(?:pcs?|pieces?|nos?\.?|units?|tablets?|capsules?|sachets?|pouches?|strips?|count)\b/i)
     || title.match(/\bpack\s+of\s+(\d+)/i)
     || title.match(/\bcombo\s+of\s+(\d+)/i)
@@ -140,12 +245,16 @@ export function extractVariant(title) {
         weightGrams: null,
         packSize: count,
         totalGrams: null,
+        storageGb: null,
+        ramGb: null,
+        color: null,
+        shade: null,
         type: 'count',
       };
     }
   }
 
-  // ---- 3. Size labels: "Small", "Medium", "Large", "XL", "XXL" ----
+  // ---- 5. Clothing Size labels: "Small", "Medium", "Large", "XL", "XXL" ----
   const sizeMatch = title.match(/\b(XS|S|M|L|XL|XXL|XXXL|Small|Medium|Large|Extra\s*Large)\b/i);
   if (sizeMatch) {
     return {
@@ -154,6 +263,10 @@ export function extractVariant(title) {
       weightGrams: null,
       packSize: 1,
       totalGrams: null,
+      storageGb: null,
+      ramGb: null,
+      color: null,
+      shade: null,
       type: 'piece',
     };
   }
@@ -168,12 +281,29 @@ export function extractVariant(title) {
 const TOLERANCE = 0.05;
 
 /**
- * Returns true if two VariantInfo objects represent the same effective size.
+ * Returns true if two VariantInfo objects represent the same effective size or specification.
  * null variants are considered "unknown" — we return true (no mismatch flagged)
  * to avoid false positives on products without recognisable size info.
  */
 export function variantsMatch(a, b) {
   if (!a || !b) return true; // unknown variant — don't flag
+
+  // Tech storage and RAM comparison
+  if (a.type === 'tech_storage' && b.type === 'tech_storage') {
+    if (a.storageGb && b.storageGb && a.storageGb !== b.storageGb) return false;
+    if (a.ramGb && b.ramGb && a.ramGb !== b.ramGb) return false;
+    return true;
+  }
+
+  // Cosmetic shade comparison
+  if (a.type === 'shade' && b.type === 'shade') {
+    if (a.shade && b.shade && a.shade.toLowerCase() !== b.shade.toLowerCase()) return false;
+    if (a.totalGrams !== null && b.totalGrams !== null) {
+      const ratio = a.totalGrams / b.totalGrams;
+      return ratio >= (1 - TOLERANCE) && ratio <= (1 + TOLERANCE);
+    }
+    return true;
+  }
 
   // Both have weight: compare totalGrams within tolerance
   if (a.totalGrams !== null && b.totalGrams !== null) {
@@ -201,6 +331,26 @@ export function variantsMatch(a, b) {
 export function variantMismatchReason(a, b) {
   if (variantsMatch(a, b)) return null;
 
+  if (a.type === 'tech_storage' && b.type === 'tech_storage') {
+    if (a.storageGb && b.storageGb && a.storageGb !== b.storageGb) {
+      const aS = a.storageGb >= 1024 ? `${a.storageGb / 1024} TB` : `${a.storageGb} GB`;
+      const bS = b.storageGb >= 1024 ? `${b.storageGb / 1024} TB` : `${b.storageGb} GB`;
+      return `Storage mismatch: ${aS} (this product) vs ${bS} (matched product). Prices are not comparable.`;
+    }
+    if (a.ramGb && b.ramGb && a.ramGb !== b.ramGb) {
+      return `RAM mismatch: ${a.ramGb} GB RAM (this product) vs ${b.ramGb} GB RAM (matched product). Prices are not comparable.`;
+    }
+  }
+
+  if (a.type === 'shade' && b.type === 'shade') {
+    if (a.shade && b.shade && a.shade.toLowerCase() !== b.shade.toLowerCase()) {
+      return `Shade mismatch: ${a.shade} (this product) vs ${b.shade} (matched product). Prices may vary significantly by shade.`;
+    }
+    if (a.totalGrams !== null && b.totalGrams !== null) {
+      return `Size mismatch: ${a.display} vs ${b.display}.`;
+    }
+  }
+
   if (a && b && a.totalGrams !== null && b.totalGrams !== null) {
     return `Size mismatch: comparing ${a.display} (this product) vs ${b.display} (matched product). Prices may not be comparable.`;
   }
@@ -209,3 +359,4 @@ export function variantMismatchReason(a, b) {
   }
   return `Variant mismatch: ${a?.display || '?'} vs ${b?.display || '?'}`;
 }
+
