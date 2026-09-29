@@ -69,6 +69,12 @@ export function initDealPublishWorker() {
         return { status: 'skipped', reason: 'deal_expired' };
       }
 
+      // Discount Gate: Must have an authentic discount (> 0%)
+      if (!deal.discountPercentage || deal.discountPercentage <= 0) {
+        console.log(`[DealPublishWorker] Deal "${deal.title}" has 0% discount. Skipping broadcast.`);
+        return { status: 'skipped', reason: 'zero_discount' };
+      }
+
       // Trust Gate: Items with poor rating (< 3.8 stars) are suppressed from public broadcast
       if (deal.rating && deal.rating < 3.8) {
         console.log(`[DealPublishWorker] Deal "${deal.title}" rating (${deal.rating}/5) is below 3.8 threshold. Skipping main broadcast.`);

@@ -1881,10 +1881,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   const hasImage = dealImages.length > 0;
   const hasPrice = verifiedDealPrice != null && verifiedDealPrice > 0;
-  const isFullyVerified = isPriceVerified && hasImage && hasPrice;
+  const hasQualifyingDiscount = discountPercentage > 0;
+  const isFullyVerified = isPriceVerified && hasImage && hasPrice && hasQualifyingDiscount;
 
   if (!isFullyVerified) {
-    console.warn(`[Verifier Warning] Incomplete or unverified deal for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ${hasPrice} (₹${verifiedDealPrice || 'N/A'}). Recording Product entry (needsEnrichment) and skipping Deal creation.`);
+    console.log(`[Verifier Info] Incomplete or non-deal product for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ₹${verifiedDealPrice || 'N/A'}, discount: ${discountPercentage}%. Saved to products catalog for price tracking. Skipping Deal broadcast.`);
   }
 
   const isGenericTitle = (t) => {
