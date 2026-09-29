@@ -232,12 +232,20 @@ async function crawlOneSeed(seed, stats) {
             existing.imageUrl = prodData.imageUrl;
             existing.images = prodData.images;
           }
+          existing.isTop20 = true;
+          existing.top20Category = prodData.category;
+          existing.top20Subcategory = prodData.subcategory;
+          if (!existing.productSource) existing.productSource = 'top20_catalog';
           await existing.save();
           stats.productsUpdated++;
           seedResult.updated++;
         } else {
           const newProduct = new Product({
             ...prodData,
+            isTop20: true,
+            top20Category: prodData.category,
+            top20Subcategory: prodData.subcategory,
+            productSource: 'top20_catalog',
             priceHistory: [{ date: todayStr, price: prodData.price, originalPrice: prodData.originalPrice, timestamp: now }],
             lastChecked: now,
             priceUpdatedAt: now,
@@ -247,7 +255,7 @@ async function crawlOneSeed(seed, stats) {
           await newProduct.save();
           stats.productsEnrolled++;
           seedResult.enrolled++;
-          console.log(`  ✓ Enrolled: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
+          console.log(`  ✓ Enrolled Top-20: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
         }
       }
 
