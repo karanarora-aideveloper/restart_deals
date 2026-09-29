@@ -19,7 +19,7 @@ const scrapingLogSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'other'],
+    enum: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'catalog_top20', 'other'],
     default: 'other',
     index: true,
   },

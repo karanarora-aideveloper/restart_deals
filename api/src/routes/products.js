@@ -52,6 +52,16 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
       query.$and = (query.$and || []).concat([{ $or: [{ isFlagged: false }, { isFlagged: { $exists: false } }] }]);
     }
 
+    if (req.query.isTop20 === 'true') {
+      query.isTop20 = true;
+    } else if (req.query.isTop20 === 'false') {
+      query.$and = (query.$and || []).concat([{ $or: [{ isTop20: false }, { isTop20: { $exists: false } }] }]);
+    }
+
+    if (req.query.productSource && req.query.productSource !== 'all') {
+      query.productSource = req.query.productSource;
+    }
+
     // Deal frequency & count filter (Admin feature: find products with multiple deals)
     if (req.query.dealsFilter && req.query.dealsFilter !== 'all') {
       if (req.query.dealsFilter === 'multiple') {

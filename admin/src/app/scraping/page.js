@@ -52,6 +52,7 @@ const SOURCE_COLORS = {
   telegram: '#f59e0b',
   interactive: '#10b981',
   bestseller_crawler: '#8b5cf6',
+  catalog_top20: '#06b6d4',
   manual_rescrape: '#ec4899',
   other: '#6b7280',
 };

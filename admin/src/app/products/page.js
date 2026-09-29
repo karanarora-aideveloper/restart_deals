@@ -376,6 +376,29 @@ function ProductInfoCell({ p, onShowToast }) {
             {merchant}
           </span>
 
+          {p.isTop20 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 2,
+              background: 'rgba(139, 92, 246, 0.12)', color: '#7c3aed',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: 4, padding: '1px 5px', fontSize: '0.68rem', fontWeight: 700
+            }} title={`Engine 2 Top 20 Watcher — Rank #${p.top20Rank || '—'}`}>
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }}>military_tech</span>
+              Top 20 #{p.top20Rank || '—'}
+            </span>
+          )}
+
+          {p.productSource && (
+            <span style={{
+              fontSize: '0.66rem', fontWeight: 600, padding: '1px 5px', borderRadius: 4,
+              background: p.productSource === 'telegram' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+              color: p.productSource === 'telegram' ? '#b45309' : '#1d4ed8',
+              border: `1px solid ${p.productSource === 'telegram' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`
+            }}>
+              {p.productSource === 'telegram' ? 'Telegram' : p.productSource === 'top20_catalog' ? 'Catalog Top-20' : p.productSource}
+            </span>
+          )}
+
           {p.productId && (
             <span style={{
               fontFamily: 'monospace',
@@ -453,6 +476,8 @@ export default function ProductsPage() {
   const [priceSource, setPriceSource] = useState('all'); // 'all' | 'scraped' | 'ai_text' | 'price_history'
   const [imageStatus, setImageStatus] = useState('all'); // 'all' | 'missing' | 'has_image'
   const [minRating, setMinRating] = useState('all'); // 'all' | '4' | '3'
+  const [isTop20Filter, setIsTop20Filter] = useState('all'); // 'all' | 'true' | 'false'
+  const [productSourceFilter, setProductSourceFilter] = useState('all'); // 'all' | 'telegram' | 'top20_catalog' | 'bestseller'
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const activeFiltersCount = useMemo(() => {
@@ -466,8 +491,10 @@ export default function ProductsPage() {
     if (priceSource !== 'all') count++;
     if (imageStatus !== 'all') count++;
     if (minRating !== 'all') count++;
+    if (isTop20Filter !== 'all') count++;
+    if (productSourceFilter !== 'all') count++;
     return count;
-  }, [productsCategory, productsSubcategory, productsCountry, productsFlagged, dealsFilter, minDiscount, priceSource, imageStatus, minRating]);
+  }, [productsCategory, productsSubcategory, productsCountry, productsFlagged, dealsFilter, minDiscount, priceSource, imageStatus, minRating, isTop20Filter, productSourceFilter]);
 
   // Selection & UI Mode
   const [productsSelectedIds, setProductsSelectedIds] = useState([]);
@@ -575,6 +602,8 @@ export default function ProductsPage() {
     if (priceSource !== 'all') params.set('priceSource', priceSource);
     if (imageStatus !== 'all') params.set('imageStatus', imageStatus);
     if (minRating !== 'all') params.set('minRating', minRating);
+    if (isTop20Filter !== 'all') params.set('isTop20', isTop20Filter);
+    if (productSourceFilter !== 'all') params.set('productSource', productSourceFilter);
 
     try {
       const res = await apiFetch(`/api/products?${params.toString()}`);
@@ -594,7 +623,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch, productsSearch, productsMerchant, productsCategory, productsSubcategory, productsCountry, productsSort, productsFlagged, dealsFilter, minDiscount, priceSource, imageStatus, minRating, productsLimit]);
+  }, [apiFetch, productsSearch, productsMerchant, productsCategory, productsSubcategory, productsCountry, productsSort, productsFlagged, dealsFilter, minDiscount, priceSource, imageStatus, minRating, isTop20Filter, productSourceFilter, productsLimit]);
 
   // Fetch Flagged Count
   const fetchFlaggedCount = useCallback(async () => {
@@ -633,10 +662,12 @@ export default function ProductsPage() {
     setPriceSource('all');
     setImageStatus('all');
     setMinRating('all');
+    setIsTop20Filter('all');
+    setProductSourceFilter('all');
     setProductsSort('recently_checked');
   };
 
-  const hasActiveFilters = productsSearch || productsMerchant !== 'all' || productsCategory !== 'all' || productsSubcategory !== 'all' || productsCountry !== 'all' || productsFlagged !== 'all' || dealsFilter !== 'all' || minDiscount !== 'all' || priceSource !== 'all' || imageStatus !== 'all' || minRating !== 'all' || productsSort !== 'recently_checked';
+  const hasActiveFilters = productsSearch || productsMerchant !== 'all' || productsCategory !== 'all' || productsSubcategory !== 'all' || productsCountry !== 'all' || productsFlagged !== 'all' || dealsFilter !== 'all' || minDiscount !== 'all' || priceSource !== 'all' || imageStatus !== 'all' || minRating !== 'all' || isTop20Filter !== 'all' || productSourceFilter !== 'all' || productsSort !== 'recently_checked';
 
   // Bulk Delete
   const handleBulkDeleteProducts = useCallback(async () => {
@@ -986,6 +1017,34 @@ export default function ProductsPage() {
             }}
           >
             All Products ({productsTotalCount.toLocaleString()})
+          </button>
+
+          <button
+            onClick={() => setIsTop20Filter(prev => prev === 'true' ? 'all' : 'true')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: isTop20Filter === 'true' ? '#7c3aed' : 'rgba(124, 58, 237, 0.08)',
+              color: isTop20Filter === 'true' ? '#fff' : '#7c3aed',
+              border: `1px solid ${isTop20Filter === 'true' ? '#7c3aed' : 'rgba(124, 58, 237, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>military_tech</span>
+            ⭐ Top-20 Catalog (Engine 2)
+          </button>
+
+          <button
+            onClick={() => setProductSourceFilter(prev => prev === 'telegram' ? 'all' : 'telegram')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: productSourceFilter === 'telegram' ? '#d97706' : 'rgba(217, 119, 6, 0.08)',
+              color: productSourceFilter === 'telegram' ? '#fff' : '#b45309',
+              border: `1px solid ${productSourceFilter === 'telegram' ? '#d97706' : 'rgba(217, 119, 6, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>send</span>
+            📡 Telegram Sourced (Engine 1)
           </button>
 
           <button
