@@ -48,6 +48,24 @@ export default function SettingsLayout({ children }) {
             API Tokens
           </Link>
           <Link
+            href="/settings/crawler"
+            style={{
+              padding: '12px 16px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              color: pathname.includes('/settings/crawler') ? 'var(--accent)' : 'var(--text-muted)',
+              borderBottom: pathname.includes('/settings/crawler') ? '3px solid var(--accent)' : '3px solid transparent',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span className="material-symbols-outlined">star</span>
+            Bestseller Crawler
+          </Link>
+          <Link
             href="/settings/logs"
             style={{
               padding: '12px 16px',
