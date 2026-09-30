@@ -53,7 +53,7 @@ export async function checkAndReplenishTokens({
             existing.status = 'active';
             existing.email = email || existing.email;
             existing.lastUsedAt = new Date();
-            existing.cooldownUntil = undefined;
+            existing.cooldownUntil = null;
             existing.planTotalCredits = 10000;
             await existing.save();
             console.log(`[TokenReplenisher] Reactivated existing token in DB: ${token.slice(0, 8)}...`);
@@ -63,6 +63,7 @@ export async function checkAndReplenishTokens({
               email,
               status: 'active',
               usageCount: 0,
+              cooldownUntil: null,
               lastUsedAt: new Date(),
               planTotalCredits: 10000,
             });
@@ -108,6 +109,40 @@ export async function triggerTokenReplenishmentIfLow() {
 }
 
 /**
+ * Automatically reset exhausted ScrapingAnt tokens whose 30-day limits have expired
+ * or whose monthly renewalDate has passed.
+ */
+export async function checkAndResetExpiredTokens() {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+
+    const expiredTokens = await ScrapingAntToken.find({
+      status: 'exhausted',
+      $or: [
+        { exhaustedAt: { $lte: thirtyDaysAgo } },
+        { renewalDate: { $lte: now } },
+      ]
+    });
+
+    if (expiredTokens.length > 0) {
+      console.log(`[TokenReplenisher] Found ${expiredTokens.length} token(s) past 30-day cycle. Reactivating...`);
+      for (const t of expiredTokens) {
+        t.status = 'active';
+        t.usageCount = 0;
+        t.cooldownUntil = null;
+        t.exhaustedAt = undefined;
+        t.lastUsedAt = new Date();
+        await t.save();
+        console.log(`[TokenReplenisher] ✓ Reactivated 30-day renewed token: ${t.token.slice(0, 8)}...`);
+      }
+    }
+  } catch (err) {
+    console.warn('[TokenReplenisher] Error checking/resetting expired tokens:', err.message);
+  }
+}
+
+/**
  * Start the autonomous token replenisher background scheduler.
  * Runs every `intervalMinutes` (default: 30 minutes).
  */
@@ -115,16 +150,19 @@ export function startTokenReplenisherScheduler(intervalMinutes = 30) {
   console.log(`[TokenReplenisher] Initializing autonomous token pool replenishment scheduler (cadence: every ${intervalMinutes}m)...`);
 
   // Run initial pool check 10 seconds after server startup
-  setTimeout(() => {
-    checkAndReplenishTokens().catch(err => {
+  setTimeout(async () => {
+    await checkAndResetExpiredTokens().catch(() => {});
+    await checkAndReplenishTokens().catch(err => {
       console.warn('[TokenReplenisher Scheduler] Initial check failed:', err.message);
     });
   }, 10000);
 
   // Periodic interval
-  setInterval(() => {
-    checkAndReplenishTokens().catch(err => {
+  setInterval(async () => {
+    await checkAndResetExpiredTokens().catch(() => {});
+    await checkAndReplenishTokens().catch(err => {
       console.warn('[TokenReplenisher Scheduler] Periodic check failed:', err.message);
     });
   }, intervalMinutes * 60 * 1000);
 }
+
