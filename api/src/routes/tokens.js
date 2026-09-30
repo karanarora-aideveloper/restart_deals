@@ -1,6 +1,7 @@
 import express from 'express';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import { runBatchAutomation, getAutomationStatus, requestAbort, runScrapingAntAutomation, submitOtpCode, runLoginTest } from '../scripts/scrapingAntAutomation.js';
+import { checkAndReplenishTokens } from '../services/tokenReplenisher.js';
 
 const router = express.Router();
 
@@ -233,6 +234,29 @@ router.post('/generate-scrapingant', async (req, res) => {
   }).catch((err) => {
     console.error(`[Automation] Batch run failed:`, err.message);
   });
+});
+
+/**
+ * POST /api/tokens/replenish
+ * Explicitly trigger the autonomous token pool health check and auto-replenishment
+ * Body: { minThreshold?: 5, targetPool?: 8, force?: false }
+ */
+router.post('/replenish', async (req, res) => {
+  const { minThreshold, targetPool, force = false } = req.body || {};
+  try {
+    const result = await checkAndReplenishTokens({
+      minThreshold: minThreshold ? parseInt(minThreshold, 10) : undefined,
+      targetPool: targetPool ? parseInt(targetPool, 10) : undefined,
+      force: force === true,
+    });
+    res.json({
+      success: true,
+      message: 'Token pool replenishment check completed',
+      result,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 /**

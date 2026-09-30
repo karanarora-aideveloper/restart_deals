@@ -11,7 +11,7 @@ import { createRedisConnection } from '../utils/redis.js';
 import { installSystemLogger } from '../utils/systemLogger.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
-import { scrapeWithHeadlessBrowser } from './headlessScraper.js';
+import { triggerTokenReplenishmentIfLow } from './tokenReplenisher.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
@@ -89,46 +89,9 @@ async function recordScrapingLog(data) {
 }
 
 /**
- * Execute Playwright Headless Browser fallback
- */
-export async function executePlaywrightJob(url, source = 'other') {
-  const startTime = Date.now();
-  console.log(`[ScraperWorker] 🎭 Executing Playwright Headless Browser for ${url.slice(0, 50)}...`);
-  try {
-    const html = await scrapeWithHeadlessBrowser(url, { timeoutMs: 35000 });
-    if (!html) {
-      await recordScrapingLog({
-        url,
-        source,
-        mode: 'playwright_headless',
-        status: 'error',
-        statusCode: 500,
-        durationMs: Date.now() - startTime,
-        errorMessage: 'Playwright navigation returned empty HTML',
-      });
-      return null;
-    }
-    const extracted = extractBasicMetadata(html);
-    const durationMs = Date.now() - startTime;
-    await recordScrapingLog({
-      url,
-      source,
-      mode: 'playwright_headless',
-      status: 'success',
-      statusCode: 200,
-      durationMs,
-      extractedData: extracted,
-    });
-    const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
-    return { htmlGzip, extractedData: extracted, durationMs };
-  } catch (err) {
-    console.error(`[ScraperWorker Playwright Error] ${url.slice(0, 45)}:`, err.message);
-    return null;
-  }
-}
-
-/**
  * Execute ScrapingAnt Request with Token Lease & Backoff
+ * STRICT: 100% of store scraping flows through ScrapingAnt proxy tokens.
+ * Direct scraping and local headless browsing are completely disabled.
  */
 export async function executeScrapingAntJob(url, source = 'other') {
   const startTime = Date.now();
@@ -148,8 +111,12 @@ export async function executeScrapingAntJob(url, source = 'other') {
   ).lean();
 
   if (!leased) {
-    console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found. Seamlessly falling back to Playwright headless browser...');
-    return await executePlaywrightJob(url, source);
+    console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found in pool! Auto-replenishment triggered. Re-enqueuing job...');
+    triggerTokenReplenishmentIfLow().catch(err => {
+      console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
+    });
+    // Throw error so BullMQ retries with backoff instead of direct scraping
+    throw new Error('No active ScrapingAnt tokens available. Auto-replenishment triggered; waiting for tokens.');
   }
 
   const isUs = url.includes('amazon.com') || url.includes('.us');
@@ -271,7 +238,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
   }
 
   if (response.status === 403) {
-    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403). Falling back to Playwright...`);
+    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403). Rotating token & checking replenishment...`);
     await ScrapingAntToken.updateOne({ token }, { status: 'exhausted', exhaustedAt: new Date() }).catch(() => {});
     await recordScrapingLog({
       url,
@@ -280,13 +247,17 @@ export async function executeScrapingAntJob(url, source = 'other') {
       status: '403_exhausted',
       statusCode: 403,
       durationMs,
-      errorMessage: 'Token quota exhausted (403) - falling back to Playwright',
+      errorMessage: 'Token quota exhausted (403)',
     });
-    return await executePlaywrightJob(url, source);
+    triggerTokenReplenishmentIfLow().catch(err => {
+      console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
+    });
+    // Throw error so BullMQ retries the job and leases a fresh token
+    throw new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403) - rotating to fresh token`);
   }
 
   if (response.status === 423) {
-    console.warn(`[ScraperWorker] ScrapingAnt 423 on ${url.slice(0, 45)}. Falling back to Playwright...`);
+    console.warn(`[ScraperWorker] ScrapingAnt 423 (Anti-scraping protection) on ${url.slice(0, 45)}. Direct scraping fallback is disabled.`);
     await recordScrapingLog({
       url,
       source,
@@ -294,9 +265,9 @@ export async function executeScrapingAntJob(url, source = 'other') {
       status: 'error',
       statusCode: 423,
       durationMs,
-      errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection) - falling back to Playwright',
+      errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection)',
     });
-    return await executePlaywrightJob(url, source);
+    return null;
   }
 
   if (response.ok) {

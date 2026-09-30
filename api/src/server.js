@@ -22,6 +22,7 @@ import { startXBotScheduler } from './jobs/xBotScheduler.js';
 import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
 import { startBestsellerCrawlerScheduler } from './jobs/bestsellerCrawler.js';
 import { startTop20PriceWatcherScheduler } from './jobs/top20PriceWatcher.js';
+import { startTokenReplenisherScheduler } from './services/tokenReplenisher.js';
 import { requireAdminAuth } from './middleware/adminAuth.js';
 
 const app = express();
@@ -121,6 +122,7 @@ export function startServer() {
       startDailyProductRefresher();
       startBestsellerCrawlerScheduler();
       startTop20PriceWatcherScheduler();
+      startTokenReplenisherScheduler();
       resolve(server);
     });
   });

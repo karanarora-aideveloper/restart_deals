@@ -2,12 +2,10 @@ import * as cheerio from 'cheerio';
 import { extractVariant } from '../utils/variantExtractor.js';
 import Deal from '../db/models/deal.js';
 import VerifiedLink from '../db/models/verifiedLink.js';
-import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import Product from '../db/models/product.js';
 import Master from '../db/models/master.js';
 import DealChannelEvent from '../db/models/dealChannelEvent.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
-import { scrapeWithHeadlessBrowser } from '../services/headlessScraper.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 
@@ -641,14 +639,8 @@ export async function scrapeProductDetails(targetUrl) {
       console.warn(`[Verifier] Scraper queue enqueue error for ${targetUrl.slice(0, 45)}:`, qErr.message);
     }
 
-    // 2. Playwright Headless Browser fallback (No bare HTTP fetch, bypasses bot checks)
     if (!html) {
-      console.log(`[Verifier] Distributed queue returned no HTML. Invoking local headless browser for ${targetUrl.slice(0, 50)}...`);
-      html = await scrapeWithHeadlessBrowser(targetUrl, { timeoutMs: 35000 });
-    }
-
-    if (!html) {
-      console.warn(`[Verifier Warning] All headless scraper attempts failed for ${targetUrl.slice(0, 50)}`);
+      console.warn(`[Verifier Warning] Scraper queue returned no HTML for ${targetUrl.slice(0, 50)}. Direct scraping fallback is permanently disabled.`);
       return {
         title: null,
         brand: null,
