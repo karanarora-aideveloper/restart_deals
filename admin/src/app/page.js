@@ -539,11 +539,13 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
               {scraperFleet && (
                 <>
-                  <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: 700 }}>
-                    {scraperFleet.workers.filter(w => w.platform === 'render').length} Render
-                  </span>
+                  {scraperFleet.workers.filter(w => w.platform === 'render').length > 0 && (
+                    <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: 700 }}>
+                      {scraperFleet.workers.filter(w => w.platform === 'render').length} Render
+                    </span>
+                  )}
                   <span style={{ padding: '3px 8px', borderRadius: '6px', background: '#f5f3ff', color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700 }}>
-                    {scraperFleet.workers.filter(w => w.platform === 'railway').length} Railway
+                    {scraperFleet.workers.filter(w => (w.platform || 'railway') === 'railway').length} Railway (Active)
                   </span>
                 </>
               )}

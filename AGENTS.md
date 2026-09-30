@@ -19,10 +19,10 @@ To achieve total market coverage with minimal proxy cost, the system deploys **T
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   INCOMING ENGINES                                     │
 │                                                                                        │
-│   [ ENGINE 1: Telegram Deal Radar ]             [ ENGINE 2: Top-20 Catalog Watcher ]   │
-│   • Reactive / Event-driven                      • Proactive / Scheduled (every 12h)   │
-│   • Crowdsourced deal hunting                    • Curated Top 20 per subcategory      │
-│   • High velocity, bursty spikes                 • Predictable, steady-state cadence   │
+│   [ ENGINE 1: Telegram Deal Radar ]             [ ENGINE 2: Shoppers Deals Engine ]    │
+│   • Reactive / Event-driven                      • Multi-Store Search & 12h Cadence    │
+│   • Crowdsourced deal hunting                    • Amazon, Flipkart, Nykaa, Myntra,    │
+│   • High velocity, bursty spikes                   Meesho (~101 curated category seeds)│
 └───────────────────────────┬──────────────────────────────────────────┬─────────────────┘
                             │                                          │
                             ▼                                          ▼

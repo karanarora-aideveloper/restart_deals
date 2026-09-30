@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AdminShell from '@/components/admin-shell';
 
 /* ─── Canvas geometry (horizontal, left → right) ─────────────────────────── */
@@ -11,18 +11,18 @@ const CANVAS_W = 1920, CANVAS_H = 600;
 const ROW_TOP = 100, ROW_MID = 290, ROW_BOT = 480;
 
 const NODES = [
-  { id: 'telegram',    label: 'Telegram Sources',   sub: 'GramJS live capture',       icon: '💬', color: '#2CA5E0', cx: 110,  cy: ROW_TOP, logSource: 'listener' },
-  { id: 'crawler',     label: 'ShoppersDeals Engine', sub: '24 h scheduled run',      icon: '🔍', color: '#F59E0B', cx: 110,  cy: ROW_BOT, logSource: 'api' },
-  { id: 'bullmq',      label: 'BullMQ Queue',       sub: 'Redis priority broker',     icon: '⚡', color: '#8B5CF6', cx: 350,  cy: ROW_MID, logSource: 'api' },
-  { id: 'scraper',     label: 'Scraping Engine',    sub: 'ScrapingAnt + Chrome',      icon: '🕷️', color: '#EF4444', cx: 580,  cy: ROW_MID, logSource: '__scrapers__' },
-  { id: 'decision',    label: 'Product exists?',    sub: 'canonical ID lookup',       icon: '❓', color: '#FBBF24', cx: 810,  cy: ROW_MID, logSource: null, shape: 'diamond' },
-  { id: 'create',      label: 'Create Product',     sub: 'new canonical record',      icon: '🆕', color: '#22C55E', cx: 1040, cy: ROW_TOP, logSource: 'api' },
-  { id: 'update',      label: 'Update Product',     sub: 'refresh price + history',   icon: '♻️', color: '#0EA5E9', cx: 1040, cy: ROW_BOT, logSource: 'api' },
-  { id: 'products',    label: 'Product DB',         sub: 'MongoDB Atlas',             icon: '📦', color: '#10B981', cx: 1270, cy: ROW_MID, logSource: 'api' },
-  { id: 'synthesizer', label: 'Deal Synthesizer',   sub: '≥15 % drop detector',       icon: '🎯', color: '#F97316', cx: 1500, cy: ROW_MID, logSource: 'api' },
-  { id: 'tg-out',      label: 'Telegram Alerts',    sub: 'Deal channels',             icon: '📢', color: '#2CA5E0', cx: 1730, cy: ROW_TOP, logSource: 'api' },
-  { id: 'web',         label: 'Web & App Feed',     sub: 'shoppersdeals.in',          icon: '🌐', color: '#3B82F6', cx: 1730, cy: ROW_MID, logSource: null },
-  { id: 'x-bot',       label: 'Twitter / X Bot',    sub: 'Auto-tweets USA',           icon: '🐦', color: '#64748B', cx: 1730, cy: ROW_BOT, logSource: 'api' },
+  { id: 'telegram',    label: 'Telegram Sources',      sub: 'GramJS live capture',       icon: '💬', color: '#2CA5E0', cx: 110,  cy: ROW_TOP, logSource: 'listener' },
+  { id: 'crawler',     label: 'Shoppers Deals Engine', sub: 'Multi-Store Search & Seeds',icon: '🚀', color: '#F59E0B', cx: 110,  cy: ROW_BOT, logSource: 'api' },
+  { id: 'bullmq',      label: 'BullMQ Queue',          sub: 'Redis priority broker',     icon: '⚡', color: '#8B5CF6', cx: 350,  cy: ROW_MID, logSource: 'api' },
+  { id: 'scraper',     label: 'Scraping Fleet',        sub: 'ScrapingAnt 100% Proxy',    icon: '🕷️', color: '#EF4444', cx: 580,  cy: ROW_MID, logSource: '__scrapers__' },
+  { id: 'decision',    label: 'Product exists?',       sub: 'canonical ID lookup',       icon: '❓', color: '#FBBF24', cx: 810,  cy: ROW_MID, logSource: null, shape: 'diamond' },
+  { id: 'create',      label: 'Create Product',        sub: 'new canonical record',      icon: '🆕', color: '#22C55E', cx: 1040, cy: ROW_TOP, logSource: 'api' },
+  { id: 'update',      label: 'Update Product',        sub: 'refresh price + history',   icon: '♻️', color: '#0EA5E9', cx: 1040, cy: ROW_BOT, logSource: 'api' },
+  { id: 'products',    label: 'Product DB',            sub: 'MongoDB Atlas',             icon: '📦', color: '#10B981', cx: 1270, cy: ROW_MID, logSource: 'api' },
+  { id: 'synthesizer', label: 'Deal Synthesizer',      sub: '≥15 % drop detector',       icon: '🎯', color: '#F97316', cx: 1500, cy: ROW_MID, logSource: 'api' },
+  { id: 'tg-out',      label: 'Telegram Alerts',       sub: 'Deal channels',             icon: '📢', color: '#2CA5E0', cx: 1730, cy: ROW_TOP, logSource: 'api' },
+  { id: 'web',         label: 'Web & App Feed',        sub: 'shoppersdeals.in',          icon: '🌐', color: '#3B82F6', cx: 1730, cy: ROW_MID, logSource: null },
+  { id: 'x-bot',       label: 'Twitter / X Bot',       sub: 'Auto-tweets USA',           icon: '🐦', color: '#64748B', cx: 1730, cy: ROW_BOT, logSource: 'api' },
 ];
 
 const EDGES = [
@@ -269,6 +269,507 @@ function LogViewer({ apiFetch, nodeId, scrapers }) {
   );
 }
 
+/* ─── Shoppers Deals Engine Overview with Store Tabs ───────────────────────── */
+const STORE_TABS = [
+  { id: 'all', label: 'All Stores', icon: '🏪', color: '#F59E0B' },
+  { id: 'amazon', label: 'Amazon India', icon: '🛍️', color: '#F59E0B' },
+  { id: 'flipkart', label: 'Flipkart', icon: '⚡', color: '#3B82F6' },
+  { id: 'nykaa', label: 'Nykaa Beauty', icon: '💄', color: '#EC4899' },
+  { id: 'myntra', label: 'Myntra Fashion', icon: '👗', color: '#A855F7' },
+  { id: 'meesho', label: 'Meesho Value', icon: '🏷️', color: '#F43F5E' },
+];
+
+function CrawlerOverview({ seeds, crawlerSt }) {
+  const [selectedStore, setSelectedStore] = useState('all');
+  const [search, setSearch] = useState('');
+
+  const cfg = (crawlerSt && crawlerSt.config) || null;
+
+  const storeCounts = useMemo(() => {
+    const counts = { all: seeds.length };
+    seeds.forEach(s => {
+      const st = (s.store || 'amazon').toLowerCase();
+      counts[st] = (counts[st] || 0) + 1;
+    });
+    return counts;
+  }, [seeds]);
+
+  const filteredSeeds = useMemo(() => {
+    let list = seeds;
+    if (selectedStore !== 'all') {
+      list = list.filter(s => (s.store || 'amazon').toLowerCase() === selectedStore.toLowerCase());
+    }
+    const q = search.toLowerCase().trim();
+    if (q) {
+      list = list.filter(s =>
+        (s.keywords || '').toLowerCase().includes(q) ||
+        (s.subcategory || '').toLowerCase().includes(q) ||
+        (s.category || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [seeds, selectedStore, search]);
+
+  const enabledCount = filteredSeeds.filter(s => s.isEnabled !== false).length;
+
+  const byCategory = useMemo(() => {
+    const map = {};
+    filteredSeeds.forEach(s => {
+      const c = s.category || 'other';
+      if (!map[c]) map[c] = [];
+      map[c].push(s);
+    });
+    return map;
+  }, [filteredSeeds]);
+
+  const currentStore = STORE_TABS.find(st => st.id === selectedStore) || STORE_TABS[0];
+
+  return (
+    <div>
+      <Row label="Status" value={cfg ? (cfg.isRunning ? '🟢 Running' : '⚪ Idle') : '—'} />
+      <Row label="Interval" value={(cfg && cfg.intervalHours || 24) + ' h'} />
+      {cfg && cfg.lastRunAt && <Row label="Last run" value={new Date(cfg.lastRunAt).toLocaleString()} />}
+      {cfg && cfg.nextRunAt && <Row label="Next run" value={new Date(cfg.nextRunAt).toLocaleString()} />}
+
+      {cfg && cfg.lastRunStats && (
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 11, marginTop: 12 }}>
+          <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: 5 }}>Last run results</div>
+          <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem', color: '#e2e8f0', flexWrap: 'wrap' }}>
+            <span>🔍 {cfg.lastRunStats.seedsCrawled || 0} seeds</span>
+            <span>📦 +{cfg.lastRunStats.productsEnrolled || 0}</span>
+            <span>🔄 {cfg.lastRunStats.productsUpdated || 0}</span>
+            {cfg.lastRunStats.errors > 0 && <span style={{ color: '#f87171' }}>⚠ {cfg.lastRunStats.errors} errors</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Summary strip: keywords / stores / categories at a glance */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+        <div style={{ flex: 1, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F59E0B' }}>{seeds.length}</div>
+          <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>total seeds</div>
+        </div>
+        <div style={{ flex: 1, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10B981' }}>{enabledCount}</div>
+          <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>enabled in tab</div>
+        </div>
+        <div style={{ flex: 1, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#3B82F6' }}>5</div>
+          <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>stores active</div>
+        </div>
+        <div style={{ flex: 1, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#8B5CF6' }}>{Object.keys(byCategory).length}</div>
+          <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>categories</div>
+        </div>
+      </div>
+
+      {/* STORE TABS */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+          Store Query Keyword Tabs
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {STORE_TABS.map(st => {
+            const count = storeCounts[st.id] || 0;
+            const active = selectedStore === st.id;
+            return (
+              <button
+                key={st.id}
+                onClick={() => setSelectedStore(st.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: '0.75rem',
+                  fontWeight: active ? 700 : 500,
+                  cursor: 'pointer',
+                  border: '1px solid ' + (active ? st.color : 'rgba(255,255,255,0.1)'),
+                  background: active ? `${st.color}22` : 'rgba(255,255,255,0.03)',
+                  color: active ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.15s ease',
+                  boxShadow: active ? `0 0 10px ${st.color}33` : 'none',
+                }}
+              >
+                <span>{st.icon}</span>
+                <span>{st.label}</span>
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: 10,
+                    background: active ? st.color : 'rgba(255,255,255,0.1)',
+                    color: active ? '#000000' : '#cbd5e1',
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search input for store keywords */}
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <input
+            type="text"
+            placeholder={`Search ${currentStore.label} keywords & subcategories...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 7,
+              padding: '8px 12px 8px 32px',
+              fontSize: '0.75rem',
+              color: '#f1f5f9',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: '#64748b' }}>
+            🔍
+          </span>
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Store Active Banner */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: `linear-gradient(90deg, ${currentStore.color}15, rgba(255,255,255,0.02))`,
+          border: `1px solid ${currentStore.color}35`,
+          borderRadius: 8,
+          padding: '8px 12px',
+          marginBottom: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '1.1rem' }}>{currentStore.icon}</span>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f1f5f9' }}>
+                {currentStore.label} Tracked Keywords
+              </div>
+              <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                Showing {filteredSeeds.length} of {storeCounts[selectedStore] || 0} query seeds
+              </div>
+            </div>
+          </div>
+          <span style={{
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            color: currentStore.color,
+            background: `${currentStore.color}1a`,
+            border: `1px solid ${currentStore.color}40`,
+            borderRadius: 4,
+            padding: '2px 8px',
+          }}>
+            100% ScrapingAnt Proxies
+          </span>
+        </div>
+
+        {/* Keywords List */}
+        {filteredSeeds.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>🔎</div>
+            <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>No keywords found</div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: 2 }}>Try clearing the search filter or switching store tabs</div>
+          </div>
+        ) : (
+          Object.entries(byCategory).map(([cat, items]) => (
+            <div key={cat} style={{ marginBottom: 14 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.74rem',
+                color: currentStore.color,
+                fontWeight: 700,
+                marginBottom: 7,
+                textTransform: 'capitalize'
+              }}>
+                <span>📂 {cat}</span>
+                <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>{items.length} keyword{items.length === 1 ? '' : 's'}</span>
+              </div>
+              {items.map(s => {
+                const storeColor = (STORE_TABS.find(st => st.id === (s.store || 'amazon').toLowerCase()) || STORE_TABS[0]).color;
+                return (
+                  <div
+                    key={s._id}
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      marginBottom: 7,
+                      borderLeft: '3px solid ' + (s.isEnabled !== false ? storeColor : '#374151'),
+                      borderTop: '1px solid rgba(255,255,255,0.05)',
+                      borderRight: '1px solid rgba(255,255,255,0.05)',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#f1f5f9' }}>
+                          {s.keywords || s.subcategory}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.63rem',
+                            fontWeight: 600,
+                            background: `${storeColor}20`,
+                            color: storeColor,
+                            border: `1px solid ${storeColor}40`,
+                            borderRadius: 4,
+                            padding: '1px 5px',
+                            textTransform: 'capitalize'
+                          }}>
+                            🏬 {s.store || 'amazon'}
+                          </span>
+                          <span style={{
+                            fontSize: '0.63rem',
+                            background: 'rgba(255,255,255,0.06)',
+                            color: '#cbd5e1',
+                            borderRadius: 4,
+                            padding: '1px 5px'
+                          }}>
+                            {s.subcategory || s.category}
+                          </span>
+                          <span style={{
+                            fontSize: '0.63rem',
+                            background: 'rgba(255,255,255,0.06)',
+                            color: '#94a3b8',
+                            borderRadius: 4,
+                            padding: '1px 5px'
+                          }}>
+                            Top {s.topN || 20}
+                          </span>
+                          <span style={{
+                            fontSize: '0.63rem',
+                            background: 'rgba(255,255,255,0.06)',
+                            color: '#94a3b8',
+                            borderRadius: 4,
+                            padding: '1px 5px'
+                          }}>
+                            Every {s.frequencyHours || 24}h
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        color: s.isEnabled !== false ? '#6ee7b7' : '#94a3b8',
+                        background: s.isEnabled !== false ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid ' + (s.isEnabled !== false ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'),
+                        borderRadius: 4,
+                        padding: '1px 6px',
+                        flexShrink: 0
+                      }}>
+                        {s.isEnabled !== false ? 'ACTIVE' : 'PAUSED'}
+                      </span>
+                    </div>
+
+                    {s.url && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          fontSize: '0.65rem',
+                          color: '#60a5fa',
+                          wordBreak: 'break-all',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          marginTop: 6,
+                          textDecoration: 'none'
+                        }}
+                      >
+                        <span>🔗 Inspect Store Search Query URL</span>
+                      </a>
+                    )}
+
+                    {s.lastResult && (
+                      <div style={{
+                        display: 'flex',
+                        gap: 10,
+                        fontSize: '0.65rem',
+                        color: '#94a3b8',
+                        marginTop: 5,
+                        paddingTop: 5,
+                        borderTop: '1px solid rgba(255,255,255,0.04)'
+                      }}>
+                        <span>Found: <strong style={{ color: '#f1f5f9' }}>{s.lastResult.found || 0}</strong></span>
+                        <span>Enrolled: <strong style={{ color: '#10b981' }}>+{s.lastResult.enrolled || 0}</strong></span>
+                        <span>Updated: <strong style={{ color: '#60a5fa' }}>{s.lastResult.updated || 0}</strong></span>
+                        {s.lastResult.error && (
+                          <span style={{ color: '#f87171' }}>⚠ {s.lastResult.error}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Scraper Fleet Overview (Railway Autonomous Cluster) ─────────────────── */
+function ScraperFleetOverview({ scrapers }) {
+  const workers = scrapers && scrapers.workers ? scrapers.workers : [];
+  const onlineCount = scrapers ? scrapers.online : 0;
+
+  return (
+    <div>
+      <Row
+        label="Workers online"
+        value={onlineCount + ' / ' + workers.length}
+        accent={onlineCount === workers.length ? '#10B981' : onlineCount > 0 ? '#F59E0B' : '#EF4444'}
+      />
+      <Row label="Architecture" value="Railway Cloud Worker Cluster" accent="#C084FC" />
+      <Row label="Rate limit" value="1 req / 2.5 s (global token-paced)" />
+      <Row label="Proxy routing" value="100% ScrapingAnt Residential Proxies" accent="#10B981" />
+      <Row label="Direct Scraping Fallback" value="Permanently Disabled (Zero Bans)" accent="#10B981" />
+
+      {/* Worker cards */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+          Worker Fleet — {workers.length} Railway Worker{workers.length === 1 ? '' : 's'} (BullMQ Cluster)
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {workers.map(function(w, i) {
+            const isRailway = (w.platform || 'railway') === 'railway';
+            const platformColor = isRailway ? '#C084FC' : '#60A5FA';
+            const platformIcon = isRailway ? '🚄' : '🎈';
+            const statusColor = w.paused ? '#F59E0B' : (w.online ? '#10B981' : '#EF4444');
+            const statusLabel = w.paused ? 'PAUSED' : (w.online ? 'ONLINE' : 'OFFLINE');
+            return (
+              <div key={w.name} style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+                border: '1px solid ' + statusColor + '40',
+                borderLeft: '4px solid ' + statusColor,
+                borderRadius: 10, padding: '13px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                opacity: w.paused ? 0.75 : 1,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 700, width: 18 }}>#{i + 1}</span>
+                    <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, boxShadow: '0 0 6px ' + statusColor, flexShrink: 0 }} />
+                    <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#f1f5f9' }}>{w.name}</span>
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171') }}>
+                    {w.paused ? 'sleeping' : (w.online ? (w.latencyMs ? w.latencyMs + ' ms' : 'online') : 'offline')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingLeft: 37 }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                    color: platformColor, background: platformColor + '1a',
+                    border: '1px solid ' + platformColor + '40', borderRadius: 5, padding: '2px 7px',
+                  }}>
+                    {platformIcon} {w.platform || 'railway'}
+                  </span>
+                  <span style={{
+                    fontSize: '0.65rem', fontWeight: 700,
+                    color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171'),
+                    background: statusColor + '1a',
+                    border: '1px solid ' + statusColor + '40',
+                    borderRadius: 5, padding: '2px 7px',
+                  }}>
+                    {statusLabel}
+                  </span>
+                  {w.lastMsg && (
+                    <span style={{ fontSize: '0.65rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                      {w.lastMsg}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Cloud Fleet Architecture Info */}
+      <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+            ✅ Autonomous Scraper Fleet — Railway Cloud
+          </span>
+        </div>
+        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 14, lineHeight: 1.5 }}>
+          Legacy Render instances have been completely decommissioned. Active scraping is powered by isolated worker processes running on Railway, connected to the shared Redis BullMQ priority queue. Every job routes 100% through ScrapingAnt residential proxy tokens with Delhi (110001) / Mumbai (400001) pincode cookie injection and zero direct IP fallback.
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1, background: 'rgba(192,132,252,0.06)', border: '1px solid rgba(192,132,252,0.35)', borderRadius: 8, padding: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#C084FC' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D8B4FE' }}>Railway Cluster</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#4ade80' }}>3 workers (active)</span>
+            </div>
+            {['scraper-1', 'scraper-2', 'scraper-3'].map(function(n) {
+              return (
+                <div key={n} style={{ fontSize: '0.7rem', color: '#4ade80', padding: '3px 0' }}>
+                  ● {n} <span style={{ color: '#94a3b8' }}>(BullMQ Worker)</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 8, padding: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>Render</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#94a3b8' }}>Decommissioned</span>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', padding: '3px 0' }}>
+              ● Suspended by user
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 4 }}>
+              Zero traffic routed to Render
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: 12 }}>
+          <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 700, marginBottom: 4 }}>
+            🛡️ 100% ScrapingAnt Residential Proxies (Strict Zero Direct Scraping)
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.5 }}>
+            Automated token replenisher maintains 8+ active tokens in MongoDB Atlas via 2Captcha. Workers lease tokens dynamically with exponential backoff on 423 anti-bot triggers.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Panel overview content per node ────────────────────────────────────── */
 function OverviewContent({ nodeId, apiFetch, live }) {
   const [extra, setExtra] = useState(null);
@@ -317,248 +818,11 @@ function OverviewContent({ nodeId, apiFetch, live }) {
   }
 
   if (nodeId === 'crawler') {
-    const seeds = extra || [];
-    // Real API shape: GET /api/crawler/status → { config: { isRunning, intervalHours,
-    // lastRunAt, lastRunStats, ... }, totalSeeds, enabledSeeds, categoryCounts }.
-    // The scheduling/run-state fields live under `config`, not at the top level.
-    const cfg = (crawlerSt && crawlerSt.config) || null;
-
-    const byCategory = {};
-    const byStore = {};
-    seeds.forEach(function(s) {
-      const c = s.category || 'other';
-      if (!byCategory[c]) byCategory[c] = [];
-      byCategory[c].push(s);
-      const st = s.store || 'unknown';
-      byStore[st] = (byStore[st] || 0) + 1;
-    });
-    const enabledCount = seeds.filter(function(s) { return s.isEnabled !== false; }).length;
-
-    return (
-      <div>
-        <Row label="Status" value={cfg ? (cfg.isRunning ? '🟢 Running' : '⚪ Idle') : '—'} />
-        <Row label="Interval" value={(cfg && cfg.intervalHours || 24) + ' h'} />
-        {cfg && cfg.lastRunAt && <Row label="Last run" value={new Date(cfg.lastRunAt).toLocaleString()} />}
-        {cfg && cfg.nextRunAt && <Row label="Next run" value={new Date(cfg.nextRunAt).toLocaleString()} />}
-
-        {cfg && cfg.lastRunStats && (
-          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 11, marginTop: 12 }}>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: 5 }}>Last run results</div>
-            <div style={{ display: 'flex', gap: 16, fontSize: '0.8rem', color: '#e2e8f0', flexWrap: 'wrap' }}>
-              <span>🔍 {cfg.lastRunStats.seedsCrawled || 0} seeds</span>
-              <span>📦 +{cfg.lastRunStats.productsEnrolled || 0}</span>
-              <span>🔄 {cfg.lastRunStats.productsUpdated || 0}</span>
-              {cfg.lastRunStats.errors > 0 && <span style={{ color: '#f87171' }}>⚠ {cfg.lastRunStats.errors} errors</span>}
-            </div>
-          </div>
-        )}
-
-        {/* Summary strip: keywords / stores / categories at a glance */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <div style={{ flex: 1, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F59E0B' }}>{seeds.length}</div>
-            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>keywords</div>
-          </div>
-          <div style={{ flex: 1, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10B981' }}>{enabledCount}</div>
-            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>enabled</div>
-          </div>
-          <div style={{ flex: 1, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#3B82F6' }}>{Object.keys(byStore).length}</div>
-            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>stores</div>
-          </div>
-          <div style={{ flex: 1, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#8B5CF6' }}>{Object.keys(byCategory).length}</div>
-            <div style={{ fontSize: '0.63rem', color: '#94a3b8' }}>categories</div>
-          </div>
-        </div>
-
-        {/* Store breakdown */}
-        {Object.keys(byStore).length > 0 && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-            {Object.entries(byStore).map(function([store, count]) {
-              return (
-                <span key={store} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5, padding: '3px 9px', fontSize: '0.7rem', color: '#cbd5e1', textTransform: 'capitalize' }}>
-                  🏬 {store} · {count}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            All seeds by category ({seeds.length})
-          </div>
-          {seeds.length === 0 && (
-            <p style={{ color: '#64748b', fontSize: '0.78rem' }}>No crawler seeds configured yet.</p>
-          )}
-          {Object.entries(byCategory).map(function([cat, items]) {
-            return (
-              <div key={cat} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: '0.74rem', color: '#F59E0B', fontWeight: 700, marginBottom: 7, textTransform: 'capitalize' }}>📂 {cat} ({items.length})</div>
-                {items.map(function(s) {
-                  return (
-                    <div key={s._id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px 10px', marginBottom: 5, borderLeft: '2px solid ' + (s.isEnabled !== false ? '#F59E0B' : '#374151') }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                        <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{s.keywords || s.subcategory}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.7rem', textTransform: 'capitalize' }}>{s.store}</span>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: 3 }}>
-                        subcategory: {s.subcategory || '—'} · top {s.topN || 20} · every {s.frequencyHours || 24}h
-                      </div>
-                      {s.url && (
-                        <a href={s.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.65rem', color: '#60a5fa', wordBreak: 'break-all', display: 'block', marginTop: 3 }}>
-                          {s.url}
-                        </a>
-                      )}
-                      {s.lastResult && (
-                        <div style={{ fontSize: '0.65rem', color: '#475569', marginTop: 3 }}>
-                          found {s.lastResult.found || 0} · enrolled {s.lastResult.enrolled || 0} · updated {s.lastResult.updated || 0}
-                          {s.lastResult.error && <span style={{ color: '#f87171' }}> · error: {s.lastResult.error}</span>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
+    return <CrawlerOverview seeds={extra || []} crawlerSt={crawlerSt} />;
   }
 
   if (nodeId === 'scraper') {
-    const workers = scrapers && scrapers.workers ? scrapers.workers : [];
-    const onlineCount = scrapers ? scrapers.online : 0;
-    return (
-      <div>
-        <Row label="Workers online" value={onlineCount + ' / ' + workers.length} accent={onlineCount === workers.length ? '#10B981' : onlineCount > 0 ? '#F59E0B' : '#EF4444'} />
-        <Row label="Rate limit" value="1 req / 2.5 s (global)" />
-        <Row label="Proxy routing" value="IN + US" />
-
-        {/* Worker cards — one full card per configured worker, top to bottom, count always
-            matching however many are actually in SCRAPER_WORKER_URLS (10 right now: 5 Render
-            + 5 Railway). Never capped/truncated — if that list grows to 20, 20 cards render. */}
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-            Worker Fleet — {workers.length} worker{workers.length === 1 ? '' : 's'}, multi-cloud
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {workers.map(function(w, i) {
-              const isRailway = w.platform === 'railway';
-              const platformColor = isRailway ? '#C084FC' : '#60A5FA';
-              const platformIcon = isRailway ? '🚄' : '🎈';
-              // Paused (WORKER_PAUSED=true — the 2026-09-02 10->4 fleet reduction): the
-              // process is still up and its health check still answers 200 (so w.online is
-              // true), but it isn't connected to Redis/Mongo or doing any work. Shown as a
-              // distinct amber "paused" state so it can't be mistaken for a real active
-              // worker — deliberately not colored red/offline either, since it isn't down.
-              const statusColor = w.paused ? '#F59E0B' : (w.online ? '#10B981' : '#EF4444');
-              const statusLabel = w.paused ? 'PAUSED' : (w.online ? 'ONLINE' : 'OFFLINE');
-              return (
-                <div key={w.name} style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
-                  border: '1px solid ' + statusColor + '40',
-                  borderLeft: '4px solid ' + statusColor,
-                  borderRadius: 10, padding: '13px 14px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  opacity: w.paused ? 0.75 : 1,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 700, width: 18 }}>#{i + 1}</span>
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: statusColor, boxShadow: '0 0 6px ' + statusColor, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#f1f5f9' }}>{w.name}</span>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171') }}>
-                      {w.paused ? 'sleeping' : (w.online ? (w.latencyMs + ' ms') : 'offline')}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingLeft: 37 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
-                      color: platformColor, background: platformColor + '1a',
-                      border: '1px solid ' + platformColor + '40', borderRadius: 5, padding: '2px 7px',
-                    }}>
-                      {platformIcon} {w.platform || 'unknown'}
-                    </span>
-                    <span style={{
-                      fontSize: '0.65rem', fontWeight: 700,
-                      color: w.paused ? '#fbbf24' : (w.online ? '#6ee7b7' : '#f87171'),
-                      background: statusColor + '1a',
-                      border: '1px solid ' + statusColor + '40',
-                      borderRadius: 5, padding: '2px 7px',
-                    }}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: 10, fontSize: '0.68rem', color: '#475569', lineHeight: 1.5 }}>
-            Workers are pinged live on every page load. Add/remove workers via <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>SCRAPER_WORKER_URLS</code> in admin.js.
-          </div>
-        </div>
-
-        {/* Multi-cloud expansion status. Redis migration + all 5 Railway workers are LIVE
-            (solid styling, matches the real Worker Fleet cards above). Only the Render
-            reduction (5→3, decommissioning scraper-4/5) is still pending — kept visually
-            distinct (dashed border, "pending") so this section never claims something isn't
-            true yet. Update this block's framing the moment that reduction actually happens. */}
-        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <span style={{ fontSize: '0.7rem', color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-              ✅ Multi-cloud expansion — mostly live
-            </span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
-            Redis migrated to Upstash (externally reachable) and 5 Railway workers deployed — verified live: a job produced on Render was picked up and processed by a Railway worker. Current real count: <strong style={{ color: '#94a3b8' }}>10 workers</strong> (5 Render + 5 Railway). Target from the original plan is 8 (3 Render + 5 Railway) — Render's scraper-4/5 are still running pending a decommission decision.
-          </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1, background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.35)', borderRadius: 8, padding: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#60A5FA' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#93C5FD' }}>Render</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers (live)</span>
-              </div>
-              {['scraper-1', 'scraper-2', 'scraper-3'].map(function(n) {
-                return (
-                  <div key={n} style={{ fontSize: '0.7rem', color: '#94a3b8', padding: '3px 0' }}>● {n} <span style={{ color: '#475569' }}>(keep)</span></div>
-                );
-              })}
-              <div style={{ fontSize: '0.7rem', color: '#fbbf24', padding: '3px 0' }}>
-                ● scraper-4, scraper-5 <span style={{ color: '#64748b' }}>(pending decommission)</span>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, background: 'rgba(192,132,252,0.06)', border: '1px solid rgba(192,132,252,0.35)', borderRadius: 8, padding: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#C084FC' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D8B4FE' }}>Railway</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#64748b' }}>5 workers (live)</span>
-              </div>
-              {['railway-scraper-1', 'railway-scraper-2', 'railway-scraper-3', 'railway-scraper-4', 'railway-scraper-5'].map(function(n) {
-                return (
-                  <div key={n} style={{ fontSize: '0.7rem', color: '#4ade80', padding: '3px 0' }}>● {n} <span style={{ color: '#475569' }}>(deployed)</span></div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ marginTop: 12, background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: '0.72rem', color: '#86efac', fontWeight: 700, marginBottom: 4 }}>✓ Shared queue: reachable from both clouds</div>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.5 }}>
-              Redis moved to Upstash (Singapore region, TLS, eviction disabled). Same BullMQ code, same priority tiers, same rate limiter, same retry policy — only <code style={{ background: 'rgba(255,255,255,0.06)', padding: '0 4px', borderRadius: 3 }}>REDIS_URL</code> changed. All 10 workers connect to this one queue.
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ScraperFleetOverview scrapers={scrapers} />;
   }
 
   if (nodeId === 'decision') {

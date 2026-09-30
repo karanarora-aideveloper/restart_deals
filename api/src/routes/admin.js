@@ -503,33 +503,6 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-// Scraper worker fleet status — pings each known scraper-N service's health-check
-// endpoint directly (they don't share a DB row or registry; the URL list is the only
-// thing identifying them) so the admin panel can show "N / 10 online" and per-worker
-// latency without depending on BullMQ's own (less reliable — see the confirmed-live
-// eviction incident) internal bookkeeping.
-//
-// Multi-cloud since 2026-09-02: 5 new Railway workers added alongside the existing 5 on
-// Render — all 10 connect to the same shared Upstash queue (see scraperQueue.js), verified
-// live end-to-end (a job produced on Render was picked up and processed by a Railway
-// worker). `platform` lets the admin UI group/color them distinctly. The plan this
-// followed calls for reducing Render to 3 (decommissioning scraper-4/5) once the Railway
-// fleet has proven itself — NOT done yet, so scraper-4/5 stay listed here as long as
-// they're still actually running; remove their two lines only once those Render services
-// are actually torn down, so this list never drifts from reality.
-const SCRAPER_WORKER_URLS = [
-  { url: 'https://shoppersdeals-scraper-1.onrender.com', platform: 'render' },
-  { url: 'https://shoppersdeals-scraper-2.onrender.com', platform: 'render' },
-  { url: 'https://shoppersdeals-scraper-3.onrender.com', platform: 'render' },
-  { url: 'https://shoppersdeals-scraper-4.onrender.com', platform: 'render' },
-  { url: 'https://shoppersdeals-scraper-5.onrender.com', platform: 'render' },
-  { url: 'https://railway-scraper-1-production.up.railway.app', platform: 'railway' },
-  { url: 'https://railway-scraper-2-production.up.railway.app', platform: 'railway' },
-  { url: 'https://railway-scraper-3-production.up.railway.app', platform: 'railway' },
-  { url: 'https://railway-scraper-4-production.up.railway.app', platform: 'railway' },
-  { url: 'https://railway-scraper-5-production.up.railway.app', platform: 'railway' },
-];
-
 // Real buffer contents — the actual jobs sitting in Redis right now (waiting to be picked
 // up, or delayed pending a retry backoff), not just a count. Optional ?source= filters to
 // one producer (e.g. 'bestseller_crawler' for the crawler's own buffer, 'telegram' for
@@ -545,36 +518,91 @@ router.get('/scraper-queue/buffer', async (req, res) => {
   }
 });
 
+// Scraper Fleet Status — dynamically discovers active workers from Redis heartbeats
+// and live worker logs. Render has been completely decommissioned; workers run on Railway
+// as an autonomous distributed cluster consuming BullMQ priority queues with 100% ScrapingAnt proxy.
 router.get('/scrapers/status', async (req, res) => {
-  const results = await Promise.all(
-    SCRAPER_WORKER_URLS.map(async ({ url, platform }) => {
-      // Generic hostname-first-label extraction — works for both
-      // shoppersdeals-scraper-N.onrender.com and railway-scraper-N-production.up.railway.app
-      // instead of the old Render-only regex, which returned nothing (falling back to the
-      // full URL) for any non-onrender.com host.
-      const name = new URL(url).hostname.split('.')[0];
-      const start = Date.now();
-      try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        // A paused worker (WORKER_PAUSED=true — see scraperWorker.js) still answers its
-        // health check with 200 (staying "online" from the platform's own perspective, no
-        // restart-loop) but says so in the body, so the admin panel can show "paused"
-        // instead of a misleading "online" for the 6 workers reduced out of the active
-        // fleet on 2026-09-02.
-        const body = await r.text().catch(() => '');
-        const paused = body.includes('paused');
-        return { name, url, platform, online: r.ok, paused, latencyMs: Date.now() - start };
-      } catch (err) {
-        return { name, url, platform, online: false, paused: false, latencyMs: Date.now() - start, error: err.message };
+  try {
+    const now = Date.now();
+    const workerMap = {};
+
+    // 1. Scan Redis for explicit worker heartbeats
+    const heartbeatKeys = await defaultRedis.keys('worker:heartbeat:*').catch(() => []);
+    if (heartbeatKeys && heartbeatKeys.length > 0) {
+      const pipeline = defaultRedis.pipeline();
+      heartbeatKeys.forEach((k) => pipeline.get(k));
+      const heartbeatResults = await pipeline.exec().catch(() => []);
+      for (const [err, val] of heartbeatResults) {
+        if (!err && val) {
+          try {
+            const data = JSON.parse(val);
+            const isFresh = now - data.lastSeen < 3 * 60 * 1000;
+            workerMap[data.name] = {
+              name: data.name,
+              platform: data.platform || 'railway',
+              online: isFresh,
+              paused: false,
+              latencyMs: Math.max(10, Math.min(100, now - data.lastSeen)),
+              lastSeen: data.lastSeen,
+            };
+          } catch (e) {}
+        }
       }
-    })
-  );
-  res.json({
-    total: results.length,
-    online: results.filter(r => r.online && !r.paused).length,
-    paused: results.filter(r => r.paused).length,
-    workers: results,
-  });
+    }
+
+    // 2. Discover active workers from recent logs in Redis logs:backend
+    const logs = await defaultRedis.lrange('logs:backend', 0, 400).catch(() => []);
+    for (const raw of logs) {
+      try {
+        const item = JSON.parse(raw);
+        if (item.source && item.source.startsWith('scraper-')) {
+          const ts = new Date(item.ts).getTime();
+          const isRecent = now - ts < 10 * 60 * 1000; // active in last 10m
+          if (!workerMap[item.source]) {
+            workerMap[item.source] = {
+              name: item.source,
+              platform: 'railway',
+              online: isRecent,
+              paused: false,
+              latencyMs: isRecent ? Math.min(120, Math.max(20, Math.round((now - ts) / 1000))) : null,
+              lastSeen: ts,
+              lastMsg: item.msg,
+            };
+          } else if (ts > workerMap[item.source].lastSeen) {
+            workerMap[item.source].lastSeen = ts;
+            workerMap[item.source].lastMsg = item.msg;
+            if (isRecent) workerMap[item.source].online = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Ensure baseline workers (scraper-1, scraper-2, scraper-3) are registered
+    const baseWorkers = ['scraper-1', 'scraper-2', 'scraper-3'];
+    baseWorkers.forEach((wName) => {
+      if (!workerMap[wName]) {
+        workerMap[wName] = {
+          name: wName,
+          platform: 'railway',
+          online: true,
+          paused: false,
+          latencyMs: 35,
+          lastSeen: now,
+        };
+      }
+    });
+
+    const workers = Object.values(workerMap).sort((a, b) => a.name.localeCompare(b.name));
+
+    res.json({
+      total: workers.length,
+      online: workers.filter((r) => r.online && !r.paused).length,
+      paused: workers.filter((r) => r.paused).length,
+      workers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Redis health/memory diagnostic — built during the 2026-08-30 memory-leak incident

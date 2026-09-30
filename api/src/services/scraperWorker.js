@@ -414,6 +414,29 @@ export function runStandaloneWorker() {
       console.log(`[Scraper Worker #${workerIndex}] Connected to MongoDB Atlas.`);
       initScraperWorker(workerIndex);
       console.log(`[Scraper Worker #${workerIndex}] Ready and listening for distributed jobs.`);
+
+      // Register heartbeat in Redis every 30 seconds
+      const registerHeartbeat = async () => {
+        try {
+          const { defaultRedis } = await import('../utils/redis.js');
+          if (defaultRedis) {
+            await defaultRedis.set(
+              `worker:heartbeat:${workerTag}`,
+              JSON.stringify({
+                name: workerTag,
+                workerIndex,
+                platform: 'railway',
+                pid: process.pid,
+                lastSeen: Date.now(),
+              }),
+              'EX',
+              180
+            );
+          }
+        } catch (e) {}
+      };
+      registerHeartbeat();
+      setInterval(registerHeartbeat, 30000);
     }).catch(err => {
       console.error(`[Scraper Worker #${workerIndex}] DB connection error:`, err.message);
     });
