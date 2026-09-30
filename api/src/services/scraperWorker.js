@@ -103,6 +103,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
       status: 'active',
       $or: [
         { cooldownUntil: { $exists: false } },
+        { cooldownUntil: null },
         { cooldownUntil: { $lte: now } }
       ]
     },
@@ -166,6 +167,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
           token: { $ne: token },
           $or: [
             { cooldownUntil: { $exists: false } },
+            { cooldownUntil: null },
             { cooldownUntil: { $lte: new Date() } }
           ]
         },
