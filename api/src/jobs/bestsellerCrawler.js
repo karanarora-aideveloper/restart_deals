@@ -1,26 +1,51 @@
 import cron from 'node-cron';
 import * as cheerio from 'cheerio';
 import Product from '../db/models/product.js';
+import Deal from '../db/models/deal.js';
 import CrawlerSeed from '../db/models/crawlerSeed.js';
 import CrawlerConfig from '../db/models/crawlerConfig.js';
 import { apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
+import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 
 /**
- * Default keyword seed for every Master subcategory (category pairing taken from each
- * subcategory's real `metadata.parentCategory`, confirmed live against the Master collection —
- * NOT guessed from label text). This only ever runs once, the first time the app boots against
- * an empty crawler_seeds collection (see ensureDefaultSeeds()) — after that, the admin panel
- * (Settings → Bestseller Crawler) owns keywords/frequency/enabled state entirely; editing this
- * list again does nothing for an existing install.
- *
- * `general` here matches an existing quirk, not a new one: eight subcategories (groceries,
- * baby-toys, books-stationery, pet-supplies, office, auto, musical, gifts) already point at a
- * `general` parent category throughout this codebase (see verifier.js's CATEGORY_KEYWORDS) even
- * though `general` itself isn't in Master's active `type:'category'` list — a pre-existing
- * taxonomy gap, not something introduced here.
+ * Multi-Store Search URL Builder
+ * Generates store-specific search/listing URLs ranked by popularity/relevance.
  */
-const DEFAULT_SEEDS = [
+export function buildStoreSearchUrl(store = 'amazon', keywords = '') {
+  const enc = encodeURIComponent(keywords.trim());
+  const cleanStore = (store || 'amazon').toLowerCase().trim();
+  switch (cleanStore) {
+    case 'flipkart':
+      return `https://www.flipkart.com/search?q=${enc}&sort=popularity`;
+    case 'nykaa':
+      return `https://www.nykaa.com/search/result/?q=${enc}&sort=popularity`;
+    case 'myntra':
+      return `https://www.myntra.com/${encodeURIComponent(keywords.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))}?sort=popularity`;
+    case 'meesho':
+      return `https://www.meesho.com/search?q=${enc}`;
+    case 'amazon':
+    default:
+      return `https://www.amazon.in/s?k=${enc}&s=exact-aware-popularity-rank`;
+  }
+}
+
+/** Legacy alias for Amazon search URL builder */
+export function buildAmazonSearchUrl(keywords) {
+  return buildStoreSearchUrl('amazon', keywords);
+}
+
+/**
+ * Categorized Default Seeds by Merchant Store
+ * - Amazon: General broad marketplace coverage (53 seeds across all categories)
+ * - Flipkart: Electronics, Appliances, and High-demand lifestyle (14 seeds)
+ * - Nykaa: Curated Beauty, Makeup, Skincare, Haircare, Fragrance & Grooming (12 seeds)
+ * - Myntra: Fashion, Footwear, Bags, Watches & Western/Ethnic wear (12 seeds)
+ * - Meesho: High-velocity budget ethnic, daily wear, bedding & home value (10 seeds)
+ */
+export const DEFAULT_AMAZON_SEEDS = [
   // electronics
   { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones' },
   { category: 'electronics', subcategory: 'laptops', keywords: 'laptops' },
@@ -72,7 +97,7 @@ const DEFAULT_SEEDS = [
   { category: 'fitness', subcategory: 'nutrition', keywords: 'whey protein isolate supplements' },
   { category: 'fitness', subcategory: 'apparel', keywords: 'gym wear fitness apparel' },
   { category: 'fitness', subcategory: 'trackers', keywords: 'fitness band tracker' },
-  // general (see DEFAULT_SEEDS docblock re: the pre-existing 'general' taxonomy gap)
+  // general
   { category: 'general', subcategory: 'groceries', keywords: 'grocery gourmet snacks' },
   { category: 'general', subcategory: 'baby-toys', keywords: 'kids toys baby products' },
   { category: 'general', subcategory: 'books-stationery', keywords: 'books notebooks stationery' },
@@ -83,32 +108,103 @@ const DEFAULT_SEEDS = [
   { category: 'general', subcategory: 'gifts', keywords: 'gift sets hampers' },
 ];
 
-/** Amazon.in search URL for a keyword string, ranked by popularity (their bestseller-ish sort). */
-export function buildAmazonSearchUrl(keywords) {
-  return `https://www.amazon.in/s?k=${encodeURIComponent(keywords)}&s=exact-aware-popularity-rank`;
+export const DEFAULT_FLIPKART_SEEDS = [
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones 5g' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'laptops thin light gaming' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'wireless earbuds bluetooth headphones' },
+  { category: 'electronics', subcategory: 'tv', keywords: 'smart tv 4k 43 55 inch' },
+  { category: 'electronics', subcategory: 'wearables', keywords: 'smartwatches bluetooth calling' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'fast charger power bank' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'mixer grinder pressure cooker cookware' },
+  { category: 'home', subcategory: 'bedding', keywords: 'cotton double bedsheet' },
+  { category: 'home', subcategory: 'appliances-large', keywords: 'washing machine refrigerator microwave' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts casual shirts' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans cotton trousers' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men running shoes sneakers' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurtis kurta set saree' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women dresses tops jeans' },
+];
+
+export const DEFAULT_NYKAA_SEEDS = [
+  { category: 'beauty', subcategory: 'makeup', keywords: 'fit me foundation compact primer' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'matte liquid lipstick lip gloss' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'kajal eyeliner mascara eyeshadow' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'face serum niacinamide vitamin c' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'sunscreen spf 50 moisturizer gel' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'face wash cleanser foaming' },
+  { category: 'beauty', subcategory: 'haircare', keywords: 'keratin shampoo hair mask serum' },
+  { category: 'beauty', subcategory: 'bath-body', keywords: 'body wash shower gel body lotion' },
+  { category: 'beauty', subcategory: 'fragrance', keywords: 'eau de parfum perfume for women men' },
+  { category: 'beauty', subcategory: 'mens-grooming', keywords: 'beard oil face wash men grooming' },
+  { category: 'beauty', subcategory: 'appliances', keywords: 'hair dryer hair straightener styler' },
+  { category: 'beauty', subcategory: 'nailcare', keywords: 'nail polish gel enamel kit' },
+];
+
+export const DEFAULT_MYNTRA_SEEDS = [
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men cotton casual shirts polo t-shirts' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men slim fit stretch jeans cargo trousers' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men running shoes white sneakers loafers' },
+  { category: 'men-fashion', subcategory: 'bags', keywords: 'men genuine leather wallet office bag' },
+  { category: 'men-fashion', subcategory: 'watches', keywords: 'men analog chronograph watch' },
+  { category: 'men-fashion', subcategory: 'innerwear', keywords: 'men trunks boxers vests cotton' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'anarkali kurti kurta palazzo set' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women maxi dress floral tops high waist jeans' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'oxidised silver earrings necklace sets' },
+  { category: 'women-fashion', subcategory: 'women-footwear', keywords: 'women block heels casual flats wedges' },
+  { category: 'women-fashion', subcategory: 'women-bags', keywords: 'women tote bag shoulder sling handbag' },
+  { category: 'women-fashion', subcategory: 'women-watches', keywords: 'women analog rose gold watch' },
+];
+
+export const DEFAULT_MEESHO_SEEDS = [
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'cotton printed kurti daily wear' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'georgette designer saree ready to wear' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women nighty night dress loungewear' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'traditional oxidised jhumka earrings set' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men combo pack t-shirts regular fit' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men trackpants track pants lower' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men lightweight mesh running sports shoes' },
+  { category: 'home', subcategory: 'bedding', keywords: 'fitted elastic double bedsheet with pillow covers' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'kitchen storage container set spice box organizer' },
+  { category: 'home', subcategory: 'decor', keywords: 'curtains for door window home decoration' },
+];
+
+export const DEFAULT_SEEDS_BY_STORE = {
+  amazon: DEFAULT_AMAZON_SEEDS,
+  flipkart: DEFAULT_FLIPKART_SEEDS,
+  nykaa: DEFAULT_NYKAA_SEEDS,
+  myntra: DEFAULT_MYNTRA_SEEDS,
+  meesho: DEFAULT_MEESHO_SEEDS,
+};
+
+/** Helper to clean raw price strings into safe numbers */
+function cleanPriceVal(val) {
+  if (val == null) return null;
+  const num = parseFloat(String(val).replace(/[^\d.]/g, ''));
+  return !isNaN(num) && num > 0 ? Math.round(num) : null;
 }
 
 /**
- * One-time bootstrap: populate crawler_seeds from DEFAULT_SEEDS if the collection is empty, and
- * ensure the singleton crawler_config document exists. Safe to call on every boot — both are
- * no-ops once real data/admin edits exist.
+ * One-time bootstrap: populate crawler_seeds across all 5 stores if missing.
  */
 export async function ensureCrawlerDefaults() {
-  const existingCount = await CrawlerSeed.countDocuments({});
-  if (existingCount === 0) {
-    console.log(`[Bestseller Crawler] No seeds configured yet — bootstrapping ${DEFAULT_SEEDS.length} default keyword seeds...`);
-    await CrawlerSeed.insertMany(
-      DEFAULT_SEEDS.map(s => ({
-        store: 'amazon',
+  for (const [store, seedList] of Object.entries(DEFAULT_SEEDS_BY_STORE)) {
+    const existingStoreCount = await CrawlerSeed.countDocuments({ store });
+    if (existingStoreCount === 0) {
+      console.log(`[Bestseller Crawler] Bootstrapping ${seedList.length} default keyword seeds for ${store.toUpperCase()}...`);
+      const docs = seedList.map(s => ({
+        store,
         category: s.category,
         subcategory: s.subcategory,
         keywords: s.keywords,
-        url: buildAmazonSearchUrl(s.keywords),
+        url: buildStoreSearchUrl(store, s.keywords),
         topN: 20,
         isEnabled: true,
-      })),
-      { ordered: false }
-    ).catch(err => console.warn('[Bestseller Crawler] Seed bootstrap had some duplicates (harmless):', err.message));
+        frequencyHours: 24,
+      }));
+      await CrawlerSeed.insertMany(docs, { ordered: false }).catch(err => {
+        console.warn(`[Bestseller Crawler] Seed bootstrap for ${store} had duplicate items (harmless):`, err.message);
+      });
+    }
   }
 
   const config = await CrawlerConfig.findOne({});
@@ -117,23 +213,19 @@ export async function ensureCrawlerDefaults() {
     await CrawlerConfig.create({ isEnabled: true, intervalHours: 24 });
   }
 
-  // Backfill for seeds that predate the frequencyHours field (schema default only applies to
-  // NEW documents/saves, not to already-stored rows read back via find/lean) — without this,
-  // the $expr due-check in runCategoryBestsellerCrawl() below would compare against a missing
-  // field for every pre-existing seed. Idempotent and cheap (only touches rows missing it).
   await CrawlerSeed.updateMany(
     { frequencyHours: { $exists: false } },
     { $set: { frequencyHours: (config || {}).intervalHours || 24 } }
-  ).catch(err => console.warn('[Bestseller Crawler] frequencyHours backfill failed (non-fatal):', err.message));
+  ).catch(() => {});
 }
 
-/** Fetches a search page's HTML via the shared scraper queue, at the lowest (Bestseller) priority. */
+/** Fetches a search page's HTML via the shared scraper queue at BESTSELLER priority. */
 async function fetchCategoryHtml(url) {
   return await scraperQueue.enqueue(url, { priority: PRIORITY.BESTSELLER });
 }
 
 /**
- * Parses an Amazon search/bestseller page and extracts the top `topN` ranked items.
+ * Parses an Amazon search/bestseller page and extracts topN items.
  */
 export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
   if (!html) return [];
@@ -153,12 +245,12 @@ export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
 
     // Price
     const priceText = $(el).find('.a-price .a-offscreen, ._cDEzb_p13n-sc-price_3mJ9Z, .a-price-whole').first().text().trim();
-    const cleanPrice = parseFloat(priceText.replace(/[^\d.]/g, ''));
-    if (!cleanPrice || isNaN(cleanPrice) || cleanPrice <= 0) return;
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
 
     // MRP / Original Price
     const mrpText = $(el).find('.a-text-price .a-offscreen, .a-size-small.a-color-secondary').first().text().trim();
-    const cleanMrp = parseFloat(mrpText.replace(/[^\d.]/g, ''));
+    const cleanMrp = cleanPriceVal(mrpText);
     const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
 
     // Image URL
@@ -190,33 +282,444 @@ export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
   return items;
 }
 
+/**
+ * Parses a Flipkart search/listing page and extracts topN items.
+ */
+export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  $('div[data-id], a[href*="pid="], a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+
+    const $el = $(el);
+    let pid = $el.attr('data-id');
+    const href = $el.attr('href') || $el.find('a[href*="pid="]').attr('href') || $el.find('a[href*="/p/"]').attr('href');
+
+    if (!pid && href) {
+      const pidMatch = href.match(/pid=([A-Z0-9]{16})/i) || href.match(/\/p\/([a-z0-9]{16})/i);
+      if (pidMatch) pid = pidMatch[1];
+    }
+
+    if (!pid || pid.length < 6 || seenIds.has(pid)) return;
+
+    const card = $el.is('div[data-id]') ? $el : $el.closest('div[data-id], div[class*="_1AtVbE"], div[class*="cPHDOP"]');
+    const scope = card.length ? card : $el;
+
+    let title = scope.find('div.KzDlHZ, a.WKTcLC, div._4rR01T, a.IRpwTa, a._2B099V').first().text().trim();
+    const brand = scope.find('div._2WkVRV').first().text().trim();
+    if (brand && title && !title.toLowerCase().startsWith(brand.toLowerCase())) {
+      title = `${brand} ${title}`;
+    }
+    if (!title) {
+      title = scope.find('a[title]').first().attr('title') || scope.find('img').first().attr('alt');
+    }
+    if (!title || title.length < 3) return;
+
+    const priceText = scope.find('div.Nx9bqj, div._30jeq3, div[class*="Nx9bqj"]').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = scope.find('div.yRaY8j, div._3I9_R3, div[class*="yRaY8j"]').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imageUrl = scope.find('img.DByuf4, img._53G40d, img[src*="flixcart.com"], img[src*="rukminim"], img').first().attr('src');
+    const ratingText = scope.find('div._5OesEi span div, div._3LWZlK, div[class*="_3LWZlK"]').first().text().trim();
+    const ratingNum = parseFloat(ratingText);
+    const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.2;
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'flipkart',
+      cleanUrl: `https://www.flipkart.com/product/p/itme?pid=${pid}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating,
+      category: categoryInfo.category,
+      subcategory: categoryInfo.subcategory,
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Parses a Nykaa search/listing page and extracts topN items.
+ */
+export function parseNykaaBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  // 1. Check window.__PRELOADED_STATE__ if present in SSR
+  let preloadedProducts = null;
+  $('script').each((_, el) => {
+    if (preloadedProducts) return;
+    const txt = $(el).contents().text();
+    const idx = txt.indexOf('__PRELOADED_STATE__');
+    if (idx !== -1) {
+      try {
+        const eqIdx = txt.indexOf('=', idx);
+        if (eqIdx !== -1) {
+          let jsonStr = txt.slice(eqIdx + 1).trim();
+          if (jsonStr.endsWith(';')) jsonStr = jsonStr.slice(0, -1).trim();
+          const parsed = JSON.parse(jsonStr);
+          const candidateList = parsed.productSearch?.products || parsed.search?.products || parsed.products;
+          if (Array.isArray(candidateList) && candidateList.length > 0) {
+            preloadedProducts = candidateList;
+          }
+        }
+      } catch {}
+    }
+  });
+
+  if (Array.isArray(preloadedProducts) && preloadedProducts.length > 0) {
+    for (const p of preloadedProducts) {
+      if (items.length >= topN) break;
+      const pid = String(p.id || p.productId || '');
+      if (!pid || seenIds.has(pid)) continue;
+      const price = cleanPriceVal(p.finalPrice || p.price || p.discountedPrice);
+      if (!price) continue;
+      const originalPrice = cleanPriceVal(p.mrp || p.originalPrice) || price;
+      const title = p.title || p.name || '';
+      if (!title) continue;
+
+      seenIds.add(pid);
+      items.push({
+        productId: pid,
+        merchant: 'nykaa',
+        cleanUrl: p.slug ? `https://www.nykaa.com/${p.slug.replace(/^\//, '')}/p/${pid}` : `https://www.nykaa.com/product/p/${pid}`,
+        title: title.slice(0, 200),
+        price,
+        originalPrice,
+        imageUrl: p.imageUrl || p.image || null,
+        images: (p.imageUrl || p.image) ? [p.imageUrl || p.image] : [],
+        rating: typeof p.rating === 'number' ? p.rating : 4.3,
+        category: categoryInfo.category || 'beauty',
+        subcategory: categoryInfo.subcategory || 'makeup',
+        isActive: true,
+        country: 'IN',
+      });
+    }
+    if (items.length > 0) return items;
+  }
+
+  // 2. DOM extraction: product cards with /p/ links
+  $('a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+    const $a = $(el);
+    const href = $a.attr('href') || '';
+    const pidMatch = href.match(/\/p\/(\d+)/i);
+    if (!pidMatch) return;
+    const pid = pidMatch[1];
+    if (seenIds.has(pid)) return;
+
+    const card = $a.closest('div[class*="productWrapper"], div.product-card, div[class*="css-"], div');
+    const scope = card.length ? card : $a;
+
+    const title = scope.find('[class*="product-title"], [class*="title"], h2, div[class*="css-15vhhhd"]').first().text().trim() ||
+                  scope.find('img').first().attr('alt');
+    if (!title || title.length < 3) return;
+
+    const priceText = scope.find('[class*="css-111z9ua"], [class*="price"], .post-discount-price').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = scope.find('[class*="css-17xsgbl"], [class*="mrp"], [class*="discount"]').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imageUrl = scope.find('img[src*="adn-image"], img[src*="nykaa"], img').first().attr('src');
+    const ratingText = scope.find('[class*="css-v3h0e"], [class*="rating"]').first().text().trim();
+    const ratingNum = parseFloat(ratingText);
+    const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.3;
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'nykaa',
+      cleanUrl: `https://www.nykaa.com${href.split('?')[0]}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating,
+      category: categoryInfo.category || 'beauty',
+      subcategory: categoryInfo.subcategory || 'makeup',
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Parses a Myntra search/listing page and extracts topN items.
+ */
+export function parseMyntraBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  // 1. Try window.__myx script first
+  let myxProducts = null;
+  $('script').each((_, el) => {
+    if (myxProducts) return;
+    const txt = $(el).contents().text();
+    const idx = txt.indexOf('__myx');
+    if (idx !== -1) {
+      try {
+        const eqIdx = txt.indexOf('=', idx);
+        if (eqIdx !== -1) {
+          let jsonStr = txt.slice(eqIdx + 1).trim();
+          if (jsonStr.endsWith(';')) jsonStr = jsonStr.slice(0, -1).trim();
+          const parsed = JSON.parse(jsonStr);
+          const candidateList = parsed.searchData?.results?.products || parsed.pdpData?.products;
+          if (Array.isArray(candidateList) && candidateList.length > 0) {
+            myxProducts = candidateList;
+          }
+        }
+      } catch {}
+    }
+  });
+
+  if (Array.isArray(myxProducts) && myxProducts.length > 0) {
+    for (const p of myxProducts) {
+      if (items.length >= topN) break;
+      const pid = String(p.productId || p.id || '');
+      if (!pid || seenIds.has(pid)) continue;
+      const price = cleanPriceVal(p.price);
+      if (!price) continue;
+      const originalPrice = cleanPriceVal(p.mrp) || price;
+      const title = `${p.brand || ''} ${p.additionalInfo || p.productName || p.product || ''}`.trim();
+      if (!title) continue;
+
+      seenIds.add(pid);
+      items.push({
+        productId: pid,
+        merchant: 'myntra',
+        cleanUrl: p.landingPageUrl ? `https://www.myntra.com/${p.landingPageUrl.replace(/^\//, '')}` : `https://www.myntra.com/product/${pid}/buy`,
+        title: title.slice(0, 200),
+        price,
+        originalPrice,
+        imageUrl: p.searchImage || p.images?.[0]?.src || null,
+        images: (p.searchImage || p.images?.[0]?.src) ? [p.searchImage || p.images[0].src] : [],
+        rating: typeof p.rating === 'number' ? Math.round(p.rating * 10) / 10 : 4.2,
+        category: categoryInfo.category,
+        subcategory: categoryInfo.subcategory,
+        isActive: true,
+        country: 'IN',
+      });
+    }
+    if (items.length > 0) return items;
+  }
+
+  // 2. DOM fallback
+  $('li.product-base, div.product-base, a[href*="/buy"]').each((_, el) => {
+    if (items.length >= topN) return false;
+    const $el = $(el);
+    const href = $el.attr('href') || $el.find('a[href*="/buy"]').attr('href') || '';
+    const idMatch = href.match(/\/(\d+)\/buy/i);
+    if (!idMatch) return;
+    const pid = idMatch[1];
+    if (seenIds.has(pid)) return;
+
+    const brand = $el.find('.product-brand').first().text().trim();
+    const prodName = $el.find('.product-product').first().text().trim();
+    const title = `${brand} ${prodName}`.trim() || $el.find('img').first().attr('alt');
+    if (!title || title.length < 3) return;
+
+    const priceText = $el.find('.product-discountedPrice, .product-price').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = $el.find('.product-strike').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imageUrl = $el.find('img.product-image, img[src*="myntassets"], img').first().attr('src');
+    const ratingText = $el.find('.product-ratingsContainer span').first().text().trim();
+    const ratingNum = parseFloat(ratingText);
+    const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.2;
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'myntra',
+      cleanUrl: `https://www.myntra.com/${href.replace(/^\//, '')}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating,
+      category: categoryInfo.category,
+      subcategory: categoryInfo.subcategory,
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Parses a Meesho search/listing page and extracts topN items.
+ */
+export function parseMeeshoBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  // 1. Check __NEXT_DATA__
+  const nextDataScript = $('script#__NEXT_DATA__').contents().text();
+  if (nextDataScript) {
+    try {
+      const nextData = JSON.parse(nextDataScript);
+      const searchProducts = nextData.props?.pageProps?.initialState?.search?.products ||
+                             nextData.props?.pageProps?.data?.products ||
+                             nextData.props?.pageProps?.products;
+      if (Array.isArray(searchProducts) && searchProducts.length > 0) {
+        for (const p of searchProducts) {
+          if (items.length >= topN) break;
+          const pid = String(p.id || p.product_id || p.slug || '');
+          if (!pid || seenIds.has(pid)) continue;
+          const price = cleanPriceVal(p.discounted_price || p.price || p.min_catalog_price);
+          if (!price) continue;
+          const originalPrice = cleanPriceVal(p.mrp || p.valid_mrp) || price;
+          const title = p.name || p.title || '';
+          if (!title) continue;
+
+          seenIds.add(pid);
+          items.push({
+            productId: pid,
+            merchant: 'meesho',
+            cleanUrl: p.slug ? `https://www.meesho.com/${p.slug}/p/${pid}` : `https://www.meesho.com/s/p/${pid}`,
+            title: title.slice(0, 200),
+            price,
+            originalPrice,
+            imageUrl: p.product_image || p.images?.[0] || null,
+            images: (p.product_image || p.images?.[0]) ? [p.product_image || p.images[0]] : [],
+            rating: typeof p.rating === 'number' ? Math.round(p.rating * 10) / 10 : 4.0,
+            category: categoryInfo.category,
+            subcategory: categoryInfo.subcategory,
+            isActive: true,
+            country: 'IN',
+          });
+        }
+        if (items.length > 0) return items;
+      }
+    } catch {}
+  }
+
+  // 2. DOM fallback
+  $('a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+    const $a = $(el);
+    const href = $a.attr('href') || '';
+    const idMatch = href.match(/\/p\/([a-z0-9]+)/i);
+    if (!idMatch) return;
+    const pid = idMatch[1];
+    if (seenIds.has(pid)) return;
+
+    const card = $a.closest('div[class*="Card"], div[class*="ProductCard"], div');
+    const scope = card.length ? card : $a;
+
+    const title = scope.find('h5, p, span[class*="title"]').first().text().trim() ||
+                  scope.find('img').first().attr('alt');
+    if (!title || title.length < 3) return;
+
+    let cleanPrice = null;
+    let cleanMrp = null;
+    scope.find('*').each((_, child) => {
+      const txt = $(child).text().trim();
+      if (/^₹\s*[\d,]+/.test(txt)) {
+        const val = cleanPriceVal(txt);
+        if (!cleanPrice) cleanPrice = val;
+        else if (val && val > cleanPrice) cleanMrp = val;
+      }
+    });
+
+    if (!cleanPrice) return;
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+    const imageUrl = scope.find('img[src*="meesho"], img').first().attr('src');
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'meesho',
+      cleanUrl: `https://www.meesho.com${href.split('?')[0]}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating: 4.0,
+      category: categoryInfo.category,
+      subcategory: categoryInfo.subcategory,
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Universal Store Listing Parser Dispatcher
+ */
+export function parseStoreListingItems(html, seed, topN = 20) {
+  const store = (seed.store || 'amazon').toLowerCase().trim();
+  switch (store) {
+    case 'flipkart':
+      return parseFlipkartBestsellerItems(html, seed, topN);
+    case 'nykaa':
+      return parseNykaaBestsellerItems(html, seed, topN);
+    case 'myntra':
+      return parseMyntraBestsellerItems(html, seed, topN);
+    case 'meesho':
+      return parseMeeshoBestsellerItems(html, seed, topN);
+    case 'amazon':
+    default:
+      return parseAmazonBestsellerItems(html, seed, topN);
+  }
+}
+
 let isCrawling = false;
 
 /**
  * Crawls a single seed: fetch its search page via the shared scraper queue, extract top-N
- * products, upsert each into the catalog. Split out from runCategoryBestsellerCrawl() so seeds
- * can be dispatched CONCURRENTLY (see below) instead of one at a time — fetchCategoryHtml()
- * blocks on scraperQueue.enqueue(), which itself blocks on ONE BullMQ job finishing, so running
- * this sequentially for N seeds meant only ONE of the 5 scraper workers was ever busy on this
- * engine's traffic at a time, no matter how many workers existed. Running many of these calls
- * concurrently lets BullMQ's own priority queue + distributed rate limiter fan them out across
- * however many scraper-N workers are actually online — genuinely tying this engine's throughput
- * to worker count, the way it always should have.
+ * products across supported stores, upsert each into the catalog and synthesize authentic deals.
  */
 async function crawlOneSeed(seed, stats) {
-  console.log(`[Bestseller Crawler] Crawling ${seed.store.toUpperCase()} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
+  const storeName = (seed.store || 'amazon').toUpperCase();
+  console.log(`[Bestseller Crawler] Crawling ${storeName} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
 
   const seedResult = { found: 0, enrolled: 0, updated: 0, error: null };
   try {
     const html = await fetchCategoryHtml(seed.url);
     if (!html) {
-      console.warn(`[Bestseller Crawler] ⚠️ Could not fetch HTML for ${seed.category}/${seed.subcategory}`);
+      console.warn(`[Bestseller Crawler] ⚠️ Could not fetch HTML for ${storeName} ${seed.category}/${seed.subcategory}`);
       stats.errors++;
       seedResult.error = 'No HTML returned from scraper queue';
     } else {
-      const products = parseAmazonBestsellerItems(html, seed, seed.topN || 20);
+      const products = parseStoreListingItems(html, seed, seed.topN || 20);
       seedResult.found = products.length;
-      console.log(`[Bestseller Crawler] Extracted ${products.length} top products for ${seed.subcategory}`);
+      console.log(`[Bestseller Crawler] Extracted ${products.length} top products for ${storeName} ${seed.subcategory}`);
 
       const now = new Date();
       const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -226,6 +729,7 @@ async function crawlOneSeed(seed, stats) {
 
         if (existing) {
           existing.isActive = true;
+          if (!existing.merchant || existing.merchant === 'unknown') existing.merchant = prodData.merchant;
           if (!existing.category || existing.category === 'general') existing.category = prodData.category;
           if (!existing.subcategory) existing.subcategory = prodData.subcategory;
           if (prodData.imageUrl && !existing.imageUrl) {
@@ -236,6 +740,80 @@ async function crawlOneSeed(seed, stats) {
           existing.top20Category = prodData.category;
           existing.top20Subcategory = prodData.subcategory;
           if (!existing.productSource) existing.productSource = 'top20_catalog';
+
+          // Check for price changes & synthesize deals
+          if (prodData.price && prodData.price !== existing.price) {
+            const priorPrice = existing.price;
+            existing.previousPrice = priorPrice;
+            existing.price = prodData.price;
+            existing.priceUpdatedAt = now;
+
+            if (!Array.isArray(existing.priceHistory)) existing.priceHistory = [];
+            const dayIdx = existing.priceHistory.findIndex(e => e.date === todayStr);
+            if (dayIdx >= 0) {
+              if (prodData.price < existing.priceHistory[dayIdx].price) {
+                existing.priceHistory[dayIdx].price = prodData.price;
+                existing.priceHistory[dayIdx].timestamp = now;
+              }
+            } else {
+              existing.priceHistory.push({
+                date: todayStr,
+                price: prodData.price,
+                originalPrice: prodData.originalPrice || existing.originalPrice,
+                timestamp: now,
+              });
+            }
+
+            // Autonomous deal synthesis if qualifies
+            if (priorPrice && priorPrice > prodData.price) {
+              const genuineDiscount = Math.round(((priorPrice - prodData.price) / priorPrice) * 100);
+              const cashDrop = priorPrice - prodData.price;
+              const thresholdCheck = meetsCategoryThreshold(existing.category, existing.subcategory, genuineDiscount, cashDrop, 'IN');
+              if (thresholdCheck.qualifies) {
+                const deal = new Deal({
+                  sourceChannelId: 'bestseller_crawler_engine',
+                  sourceMessageId: `bestseller_${prodData.productId}_${Date.now()}`,
+                  sourceChannelName: 'Bestseller Listing Discovery',
+                  originalText: `Autonomous Price Drop Detected on ${existing.merchant.toUpperCase()} ${existing.subcategory}: ${existing.title} at ₹${prodData.price}`,
+                  title: existing.title,
+                  description: `Autonomous price drop detected via bestseller listing scraper (${existing.merchant}). Price dropped from ₹${priorPrice} to ₹${prodData.price}.`,
+                  imageUrl: existing.imageUrl || (existing.images && existing.images[0]) || null,
+                  images: existing.images || (existing.imageUrl ? [existing.imageUrl] : []),
+                  rating: existing.rating || 4.2,
+                  dealUrl: existing.cleanUrl,
+                  productId: existing.productId,
+                  merchant: existing.merchant,
+                  originalPrice: existing.originalPrice || prodData.originalPrice,
+                  dealPrice: prodData.price,
+                  previousPrice: priorPrice,
+                  discountPercentage: genuineDiscount,
+                  priceSource: 'price_history',
+                  category: existing.category || 'general',
+                  subcategory: existing.subcategory || '',
+                  isVerified: true,
+                  isExpired: false,
+                  lastVerifiedAt: now,
+                  country: 'IN',
+                  createdAt: now,
+                  updatedAt: now,
+                });
+                await deal.save();
+                apiCache.invalidatePattern('/api/deals');
+                enqueueDealForPublishing(deal._id, { sourceEngine: 'engine2_catalog_top20' }).catch(() => {});
+                evaluateAndTriggerPriceAlerts({
+                  productId: existing.productId,
+                  livePrice: prodData.price,
+                  title: existing.title,
+                  dealUrl: existing.cleanUrl,
+                  imageUrl: existing.imageUrl,
+                  merchant: existing.merchant,
+                  category: existing.category,
+                  subcategory: existing.subcategory,
+                }).catch(() => {});
+              }
+            }
+          }
+
           await existing.save();
           stats.productsUpdated++;
           seedResult.updated++;
@@ -255,14 +833,14 @@ async function crawlOneSeed(seed, stats) {
           await newProduct.save();
           stats.productsEnrolled++;
           seedResult.enrolled++;
-          console.log(`  ✓ Enrolled Top-20: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
+          console.log(`  ✓ Enrolled [${prodData.merchant.toUpperCase()}]: "${prodData.title.slice(0, 45)}..." (₹${prodData.price})`);
         }
       }
 
       apiCache.invalidatePattern('/api/products');
     }
   } catch (err) {
-    console.error(`[Bestseller Crawler Error] Failed for ${seed.category}/${seed.subcategory}:`, err.message);
+    console.error(`[Bestseller Crawler Error] Failed for ${storeName} ${seed.category}/${seed.subcategory}:`, err.message);
     stats.errors++;
     seedResult.error = err.message;
   }
@@ -272,17 +850,7 @@ async function crawlOneSeed(seed, stats) {
 }
 
 /**
- * Runs seeds from the DB (admin-controlled — Settings → Bestseller Crawler) and enrolls/updates
- * their top-N ranked products into the "products" collection. Seeds are dispatched concurrently
- * (see crawlOneSeed's docblock) — actual throughput is governed by the shared scraper queue's
- * worker count and rate limiter, not by this function.
- * @param {{ seedIds?: string[], dueOnly?: boolean }} options
- *   - seedIds: run only these specific seeds (e.g. admin panel's per-row "Run this one now"),
- *     ignoring dueOnly — an explicit manual trigger always runs regardless of frequency.
- *   - dueOnly: only crawl enabled seeds whose OWN frequencyHours has actually elapsed since
- *     their lastRunAt (or that have never run) — used by the scheduler tick below. Omit (or
- *     seedIds without dueOnly) to run every enabled seed regardless of cadence, e.g. the admin's
- *     manual "Run Now (all enabled seeds)" button.
+ * Runs seeds from the DB and enrolls/updates their top-N products.
  */
 export async function runCategoryBestsellerCrawl(options = {}) {
   if (isCrawling) {
@@ -293,7 +861,7 @@ export async function runCategoryBestsellerCrawl(options = {}) {
   const startedAt = Date.now();
 
   console.log('==================================================');
-  console.log('    RUNNING CATEGORY BESTSELLER CRAWLER (ENGINE 2)');
+  console.log('    RUNNING MULTI-STORE BESTSELLER CRAWLER (ENGINE 2)');
   console.log('==================================================');
 
   const stats = { seedsCrawled: 0, productsEnrolled: 0, productsUpdated: 0, errors: 0 };
@@ -306,10 +874,6 @@ export async function runCategoryBestsellerCrawl(options = {}) {
     if (options.seedIds && options.seedIds.length > 0) {
       filter._id = { $in: options.seedIds };
     } else if (options.dueOnly) {
-      // Per-seed due-check at the Mongo level: no lastRunAt yet, OR more hours have passed
-      // since lastRunAt than that seed's own frequencyHours calls for. $expr is required here
-      // since the comparison is between two fields on the SAME document, not against a fixed
-      // value — a plain filter object can't express "field A vs field B * 3600000".
       filter.$expr = {
         $or: [
           { $eq: ['$lastRunAt', null] },
@@ -327,17 +891,12 @@ export async function runCategoryBestsellerCrawl(options = {}) {
     if (seeds.length === 0) {
       console.log('[Bestseller Crawler] No seeds due right now.');
     } else {
-      console.log(`[Bestseller Crawler] Dispatching ${seeds.length} seed(s) concurrently...`);
-      // allSettled, not all — one seed's scrape failing (network blip, Amazon block) must not
-      // abort every other seed's already-in-flight job.
+      console.log(`[Bestseller Crawler] Dispatching ${seeds.length} multi-store seed(s) concurrently...`);
       await Promise.allSettled(seeds.map(seed => crawlOneSeed(seed, stats)));
     }
   } finally {
     const durationMs = Date.now() - startedAt;
     const now = new Date();
-    // Informational "next run due" for the admin dashboard card — the earliest any ENABLED
-    // seed will next become due, computed from each seed's own lastRunAt + frequencyHours (not
-    // a single global interval any more, since due-ness is now per-seed).
     const nextDueSeed = await CrawlerSeed.aggregate([
       { $match: { isEnabled: true } },
       {
@@ -377,14 +936,7 @@ export async function runCategoryBestsellerCrawl(options = {}) {
 }
 
 /**
- * Starts the scheduler tick. Ticks every 5 minutes and asks runCategoryBestsellerCrawl to run
- * only whichever seeds are actually due (dueOnly: true — see that function's per-seed $expr
- * check against each seed's own frequencyHours). This used to gate on ONE global
- * CrawlerConfig.nextRunAt and, when due, crawl EVERY enabled seed together on the same cadence
- * — a keyword that turns over daily got the same schedule as one that barely changes. Now each
- * keyword's own frequency (editable per-seed in Settings → Bestseller Crawler) decides when
- * it's due; a 5-minute tick just means "due" is noticed within 5 minutes of actually becoming
- * true, not that everything runs every 5 minutes. Call once from server startup.
+ * Starts the scheduler tick. Ticks every 5 minutes.
  */
 export function startBestsellerCrawlerScheduler() {
   console.log('[Bestseller Crawler] Initializing scheduler (checks every 5 minutes for seeds due by their own frequency)...');
@@ -396,19 +948,9 @@ export function startBestsellerCrawlerScheduler() {
       if (!config || !config.isEnabled) return;
 
       if (config.isRunning) {
-        // Stale-lock self-heal: isRunning is set true right before a crawl starts and cleared
-        // in the finally block when it finishes — but a deploy/restart that kills the process
-        // mid-crawl (this API service redeploys often) skips that finally block entirely,
-        // leaving isRunning stuck true in the DB forever. Confirmed live: found this flag
-        // stuck true with updatedAt two days stale, silently skipping every 5-minute tick that
-        // whole time — the scheduler was doing nothing. updatedAt is bumped by the same
-        // updateOne() that sets isRunning: true, so it doubles as "when did the current run
-        // start" without needing a new field. A real concurrent run (even a large due batch
-        // fanned across the worker fleet) has no business taking anywhere near 60 minutes, so
-        // treat anything older than that as abandoned and recover instead of staying stuck.
         const runningForMs = Date.now() - new Date(config.updatedAt).getTime();
         if (runningForMs < 60 * 60 * 1000) return;
-        console.warn(`[Bestseller Crawler] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — treating as an abandoned lock from an interrupted run and clearing it.`);
+        console.warn(`[Bestseller Crawler] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — clearing lock.`);
         await CrawlerConfig.updateOne({}, { isRunning: false });
       }
 
@@ -418,8 +960,6 @@ export function startBestsellerCrawlerScheduler() {
     }
   });
 
-  // First-boot bootstrap so the admin panel has something to show immediately, without waiting
-  // up to 5 minutes for the first tick.
   setTimeout(() => {
     ensureCrawlerDefaults().catch(err => console.error('[Bestseller Crawler] Default bootstrap failed:', err.message));
   }, 5000);

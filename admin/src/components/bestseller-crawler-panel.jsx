@@ -26,10 +26,19 @@ function timeUntil(dateStr) {
   return `in ${Math.round(hours / 24)}d`;
 }
 
+const STORE_META = {
+  amazon: { label: 'Amazon India', icon: 'shopping_bag', color: '#f59e0b' },
+  flipkart: { label: 'Flipkart', icon: 'bolt', color: '#3b82f6' },
+  nykaa: { label: 'Nykaa Beauty', icon: 'spa', color: '#ec4899' },
+  myntra: { label: 'Myntra Fashion', icon: 'styler', color: '#a855f7' },
+  meesho: { label: 'Meesho Value', icon: 'local_offer', color: '#f43f5e' },
+};
+
 export default function BestsellerCrawlerPanel() {
   const [status, setStatus] = useState(null);
   const [seeds, setSeeds] = useState([]);
   const [search, setSearch] = useState('');
+  const [selectedStore, setSelectedStore] = useState('all');
   const [toastMessage, setToastMessage] = useState(null);
   const [intervalInput, setIntervalInput] = useState(24);
   const [running, setRunning] = useState(false);
@@ -37,10 +46,17 @@ export default function BestsellerCrawlerPanel() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSeed, setEditingSeed] = useState(null);
-  const [seedForm, setSeedForm] = useState({ category: '', subcategory: '', keywords: '', topN: 20, frequencyHours: 24 });
+  const [seedForm, setSeedForm] = useState({
+    store: 'amazon',
+    category: '',
+    subcategory: '',
+    keywords: '',
+    topN: 20,
+    frequencyHours: 24,
+  });
   const [formError, setFormError] = useState('');
 
-  const [apiBase, setApiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
+  const [apiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
 
   const apiFetch = useCallback(async (endpoint, options = {}) => {
@@ -83,24 +99,37 @@ export default function BestsellerCrawlerPanel() {
     fetchSeeds();
   }, [fetchStatus, fetchSeeds]);
 
-  // Poll status every 15s while a crawl might be running, so "Running..." / last-run stats
-  // update without a manual refresh.
   useEffect(() => {
     const interval = setInterval(fetchStatus, 15000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
+  const storeCounts = useMemo(() => {
+    const counts = { all: seeds.length, amazon: 0, flipkart: 0, nykaa: 0, myntra: 0, meesho: 0 };
+    seeds.forEach(s => {
+      const st = (s.store || 'amazon').toLowerCase();
+      if (counts[st] !== undefined) counts[st]++;
+      else counts[st] = 1;
+    });
+    return counts;
+  }, [seeds]);
+
   const filteredSeeds = useMemo(() => {
-    const s = search.toLowerCase();
-    if (!s) return seeds;
-    return seeds.filter(seed =>
+    let result = seeds;
+    if (selectedStore !== 'all') {
+      result = result.filter(seed => (seed.store || 'amazon').toLowerCase() === selectedStore.toLowerCase());
+    }
+    const s = search.toLowerCase().trim();
+    if (!s) return result;
+    return result.filter(seed =>
+      (seed.store || 'amazon').toLowerCase().includes(s) ||
       seed.category.toLowerCase().includes(s) ||
       seed.subcategory.toLowerCase().includes(s) ||
       seed.keywords.toLowerCase().includes(s)
     );
-  }, [seeds, search]);
+  }, [seeds, search, selectedStore]);
 
-  const enabledCount = seeds.filter(s => s.isEnabled).length;
+  const enabledCount = filteredSeeds.filter(s => s.isEnabled).length;
 
   const handleSaveConfig = async () => {
     try {
@@ -170,14 +199,28 @@ export default function BestsellerCrawlerPanel() {
 
   const handleOpenAdd = () => {
     setEditingSeed(null);
-    setSeedForm({ category: '', subcategory: '', keywords: '', topN: 20, frequencyHours: intervalInput || 24 });
+    setSeedForm({
+      store: selectedStore !== 'all' ? selectedStore : 'amazon',
+      category: '',
+      subcategory: '',
+      keywords: '',
+      topN: 20,
+      frequencyHours: intervalInput || 24,
+    });
     setFormError('');
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (seed) => {
     setEditingSeed(seed);
-    setSeedForm({ category: seed.category, subcategory: seed.subcategory, keywords: seed.keywords, topN: seed.topN, frequencyHours: seed.frequencyHours || 24 });
+    setSeedForm({
+      store: seed.store || 'amazon',
+      category: seed.category,
+      subcategory: seed.subcategory,
+      keywords: seed.keywords,
+      topN: seed.topN,
+      frequencyHours: seed.frequencyHours || 24,
+    });
     setFormError('');
     setIsModalOpen(true);
   };
@@ -247,15 +290,13 @@ export default function BestsellerCrawlerPanel() {
         <div>
           <h2 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-symbols-outlined" style={{ color: '#ec4899' }}>star</span>
-            Bestseller Crawler
+            Multi-Store Bestseller Crawler (Engine 2)
           </h2>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 680 }}>
-            Scrapes Amazon.in search pages for each keyword seed below and enrolls the top-ranked products
-            into the catalog — one seed per Master subcategory by default, but fully editable: change
-            keywords, add new seeds, or disable ones you don&apos;t want tracked. Each seed runs on its own
-            <strong> Frequency</strong> (edit per-row) — a fast-moving keyword can re-check more often than a
-            slow one, instead of everything sharing one global schedule. Due seeds dispatch concurrently, so
-            how fast they actually clear depends on how many scraper workers are online.
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 740 }}>
+            Scheduled discovery across <strong>Amazon India, Flipkart, Nykaa, Myntra, and Meesho</strong>.
+            Scrapes categorized search listing pages, enrolls trending products into Top-20 catalog tracking,
+            and autonomously creates deals whenever live prices drop below category thresholds.
+            Every store maintains its own dedicated keyword portfolio tailored to its merchant strengths.
           </p>
         </div>
       </div>
@@ -266,15 +307,15 @@ export default function BestsellerCrawlerPanel() {
           <div className="crm-stat-icon" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
             <span className="material-symbols-outlined">list_alt</span>
           </div>
-          <div className="crm-stat-value">{status?.totalSeeds ?? '—'}</div>
-          <div className="crm-stat-label">Total Seeds</div>
+          <div className="crm-stat-value">{status?.totalSeeds ?? seeds.length}</div>
+          <div className="crm-stat-label">Total Seeds (5 Stores)</div>
         </div>
         <div className="card glass crm-stat-card">
           <div className="crm-stat-icon" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
             <span className="material-symbols-outlined">check_circle</span>
           </div>
-          <div className="crm-stat-value">{status?.enabledSeeds ?? '—'}</div>
-          <div className="crm-stat-label">Enabled</div>
+          <div className="crm-stat-value">{status?.enabledSeeds ?? enabledCount}</div>
+          <div className="crm-stat-label">Active / Enabled</div>
         </div>
         <div className="card glass crm-stat-card">
           <div className="crm-stat-icon" style={{ background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>
@@ -296,7 +337,7 @@ export default function BestsellerCrawlerPanel() {
 
       {/* Schedule Control */}
       <div className="card glass" style={{ padding: 24, marginBottom: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '1.05rem', fontWeight: 700 }}>Schedule</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: '1.05rem', fontWeight: 700 }}>Autonomous Schedule &amp; Execution</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -320,7 +361,7 @@ export default function BestsellerCrawlerPanel() {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              Scheduler
+              Autonomous Scheduler
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38 }}>
               <Switch checked={config?.isEnabled !== false} onCheckedChange={handleToggleEnabled} />
@@ -348,11 +389,45 @@ export default function BestsellerCrawlerPanel() {
         </div>
       </div>
 
+      {/* Store Filter Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button
+          className={`btn ${selectedStore === 'all' ? 'btn-primary' : ''}`}
+          style={{ padding: '6px 14px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 20 }}
+          onClick={() => setSelectedStore('all')}
+        >
+          All Stores ({storeCounts.all})
+        </button>
+        {Object.entries(STORE_META).map(([key, meta]) => (
+          <button
+            key={key}
+            className={`btn ${selectedStore === key ? 'btn-primary' : ''}`}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              borderRadius: 20,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: selectedStore === key ? meta.color : undefined,
+              borderColor: selectedStore === key ? meta.color : undefined,
+            }}
+            onClick={() => setSelectedStore(key)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{meta.icon}</span>
+            {meta.label} ({storeCounts[key] || 0})
+          </button>
+        ))}
+      </div>
+
       {/* Seeds Table */}
       <div className="card glass">
         <div className="filter-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h3 style={{ margin: 0 }}>Keyword Seeds ({enabledCount}/{seeds.length} enabled)</h3>
+            <h3 style={{ margin: 0 }}>
+              Keyword Seeds ({enabledCount}/{filteredSeeds.length} active in view)
+            </h3>
             <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '0.85rem', fontWeight: 600 }} onClick={handleOpenAdd}>
               + Add Seed
             </button>
@@ -371,8 +446,9 @@ export default function BestsellerCrawlerPanel() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Store</TableHead>
                 <TableHead>Category / Subcategory</TableHead>
-                <TableHead>Keywords</TableHead>
+                <TableHead>Search Keywords</TableHead>
                 <TableHead>Top N</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Enabled</TableHead>
@@ -383,67 +459,86 @@ export default function BestsellerCrawlerPanel() {
             </TableHeader>
             <TableBody>
               {filteredSeeds.length > 0 ? (
-                filteredSeeds.map(seed => (
-                  <TableRow key={seed._id}>
-                    <TableCell>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{seed.category}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{seed.subcategory}</div>
-                    </TableCell>
-                    <TableCell>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{seed.keywords}</span>
-                    </TableCell>
-                    <TableCell>{seed.topN}</TableCell>
-                    <TableCell style={{ fontSize: '0.85rem' }}>every {seed.frequencyHours || 24}h</TableCell>
-                    <TableCell>
-                      <Switch checked={seed.isEnabled} onCheckedChange={() => handleToggleSeedEnabled(seed)} />
-                    </TableCell>
-                    <TableCell style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{timeAgo(seed.lastRunAt)}</TableCell>
-                    <TableCell style={{ fontSize: '0.8rem' }}>
-                      {seed.lastResult?.error ? (
-                        <span style={{ color: '#ef4444' }}>{seed.lastResult.error.slice(0, 40)}</span>
-                      ) : seed.lastRunAt ? (
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {seed.lastResult?.found ?? 0} found, {seed.lastResult?.enrolled ?? 0} new
+                filteredSeeds.map(seed => {
+                  const st = (seed.store || 'amazon').toLowerCase();
+                  return (
+                    <TableRow key={seed._id}>
+                      <TableCell>
+                        <span className={`merchant-badge merchant-${st}`}>
+                          {seed.store || 'amazon'}
                         </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not run yet</span>
-                      )}
-                    </TableCell>
-                    <TableCell style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
-                          onClick={() => handleRunNow([seed._id])}
-                          disabled={isCurrentlyRunning}
-                          title="Run just this seed now"
-                        >
-                          Run
-                        </button>
-                        <button
-                          className="btn"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
-                          onClick={() => handleOpenEdit(seed)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => handleDeleteSeed(seed._id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{seed.category}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{seed.subcategory}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600 }}>{seed.keywords}</span>
+                          <a
+                            href={seed.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.72rem', color: 'var(--accent)', textDecoration: 'none', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title={seed.url}
+                          >
+                            🔗 {seed.url}
+                          </a>
+                        </div>
+                      </TableCell>
+                      <TableCell>{seed.topN || 20}</TableCell>
+                      <TableCell style={{ fontSize: '0.85rem' }}>every {seed.frequencyHours || 24}h</TableCell>
+                      <TableCell>
+                        <Switch checked={seed.isEnabled} onCheckedChange={() => handleToggleSeedEnabled(seed)} />
+                      </TableCell>
+                      <TableCell style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{timeAgo(seed.lastRunAt)}</TableCell>
+                      <TableCell style={{ fontSize: '0.8rem' }}>
+                        {seed.lastResult?.error ? (
+                          <span style={{ color: '#ef4444' }}>{seed.lastResult.error.slice(0, 40)}</span>
+                        ) : seed.lastRunAt ? (
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {seed.lastResult?.found ?? 0} found, {seed.lastResult?.enrolled ?? 0} new
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Not run yet</span>
+                        )}
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
+                            onClick={() => handleRunNow([seed._id])}
+                            disabled={isCurrentlyRunning}
+                            title="Run just this seed now"
+                          >
+                            Run
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)' }}
+                            onClick={() => handleOpenEdit(seed)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                            onClick={() => handleDeleteSeed(seed._id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  <TableCell colSpan={9} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: '3rem', opacity: 0.2, marginBottom: 12 }}>search_off</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      {search ? `No seeds match "${search}"` : 'No seeds configured yet'}
+                      {search ? `No seeds match "${search}"` : `No seeds found for ${selectedStore.toUpperCase()}`}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -459,15 +554,31 @@ export default function BestsellerCrawlerPanel() {
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20,
         }}>
-          <div className="card glass" style={{ width: 480, maxWidth: '100%', background: '#ffffff', padding: '2rem', borderRadius: 16, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div className="card glass" style={{ width: 500, maxWidth: '100%', background: '#ffffff', padding: '2rem', borderRadius: 16, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--accent)' }}>
                 {editingSeed ? 'edit_square' : 'add_circle'}
               </span>
-              {editingSeed ? 'Edit Seed' : 'New Seed'}
+              {editingSeed ? 'Edit Seed' : 'New Keyword Seed'}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>Merchant Store *</label>
+                <select
+                  className="filter-input"
+                  style={{ width: '100%', padding: '10px 12px' }}
+                  value={seedForm.store}
+                  onChange={(e) => setSeedForm({ ...seedForm, store: e.target.value })}
+                >
+                  <option value="amazon">Amazon India</option>
+                  <option value="flipkart">Flipkart</option>
+                  <option value="nykaa">Nykaa (Beauty &amp; Grooming)</option>
+                  <option value="myntra">Myntra (Fashion &amp; Lifestyle)</option>
+                  <option value="meesho">Meesho (Budget &amp; Home Value)</option>
+                </select>
+              </div>
+
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6 }}>Category *</label>
@@ -475,7 +586,7 @@ export default function BestsellerCrawlerPanel() {
                     type="text"
                     className="filter-input"
                     style={{ width: '100%', padding: '10px 12px' }}
-                    placeholder="e.g. electronics"
+                    placeholder="e.g. beauty, electronics, women-fashion"
                     value={seedForm.category}
                     onChange={(e) => setSeedForm({ ...seedForm, category: e.target.value })}
                   />
@@ -486,14 +597,11 @@ export default function BestsellerCrawlerPanel() {
                     type="text"
                     className="filter-input"
                     style={{ width: '100%', padding: '10px 12px' }}
-                    placeholder="e.g. mobiles"
+                    placeholder="e.g. makeup, mobiles, women-ethnic"
                     value={seedForm.subcategory}
                     onChange={(e) => setSeedForm({ ...seedForm, subcategory: e.target.value })}
                   />
                 </div>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: -10 }}>
-                Should match a value from Settings → Master Data (Categories/Subcategories) so products land in the right place.
               </div>
 
               <div>
@@ -502,12 +610,18 @@ export default function BestsellerCrawlerPanel() {
                   type="text"
                   className="filter-input"
                   style={{ width: '100%', padding: '10px 12px' }}
-                  placeholder="e.g. wireless earbuds headphones"
+                  placeholder="e.g. fit me foundation compact primer"
                   value={seedForm.keywords}
                   onChange={(e) => setSeedForm({ ...seedForm, keywords: e.target.value })}
                 />
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                  Becomes an Amazon.in search: amazon.in/s?k={encodeURIComponent(seedForm.keywords || '...')}
+                  Generates a search URL for <strong>{seedForm.store.toUpperCase()}</strong>: {
+                    seedForm.store === 'flipkart' ? `flipkart.com/search?q=${encodeURIComponent(seedForm.keywords || '...')}` :
+                    seedForm.store === 'nykaa' ? `nykaa.com/search/result/?q=${encodeURIComponent(seedForm.keywords || '...')}` :
+                    seedForm.store === 'myntra' ? `myntra.com/${encodeURIComponent((seedForm.keywords || '...').toLowerCase().replace(/[^a-z0-9]+/g, '-'))}` :
+                    seedForm.store === 'meesho' ? `meesho.com/search?q=${encodeURIComponent(seedForm.keywords || '...')}` :
+                    `amazon.in/s?k=${encodeURIComponent(seedForm.keywords || '...')}`
+                  }
                 </div>
               </div>
 
@@ -535,9 +649,6 @@ export default function BestsellerCrawlerPanel() {
                     value={seedForm.frequencyHours}
                     onChange={(e) => setSeedForm({ ...seedForm, frequencyHours: parseInt(e.target.value, 10) || 24 })}
                   />
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                    How often THIS keyword re-checks, independent of other seeds.
-                  </div>
                 </div>
               </div>
 

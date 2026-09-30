@@ -67,7 +67,7 @@ const crawlerSeedSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 crawlerSeedSchema.index({ isEnabled: 1 });
-crawlerSeedSchema.index({ category: 1, subcategory: 1 }, { unique: true });
+crawlerSeedSchema.index({ store: 1, category: 1, subcategory: 1, keywords: 1 }, { unique: true });
 
 const CrawlerSeed = mongoose.models.CrawlerSeed || mongoose.model('CrawlerSeed', crawlerSeedSchema, 'crawler_seeds');
 
