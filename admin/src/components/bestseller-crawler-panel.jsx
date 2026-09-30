@@ -289,8 +289,8 @@ export default function BestsellerCrawlerPanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="material-symbols-outlined" style={{ color: '#ec4899' }}>star</span>
-            Multi-Store Bestseller Crawler (Engine 2)
+            <span className="material-symbols-outlined" style={{ color: '#ec4899' }}>rocket_launch</span>
+            Shoppers Deals Engine (Engine 2)
           </h2>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 740 }}>
             Scheduled discovery across <strong>Amazon India, Flipkart, Nykaa, Myntra, and Meesho</strong>.

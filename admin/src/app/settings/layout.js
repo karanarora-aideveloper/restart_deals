@@ -62,8 +62,8 @@ export default function SettingsLayout({ children }) {
               transition: 'all 0.2s'
             }}
           >
-            <span className="material-symbols-outlined">star</span>
-            Bestseller Crawler
+            <span className="material-symbols-outlined">rocket_launch</span>
+            Shoppers Deals Engine
           </Link>
           <Link
             href="/settings/logs"

@@ -616,7 +616,7 @@ function OverviewContent({ nodeId, apiFetch, live }) {
             { p: 1, label: 'User re-check (urgent)', color: '#EF4444' },
             { p: 2, label: 'Telegram deal message', color: '#2CA5E0' },
             { p: 3, label: '24 h price refresh', color: '#10B981' },
-            { p: 4, label: 'Bestseller crawler', color: '#F59E0B' },
+            { p: 4, label: 'Shoppers Deals Engine', color: '#F59E0B' },
           ].map(function(r) {
             return (
               <div key={r.p} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>

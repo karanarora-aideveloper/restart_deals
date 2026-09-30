@@ -281,8 +281,8 @@ export default function ArchitecturePage() {
                   border: sourceTab === 'crawler' ? 'none' : '1px solid var(--border)',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>star</span>
-                Bestseller Crawler
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>rocket_launch</span>
+                Shoppers Deals Engine
               </button>
             </div>
 

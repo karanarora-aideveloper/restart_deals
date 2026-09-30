@@ -222,9 +222,9 @@ export default function SystemFlowDiagram({ statusData, onNodeClick }) {
       position: { x: 30, y: 390 },
       data: {
         id: 'producer-crawler',
-        label: 'Category Bestseller Crawler',
-        icon: 'star',
-        subLabel: 'Every Master subcategory, every 24h',
+        label: 'Shoppers Deals Engine',
+        icon: 'rocket_launch',
+        subLabel: 'Multi-store search discovery (5 stores)',
         color: '#ec4899',
         badge: 'Priority 4',
         badgeColor: '#ec4899',

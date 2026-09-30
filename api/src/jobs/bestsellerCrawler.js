@@ -190,7 +190,7 @@ export async function ensureCrawlerDefaults() {
   for (const [store, seedList] of Object.entries(DEFAULT_SEEDS_BY_STORE)) {
     const existingStoreCount = await CrawlerSeed.countDocuments({ store });
     if (existingStoreCount === 0) {
-      console.log(`[Bestseller Crawler] Bootstrapping ${seedList.length} default keyword seeds for ${store.toUpperCase()}...`);
+      console.log(`[Shoppers Deals Engine] Bootstrapping ${seedList.length} default keyword seeds for ${store.toUpperCase()}...`);
       const docs = seedList.map(s => ({
         store,
         category: s.category,
@@ -202,14 +202,14 @@ export async function ensureCrawlerDefaults() {
         frequencyHours: 24,
       }));
       await CrawlerSeed.insertMany(docs, { ordered: false }).catch(err => {
-        console.warn(`[Bestseller Crawler] Seed bootstrap for ${store} had duplicate items (harmless):`, err.message);
+        console.warn(`[Shoppers Deals Engine] Seed bootstrap for ${store} had duplicate items (harmless):`, err.message);
       });
     }
   }
 
   const config = await CrawlerConfig.findOne({});
   if (!config) {
-    console.log('[Bestseller Crawler] No config found — creating default (every 24h, enabled).');
+    console.log('[Shoppers Deals Engine] No config found — creating default (every 24h, enabled).');
     await CrawlerConfig.create({ isEnabled: true, intervalHours: 24 });
   }
 
@@ -707,19 +707,19 @@ let isCrawling = false;
  */
 async function crawlOneSeed(seed, stats) {
   const storeName = (seed.store || 'amazon').toUpperCase();
-  console.log(`[Bestseller Crawler] Crawling ${storeName} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
+  console.log(`[Shoppers Deals Engine] Crawling ${storeName} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
 
   const seedResult = { found: 0, enrolled: 0, updated: 0, error: null };
   try {
     const html = await fetchCategoryHtml(seed.url);
     if (!html) {
-      console.warn(`[Bestseller Crawler] ⚠️ Could not fetch HTML for ${storeName} ${seed.category}/${seed.subcategory}`);
+      console.warn(`[Shoppers Deals Engine] ⚠️ Could not fetch HTML for ${storeName} ${seed.category}/${seed.subcategory}`);
       stats.errors++;
       seedResult.error = 'No HTML returned from scraper queue';
     } else {
       const products = parseStoreListingItems(html, seed, seed.topN || 20);
       seedResult.found = products.length;
-      console.log(`[Bestseller Crawler] Extracted ${products.length} top products for ${storeName} ${seed.subcategory}`);
+      console.log(`[Shoppers Deals Engine] Extracted ${products.length} top products for ${storeName} ${seed.subcategory}`);
 
       const now = new Date();
       const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -771,12 +771,12 @@ async function crawlOneSeed(seed, stats) {
               const thresholdCheck = meetsCategoryThreshold(existing.category, existing.subcategory, genuineDiscount, cashDrop, 'IN');
               if (thresholdCheck.qualifies) {
                 const deal = new Deal({
-                  sourceChannelId: 'bestseller_crawler_engine',
-                  sourceMessageId: `bestseller_${prodData.productId}_${Date.now()}`,
-                  sourceChannelName: 'Bestseller Listing Discovery',
+                  sourceChannelId: 'shoppers_deals_engine',
+                  sourceMessageId: `sde_${prodData.productId}_${Date.now()}`,
+                  sourceChannelName: 'Shoppers Deals Engine Discovery',
                   originalText: `Autonomous Price Drop Detected on ${existing.merchant.toUpperCase()} ${existing.subcategory}: ${existing.title} at ₹${prodData.price}`,
                   title: existing.title,
-                  description: `Autonomous price drop detected via bestseller listing scraper (${existing.merchant}). Price dropped from ₹${priorPrice} to ₹${prodData.price}.`,
+                  description: `Autonomous price drop detected via Shoppers Deals Engine (${existing.merchant}). Price dropped from ₹${priorPrice} to ₹${prodData.price}.`,
                   imageUrl: existing.imageUrl || (existing.images && existing.images[0]) || null,
                   images: existing.images || (existing.imageUrl ? [existing.imageUrl] : []),
                   rating: existing.rating || 4.2,
@@ -799,7 +799,7 @@ async function crawlOneSeed(seed, stats) {
                 });
                 await deal.save();
                 apiCache.invalidatePattern('/api/deals');
-                enqueueDealForPublishing(deal._id, { sourceEngine: 'engine2_catalog_top20' }).catch(() => {});
+                enqueueDealForPublishing(deal._id, { sourceEngine: 'shoppers_deals_engine' }).catch(() => {});
                 evaluateAndTriggerPriceAlerts({
                   productId: existing.productId,
                   livePrice: prodData.price,
@@ -840,7 +840,7 @@ async function crawlOneSeed(seed, stats) {
       apiCache.invalidatePattern('/api/products');
     }
   } catch (err) {
-    console.error(`[Bestseller Crawler Error] Failed for ${storeName} ${seed.category}/${seed.subcategory}:`, err.message);
+    console.error(`[Shoppers Deals Engine Error] Failed for ${storeName} ${seed.category}/${seed.subcategory}:`, err.message);
     stats.errors++;
     seedResult.error = err.message;
   }
@@ -854,14 +854,14 @@ async function crawlOneSeed(seed, stats) {
  */
 export async function runCategoryBestsellerCrawl(options = {}) {
   if (isCrawling) {
-    console.log('[Bestseller Crawler] A crawl is already in progress. Skipping this trigger.');
+    console.log('[Shoppers Deals Engine] A crawl is already in progress. Skipping this trigger.');
     return { skipped: true, reason: 'already_running' };
   }
   isCrawling = true;
   const startedAt = Date.now();
 
   console.log('==================================================');
-  console.log('    RUNNING MULTI-STORE BESTSELLER CRAWLER (ENGINE 2)');
+  console.log('    RUNNING SHOPPERS DEALS ENGINE (ENGINE 2)');
   console.log('==================================================');
 
   const stats = { seedsCrawled: 0, productsEnrolled: 0, productsUpdated: 0, errors: 0 };
@@ -889,9 +889,9 @@ export async function runCategoryBestsellerCrawl(options = {}) {
     const seeds = await CrawlerSeed.find(filter).lean();
 
     if (seeds.length === 0) {
-      console.log('[Bestseller Crawler] No seeds due right now.');
+      console.log('[Shoppers Deals Engine] No seeds due right now.');
     } else {
-      console.log(`[Bestseller Crawler] Dispatching ${seeds.length} multi-store seed(s) concurrently...`);
+      console.log(`[Shoppers Deals Engine] Dispatching ${seeds.length} multi-store seed(s) concurrently...`);
       await Promise.allSettled(seeds.map(seed => crawlOneSeed(seed, stats)));
     }
   } finally {
@@ -929,7 +929,7 @@ export async function runCategoryBestsellerCrawl(options = {}) {
   }
 
   console.log('\n==================================================');
-  console.log(`[Bestseller Crawler Finished] Seeds: ${stats.seedsCrawled} | Enrolled: ${stats.productsEnrolled} | Updated: ${stats.productsUpdated} | Errors: ${stats.errors}`);
+  console.log(`[Shoppers Deals Engine Finished] Seeds: ${stats.seedsCrawled} | Enrolled: ${stats.productsEnrolled} | Updated: ${stats.productsUpdated} | Errors: ${stats.errors}`);
   console.log('==================================================\n');
 
   return stats;
@@ -939,7 +939,7 @@ export async function runCategoryBestsellerCrawl(options = {}) {
  * Starts the scheduler tick. Ticks every 5 minutes.
  */
 export function startBestsellerCrawlerScheduler() {
-  console.log('[Bestseller Crawler] Initializing scheduler (checks every 5 minutes for seeds due by their own frequency)...');
+  console.log('[Shoppers Deals Engine] Initializing scheduler (checks every 5 minutes for seeds due by their own frequency)...');
 
   cron.schedule('*/5 * * * *', async () => {
     try {
@@ -950,17 +950,17 @@ export function startBestsellerCrawlerScheduler() {
       if (config.isRunning) {
         const runningForMs = Date.now() - new Date(config.updatedAt).getTime();
         if (runningForMs < 60 * 60 * 1000) return;
-        console.warn(`[Bestseller Crawler] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — clearing lock.`);
+        console.warn(`[Shoppers Deals Engine] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — clearing lock.`);
         await CrawlerConfig.updateOne({}, { isRunning: false });
       }
 
       await runCategoryBestsellerCrawl({ dueOnly: true });
     } catch (err) {
-      console.error('[Bestseller Crawler Scheduler Error]:', err.message);
+      console.error('[Shoppers Deals Engine Scheduler Error]:', err.message);
     }
   });
 
   setTimeout(() => {
-    ensureCrawlerDefaults().catch(err => console.error('[Bestseller Crawler] Default bootstrap failed:', err.message));
+    ensureCrawlerDefaults().catch(err => console.error('[Shoppers Deals Engine] Default bootstrap failed:', err.message));
   }, 5000);
 }

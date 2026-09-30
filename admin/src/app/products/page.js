@@ -1048,6 +1048,20 @@ export default function ProductsPage() {
           </button>
 
           <button
+            onClick={() => setProductSourceFilter(prev => prev === 'top20_catalog' ? 'all' : 'top20_catalog')}
+            style={{
+              padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',
+              background: productSourceFilter === 'top20_catalog' ? '#8b5cf6' : 'rgba(139, 92, 246, 0.08)',
+              color: productSourceFilter === 'top20_catalog' ? '#fff' : '#8b5cf6',
+              border: `1px solid ${productSourceFilter === 'top20_catalog' ? '#8b5cf6' : 'rgba(139, 92, 246, 0.25)'}`,
+              display: 'inline-flex', alignItems: 'center', gap: 4, transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>rocket_launch</span>
+            🚀 Shoppers Deals Engine (Engine 2)
+          </button>
+
+          <button
             onClick={() => setDealsFilter(dealsFilter === 'multiple' ? 'all' : 'multiple')}
             style={{
               padding: '4px 11px', borderRadius: 20, fontSize: '0.76rem', fontWeight: 600, cursor: 'pointer',

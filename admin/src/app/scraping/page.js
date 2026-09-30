@@ -52,9 +52,21 @@ const SOURCE_COLORS = {
   telegram: '#f59e0b',
   interactive: '#10b981',
   bestseller_crawler: '#8b5cf6',
+  shoppers_deals_engine: '#8b5cf6',
   catalog_top20: '#06b6d4',
   manual_rescrape: '#ec4899',
   other: '#6b7280',
+};
+
+const SOURCE_NAMES = {
+  daily_refresh: 'Daily Refresh',
+  telegram: 'Telegram Deal Radar',
+  interactive: 'Interactive / On-Demand',
+  bestseller_crawler: 'Shoppers Deals Engine',
+  shoppers_deals_engine: 'Shoppers Deals Engine',
+  catalog_top20: 'Catalog Top-20 Watcher',
+  manual_rescrape: 'Manual Rescrape',
+  other: 'Other Sources',
 };
 
 const MERCHANT_COLORS = {
@@ -256,7 +268,7 @@ export default function ScrapingFrequencyPage() {
                     Scrapes by Source ({days}d)
                   </div>
                   {Object.entries(sourceTotals).sort((a, b) => b[1] - a[1]).map(([src, count]) => (
-                    <MiniBar key={src} label={src.replace(/_/g, ' ')} value={count} max={maxSourceTotal} color={SOURCE_COLORS[src] || '#6b7280'} />
+                    <MiniBar key={src} label={SOURCE_NAMES[src] || src.replace(/_/g, ' ')} value={count} max={maxSourceTotal} color={SOURCE_COLORS[src] || '#6b7280'} />
                   ))}
                   <div style={{ marginTop: 12, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     daily_refresh = cron job · telegram = new deal posted · interactive = on-demand
