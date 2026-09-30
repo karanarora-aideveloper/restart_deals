@@ -10,10 +10,12 @@ async function checkTokens() {
   await mongoose.connect(process.env.MONGODB_URI);
   const total = await ScrapingAntToken.countDocuments();
   const active = await ScrapingAntToken.find({ status: 'active' });
+  const parked = await ScrapingAntToken.countDocuments({ status: 'parked' });
   const exhausted = await ScrapingAntToken.countDocuments({ status: 'exhausted' });
 
   console.log(`Total Tokens: ${total}`);
   console.log(`Active Tokens: ${active.length}`);
+  console.log(`Parked Tokens (Renewing): ${parked}`);
   console.log(`Exhausted Tokens: ${exhausted}`);
   active.forEach(t => console.log(` - Token: ${t.token.substring(0, 10)}... (used: ${t.usageCount})`));
 

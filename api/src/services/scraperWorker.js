@@ -12,6 +12,7 @@ import { installSystemLogger } from '../utils/systemLogger.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
 import { triggerTokenReplenishmentIfLow } from './tokenReplenisher.js';
+import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
@@ -95,221 +96,207 @@ async function recordScrapingLog(data) {
  */
 export async function executeScrapingAntJob(url, source = 'other') {
   const startTime = Date.now();
-
-  // Atomically claim the least-recently-used active token that is not in cooldown.
-  const now = new Date();
-  const leased = await ScrapingAntToken.findOneAndUpdate(
-    {
-      status: 'active',
-      $or: [
-        { cooldownUntil: { $exists: false } },
-        { cooldownUntil: null },
-        { cooldownUntil: { $lte: now } }
-      ]
-    },
-    { $set: { lastUsedAt: now } },
-    { sort: { lastUsedAt: 1 }, new: true }
-  ).lean();
-
-  if (!leased) {
-    console.warn('[ScraperWorker Warning] No active ScrapingAnt tokens found in pool! Auto-replenishment triggered. Re-enqueuing job...');
-    triggerTokenReplenishmentIfLow().catch(err => {
-      console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
-    });
-    // Throw error so BullMQ retries with backoff instead of direct scraping
-    throw new Error('No active ScrapingAnt tokens available. Auto-replenishment triggered; waiting for tokens.');
-  }
+  const MAX_FAILOVER_ATTEMPTS = 5;
+  const excludedTokens = new Set();
 
   const isUs = url.includes('amazon.com') || url.includes('.us');
   const countryParam = isUs ? '&proxy_country=US' : '&proxy_country=IN';
-
-  // Proxy tier: amazon.in works fine on ScrapingAnt's standard/datacenter proxies (10
-  // credits/scrape). amazon.com does NOT — confirmed live 2026-08-30 by pulling 500 recent
-  // ScrapingLog entries: amazon.com on datacenter succeeded only 36% of the time (117/500
-  // hit Amazon's own 423 "Anti-scraping protection" block, another 188/500 hung until
-  // ScrapingAnt's own gateway gave up around ~30s — consistent with Amazon serving a slow
-  // CAPTCHA/verification challenge to a datacenter IP that never resolves) vs amazon.in on
-  // the IDENTICAL proxy tier succeeding 91% of the time. Same code, same proxy type, same
-  // worker fleet — the only variable was which Amazon marketplace, which isolates the cause
-  // to Amazon's US bot detection being measurably more aggressive than India's against
-  // non-residential IPs. This was briefly widened to "any amazon.* marketplace" to support
-  // expanding to more marketplaces; that assumption held for amazon.in but not amazon.com,
-  // so it's back to naming amazon.in specifically — extend to another TLD only once it's
-  // been confirmed live the same way, not by assumption. Everything else (Flipkart, Myntra,
-  // Nykaa, amazon.com, etc.) uses residential (125 credits/scrape, 12.5x the cost) — see the
-  // Capacity Planning panel on /settings/tokens for the credit math.
   const proxyType = url.includes('amazon.in') ? 'datacenter' : 'residential';
 
-  const buildApiUrl = (t) =>
-    `https://api.scrapingant.com/v2/general?x-api-key=${t}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;
+  let lastError = null;
 
-  // Stamping lastUsedAt on lease (rather than only on success) is what makes rotation
-  // work: a token left holding a hung remote browser drops to the back of the queue
-  // instead of being re-picked. The findOneAndUpdate above already did the stamping
-  // atomically as part of the claim.
-  let token = leased.token;
+  for (let attempt = 1; attempt <= MAX_FAILOVER_ATTEMPTS; attempt++) {
+    const now = new Date();
 
-  let response = null;
-  let durationMs = 0;
+    // Atomically claim the least-recently-used active token that is not in cooldown or already excluded in this job.
+    const leased = await ScrapingAntToken.findOneAndUpdate(
+      {
+        status: 'active',
+        token: { $nin: Array.from(excludedTokens) },
+        $or: [
+          { cooldownUntil: { $exists: false } },
+          { cooldownUntil: null },
+          { cooldownUntil: { $lte: now } }
+        ]
+      },
+      { $set: { lastUsedAt: now } },
+      { sort: { lastUsedAt: 1 }, new: true }
+    ).lean();
 
-  try {
-    response = await fetch(buildApiUrl(token), { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
-    durationMs = Date.now() - startTime;
-
-    if (response.status === 409) {
-      // The slot is held by a still-running remote browser, so retrying the same token
-      // just 409s again. Atomically claim a DIFFERENT active token — same race-avoidance
-      // reasoning as the initial lease above (a plain array lookup here would risk handing
-      // out a token another racing worker already claimed).
-      const rotated = await ScrapingAntToken.findOneAndUpdate(
-        {
-          status: 'active',
-          token: { $ne: token },
-          $or: [
-            { cooldownUntil: { $exists: false } },
-            { cooldownUntil: null },
-            { cooldownUntil: { $lte: new Date() } }
-          ]
-        },
-        { $set: { lastUsedAt: new Date() } },
-        { sort: { lastUsedAt: 1 }, new: true }
-      ).lean();
-      if (rotated) {
-        console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. Rotating to next token...`);
-        token = rotated.token;
-      } else {
-        console.warn(`[ScraperWorker] ScrapingAnt 409 on ${url.slice(0, 45)}. No spare token, waiting 8s...`);
-        await new Promise(r => setTimeout(r, 8000));
-      }
-      response = await fetch(buildApiUrl(token), { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
-      durationMs = Date.now() - startTime;
+    if (!leased) {
+      console.warn(`[ScraperWorker Warning] No active ScrapingAnt tokens available on attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS}! Triggering auto-replenishment...`);
+      triggerTokenReplenishmentIfLow().catch(err => {
+        console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
+      });
+      break;
     }
-  } catch (fetchErr) {
-    durationMs = Date.now() - startTime;
-    console.warn(`[ScraperWorker Timeout/Error] ${url.slice(0, 45)}: ${fetchErr.message}`);
-    // If request timed out, wait 8s so ScrapingAnt cloud server releases the remote browser
-    await new Promise(r => setTimeout(r, 8000));
+
+    const token = leased.token;
+    excludedTokens.add(token);
+
+    const apiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;
+
+    let response = null;
+    let durationMs = 0;
+    const attemptStartTime = Date.now();
+
+    try {
+      response = await fetch(apiUrl, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
+      durationMs = Date.now() - attemptStartTime;
+    } catch (fetchErr) {
+      durationMs = Date.now() - attemptStartTime;
+      console.warn(`[ScraperWorker Timeout/Error] Attempt ${attempt} on ${url.slice(0, 45)} with token ${token.slice(0, 8)}...: ${fetchErr.message}`);
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: 'error',
+        statusCode: 500,
+        durationMs,
+        errorMessage: fetchErr.message,
+      });
+      lastError = new Error(`Timeout/network error: ${fetchErr.message}`);
+      await new Promise(r => setTimeout(r, 2000));
+      continue;
+    }
+
+    // 409 Concurrency limit: another request is using this account's browser slot
+    if (response.status === 409) {
+      console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 409 concurrency limit. Rotating to next token (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: '409_concurrency',
+        statusCode: 409,
+        durationMs,
+        errorMessage: 'Concurrency limit (409)',
+      });
+      lastError = new Error('ScrapingAnt 409 concurrency limit');
+      await new Promise(r => setTimeout(r, 2000));
+      continue;
+    }
+
+    // 429 Rate limit: too many requests per second for this key
+    if (response.status === 429) {
+      console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit. Setting 60s cooldown and rotating to next token (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
+      await ScrapingAntToken.updateOne(
+        { token },
+        { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }
+      ).catch(() => {});
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: '429_rate_limit',
+        statusCode: 429,
+        durationMs,
+        errorMessage: 'ScrapingAnt rate limit (429) - 60s cooldown applied',
+      });
+      lastError = new Error('ScrapingAnt rate limit (429)');
+      continue;
+    }
+
+    // 403 Forbidden / Quota Exhausted: Token ran out of credits or key revoked
+    if (response.status === 403) {
+      console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... received HTTP 403 (quota exhausted or invalid). Checking token status...`);
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: '403_exhausted',
+        statusCode: 403,
+        durationMs,
+        errorMessage: 'Token quota exhausted or invalid (403)',
+      });
+
+      // Verify token via ScrapingAnt usage API: park with exact renewal date or delete if dead
+      checkScrapingAntUsage(token).then(async (usage) => {
+        if (!usage.valid) {
+          console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... is dead/invalid (${usage.error}). Deleting from DB.`);
+          await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+        } else {
+          console.log(`[ScraperWorker] Token ${token.slice(0, 8)}... exhausted (0 credits). Parking until renewal date: ${usage.renewalDate?.toISOString() || '30 days'}`);
+          await ScrapingAntToken.updateOne(
+            { token },
+            {
+              status: 'parked',
+              remainedCredits: 0,
+              planName: usage.planName,
+              planTotalCredits: usage.planTotalCredits,
+              renewalDate: usage.renewalDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              lastCheckedAt: new Date(),
+              exhaustedAt: new Date()
+            }
+          ).catch(() => {});
+        }
+      }).catch(() => {});
+
+      // Proactively trigger autonomous replenishment if active pool is low
+      triggerTokenReplenishmentIfLow().catch(err => {
+        console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
+      });
+
+      console.log(`[ScraperWorker] 🔄 Seamlessly rotating to next active token without failing job (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
+      lastError = new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403)`);
+      continue; // Job does NOT fail; immediately tries next token!
+    }
+
+    // 423 Anti-scraping protection
+    if (response.status === 423) {
+      console.warn(`[ScraperWorker] ScrapingAnt 423 (Anti-scraping protection) on ${url.slice(0, 45)} with token ${token.slice(0, 8)}...`);
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: 'error',
+        statusCode: 423,
+        durationMs,
+        errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection)',
+      });
+      if (attempt < 2) {
+        continue;
+      }
+      return null;
+    }
+
+    // 200 OK: Successful Scrape!
+    if (response.ok) {
+      const html = await response.text();
+      await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 } }).catch(() => {});
+
+      const extracted = extractBasicMetadata(html);
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: 'success',
+        statusCode: 200,
+        durationMs,
+        extractedData: extracted,
+      });
+
+      const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+      return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+    }
+
+    // Other HTTP error (e.g. 500, 502, 504 from gateway)
+    console.warn(`[ScraperWorker] HTTP ${response.status} from ScrapingAnt on ${url.slice(0, 45)} with token ${token.slice(0, 8)}...`);
     await recordScrapingLog({
       url,
       source,
       tokenUsed: token,
       status: 'error',
-      statusCode: 500,
+      statusCode: response.status,
       durationMs,
-      errorMessage: fetchErr.message,
+      errorMessage: `ScrapingAnt HTTP ${response.status}`,
     });
-    // Transient (network blip, ScrapingAnt gateway hiccup) — throw so BullMQ's
-    // attempts/backoff (see scraperQueue.js's defaultJobOptions) retries the whole job,
-    // which re-leases a token from scratch on the next attempt.
-    throw new Error(`Timeout/network error: ${fetchErr.message}`);
+    lastError = new Error(`ScrapingAnt HTTP ${response.status}`);
+    continue;
   }
 
-  if (response.status === 409) {
-    await recordScrapingLog({
-      url,
-      source,
-      tokenUsed: token,
-      status: '409_concurrency',
-      statusCode: 409,
-      durationMs,
-      errorMessage: 'Concurrency limit (409)',
-    });
-    await new Promise(r => setTimeout(r, 5000));
-    // Still 409 after the in-place rotation above — genuine contention, not a permanent
-    // failure. Throw to get a full BullMQ retry (fresh atomic token lease) rather than
-    // silently giving up after one rotation attempt.
-    throw new Error('ScrapingAnt 409 concurrency limit (persisted after token rotation)');
-  }
-
-  if (response.status === 429) {
-    console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit. Setting 60s cooldown.`);
-    await ScrapingAntToken.updateOne(
-      { token },
-      { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }
-    ).catch(() => {});
-    await recordScrapingLog({
-      url,
-      source,
-      tokenUsed: token,
-      status: '429_rate_limit',
-      statusCode: 429,
-      durationMs,
-      errorMessage: 'ScrapingAnt rate limit (429) - 60s cooldown applied',
-    });
-    throw new Error('ScrapingAnt rate limit (429) - token cooled down, rotating');
-  }
-
-  if (response.status === 403) {
-    console.error(`[ScraperWorker] Token ${token.slice(0, 8)}... quota exhausted (403). Rotating token & checking replenishment...`);
-    await ScrapingAntToken.updateOne({ token }, { status: 'exhausted', exhaustedAt: new Date() }).catch(() => {});
-    await recordScrapingLog({
-      url,
-      source,
-      tokenUsed: token,
-      status: '403_exhausted',
-      statusCode: 403,
-      durationMs,
-      errorMessage: 'Token quota exhausted (403)',
-    });
-    triggerTokenReplenishmentIfLow().catch(err => {
-      console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
-    });
-    // Throw error so BullMQ retries the job and leases a fresh token
-    throw new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403) - rotating to fresh token`);
-  }
-
-  if (response.status === 423) {
-    console.warn(`[ScraperWorker] ScrapingAnt 423 (Anti-scraping protection) on ${url.slice(0, 45)}. Direct scraping fallback is disabled.`);
-    await recordScrapingLog({
-      url,
-      source,
-      tokenUsed: token,
-      status: 'error',
-      statusCode: 423,
-      durationMs,
-      errorMessage: 'ScrapingAnt HTTP 423 (Anti-scraping protection)',
-    });
-    return null;
-  }
-
-  if (response.ok) {
-    const html = await response.text();
-    await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 } }).catch(() => {});
-
-    const extracted = extractBasicMetadata(html);
-    await recordScrapingLog({
-      url,
-      source,
-      tokenUsed: token,
-      status: 'success',
-      statusCode: 200,
-      durationMs,
-      extractedData: extracted,
-    });
-
-    // The BullMQ job result is the cross-process handoff — the enqueuing service (a
-    // different machine/process from this worker) polls Redis and reads it back. That
-    // means `html` has to sit in Redis at least briefly regardless of how few completed
-    // jobs are retained. A ScrapingAnt browser=true render runs 300KB-1MB+ raw; gzip
-    // brings that down 70-90% (HTML/JS/JSON compress extremely well) — real, measured
-    // headroom on a Redis instance capped at 25MB, on top of (not instead of) the
-    // removeOnComplete reduction in scraperQueue.js. See that file's comment for the
-    // full incident writeup.
-    const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
-    return { htmlGzip, extractedData: extracted, durationMs };
-  }
-
-  // Other HTTP error
-  await recordScrapingLog({
-    url,
-    source,
-    tokenUsed: token,
-    status: 'error',
-    statusCode: response.status,
-    durationMs,
-    errorMessage: `ScrapingAnt HTTP ${response.status}`,
-  });
-  return null;
+  // All failover attempts exhausted or pool empty
+  throw (lastError || new Error(`No active ScrapingAnt tokens available after ${MAX_FAILOVER_ATTEMPTS} attempts for ${url}`));
 }
 
 let workerInstance = null;

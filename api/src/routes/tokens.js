@@ -2,6 +2,7 @@ import express from 'express';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import { runBatchAutomation, getAutomationStatus, requestAbort, runScrapingAntAutomation, submitOtpCode, runLoginTest } from '../scripts/scrapingAntAutomation.js';
 import { checkAndReplenishTokens } from '../services/tokenReplenisher.js';
+import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.get('/', async (req, res) => {
 
     const total = tokens.length;
     const active = tokens.filter(t => t.status === 'active').length;
+    const parked = tokens.filter(t => t.status === 'parked').length;
     const exhausted = tokens.filter(t => t.status === 'exhausted').length;
     const totalUsage = tokens.reduce((sum, t) => sum + (t.usageCount || 0), 0);
 
@@ -24,6 +26,7 @@ router.get('/', async (req, res) => {
       summary: {
         total,
         active,
+        parked,
         exhausted,
         totalUsage
       }
@@ -426,45 +429,6 @@ router.patch('/:id', async (req, res) => {
 });
 
 /**
- * Helper: Check credits and usage on ScrapingAnt for a given API key
- */
-async function checkScrapingAntUsage(token) {
-  try {
-    const url = `https://api.scrapingant.com/v2/usage?x-api-key=${encodeURIComponent(token)}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || data.detail) {
-      return {
-        valid: false,
-        statusCode: response.status,
-        error: data.detail || `HTTP ${response.status}: Failed to fetch usage`
-      };
-    }
-
-    return {
-      valid: true,
-      statusCode: response.status,
-      planName: data.plan_name || 'Free',
-      planTotalCredits: data.plan_total_credits || 10000,
-      remainedCredits: typeof data.remained_credits === 'number' ? data.remained_credits : 0,
-      renewalDate: data.end_date || null,
-      startDate: data.start_date || null,
-    };
-  } catch (err) {
-    return {
-      valid: false,
-      error: err.message
-    };
-  }
-}
-
-/**
  * POST /api/tokens/:id/check-credits
  * Checks live credits on ScrapingAnt for a single token, updates DB, and reactivates if credits > 0
  */
@@ -478,22 +442,28 @@ router.post('/:id/check-credits', async (req, res) => {
     const usage = await checkScrapingAntUsage(tokenRecord.token);
     tokenRecord.lastCheckedAt = new Date();
 
-    if (usage.valid) {
-      tokenRecord.planName = usage.planName;
-      tokenRecord.planTotalCredits = usage.planTotalCredits;
-      tokenRecord.remainedCredits = usage.remainedCredits;
-      if (usage.renewalDate) {
-        tokenRecord.renewalDate = new Date(usage.renewalDate);
+    if (!usage.valid) {
+      if (usage.error && (usage.error.includes('wrong') || usage.statusCode === 401 || usage.statusCode === 404)) {
+        await ScrapingAntToken.deleteOne({ _id: tokenRecord._id });
+        return res.json({ success: true, deleted: true, reason: usage.error });
       }
+      return res.json({ success: false, error: usage.error, token: tokenRecord });
+    }
 
-      if (usage.remainedCredits > 0) {
-        tokenRecord.status = 'active';
-        tokenRecord.exhaustedAt = null;
-        tokenRecord.usageCount = 0;
-      } else {
-        tokenRecord.status = 'exhausted';
-        if (!tokenRecord.exhaustedAt) tokenRecord.exhaustedAt = new Date();
-      }
+    tokenRecord.planName = usage.planName;
+    tokenRecord.planTotalCredits = usage.planTotalCredits;
+    tokenRecord.remainedCredits = usage.remainedCredits;
+    if (usage.renewalDate) {
+      tokenRecord.renewalDate = new Date(usage.renewalDate);
+    }
+
+    if (usage.remainedCredits > 0) {
+      tokenRecord.status = 'active';
+      tokenRecord.exhaustedAt = null;
+      tokenRecord.cooldownUntil = null;
+    } else {
+      tokenRecord.status = 'parked';
+      if (!tokenRecord.exhaustedAt) tokenRecord.exhaustedAt = new Date();
     }
 
     await tokenRecord.save();
@@ -514,7 +484,8 @@ router.post('/:id/check-credits', async (req, res) => {
  * POST /api/tokens/sync
  * Syncs all tokens directly with ScrapingAnt's live usage API.
  * - Automatically activates tokens that have remained_credits > 0
- * - Marks tokens with 0 credits as exhausted
+ * - Parks tokens with 0 credits until monthly renewal date
+ * - Deletes dead / revoked tokens automatically
  * - Updates latest plan, credits, and renewal dates
  */
 router.post('/sync', async (req, res) => {
@@ -522,52 +493,55 @@ router.post('/sync', async (req, res) => {
     const tokens = await ScrapingAntToken.find({});
     const results = [];
     let reactivatedCount = 0;
-    let stillExhaustedCount = 0;
-    let invalidCount = 0;
+    let parkedCount = 0;
+    let deletedCount = 0;
 
     for (const tokenRecord of tokens) {
       const usage = await checkScrapingAntUsage(tokenRecord.token);
       tokenRecord.lastCheckedAt = new Date();
 
-      if (usage.valid) {
-        // BUG (fixed 2026-08-29): usageCount — our own lifetime-request
-        // counter, incremented every time the scraper worker actually uses
-        // this token — was being zeroed on EVERY sync, just for a token
-        // still being confirmed active with credits remaining. That wiped
-        // real usage history on every routine "Sync Tokens" click, not only
-        // when ScrapingAnt actually refilled the plan. Only reset it when
-        // this sync detects a genuine refill: remainedCredits went UP
-        // (impossible from ordinary usage, which only decreases it) or the
-        // renewal date advanced.
-        const previousRemainedCredits = tokenRecord.remainedCredits;
-        const previousRenewalTime = tokenRecord.renewalDate ? new Date(tokenRecord.renewalDate).getTime() : null;
-
-        tokenRecord.planName = usage.planName;
-        tokenRecord.planTotalCredits = usage.planTotalCredits;
-        tokenRecord.remainedCredits = usage.remainedCredits;
-        if (usage.renewalDate) {
-          tokenRecord.renewalDate = new Date(usage.renewalDate);
+      if (!usage.valid) {
+        if (usage.error && (usage.error.includes('wrong') || usage.statusCode === 401 || usage.statusCode === 404)) {
+          console.warn(`[Sync Tokens] Deleting dead/revoked token ${tokenRecord.token.substring(0, 8)}... (${usage.error})`);
+          await ScrapingAntToken.deleteOne({ _id: tokenRecord._id });
+          deletedCount++;
+          results.push({
+            _id: tokenRecord._id,
+            token: tokenRecord.token,
+            status: 'deleted',
+            usage
+          });
+          continue;
         }
+      }
 
-        const newRenewalTime = usage.renewalDate ? new Date(usage.renewalDate).getTime() : null;
-        const renewalAdvanced = previousRenewalTime != null && newRenewalTime != null && newRenewalTime > previousRenewalTime;
-        const creditsRefilled = previousRemainedCredits != null && usage.remainedCredits > previousRemainedCredits;
-        const isActualReset = renewalAdvanced || creditsRefilled;
+      const previousRemainedCredits = tokenRecord.remainedCredits;
+      const previousRenewalTime = tokenRecord.renewalDate ? new Date(tokenRecord.renewalDate).getTime() : null;
 
-        if (usage.remainedCredits > 0) {
-          tokenRecord.status = 'active';
-          tokenRecord.exhaustedAt = null;
-          if (isActualReset) {
-            tokenRecord.usageCount = 0;
-          }
-          reactivatedCount++;
-        } else {
-          tokenRecord.status = 'exhausted';
-          if (!tokenRecord.exhaustedAt) tokenRecord.exhaustedAt = new Date();
-          stillExhaustedCount++;
+      tokenRecord.planName = usage.planName;
+      tokenRecord.planTotalCredits = usage.planTotalCredits;
+      tokenRecord.remainedCredits = usage.remainedCredits;
+      if (usage.renewalDate) {
+        tokenRecord.renewalDate = new Date(usage.renewalDate);
+      }
+
+      const newRenewalTime = usage.renewalDate ? new Date(usage.renewalDate).getTime() : null;
+      const renewalAdvanced = previousRenewalTime != null && newRenewalTime != null && newRenewalTime > previousRenewalTime;
+      const creditsRefilled = previousRemainedCredits != null && usage.remainedCredits > previousRemainedCredits;
+      const isActualReset = renewalAdvanced || creditsRefilled;
+
+      if (usage.remainedCredits > 0) {
+        tokenRecord.status = 'active';
+        tokenRecord.exhaustedAt = null;
+        tokenRecord.cooldownUntil = null;
+        if (isActualReset) {
+          tokenRecord.usageCount = 0;
         }
+        reactivatedCount++;
       } else {
-        invalidCount++;
+        tokenRecord.status = 'parked';
+        if (!tokenRecord.exhaustedAt) tokenRecord.exhaustedAt = new Date();
+        parkedCount++;
       }
 
       await tokenRecord.save();
@@ -583,8 +557,8 @@ router.post('/sync', async (req, res) => {
       success: true,
       totalChecked: tokens.length,
       reactivatedCount,
-      stillExhaustedCount,
-      invalidCount,
+      parkedCount,
+      deletedCount,
       results
     });
   } catch (error) {

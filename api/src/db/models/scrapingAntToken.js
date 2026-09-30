@@ -16,7 +16,7 @@ const scrapingAntTokenSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'exhausted'],
+    enum: ['active', 'exhausted', 'parked'],
     default: 'active'
   },
   planName: {

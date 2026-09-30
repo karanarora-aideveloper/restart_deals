@@ -16,7 +16,7 @@ const scrapingAntTokenSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'exhausted'],
+    enum: ['active', 'exhausted', 'parked'],
     default: 'active'
   },
   planName: {
@@ -42,6 +42,10 @@ const scrapingAntTokenSchema = new mongoose.Schema({
   exhaustedAt: {
     type: Date
   },
+  cooldownUntil: {
+    type: Date,
+    default: null
+  },
   lastUsedAt: {
     type: Date,
     default: Date.now
@@ -49,6 +53,7 @@ const scrapingAntTokenSchema = new mongoose.Schema({
 });
 
 scrapingAntTokenSchema.index({ status: 1, lastUsedAt: 1 });
+scrapingAntTokenSchema.index({ status: 1, cooldownUntil: 1, lastUsedAt: 1 });
 
 const ScrapingAntToken = mongoose.model('ScrapingAntToken', scrapingAntTokenSchema, 'scraping_ant_tokens');
 

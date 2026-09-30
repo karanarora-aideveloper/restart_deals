@@ -44,7 +44,7 @@ export default function TokensPage() {
 
   // Tokens state
   const [tokens, setTokens] = useState([]);
-  const [summary, setSummary] = useState({ total: 0, active: 0, exhausted: 0, totalUsage: 0 });
+  const [summary, setSummary] = useState({ total: 0, active: 0, parked: 0, exhausted: 0, totalUsage: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -178,7 +178,7 @@ export default function TokensPage() {
 
       if (data.success) {
         setTokens(data.tokens || []);
-        setSummary(data.summary || { total: 0, active: 0, exhausted: 0, totalUsage: 0 });
+        setSummary(data.summary || { total: 0, active: 0, parked: 0, exhausted: 0, totalUsage: 0 });
       } else {
         throw new Error(data.error || 'Failed to load ScrapingAnt tokens');
       }
@@ -868,6 +868,20 @@ export default function TokensPage() {
               </span>
             </div>
 
+            {/* Parked Tokens (Renewing) */}
+            <div className="card glass crm-stat-card" style={{ borderTop: '3px solid #3b82f6', position: 'relative' }}>
+              <div className="crm-stat-icon" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
+                <span className="material-symbols-outlined">schedule</span>
+              </div>
+              <div className="crm-stat-value" style={{ color: '#2563eb' }}>
+                {summary.parked || 0}
+              </div>
+              <div className="crm-stat-label">Parked (Renewing)</div>
+              <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', marginTop: -4 }}>
+                Auto-resets on renewal date
+              </span>
+            </div>
+
             {/* Exhausted Tokens */}
             <div className="card glass crm-stat-card" style={{ borderTop: '3px solid #f59e0b', position: 'relative' }}>
               <div className="crm-stat-icon" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}>
@@ -876,15 +890,15 @@ export default function TokensPage() {
               <div className="crm-stat-value" style={{ color: summary.exhausted > 0 ? '#d97706' : 'var(--text-main)' }}>
                 {summary.exhausted}
               </div>
-              <div className="crm-stat-label">Exhausted (429)</div>
+              <div className="crm-stat-label">Exhausted</div>
               <span style={{ fontSize: '0.73rem', color: summary.exhausted > 0 ? '#d97706' : 'var(--text-muted)', marginTop: -4 }}>
                 {summary.exhausted > 0 ? 'Needs reactivating' : 'No exhausted keys'}
               </span>
             </div>
 
             {/* Total Scrapes */}
-            <div className="card glass crm-stat-card" style={{ borderTop: '3px solid #3b82f6', position: 'relative' }}>
-              <div className="crm-stat-icon" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>
+            <div className="card glass crm-stat-card" style={{ borderTop: '3px solid #8b5cf6', position: 'relative' }}>
+              <div className="crm-stat-icon" style={{ background: 'rgba(139,92,246,0.12)', color: '#7c3aed' }}>
                 <span className="material-symbols-outlined">query_stats</span>
               </div>
               <div className="crm-stat-value">{summary.totalUsage?.toLocaleString() || 0}</div>
@@ -1456,7 +1470,8 @@ export default function TokensPage() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active Only</option>
-                  <option value="exhausted">Exhausted (429)</option>
+                  <option value="parked">Parked (Renewing)</option>
+                  <option value="exhausted">Exhausted</option>
                 </select>
               </div>
 
@@ -1552,14 +1567,19 @@ export default function TokensPage() {
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
                                 cursor: 'pointer',
-                                background: t.status === 'active' ? '#ecfdf5' : '#fef2f2',
-                                color: t.status === 'active' ? '#059669' : '#dc2626',
-                                border: `1px solid ${t.status === 'active' ? '#10b98130' : '#ef444430'}`,
+                                background: t.status === 'active' ? '#ecfdf5' : t.status === 'parked' ? '#eff6ff' : '#fef2f2',
+                                color: t.status === 'active' ? '#059669' : t.status === 'parked' ? '#2563eb' : '#dc2626',
+                                border: `1px solid ${t.status === 'active' ? '#10b98130' : t.status === 'parked' ? '#3b82f630' : '#ef444430'}`,
                               }}
-                              title="Click to toggle status"
+                              title={t.renewalDate ? `Renews on ${new Date(t.renewalDate).toLocaleDateString()}` : 'Click to toggle status'}
                             >
-                              {t.status === 'active' ? 'Active' : 'Exhausted'}
+                              {t.status === 'active' ? 'Active' : t.status === 'parked' ? 'Parked' : 'Exhausted'}
                             </span>
+                            {t.status === 'parked' && t.renewalDate && (
+                              <div style={{ fontSize: '0.7rem', color: '#2563eb', marginTop: 2 }}>
+                                Renews {new Date(t.renewalDate).toLocaleDateString()}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell style={{ fontWeight: 700 }}>{t.usageCount || 0}</TableCell>
                           <TableCell>

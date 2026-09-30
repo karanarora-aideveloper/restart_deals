@@ -19,7 +19,7 @@ const scrapingLogSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'shoppers_deals_engine', 'catalog_top20', 'other'],
+    enum: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'shoppers_deals_engine', 'catalog_top20', 'test', 'other'],
     default: 'other',
     index: true,
   },
@@ -36,7 +36,7 @@ const scrapingLogSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['success', 'error', '409_concurrency', '403_exhausted', 'blocked'],
+    enum: ['success', 'error', '409_concurrency', '403_exhausted', '429_rate_limit', 'blocked'],
     default: 'success',
     index: true,
   },
