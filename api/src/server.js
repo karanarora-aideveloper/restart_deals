@@ -15,6 +15,7 @@ import leadsRouter from './routes/leads.js';
 import seoRouter from './routes/seo.js';
 import notificationsRouter from './routes/notifications.js';
 import alertsRouter from './routes/alerts.js';
+import pushRouter from './routes/push.js';
 import xBotRouter from './routes/xBot.js';
 import crawlerRouter from './routes/crawler.js';
 import monitoringRouter from './routes/monitoring.js';
@@ -85,6 +86,9 @@ app.use('/leads', leadsRouter);
 
 app.use('/api/notifications', notificationsRouter);
 app.use('/notifications', notificationsRouter);
+
+app.use('/api/push', pushRouter);
+app.use('/push', pushRouter);
 
 // Bind API routes (Admin-Protected)
 app.use('/api/admin', requireAdminAuth, adminRouter);

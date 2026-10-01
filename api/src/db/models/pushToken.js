@@ -7,17 +7,35 @@ import mongoose from 'mongoose';
 const pushTokenSchema = new mongoose.Schema({
   token: {
     type: String,
-    required: true,
-    unique: true,
+    sparse: true,
+  },
+  endpoint: {
+    type: String,
+    sparse: true,
+    index: true,
+  },
+  keys: {
+    p256dh: { type: String },
+    auth: { type: String },
   },
   platform: {
     type: String,
-    enum: ['android', 'ios'],
+    enum: ['web', 'android', 'ios'],
+    default: 'web',
     required: true,
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true,
   },
   deviceId: {
     type: String,
+    index: true,
   },
+  subscribedProductIds: [{
+    type: String,
+  }],
   isActive: {
     type: Boolean,
     default: true,
@@ -33,6 +51,8 @@ const pushTokenSchema = new mongoose.Schema({
 });
 
 pushTokenSchema.index({ platform: 1, isActive: 1 });
+pushTokenSchema.index({ userId: 1, isActive: 1 });
+pushTokenSchema.index({ subscribedProductIds: 1, isActive: 1 });
 
 const PushToken = mongoose.models.PushToken || mongoose.model('PushToken', pushTokenSchema, 'push_tokens');
 

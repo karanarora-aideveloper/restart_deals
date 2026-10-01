@@ -1,5 +1,7 @@
 import PriceAlert from '../db/models/priceAlert.js';
+import PushToken from '../db/models/pushToken.js';
 import { defaultRedis } from './redis.js';
+import { broadcastPriceDropPush } from './webPushNotifier.js';
 
 function formatPriceCurrency(price, country = 'IN') {
   if (price == null || isNaN(price)) return '';
@@ -41,7 +43,13 @@ export async function evaluateAndTriggerPriceAlerts({
       targetPrice: { $gte: livePrice },
     });
 
-    if (matchingAlerts.length === 0) {
+    // Check if any browser push tokens are subscribed to this product
+    const hasPushSubscribers = await PushToken.exists({
+      isActive: true,
+      subscribedProductIds: productId,
+    });
+
+    if (matchingAlerts.length === 0 && !hasPushSubscribers) {
       return 0;
     }
 
@@ -89,6 +97,24 @@ export async function evaluateAndTriggerPriceAlerts({
       } catch (pubErr) {
         // Non-fatal if Redis pub fails
       }
+    }
+
+    // Trigger instant browser push notifications for all users/devices tracking this product
+    try {
+      broadcastPriceDropPush({
+        productId,
+        title: title || matchingAlerts[0]?.title || 'Price Drop Alert',
+        livePrice,
+        previousPrice: matchingAlerts[0]?.targetPrice,
+        dealUrl,
+        imageUrl,
+        merchant,
+        country,
+      }).catch((pushErr) => {
+        console.warn(`[WebPush] Failed to broadcast push for ${productId}:`, pushErr.message);
+      });
+    } catch (err) {
+      // Non-fatal
     }
 
     return triggeredCount;
