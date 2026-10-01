@@ -1267,6 +1267,9 @@ router.get('/:id/variants', cacheMiddleware(30), async (req, res) => {
     // Sort siblings by price ascending
     siblings.sort((a, b) => (a.price || 0) - (b.price || 0));
 
+    const isUsableImg = (u) => u && typeof u === 'string' && !u.includes('images-na.ssl-images-amazon.com/images/P/') && !u.includes('placeholder.png');
+    const seriesHeroImage = siblings.find(s => isUsableImg(s.imageUrl))?.imageUrl || '';
+
     // Extract traits for each sibling
     const variantList = siblings.map(s => {
       const traits = extractVariantTraits(s.title, product.category, s.variant);
@@ -1274,6 +1277,15 @@ router.get('/:id/variants', cacheMiddleware(30), async (req, res) => {
       const discountPct = (s.originalPrice && s.price && s.originalPrice > s.price)
         ? Math.round(((s.originalPrice - s.price) / s.originalPrice) * 100)
         : (s.discountPercentage || 0);
+
+      let effectiveImg = s.imageUrl || (s.images && s.images[0]) || '';
+      if (!isUsableImg(effectiveImg)) {
+        const colorSibling = traits.color ? siblings.find(sib => {
+          const sibTraits = extractVariantTraits(sib.title, product.category, sib.variant);
+          return sibTraits.color && sibTraits.color.toLowerCase() === traits.color.toLowerCase() && isUsableImg(sib.imageUrl);
+        }) : null;
+        effectiveImg = colorSibling ? colorSibling.imageUrl : seriesHeroImage;
+      }
 
       return {
         _id: s._id,
@@ -1283,7 +1295,7 @@ router.get('/:id/variants', cacheMiddleware(30), async (req, res) => {
         originalPrice: s.originalPrice || s.price,
         discountPercentage: discountPct,
         merchant: s.merchant,
-        imageUrl: s.imageUrl || (s.images && s.images[0]) || '',
+        imageUrl: effectiveImg,
         cleanUrl: s.cleanUrl,
         storage: traits.storage,
         storageGb: traits.storageGb,
