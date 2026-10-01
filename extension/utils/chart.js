@@ -91,16 +91,27 @@
     let score = 75; // 0 (Worst) - 100 (Best)
 
     if (isBaselineOnly) {
-      verdictClass = 'sd-verdict-new';
-      badgeText = '✨ NEWLY TRACKED BASELINE';
-      headline = 'First Price Checkpoint Recorded';
-      score = discountFromMrpPct >= 30 ? 80 : 65;
-      if (discountFromMrpPct > 0) {
-        summary = `Currently selling at ${formatPrice(currentPrice)} (${discountFromMrpPct}% off MRP ${formatPrice(mrp)}). Baseline logged for continuous tracking!`;
-        advice = `Set a price drop alert for ${formatPrice(Math.round(currentPrice * 0.9))} (10% drop) to be notified as soon as a deal drops.`;
+      if (discountFromMrpPct >= 10) {
+        verdictClass = 'sd-verdict-good';
+        badgeText = `⚡ ACTIVE DEAL • ${discountFromMrpPct}% OFF`;
+        headline = `Active Deal: ${discountFromMrpPct}% Below List Price`;
+        score = 80;
+        summary = `Currently selling at ${formatPrice(currentPrice)} with ${formatPrice(discountFromMrp)} direct savings off list price (${formatPrice(mrp)}).`;
+        advice = `Good time to buy! You are saving ${formatPrice(discountFromMrp)} off MRP. Automated daily tracking is active to catch further drops.`;
+      } else if (discountFromMrpPct > 0) {
+        verdictClass = 'sd-verdict-good';
+        badgeText = `⚡ LIVE DEAL • ${discountFromMrpPct}% OFF`;
+        headline = `Live Price: ${formatPrice(currentPrice)} (${discountFromMrpPct}% OFF)`;
+        score = 75;
+        summary = `Currently selling at ${formatPrice(currentPrice)} with ${formatPrice(discountFromMrp)} direct savings off list price (${formatPrice(mrp)}).`;
+        advice = `Live verified price. You save ${formatPrice(discountFromMrp)} off MRP. Set an alert to catch any extra drops!`;
       } else {
+        verdictClass = 'sd-verdict-normal';
+        badgeText = '⚖️ STANDARD RETAIL PRICE';
+        headline = 'Selling at Regular Retail Price';
+        score = 65;
         summary = `Priced at ${formatPrice(currentPrice)}. Added to ShoppersDeals tracking network with daily automated price scans.`;
-        advice = `Set an alert to automatically get notified when this product drops below your desired budget.`;
+        advice = `Set a price drop alert to get notified automatically when a discount occurs.`;
       }
     } else if (currentPrice <= lowestPrice * 1.015) {
       // At or within 1.5% of All-Time Low!
@@ -279,7 +290,7 @@
   /**
    * Generates pure SVG string for the price history graph
    */
-  function generateSvgChart(points = [], options = {}) {
+  function generateSvgChart(rawPoints = [], options = {}) {
     const width = options.width || 420;
     const height = options.height || 180;
     const padding = { top: 30, right: 30, bottom: 35, left: 58 };
@@ -287,44 +298,39 @@
     const chartW = width - padding.left - padding.right;
     const chartH = height - padding.top - padding.bottom;
 
-    if (!points || points.length < 2) {
-      const current = options.currentPrice || (points[0] ? points[0].price : 0);
-      const mrp = options.mrp || current;
-      return `
-        <svg viewBox="0 0 ${width} ${height}" class="sd-svg-root" style="width:100%; height:auto; display:block;">
-          <defs>
-            <linearGradient id="baseline-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.18"/>
-              <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
-            </linearGradient>
-          </defs>
-          <!-- Grid line -->
-          <line x1="${padding.left}" y1="${padding.top + chartH / 2}" x2="${width - padding.right}" y2="${padding.top + chartH / 2}" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4,4" />
-          <text x="${padding.left - 8}" y="${padding.top + chartH / 2 + 4}" fill="#64748b" font-size="11" font-weight="600" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(current)}</text>
+    const current = Number(options.currentPrice) || (rawPoints[0] ? Number(rawPoints[0].price) : 0);
+    const mrp = Number(options.mrp) || current;
+    const now = Date.now();
 
-          <!-- Current baseline line -->
-          <line x1="${padding.left}" y1="${padding.top + chartH / 2}" x2="${width - padding.right}" y2="${padding.top + chartH / 2}" stroke="#7c3aed" stroke-width="2.5" />
-          <circle cx="${width - padding.right}" cy="${padding.top + chartH / 2}" r="6" fill="#7c3aed" stroke="#ffffff" stroke-width="2" />
-          <circle cx="${width - padding.right}" cy="${padding.top + chartH / 2}" r="9" fill="none" stroke="#7c3aed" stroke-width="1.5" opacity="0.4" class="sd-pulse-ring" />
+    // Prepare at least 2 points across the active time window so line and area always render
+    let points = rawPoints && rawPoints.length > 0 ? [...rawPoints] : [];
+    const windowDays = options.range === '7D' ? 7 : (options.range === '3M' ? 90 : (options.range === '6M' ? 180 : (options.range === '1Y' ? 365 : 30)));
 
-          <!-- Center Label -->
-          <text x="${width / 2}" y="${padding.top + chartH / 2 - 14}" fill="#6d28d9" font-size="11" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">
-            📍 Initial Checkpoint: ${formatPrice(current)}
-          </text>
-          <text x="${width / 2}" y="${height - 10}" fill="#94a3b8" font-size="10" text-anchor="middle" font-family="system-ui, sans-serif">
-            Tracking Active • Ongoing daily scans will chart price fluctuations here
-          </text>
-        </svg>
-      `;
+    if (points.length === 0 && current > 0) {
+      points = [
+        { price: current, date: new Date(now - windowDays * 24 * 60 * 60 * 1000) },
+        { price: current, date: new Date(now) }
+      ];
+    } else if (points.length === 1) {
+      const ptDate = points[0].date instanceof Date ? points[0].date : new Date(points[0].date || points[0].timestamp || now);
+      points = [
+        { price: points[0].price, date: new Date(ptDate.getTime() - windowDays * 24 * 60 * 60 * 1000) },
+        { price: points[0].price, date: ptDate }
+      ];
     }
 
     const prices = points.map(p => p.price);
+    // Include MRP in vertical scale if it is higher than current selling price so the M.R.P. ceiling line is shown
+    if (mrp && mrp > current) {
+      prices.push(mrp);
+    }
+
     const rawMin = Math.min(...prices);
     const rawMax = Math.max(...prices);
 
-    // Add 8% vertical cushion to prevent line touching outer borders
+    // Add vertical cushion to prevent line touching outer borders
     const span = rawMax - rawMin;
-    const cushion = span > 0 ? span * 0.08 : rawMax * 0.05;
+    const cushion = span > 0 ? span * 0.12 : rawMax * 0.08;
     const minPrice = Math.max(0, rawMin - cushion);
     const maxPrice = rawMax + cushion;
     const priceRange = maxPrice === minPrice ? 1 : (maxPrice - minPrice);
@@ -350,25 +356,42 @@
     // Gradient Area fill path
     const areaD = `${pathD} L ${coords[coords.length - 1].x} ${padding.top + chartH} L ${coords[0].x} ${padding.top + chartH} Z`;
 
-    // 3 Grid tiers (Max, Average, Min)
+    // Calculate Y positions for Grid tiers
+    const hasMrpCeiling = mrp && mrp > current;
+    const mrpY = hasMrpCeiling ? padding.top + chartH - ((mrp - minPrice) / priceRange) * chartH : null;
+    const currentY = padding.top + chartH - ((current - minPrice) / priceRange) * chartH;
+
     const avgVal = Math.round((rawMax + rawMin) / 2);
     const avgY = padding.top + chartH - ((avgVal - minPrice) / priceRange) * chartH;
     const minY = padding.top + chartH - ((rawMin - minPrice) / priceRange) * chartH;
     const maxY = padding.top + chartH - ((rawMax - minPrice) / priceRange) * chartH;
 
-    const gridTiersSvg = `
-      <!-- Peak High line -->
-      <line x1="${padding.left}" y1="${maxY}" x2="${width - padding.right}" y2="${maxY}" stroke="#fecdd3" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${padding.left - 6}" y="${maxY + 4}" fill="#e11d48" font-size="10" font-weight="600" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(rawMax)}</text>
+    let gridTiersSvg = '';
+    if (hasMrpCeiling) {
+      gridTiersSvg = `
+        <!-- M.R.P. / List Price Ceiling Line -->
+        <line x1="${padding.left}" y1="${mrpY}" x2="${width - padding.right}" y2="${mrpY}" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="4,4" opacity="0.8" />
+        <text x="${padding.left - 6}" y="${mrpY + 4}" fill="#e11d48" font-size="10" font-weight="600" text-anchor="end" font-family="system-ui, sans-serif">MRP ${formatPrice(mrp)}</text>
 
-      <!-- Average line -->
-      <line x1="${padding.left}" y1="${avgY}" x2="${width - padding.right}" y2="${avgY}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${padding.left - 6}" y="${avgY + 4}" fill="#64748b" font-size="10" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(avgVal)}</text>
+        <!-- Current Selling Price Line -->
+        <line x1="${padding.left}" y1="${currentY}" x2="${width - padding.right}" y2="${currentY}" stroke="#10b981" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" />
+        <text x="${padding.left - 6}" y="${currentY + 4}" fill="#059669" font-size="10" font-weight="700" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(current)}</text>
+      `;
+    } else {
+      gridTiersSvg = `
+        <!-- Peak High line -->
+        <line x1="${padding.left}" y1="${maxY}" x2="${width - padding.right}" y2="${maxY}" stroke="#fecdd3" stroke-width="1" stroke-dasharray="3,3" />
+        <text x="${padding.left - 6}" y="${maxY + 4}" fill="#e11d48" font-size="10" font-weight="600" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(rawMax)}</text>
 
-      <!-- All-Time Low line -->
-      <line x1="${padding.left}" y1="${minY}" x2="${width - padding.right}" y2="${minY}" stroke="#a7f3d0" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${padding.left - 6}" y="${minY + 4}" fill="#059669" font-size="10" font-weight="700" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(rawMin)}</text>
-    `;
+        <!-- Average line -->
+        <line x1="${padding.left}" y1="${avgY}" x2="${width - padding.right}" y2="${avgY}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <text x="${padding.left - 6}" y="${avgY + 4}" fill="#64748b" font-size="10" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(avgVal)}</text>
+
+        <!-- All-Time Low line -->
+        <line x1="${padding.left}" y1="${minY}" x2="${width - padding.right}" y2="${minY}" stroke="#a7f3d0" stroke-width="1" stroke-dasharray="3,3" />
+        <text x="${padding.left - 6}" y="${minY + 4}" fill="#059669" font-size="10" font-weight="700" text-anchor="end" font-family="system-ui, sans-serif">${formatPrice(rawMin)}</text>
+      `;
+    }
 
     // Key markers: Lowest point and Current point
     const lowestCoord = coords.reduce((prev, curr) => curr.price < prev.price ? curr : prev, coords[0]);
@@ -449,9 +472,7 @@
     const rawHistory = Array.isArray(priceHistory) ? priceHistory : [];
     const activeRange = options.range || 'ALL';
     const filteredPoints = filterHistoryByRange(rawHistory, activeRange);
-    const svgContent = generateSvgChart(filteredPoints, options);
-
-    const hasMultiple = rawHistory.length >= 2;
+    const svgContent = generateSvgChart(filteredPoints, { ...options, range: activeRange });
 
     return `
       <div class="sd-chart-box" data-active-range="${activeRange}">
@@ -462,15 +483,13 @@
             <span class="sd-chart-title-text">Price History Graph</span>
           </div>
 
-          ${hasMultiple ? `
-            <div class="sd-range-tabs">
-              <button class="sd-range-btn ${activeRange === '1M' ? 'active' : ''}" data-range="1M">1M</button>
-              <button class="sd-range-btn ${activeRange === '3M' ? 'active' : ''}" data-range="3M">3M</button>
-              <button class="sd-range-btn ${activeRange === '6M' ? 'active' : ''}" data-range="6M">6M</button>
-              <button class="sd-range-btn ${activeRange === '1Y' ? 'active' : ''}" data-range="1Y">1Y</button>
-              <button class="sd-range-btn ${activeRange === 'ALL' ? 'active' : ''}" data-range="ALL">All</button>
-            </div>
-          ` : ''}
+          <div class="sd-range-tabs">
+            <button class="sd-range-btn ${activeRange === '1M' ? 'active' : ''}" data-range="1M">1M</button>
+            <button class="sd-range-btn ${activeRange === '3M' ? 'active' : ''}" data-range="3M">3M</button>
+            <button class="sd-range-btn ${activeRange === '6M' ? 'active' : ''}" data-range="6M">6M</button>
+            <button class="sd-range-btn ${activeRange === '1Y' ? 'active' : ''}" data-range="1Y">1Y</button>
+            <button class="sd-range-btn ${activeRange === 'ALL' ? 'active' : ''}" data-range="ALL">All</button>
+          </div>
         </div>
 
         <!-- SVG Chart Container with Floating Tooltip -->
@@ -484,7 +503,6 @@
             <div class="sd-tip-note"></div>
           </div>
         </div>
-      </div>
     `;
   }
 
