@@ -3,7 +3,7 @@ import { defaultRedis } from '../utils/redis.js';
 
 const CUELINKS_BASE_URL = 'https://developers.cuelinks.com/pub_api/v3';
 const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '';
-const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '197022';
+const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '325472';
 
 // 1-hour in-memory cache for converted URLs to prevent duplicate network calls
 const memoryUrlCache = new Map();
