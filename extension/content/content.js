@@ -154,11 +154,23 @@
             const isStillNew = lookupRes.isNew || !lookupRes.found;
 
             let compareData = null;
-            if (productData && productData._id && api && typeof api.getCrossStoreCompare === 'function') {
+            const targetId = productData._id || productData.productId || liveDetails.productId;
+            if (targetId && api && typeof api.getCrossStoreCompare === 'function') {
               try {
-                const compRes = await api.getCrossStoreCompare(productData._id);
-                if (compRes && compRes.success && compRes.comparison) {
-                  compareData = compRes.comparison;
+                const compRes = await api.getCrossStoreCompare(targetId);
+                if (compRes && compRes.success) {
+                  compareData = {
+                    ...(compRes.comparison || {}),
+                    stores: Array.isArray(compRes.stores) ? compRes.stores : [],
+                    bestSavings: Number(compRes.bestSavings) || 0,
+                    bestStoreName: compRes.bestStoreName || null,
+                    savingsMessage: compRes.savingsMessage || null,
+                    hasExactMatch: Boolean(compRes.hasExactMatch),
+                    cheaperStore: compRes.comparison?.cheaperStore || compRes.bestStoreName || null,
+                    cheaperPrice: compRes.comparison?.cheaperPrice || null,
+                    cheaperUrl: compRes.comparison?.cheaperUrl || null,
+                    currentPrice: liveDetails.livePrice || productData.price,
+                  };
                 }
               } catch (e) {}
             }
@@ -177,24 +189,45 @@
     }
   }
 
+  function checkCheckoutPage() {
+    const href = window.location.href.toLowerCase();
+    const isCheckout = href.includes('/cart') || href.includes('/checkout') || href.includes('/buy') || href.includes('/viewcart');
+    if (isCheckout) {
+      const merchant = href.includes('amazon') ? 'amazon' : href.includes('flipkart') ? 'flipkart' : href.includes('myntra') ? 'myntra' : href.includes('nykaa') ? 'nykaa' : 'store';
+      const injector = (typeof ShoppersInjector !== 'undefined')
+        ? ShoppersInjector
+        : (typeof window !== 'undefined' && window.ShoppersInjector)
+          ? window.ShoppersInjector
+          : null;
+      if (injector && typeof injector.renderCouponWidget === 'function') {
+        injector.renderCouponWidget({ merchant });
+      }
+    }
+  }
+
+  function runChecks() {
+    checkAndInject();
+    checkCheckoutPage();
+  }
+
   // Initial check on load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkAndInject);
+    document.addEventListener('DOMContentLoaded', runChecks);
   } else {
-    checkAndInject();
+    runChecks();
   }
 
   // Handle SPA transitions (Flipkart/Myntra/Ajio pushState or hash changes)
   const observer = new MutationObserver(() => {
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
-      setTimeout(checkAndInject, 1000);
+      setTimeout(runChecks, 1000);
     }
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
 
   window.addEventListener('popstate', () => {
-    setTimeout(checkAndInject, 500);
+    setTimeout(runChecks, 500);
   });
 })();

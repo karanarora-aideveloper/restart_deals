@@ -221,6 +221,13 @@ export function calculateProductSimilarity(productA, productB) {
     return { score: 0, isExactMatch: false, isSimilar: false, reason: `Category mismatch: ${catA} vs ${catB}` };
   }
 
+  // 3b. Condition Parity Gate: Never match Brand New against Refurbished / Renewed / Pre-owned
+  const isRefurbA = /\b(refurbished|renewed|pre-owned|preowned|second hand|used)\b/i.test(productA.title);
+  const isRefurbB = /\b(refurbished|renewed|pre-owned|preowned|second hand|used)\b/i.test(productB.title);
+  if (isRefurbA !== isRefurbB) {
+    return { score: 0, isExactMatch: false, isSimilar: false, reason: 'Condition mismatch: New vs Refurbished' };
+  }
+
   // 4. Specification & Variant Parity Check
   const varA = productA.variant?.display ? productA.variant : extractVariant(productA.title);
   const varB = productB.variant?.display ? productB.variant : extractVariant(productB.title);

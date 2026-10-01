@@ -1029,35 +1029,62 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       }
     ];
 
-    // Find candidate products across all other merchants strictly within the SAME country
-    const candidateQuery = {
-      merchant: { $ne: currentMerchant },
-      country: targetCountry,
-      price: { $gt: 0 },
-      isActive: { $ne: false },
-    };
+    // 1. Strict Candidate Query: Match exact brand AND key model / title tokens
+    const specificTokens = [...models, ...tokens.filter(t => t.length >= 3 && t !== brand)].slice(0, 4);
+    let candidateProducts = [];
 
-    const searchConditions = [];
-    if (brand && brand.length >= 2) {
-      searchConditions.push({ title: new RegExp('\\b' + brand, 'i') });
+    if (brand && specificTokens.length > 0) {
+      const strictQuery = {
+        merchant: { $ne: currentMerchant },
+        country: targetCountry,
+        price: { $gt: 0 },
+        isActive: { $ne: false },
+        title: new RegExp('\\b' + brand, 'i'),
+        $or: specificTokens.map(tok => ({ title: new RegExp(tok, 'i') }))
+      };
+      candidateProducts = await Product.find(strictQuery)
+        .select('_id productId merchant title cleanUrl price category images imageUrl country variant')
+        .limit(100)
+        .lean();
     }
-    for (const m of models) {
-      if (m.length >= 2) {
-        searchConditions.push({ title: new RegExp(m, 'i') });
+
+    // 2. Broad Fallback Candidate Query if strict query returns few candidates
+    if (candidateProducts.length < 5) {
+      const broadConditions = [];
+      if (brand && brand.length >= 2) {
+        broadConditions.push({ title: new RegExp('\\b' + brand, 'i') });
+      }
+      for (const m of models) {
+        if (m.length >= 2) {
+          broadConditions.push({ title: new RegExp(m, 'i') });
+        }
+      }
+      if (broadConditions.length === 0 && tokens.length > 0) {
+        broadConditions.push({ title: new RegExp(tokens[0], 'i') });
+      }
+
+      const candidateQuery = {
+        merchant: { $ne: currentMerchant },
+        country: targetCountry,
+        price: { $gt: 0 },
+        isActive: { $ne: false },
+        $or: broadConditions,
+      };
+
+      const fallbackCandidates = await Product.find(candidateQuery)
+        .select('_id productId merchant title cleanUrl price category images imageUrl country variant')
+        .limit(100)
+        .lean();
+
+      // Deduplicate
+      const seen = new Set(candidateProducts.map(p => p._id.toString()));
+      for (const fc of fallbackCandidates) {
+        if (!seen.has(fc._id.toString())) {
+          candidateProducts.push(fc);
+          seen.add(fc._id.toString());
+        }
       }
     }
-    if (searchConditions.length === 0 && tokens.length > 0) {
-      searchConditions.push({ title: new RegExp(tokens[0], 'i') });
-    }
-
-    if (searchConditions.length > 0) {
-      candidateQuery.$or = searchConditions;
-    }
-
-    const candidateProducts = await Product.find(candidateQuery)
-      .select('_id productId merchant title cleanUrl price category images imageUrl country variant')
-      .limit(80)
-      .lean();
 
     // Run Semantic Vector Matching & Cosine Ranking with Specification Parity
     const { exactMatches, similarMatches } = rankCrossStoreMatches(product, candidateProducts);
@@ -1174,6 +1201,8 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       }
     }
 
+    const cheaperStoreObj = stores.find(s => s.isCheaper && s.savingsAmount > 0);
+
     res.json({
       success: true,
       query: cleanSearchQuery,
@@ -1184,6 +1213,15 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       bestSavings,
       savingsMessage,
       bestStoreName,
+      comparison: {
+        hasCheaper: bestSavings > 0,
+        cheaperStore: bestStoreName,
+        cheaperPrice: cheaperStoreObj ? cheaperStoreObj.price : null,
+        currentPrice: currentPrice,
+        saving: bestSavings,
+        cheaperUrl: cheaperStoreObj ? cheaperStoreObj.url : null,
+        savingsMessage: savingsMessage,
+      },
       similarMatches: similarMatches.slice(0, 4).map(m => ({
         _id: m.product._id,
         productId: m.product.productId,
@@ -1200,6 +1238,200 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
   } catch (err) {
     console.error('[API Error] GET /api/products/:id/cross-store-compare failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to compare store prices' });
+  }
+});
+
+/**
+ * POST /api/products/compare-url
+ * Universal URL endpoint: accepts any store URL (Amazon, Flipkart, etc.),
+ * resolves the product, and returns its live cross-store comparison table & savings.
+ */
+router.post('/compare-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ success: false, error: 'Product URL is required' });
+    }
+
+    const resolved = await resolveRedirect(url.trim());
+    const parsed = parseProductUrl(resolved);
+
+    if (!parsed || !parsed.productId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Could not identify a supported product from the provided URL.',
+      });
+    }
+
+    const syncRes = await handleProductDiscoveryOrSync({
+      parsed,
+      source: 'web_compare',
+      sourceUrl: url,
+    });
+
+    if (!syncRes || !syncRes.data) {
+      return res.status(404).json({ success: false, error: 'Product could not be resolved' });
+    }
+
+    const product = syncRes.data;
+    const targetCountry = (product.country || 'IN').toUpperCase();
+    const currentMerchant = (product.merchant || 'amazon').toLowerCase();
+    const currentPrice = Number(product.price) || 0;
+
+    const brand = extractBrand(product.title);
+    const models = extractModelIdentifiers(product.title);
+    const tokens = tokenizeTitle(product.title);
+    const cleanSearchQuery = [brand, ...tokens.slice(0, 5)].filter(Boolean).join(' ');
+
+    const specificTokens = [...models, ...tokens.filter(t => t.length >= 3 && t !== brand)].slice(0, 4);
+    let candidateProducts = [];
+
+    if (brand && specificTokens.length > 0) {
+      candidateProducts = await Product.find({
+        merchant: { $ne: currentMerchant },
+        country: targetCountry,
+        price: { $gt: 0 },
+        isActive: { $ne: false },
+        title: new RegExp('\\b' + brand, 'i'),
+        $or: specificTokens.map(tok => ({ title: new RegExp(tok, 'i') }))
+      }).select('_id productId merchant title cleanUrl price category images imageUrl country variant').limit(80).lean();
+    }
+
+    if (candidateProducts.length < 5) {
+      const broadConditions = [];
+      if (brand && brand.length >= 2) broadConditions.push({ title: new RegExp('\\b' + brand, 'i') });
+      for (const m of models) broadConditions.push({ title: new RegExp(m, 'i') });
+      if (broadConditions.length === 0 && tokens.length > 0) broadConditions.push({ title: new RegExp(tokens[0], 'i') });
+      const fallback = await Product.find({
+        merchant: { $ne: currentMerchant },
+        country: targetCountry,
+        price: { $gt: 0 },
+        isActive: { $ne: false },
+        $or: broadConditions,
+      }).select('_id productId merchant title cleanUrl price category images imageUrl country variant').limit(80).lean();
+
+      const seen = new Set(candidateProducts.map(p => p._id.toString()));
+      for (const fc of fallback) {
+        if (!seen.has(fc._id.toString())) {
+          candidateProducts.push(fc);
+          seen.add(fc._id.toString());
+        }
+      }
+    }
+
+    const { exactMatches, similarMatches } = rankCrossStoreMatches(product, candidateProducts);
+
+    const STORES_CONFIG = [
+      { id: 'amazon', name: targetCountry === 'US' ? 'Amazon US' : 'Amazon India', logo: '🛍️', searchUrl: (q) => targetCountry === 'US' ? `https://www.amazon.com/s?k=${encodeURIComponent(q)}` : `https://www.amazon.in/s?k=${encodeURIComponent(q)}` },
+      { id: 'flipkart', name: 'Flipkart', logo: '⚡', searchUrl: (q) => `https://www.flipkart.com/search?q=${encodeURIComponent(q)}` },
+      { id: 'myntra', name: 'Myntra', logo: '👗', searchUrl: (q) => `https://www.myntra.com/${encodeURIComponent(q.toLowerCase().replace(/\s+/g, '-'))}` },
+      { id: 'nykaa', name: 'Nykaa', logo: '💄', searchUrl: (q) => `https://www.nykaa.com/search/result/?q=${encodeURIComponent(q)}` },
+      { id: 'croma', name: 'Croma', logo: '🔌', searchUrl: (q) => `https://www.croma.com/searchB?q=${encodeURIComponent(q)}` },
+      { id: 'ajio', name: 'Ajio', logo: '🕶️', searchUrl: (q) => `https://www.ajio.com/search/?text=${encodeURIComponent(q)}` }
+    ];
+
+    const stores = [];
+    let bestSavings = 0;
+    let savingsMessage = null;
+    let bestStoreName = null;
+
+    const primaryConf = STORES_CONFIG.find(c => c.id === currentMerchant) || {
+      id: currentMerchant,
+      name: currentMerchant.charAt(0).toUpperCase() + currentMerchant.slice(1),
+      logo: '🛒'
+    };
+
+    stores.push({
+      id: currentMerchant,
+      name: primaryConf.name,
+      logo: primaryConf.logo,
+      price: currentPrice,
+      hasRealPrice: true,
+      inStock: product.isActive !== false,
+      isPrimary: true,
+      url: product.cleanUrl,
+      buttonText: 'Buy on ' + primaryConf.name,
+      priceDifference: 0,
+      isCheaper: false,
+      savingsAmount: 0,
+    });
+
+    for (const conf of STORES_CONFIG) {
+      if (conf.id === currentMerchant) continue;
+      const exactMatch = exactMatches.find(m => m.product.merchant && m.product.merchant.toLowerCase() === conf.id);
+      if (exactMatch && exactMatch.product.price) {
+        const matchedPrice = Number(exactMatch.product.price);
+        const priceDifference = currentPrice - matchedPrice;
+        const isOtherStoreCheaper = priceDifference > 0;
+        let savingsAmount = 0;
+        if (isOtherStoreCheaper) {
+          savingsAmount = priceDifference;
+          if (priceDifference > bestSavings) {
+            bestSavings = priceDifference;
+            bestStoreName = conf.name;
+            savingsMessage = targetCountry === 'US'
+              ? `Save $${priceDifference.toFixed(2)} on ${conf.name}!`
+              : `Save ₹${priceDifference.toLocaleString('en-IN')} on ${conf.name}!`;
+          }
+        }
+        stores.push({
+          id: conf.id,
+          name: conf.name,
+          logo: conf.logo,
+          price: matchedPrice,
+          hasRealPrice: true,
+          matchScore: exactMatch.matchScore,
+          inStock: exactMatch.product.isActive !== false,
+          isPrimary: false,
+          url: exactMatch.product.cleanUrl,
+          matchedProductId: exactMatch.product._id || exactMatch.product.productId,
+          buttonText: isOtherStoreCheaper ? (targetCountry === 'US' ? `Buy for $${matchedPrice.toFixed(2)}` : `Buy for ₹${matchedPrice.toLocaleString('en-IN')}`) : `View on ${conf.name}`,
+          priceDifference,
+          isCheaper: isOtherStoreCheaper,
+          savingsAmount,
+        });
+      } else {
+        stores.push({
+          id: conf.id,
+          name: conf.name,
+          logo: conf.logo,
+          price: null,
+          hasRealPrice: false,
+          inStock: true,
+          isPrimary: false,
+          url: conf.searchUrl(cleanSearchQuery),
+          buttonText: 'Search on ' + conf.name,
+          priceDifference: null,
+          isCheaper: false,
+          savingsAmount: 0,
+        });
+      }
+    }
+
+    const cheaperStoreObj = stores.find(s => s.isCheaper && s.savingsAmount > 0);
+
+    res.json({
+      success: true,
+      product,
+      query: cleanSearchQuery,
+      stores,
+      bestSavings,
+      savingsMessage,
+      bestStoreName,
+      comparison: {
+        hasCheaper: bestSavings > 0,
+        cheaperStore: bestStoreName,
+        cheaperPrice: cheaperStoreObj ? cheaperStoreObj.price : null,
+        currentPrice: currentPrice,
+        saving: bestSavings,
+        cheaperUrl: cheaperStoreObj ? cheaperStoreObj.url : null,
+        savingsMessage: savingsMessage,
+      },
+      similarMatches: similarMatches.slice(0, 4)
+    });
+  } catch (err) {
+    console.error('[API Error] POST /api/products/compare-url failed:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to compare product URL' });
   }
 });
 
