@@ -89,6 +89,7 @@ export const DEFAULT_AMAZON_SEEDS = [
   { category: 'home', subcategory: 'storage', keywords: 'storage box organizer' },
   { category: 'home', subcategory: 'cleaning', keywords: 'cleaning supplies mop detergent' },
   { category: 'home', subcategory: 'appliances-large', keywords: 'air fryer mixer grinder' },
+  { category: 'home', subcategory: 'appliances-large', keywords: 'water purifier RO UV' },
   { category: 'home', subcategory: 'tools', keywords: 'drill screwdriver tool kit' },
   // fitness
   { category: 'fitness', subcategory: 'gym-equipment', keywords: 'dumbbell treadmill gym equipment' },
@@ -118,6 +119,7 @@ export const DEFAULT_FLIPKART_SEEDS = [
   { category: 'home', subcategory: 'kitchen', keywords: 'mixer grinder pressure cooker cookware' },
   { category: 'home', subcategory: 'bedding', keywords: 'cotton double bedsheet' },
   { category: 'home', subcategory: 'appliances-large', keywords: 'washing machine refrigerator microwave' },
+  { category: 'home', subcategory: 'appliances-large', keywords: 'water purifier ro uv' },
   { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts casual shirts' },
   { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans cotton trousers' },
   { category: 'men-fashion', subcategory: 'footwear', keywords: 'men running shoes sneakers' },
