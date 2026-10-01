@@ -113,7 +113,7 @@ router.get('/sitemap-products', async (req, res) => {
       },
       '_id updatedAt lastChecked'
     )
-      .sort({ updatedAt: -1, _id: -1 })
+      .sort({ _id: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
