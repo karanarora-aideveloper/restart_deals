@@ -7,7 +7,7 @@ import { computePriceStats } from '../utils/priceAnalytics.js';
 import { resolveRedirect, parseProductUrl } from '../utils/urlParser.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
 import { rankCrossStoreMatches, extractBrand, tokenizeTitle, extractModelIdentifiers } from '../utils/vectorMatcher.js';
-import { extractVariant, variantsMatch, variantMismatchReason } from '../utils/variantExtractor.js';
+import { extractVariant, variantsMatch, variantMismatchReason, extractVariantTraits, generateSeriesKey, COLOR_HEX_MAP, getBeautyShadeHex } from '../utils/variantExtractor.js';
 import { cacheMiddleware, apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 
@@ -1200,6 +1200,200 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
   } catch (err) {
     console.error('[API Error] GET /api/products/:id/cross-store-compare failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to compare store prices' });
+  }
+});
+
+/**
+ * GET /api/products/:id/variants
+ * Returns grouped series siblings for variants (storage, color, beauty shades, sizes).
+ */
+router.get('/:id/variants', cacheMiddleware(30), async (req, res) => {
+  try {
+    let product = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      product = await Product.findById(req.params.id);
+    }
+    if (!product) {
+      const targetCountry = req.query.country ? req.query.country.toUpperCase() : 'IN';
+      product = await Product.findOne({ productId: req.params.id, country: targetCountry });
+      if (!product) {
+        product = await Product.findOne({ productId: req.params.id });
+      }
+    }
+
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    const seriesKey = generateSeriesKey(product.title, product.category, product.brand);
+    if (!seriesKey) {
+      return res.json({
+        success: true,
+        hasVariants: false,
+        seriesKey: null,
+        currentVariantId: product._id,
+        dimensions: { storages: [], colors: [], shades: [], sizes: [] },
+        variants: [],
+      });
+    }
+
+    const targetCountry = (product.country || 'IN').toUpperCase();
+
+    // Fast candidate retrieval:
+    // Extract key tokens to query MongoDB efficiently
+    const keyTokens = seriesKey.split('-').filter(t => t.length > 2);
+    const searchConditions = keyTokens.slice(0, 3).map(tok => ({ title: new RegExp('\\b' + tok, 'i') }));
+
+    const candidateQuery = {
+      country: targetCountry,
+      price: { $gt: 0 },
+      isActive: { $ne: false },
+      $and: searchConditions,
+    };
+
+    const candidates = await Product.find(candidateQuery)
+      .select('_id productId title price originalPrice previousPrice discountPercentage merchant imageUrl images cleanUrl variant isActive')
+      .limit(60)
+      .lean();
+
+    // Verify candidates against exact seriesKey
+    const siblings = candidates.filter(c => generateSeriesKey(c.title, product.category, product.brand) === seriesKey);
+
+    // If current product wasn't found in candidates for some reason, ensure it's included
+    if (!siblings.some(s => String(s._id) === String(product._id))) {
+      siblings.push(product.toObject ? product.toObject() : product);
+    }
+
+    // Sort siblings by price ascending
+    siblings.sort((a, b) => (a.price || 0) - (b.price || 0));
+
+    // Extract traits for each sibling
+    const variantList = siblings.map(s => {
+      const traits = extractVariantTraits(s.title, product.category, s.variant);
+      const isCurrent = String(s._id) === String(product._id);
+      const discountPct = (s.originalPrice && s.price && s.originalPrice > s.price)
+        ? Math.round(((s.originalPrice - s.price) / s.originalPrice) * 100)
+        : (s.discountPercentage || 0);
+
+      return {
+        _id: s._id,
+        productId: s.productId,
+        title: s.title,
+        price: s.price,
+        originalPrice: s.originalPrice || s.price,
+        discountPercentage: discountPct,
+        merchant: s.merchant,
+        imageUrl: s.imageUrl || (s.images && s.images[0]) || '',
+        cleanUrl: s.cleanUrl,
+        storage: traits.storage,
+        storageGb: traits.storageGb,
+        ram: traits.ram,
+        ramGb: traits.ramGb,
+        color: traits.color,
+        shade: traits.shade,
+        size: traits.size,
+        chip: traits.chip,
+        screenSize: traits.screenSize,
+        inStock: s.isActive !== false,
+        isCurrent,
+      };
+    });
+
+    // Derive aggregated dimensions
+    const storagesSet = new Set();
+    const colorsMap = new Map();
+    const shadesMap = new Map();
+    const sizesSet = new Set();
+
+    for (const v of variantList) {
+      if (v.storage) storagesSet.add(v.storage);
+      if (v.size) sizesSet.add(v.size);
+
+      if (v.color) {
+        const cLower = v.color.toLowerCase();
+        if (!colorsMap.has(cLower)) {
+          colorsMap.set(cLower, {
+            name: v.color,
+            hex: COLOR_HEX_MAP[cLower] || '#94A3B8',
+            cheapestPrice: v.price,
+            productId: v._id,
+            isCurrent: v.isCurrent,
+            inStock: v.inStock,
+          });
+        } else {
+          const existing = colorsMap.get(cLower);
+          if (v.isCurrent) existing.isCurrent = true;
+          if (v.price && v.price < existing.cheapestPrice) {
+            existing.cheapestPrice = v.price;
+            existing.productId = v._id;
+          }
+        }
+      }
+
+      if (v.shade) {
+        const sKey = v.shade.toLowerCase();
+        if (!shadesMap.has(sKey)) {
+          shadesMap.set(sKey, {
+            name: v.shade,
+            hex: getBeautyShadeHex(v.shade),
+            cheapestPrice: v.price,
+            productId: v._id,
+            isCurrent: v.isCurrent,
+            inStock: v.inStock,
+          });
+        } else {
+          const existing = shadesMap.get(sKey);
+          if (v.isCurrent) existing.isCurrent = true;
+          if (v.price && v.price < existing.cheapestPrice) {
+            existing.cheapestPrice = v.price;
+            existing.productId = v._id;
+          }
+        }
+      }
+    }
+
+    // Sort storages numerically: 128GB, 256GB, 512GB, 1TB
+    const storages = Array.from(storagesSet).sort((a, b) => {
+      const aVal = a.toLowerCase().includes('tb') ? parseFloat(a) * 1024 : parseFloat(a);
+      const bVal = b.toLowerCase().includes('tb') ? parseFloat(b) * 1024 : parseFloat(b);
+      return aVal - bVal;
+    });
+
+    const colors = Array.from(colorsMap.values());
+    const shades = Array.from(shadesMap.values());
+    const sizes = Array.from(sizesSet);
+
+    // Human-friendly series title
+    const currentTraits = extractVariantTraits(product.title, product.category, product.variant);
+    let seriesName = product.title.split(/[,;(|\-–]/)[0].trim();
+    if (seriesKey.startsWith('apple-macbook')) {
+      const family = seriesKey.includes('neo') ? 'MacBook Neo' : (seriesKey.includes('air') ? 'MacBook Air' : 'MacBook Pro');
+      const screen = currentTraits.screenSize || (seriesKey.includes('13') ? '13"' : (seriesKey.includes('15') ? '15"' : '14"'));
+      const chip = currentTraits.chip ? ` (${currentTraits.chip})` : '';
+      seriesName = `Apple ${family} ${screen}${chip}`;
+    }
+
+    const hasVariants = variantList.length > 1;
+
+    res.json({
+      success: true,
+      hasVariants,
+      seriesKey,
+      seriesName,
+      currentVariantId: product._id,
+      currentTraits,
+      dimensions: {
+        storages,
+        colors,
+        shades,
+        sizes,
+      },
+      variants: variantList,
+      totalVariants: variantList.length,
+    });
+  } catch (err) {
+    console.error(`[API Error] GET /api/products/${req.params.id}/variants failed:`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch product variants' });
   }
 });
 

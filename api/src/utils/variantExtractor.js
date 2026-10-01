@@ -575,3 +575,265 @@ export function variantMismatchReason(a, b) {
 
   return `Variant mismatch: ${a?.display || '?'} vs ${b?.display || '?'}`;
 }
+
+export const COLOR_HEX_MAP = {
+  silver: '#E2E4E5',
+  'silver shadow': '#D4D8DB',
+  spacegrey: '#7D7E80',
+  'space grey': '#7D7E80',
+  'space gray': '#7D7E80',
+  'space black': '#2E2F32',
+  midnight: '#1E232A',
+  starlight: '#F0EAD6',
+  gold: '#F4E8CE',
+  'rose gold': '#E8B5A7',
+  blush: '#EACEC7',
+  indigo: '#2D3A4B',
+  'natural titanium': '#9E9A93',
+  'desert titanium': '#C8B29E',
+  'black titanium': '#3A3837',
+  'white titanium': '#E3E4E5',
+  'phantom black': '#1A1A1A',
+  black: '#1A1A1A',
+  white: '#FFFFFF',
+  blue: '#2563EB',
+  green: '#16A34A',
+  red: '#DC2626',
+  yellow: '#EAB308',
+  purple: '#9333EA',
+  pink: '#EC4899',
+  cream: '#FFFDD0',
+};
+
+export function isAccessory(title) {
+  if (!title) return false;
+  return /\b(case|cover|back\s*cover|bumper|protector|guard|tempered\s*glass|skin|pouch|sleeve|bag|strap|band|cable|adapter|charger|charging|stand|holder|mount|dock|hub|dongle|riser|tray|power\s*bank|powerbank|upgrade\s*kit|jetdrive)\b/i.test(title);
+}
+
+export function extractColor(title) {
+  if (!title) return null;
+
+  // 1. Amazon semicolon format: "; Silver", "; Blush", "; Indigo"
+  const semiMatch = title.match(/;\s*([A-Za-z\s]+?)(?:\s*(?:Laptop|Notebook|with|\d|\||$))/i);
+  if (semiMatch) {
+    const c = semiMatch[1].trim();
+    if (c.length >= 3 && c.length <= 25 && !/\b(ssd|ram|gb|tb|chip|display|retina|camera|touch|id)\b/i.test(c)) {
+      return c;
+    }
+  }
+
+  // 2. Tech colors dictionary match (highest precision for standard device colors)
+  const techColors = /\b(Natural Titanium|Desert Titanium|Black Titanium|White Titanium|Space Grey|Space Gray|Space Black|Midnight|Starlight|Silver Shadow|Silver|Blush|Indigo|Gold|Rose Gold|Deep Purple|Phantom Black|Cream|Graphite|Alpine Green|Sierra Blue|Sky Blue|Coral|Product RED)\b/i;
+  const tcMatch = title.match(techColors);
+  if (tcMatch) return tcMatch[1].trim();
+
+  // 3. Parenthesis format: e.g. "(Silver Shadow, 128 GB)" or "(Indigo, 256 GB)" or "(Black)"
+  const parenMatch = title.match(/\(([^,()]+?)(?:,\s*|\))/i);
+  if (parenMatch) {
+    const c = parenMatch[1].trim();
+    if (
+      c.length >= 3 &&
+      c.length <= 25 &&
+      !/^\d+\s*(?:gb|tb|mb|ram|rom)\b/i.test(c) &&
+      !/\b(renewed|refurbished|combo|pack|set|\d+gb|\d+tb|ssd|ram|effectively|approx)\b/i.test(c)
+    ) {
+      return c;
+    }
+  }
+
+  // 4. Explicit label: "Color: Space Grey"
+  const explicitMatch = title.match(/(?:color|colour)\s*[:\-]\s*([A-Za-z\s]+?)(?:[,|\-–\n]|$)/i);
+  if (explicitMatch) return explicitMatch[1].trim();
+
+  return null;
+}
+
+export function extractBeautyShade(title) {
+  if (!title) return null;
+
+  // 1. Explicit shade keyword: "Shade: 06", "Shade- Rosy Sunday"
+  const shadeKeywordMatch = title.match(/\bshade(?:\s*no\.?|\s*code)?\s*[:\-–]?\s*([A-Za-z0-9\s/+#.]+?)(?:[,|(\n]|\s*\d+(?:\.\d+)?\s*(?:ml|g|gm|kg)|$)/i);
+  if (shadeKeywordMatch) return shadeKeywordMatch[1].trim();
+
+  // 2. MAC format: NC25, NW20
+  const macMatch = title.match(/\b(N[CW]\d{1,2}(?:\.\d)?)\b/i);
+  if (macMatch) return macMatch[1].toUpperCase();
+
+  // 3. Number + Shade Name format: "230 Natural Buff", "128 Warm Nude", "115 Ivory", "15 Lover", "01 Classic"
+  const numNameMatch = title.match(/(?:,\s*|\s*[-–|]\s*)(\d{1,3}\s+[A-Za-z]+(?:\s+[A-Za-z]+)?)(?:,\s*|\s*\(\s*|\s*[-–|]\s*|\s*\d+(?:\.\d+)?\s*(?:ml|g|gm|kg)|$)/i);
+  if (numNameMatch) {
+    const s = numNameMatch[1].trim();
+    if (!/\b(ml|g|gm|kg|pcs|pack|combo|set|hrs|spf|oz)\b/i.test(s)) {
+      return s;
+    }
+  }
+
+  // 4. Comma separated shade before weight/volume: ", Rosy Sunday, 3.6g" or ", Ruby Rush, 3.6g"
+  const commaEndMatch = title.match(/,\s*([A-Za-z0-9\s]+?),\s*\d+(?:\.\d+)?\s*(?:ml|g|gm|kg)\b/i);
+  if (commaEndMatch) {
+    const s = commaEndMatch[1].trim();
+    if (s.length >= 3 && s.length <= 25 && !/\b(foundation|liquid|matte|cream|powder|skin|care)\b/i.test(s)) {
+      return s;
+    }
+  }
+
+  // 5. Trailing hyphen shade: "- Sandy, 1.6g" or "- 01 Classic"
+  const dashEndMatch = title.match(/[-–]\s*([A-Za-z0-9\s]+?)(?:,\s*\d+(?:\.\d+)?\s*(?:ml|g|gm|kg)|$)/i);
+  if (dashEndMatch) {
+    const s = dashEndMatch[1].trim();
+    if (s.length >= 2 && s.length <= 25 && !/\b(pack|combo|set|deal|off|sale)\b/i.test(s)) {
+      return s;
+    }
+  }
+
+  return null;
+}
+
+export function getBeautyShadeHex(shadeName) {
+  if (!shadeName) return '#E2E8F0';
+  const lower = shadeName.toLowerCase();
+  if (lower.includes('ruby') || lower.includes('red') || lower.includes('cherry')) return '#B91C1C';
+  if (lower.includes('rose') || lower.includes('pink') || lower.includes('rosy') || lower.includes('lover')) return '#F43F5E';
+  if (lower.includes('nude') || lower.includes('natural buff') || lower.includes('warm nude')) return '#E8C8A9';
+  if (lower.includes('ivory') || lower.includes('fair') || lower.includes('light')) return '#F6E4D5';
+  if (lower.includes('beige') || lower.includes('sand')) return '#D9A982';
+  if (lower.includes('toffee') || lower.includes('caramel') || lower.includes('tan')) return '#B87B4C';
+  if (lower.includes('espresso') || lower.includes('deep') || lower.includes('coffee')) return '#643A1F';
+  if (lower.includes('coral') || lower.includes('peach')) return '#FB923C';
+  if (lower.includes('plum') || lower.includes('berry') || lower.includes('wine')) return '#831843';
+  return '#FCD34D';
+}
+
+export function extractVariantTraits(title, category = '', existingVariant = null) {
+  const baseVariant = existingVariant || extractVariant(title) || {};
+  const color = extractColor(title) || baseVariant.color || null;
+  const shade = extractBeautyShade(title) || baseVariant.shade || null;
+
+  let storage = null;
+  let storageGb = baseVariant.storageGb || null;
+  if (!storageGb) {
+    const explicitTb = title.match(/(\d+)\s*(?:TB|tb)\s*(?:ssd|storage|rom)?\b/i);
+    if (explicitTb && !/ram/i.test(explicitTb[0])) {
+      storageGb = parseInt(explicitTb[1], 10) * 1024;
+    } else {
+      const explicitGb = title.match(/(\d+)\s*(?:GB|gb)\s*(?:ssd|storage|rom)\b/i);
+      if (explicitGb) {
+        storageGb = parseInt(explicitGb[1], 10);
+      } else {
+        const allGb = /(?:,\s*|\b)(\d+)\s*(?:GB|gb)\b(?!\s*(?:unified memory|ram))/gi;
+        let m;
+        while ((m = allGb.exec(title)) !== null) {
+          const v = parseInt(m[1], 10);
+          if (v >= 16 && v <= 1024) storageGb = v;
+        }
+      }
+    }
+  }
+  if (storageGb) {
+    storage = storageGb >= 1024 ? `${storageGb / 1024}TB` : `${storageGb}GB`;
+  }
+
+  let ram = null;
+  let ramGb = baseVariant.ramGb || null;
+  if (!ramGb) {
+    const ramMatch = title.match(/(\d+)\s*(?:GB|gb)\s*(?:Unified Memory|RAM)\b/i);
+    if (ramMatch) ramGb = parseInt(ramMatch[1], 10);
+  }
+  if (ramGb) {
+    ram = `${ramGb}GB`;
+  }
+
+  let size = null;
+  if (baseVariant.totalGrams) {
+    size = baseVariant.totalGrams >= 1000
+      ? `${(baseVariant.totalGrams / 1000).toFixed(baseVariant.totalGrams % 1000 === 0 ? 0 : 1)}L`
+      : `${baseVariant.totalGrams}ml`;
+  } else {
+    const mlMatch = title.match(/(\d+(?:\.\d+)?)\s*(?:ml|g|gm|kg)\b/i);
+    if (mlMatch) size = mlMatch[0].toLowerCase();
+  }
+
+  return {
+    storage,
+    storageGb,
+    ram,
+    ramGb,
+    color,
+    shade,
+    size,
+    chip: baseVariant.chip || extractChip(title) || null,
+    screenSize: baseVariant.screenSizeInches ? `${baseVariant.screenSizeInches}"` : null,
+  };
+}
+
+export function generateSeriesKey(title, category = '', brand = '') {
+  if (!title || typeof title !== 'string' || isAccessory(title)) return null;
+  const lower = title.toLowerCase();
+
+  // 1. MacBook Series
+  if (lower.includes('macbook')) {
+    let family = 'macbook';
+    if (lower.includes('macbook neo')) family = 'macbook-neo';
+    else if (lower.includes('macbook air')) family = 'macbook-air';
+    else if (lower.includes('macbook pro')) family = 'macbook-pro';
+
+    let screen = '';
+    const screenMatch = lower.match(/(13(?:\.3|\.6)?|14(?:\.2)?|15(?:\.3)?|16(?:\.2)?)/);
+    if (screenMatch) screen = '-' + Math.round(parseFloat(screenMatch[1]));
+
+    let chip = '';
+    if (lower.includes('a18 pro') || lower.includes('a18pro') || (family === 'macbook-neo' && lower.includes('2026'))) {
+      chip = '-a18pro';
+    } else if (lower.includes('m5')) chip = '-m5';
+    else if (lower.includes('m4 pro')) chip = '-m4pro';
+    else if (lower.includes('m4 max')) chip = '-m4max';
+    else if (lower.includes('m4')) chip = '-m4';
+    else if (lower.includes('m3 pro')) chip = '-m3pro';
+    else if (lower.includes('m3 max')) chip = '-m3max';
+    else if (lower.includes('m3')) chip = '-m3';
+    else if (lower.includes('m2 pro')) chip = '-m2pro';
+    else if (lower.includes('m2')) chip = '-m2';
+    else if (lower.includes('m1')) chip = '-m1';
+
+    return `apple-${family}${screen}${chip}`;
+  }
+
+  // 2. iPhone Series
+  if (lower.includes('iphone')) {
+    const m = lower.match(/iphone\s*(\d{1,2}(?:\s*se)?)(?:\s*(pro\s*max|pro|plus|mini))?/i);
+    if (m) {
+      const num = m[1].replace(/\s+/g, '');
+      const tier = m[2] ? '-' + m[2].replace(/\s+/g, '-') : '';
+      return `apple-iphone-${num}${tier}`;
+    }
+  }
+
+  // 3. Samsung Galaxy S Series
+  if (lower.includes('galaxy s')) {
+    const m = lower.match(/galaxy\s*s(\d{2})(?:\s*(ultra|plus|\+))?/i);
+    if (m) {
+      const num = m[1];
+      const tier = m[2] ? (m[2] === '+' ? '-plus' : '-' + m[2]) : '';
+      return `samsung-galaxy-s${num}${tier}`;
+    }
+  }
+
+  // 4. Beauty foundations & lipsticks
+  if (category === 'beauty' || lower.includes('foundation') || lower.includes('lipstick') || lower.includes('lip tint')) {
+    if (lower.includes('fit me') && (lower.includes('foundation') || lower.includes('matte'))) {
+      return 'maybelline-fit-me-matte-poreless-foundation';
+    }
+    if (lower.includes('super stay') || lower.includes('superstay')) {
+      return 'maybelline-superstay-matte-ink';
+    }
+    if (lower.includes('studio fix')) {
+      return 'mac-studio-fix-fluid';
+    }
+    if (lower.includes('powerplay') || (lower.includes('lakme') && lower.includes('matte lipstick'))) {
+      return 'lakme-powerplay-priming-matte-lipstick';
+    }
+  }
+
+  return null;
+}
+
