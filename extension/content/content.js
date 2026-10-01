@@ -14,10 +14,19 @@
     isChecking = true;
 
     try {
-      const liveDetails = ShoppersParser.extractLivePageDetails();
+      let liveDetails = ShoppersParser.extractLivePageDetails();
       if (!liveDetails || !liveDetails.productId) {
         isChecking = false;
         return;
+      }
+
+      // If price is not yet rendered on dynamically hydrated pages (e.g. Amazon twister or SPA), retry once after 500ms
+      if (!liveDetails.livePrice) {
+        await new Promise(r => setTimeout(r, 500));
+        const retryDetails = ShoppersParser.extractLivePageDetails();
+        if (retryDetails && retryDetails.livePrice) {
+          liveDetails = retryDetails;
+        }
       }
 
       const currentUrl = window.location.href;
