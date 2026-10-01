@@ -54,8 +54,8 @@ function extractBasicMetadata(html) {
       rawTitle = rawTitle.replace(/^Amazon\.[a-z.]+\s*:\s*/i, '').trim();
     }
 
-    const priceText = $(
-      '#apexPriceToPay .a-offscreen, .priceToPay .a-offscreen, .a-price .a-offscreen, ._30jeq3, .pdp-price strong, ._cDEzb_p13n-sc-price_3mJ9Z'
+    let priceText = $(
+      '#apexPriceToPay .a-offscreen, .priceToPay .a-price-whole, .priceToPay .a-offscreen, .priceToPay, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-price-whole, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-offscreen, ._30jeq3, .pdp-price strong, ._cDEzb_p13n-sc-price_3mJ9Z'
     ).first().text().trim();
     const price = parseFloat(priceText.replace(/[^\d.]/g, ''));
 

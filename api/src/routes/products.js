@@ -605,12 +605,12 @@ router.post('/:id/refresh-live', async (req, res) => {
 
     const previousPrice = product.price;
     const livePrice = scraped.price;
-    // Guard: reject impossible MRP values (inverted or inflated)
-    const rawMRP = product.originalPrice || scraped.originalPrice || null;
+    // Guard: prioritize freshly scraped MRP, falling back to stored product MRP
+    const rawMRP = scraped.originalPrice || product.originalPrice || null;
     const canonicalMRP = (() => {
       if (!rawMRP || !livePrice) return rawMRP;
-      if (rawMRP < livePrice) return null;
-      if (rawMRP > livePrice * 15) return null;
+      if (rawMRP < livePrice) return livePrice;
+      if (rawMRP > livePrice * 15) return livePrice;
       return rawMRP;
     })() || livePrice;
     const now = new Date();

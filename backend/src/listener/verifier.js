@@ -452,13 +452,26 @@ function parsePriceText(raw) {
 // First parseable price among ALL matches of the given selectors, in order — scoped to `root`
 // when given (a product page can carry dozens of `.a-price` nodes from sponsored carousels and
 // "similar items"; unscoped, `.first()` can silently return a neighbouring product's price).
-function findPrice($, selectors, root = null) {
+function findPrice($, selectors, root = null, isListPrice = false) {
   for (const sel of selectors) {
     const nodes = root ? root.find(sel) : $(sel);
     let hit = null;
     nodes.each((_, el) => {
       if (hit !== null) return false;
-      const val = parsePriceText($(el).text().trim());
+      const $el = $(el);
+      // When searching for selling price, strictly skip strikethrough/MRP elements
+      if (!isListPrice) {
+        if (
+          $el.hasClass('a-text-price') ||
+          $el.hasClass('apex-basisprice-value') ||
+          $el.hasClass('a-text-strike') ||
+          $el.attr('data-a-strike') === 'true' ||
+          $el.closest('.basisPrice, .apex-basisprice-value, [data-a-strike="true"], .a-text-strike').length > 0
+        ) {
+          return;
+        }
+      }
+      const val = parsePriceText($el.text().trim());
       if (val !== null) hit = val;
     });
     if (hit !== null) return hit;
@@ -784,10 +797,14 @@ export async function scrapeProductDetails(targetUrl) {
       // Amazon Price Extraction — scoped to the main product column first (see findPrice()).
       const amazonPriceSelectors = [
         '.apexPriceToPay .a-offscreen',
+        '.priceToPay .a-price-whole',
         '.priceToPay .a-offscreen',
+        '.priceToPay',
         '#priceblock_dealprice',
         '#priceblock_ourprice',
-        '.a-price .a-offscreen',
+        '#corePriceDisplay_desktop_feature_div .priceToPay',
+        '.a-price:not(.a-text-price):not(.apex-basisprice-value) .a-price-whole',
+        '.a-price:not(.a-text-price):not(.apex-basisprice-value) .a-offscreen',
         '.a-price-whole',
       ];
       const amazonListSelectors = [
@@ -797,22 +814,22 @@ export async function scrapeProductDetails(targetUrl) {
         '#listPrice',
         '#priceblock_listprice',
       ];
-      const amazonRoots = ['#corePrice_feature_div', '#corePriceDisplay_desktop_feature_div', '#ppd', '#centerCol'];
+      const amazonRoots = ['#corePriceDisplay_desktop_feature_div', '#corePrice_feature_div', '#ppd', '#centerCol'];
       for (const rootSel of amazonRoots) {
         const root = $(rootSel);
         if (!root.length) continue;
-        price = findPrice($, amazonPriceSelectors, root);
+        price = findPrice($, amazonPriceSelectors, root, false);
         if (price !== null) break;
       }
-      if (price === null) price = findPrice($, amazonPriceSelectors);
+      if (price === null) price = findPrice($, amazonPriceSelectors, null, false);
 
       for (const rootSel of amazonRoots) {
         const root = $(rootSel);
         if (!root.length) continue;
-        originalPrice = findPrice($, amazonListSelectors, root);
+        originalPrice = findPrice($, amazonListSelectors, root, true);
         if (originalPrice !== null) break;
       }
-      if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors);
+      if (originalPrice === null) originalPrice = findPrice($, amazonListSelectors, null, true);
       // Fallback: regex scan for "M.R.P.: ₹838" / "M.R.P.: ₹838.00" patterns in raw text.
       // ScrapingAnt's browser rendering can return slightly different class structures, so
       // CSS selectors above may miss the MRP node even when the text is present.
@@ -888,7 +905,7 @@ export async function scrapeProductDetails(targetUrl) {
       }
       if (price !== null) originalPrice = extractFlipkartMRP($, price);
       if (originalPrice === null) {
-        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N']);
+        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N'], null, true);
       }
 
       // Flipkart Brand
