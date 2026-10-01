@@ -157,6 +157,8 @@ The system is decoupled into 7 specialized, independent agents running across mi
 | **31** | **Playwright Linux Container Resilience & ScrapingAnt Token Pool Autorecovery**: What happens when ScrapingAnt tokens are exhausted and Playwright crashes in Linux containers? | **Nixpacks OS Dependencies & Automated Token Provisioning**: Added `nixpacks.toml` specifying Debian `aptPkgs` (`libglib2.0-0`, `libnss3`, `libatk`, etc.) and `postinstall` browser installations across `api` and `backend` so Playwright fallback never crashes on Linux. Disabled Mongoose `versionKey` and optimistic concurrency on `Product` to eliminate concurrency save collisions between engines. Added background automated token replenishment via 2Captcha solver, maintaining $\ge 8$ active tokens (80,000+ credits) in MongoDB Atlas. | **LOCKED** |
 | **32** | **Zero Direct Scraping Enforcement & Autonomous Token Pool Replenishment**: Direct IP scraping / local headless browser fallback risks IP bans and merchant blocks? | **Strict 100% ScrapingAnt Proxy & Autonomous Replenishment**: Direct scraping and local headless browser scraping are permanently disabled across all services (`verifier.js`, `scraperWorker.js`, and `headlessScraper.js`). 100% of merchant fetches route exclusively through ScrapingAnt proxy tokens via BullMQ queue. A background token replenisher daemon monitors pool health every 30 minutes and reactively triggers autonomous generation via 2Captcha whenever active tokens fall below 5, maintaining a safe pool of 8+ active tokens (~80,000+ credits) in MongoDB Atlas with zero human intervention. Jobs without an immediately available token retry via BullMQ backoff rather than falling back to direct IP scraping. | **LOCKED** |
 | **33** | **Sitemap Index Architecture & Multi-Country Partitioning (18k+ Products & GSC Limits)**: Why was GSC only seeing 115 pages when DB had ~18,300 products (8k IN, 10k US)? | **Sitemap Index & Country-Partitioned Chunks**: A monolithic 4.6MB JSON sitemap payload exceeded Next.js's 2MB data cache limit on Vercel builds, causing sitemap generation to fall back to the 115 static pages. Implemented a master `<sitemapindex>` at `/sitemap.xml` pointing to dedicated child sitemaps: `/sitemaps/pages.xml` (115 pages), `/sitemaps/deals.xml` (~1,580 active deals), `/sitemaps/products-in-1.xml` (5,000 items), `/sitemaps/products-in-2.xml` (~3,160 items), `/sitemaps/products-us-1.xml` (5,000 items), and `/sitemaps/products-us-2.xml` (~4,825 items). Indexed by `{ country: 1, _id: -1 }` on MongoDB Atlas, all 19,680+ URLs load in $<800$ms with $<350$KB payload size, 100% submitted to GSC with zero memory errors. | **LOCKED** |
+| **34** | **Master E-Commerce Taxonomy & Complete Elimination of "General" Category**: Why were 12,655 products tagged as "general" and how to handle granular high-ticket categories like refrigerators and washing machines? | **Canonical 11-Department Taxonomy with Granular Subcategories**: "General" is permanently abolished across all services, databases, and verifiers. The catalog is unified across 11 official departments (`electronics`, `appliances`, `men-fashion`, `women-fashion`, `beauty`, `home`, `grocery`, `fitness`, `baby-kids`, `books-stationery`, `auto`). Appliances is decoupled into dedicated high-ticket subcategories (`refrigerators`, `washing-machines`, `air-conditioners`, `water-purifiers`, `geysers`, `microwaves`, `air-fryers`, `chimneys`, `fans-coolers`, `kitchen-appliances`) with dedicated threshold rules (e.g. ₹1,500 floor for ACs/Refrigerators/Washing Machines). 100% of the 18,630+ product catalog and active deals collection in MongoDB Atlas were reclassified, dropping "general" products to exactly 0. Ingestion classifiers fallback to `home:decor` instead of `general`. | **LOCKED** |
+| **35** | **Cross-Store Exact Product Matching Engine (Amazon vs. Flipkart & Multi-Store Price Comparison)**: How to accurately detect identical products across stores (e.g. MacBook, smartphones, appliances) with zero false positives? | **Domain-Aware Semantic Vectorization with Multi-Factor Parity Gates**: Implemented `calculateProductSimilarity` in `vectorMatcher.js` and `variantExtractor.js`. Enforces 5 strict validation gates: (1) **Country & Currency Isolation**: Strictly compares within the same country (`country: 'IN'`). (2) **Brand Consistency Gate**: Different brands (e.g. IFB vs Carrier, DIGISMART vs Faber) return `score: 0` and are strictly excluded from exact matches. (3) **Measurement/Year Filtering**: Generic units (`mm`, `W`, `L`, `kg`, `RPM`) and year numbers (`2024`, `2026`) are stripped before model code extraction, preventing false matches. (4) **Specification Parity Gate**: Laptops strictly compare Apple Silicon chips (`M1` vs `M2` vs `M3`), RAM, SSD storage (`256GB` vs `512GB`), and screen size (`13"` vs `15"`); washing machines compare capacity (kg) and load type (Front vs Top load); refrigerators compare volume (L) and door type. Mismatched variants are flagged and presented as "Similar Alternatives" rather than exact matches. (5) **Universal Outbound Affiliate Monetization**: Real-time savings banner highlights price differences (*"Save ₹153 on Amazon"* or *"Save ₹300 on Flipkart"*) with outbound links monetized via `getAffiliateUrl` (Amazon IN/US, Flipkart `affid`, and Cuelinks for Myntra/Nykaa/Croma). | **LOCKED** |
 
 ---
 
@@ -168,22 +170,49 @@ Stored in `category_threshold_configs` collection and implemented in `src/utils/
 
 ```javascript
 export const CATEGORY_THRESHOLDS = {
-  'electronics:mobiles':          { minPercent: 3.5, minCash: 1000, label: 'Smartphones & Tablets' },
-  'electronics:laptops':          { minPercent: 4.0, minCash: 1500, label: 'Laptops & Computers' },
-  'electronics:audio':            { minPercent: 8.0, minCash: 400,  label: 'Audio & Headphones' },
-  'electronics:tv':               { minPercent: 6.0, minCash: 1500, label: 'Smart TVs & Monitors' },
-  'electronics:wearables':        { minPercent: 8.0, minCash: 400,  label: 'Wearables & Smartwatches' },
-  'appliances':                   { minPercent: 6.0, minCash: 1500, label: 'Large Appliances' },
-  'beauty:skincare':              { minPercent: 10.0, minCash: 250, label: 'Skincare' },
-  'beauty:fragrance':             { minPercent: 10.0, minCash: 250, label: 'Fragrances & Perfumes' },
-  'beauty:makeup':                { minPercent: 15.0, minCash: 150, label: 'Makeup & Cosmetics' },
-  'beauty:mens-grooming':         { minPercent: 12.0, minCash: 250, label: "Men's Grooming" },
-  'men-fashion':                  { minPercent: 20.0, minCash: 300, label: "Men's Fashion" },
-  'women-fashion':                { minPercent: 20.0, minCash: 300, label: "Women's Fashion" },
-  'home:kitchen':                 { minPercent: 12.0, minCash: 350, label: 'Kitchen & Cookware' },
-  'home:furniture':               { minPercent: 10.0, minCash: 800, label: 'Furniture' },
-  'fitness:gym-equipment':        { minPercent: 8.0, minCash: 600,  label: 'Gym Equipment' },
-  'general':                      { minPercent: 10.0, minCash: 200, label: 'General Goods' },
+  // Electronics
+  'electronics:mobiles':          { minPercent: 3.5,  minCash: 1000, label: 'Smartphones & Tablets' },
+  'electronics:laptops':          { minPercent: 4.0,  minCash: 1500, label: 'Laptops & Computers' },
+  'electronics:audio':            { minPercent: 8.0,  minCash: 400,  label: 'Audio & Headphones' },
+  'electronics:tv':               { minPercent: 6.0,  minCash: 1500, label: 'Smart TVs & Monitors' },
+  'electronics:wearables':        { minPercent: 8.0,  minCash: 400,  label: 'Wearables & Smartwatches' },
+  'electronics:gaming':           { minPercent: 6.0,  minCash: 800,  label: 'Gaming Consoles & Accessories' },
+  'electronics:cameras':          { minPercent: 5.0,  minCash: 1200, label: 'Cameras & Photography' },
+  'electronics:accessories':      { minPercent: 10.0, minCash: 200,  label: 'Electronics Accessories' },
+
+  // Granular Appliances (High-ticket separate thresholds)
+  'appliances:refrigerators':     { minPercent: 5.0,  minCash: 1500, label: 'Refrigerators' },
+  'appliances:washing-machines':  { minPercent: 5.0,  minCash: 1500, label: 'Washing Machines' },
+  'appliances:air-conditioners':  { minPercent: 5.0,  minCash: 1500, label: 'Air Conditioners' },
+  'appliances:water-purifiers':   { minPercent: 6.0,  minCash: 800,  label: 'Water Purifiers' },
+  'appliances:geysers':           { minPercent: 6.0,  minCash: 500,  label: 'Geysers & Water Heaters' },
+  'appliances:microwaves':        { minPercent: 6.0,  minCash: 600,  label: 'Microwave Ovens' },
+  'appliances:air-fryers':        { minPercent: 8.0,  minCash: 400,  label: 'Air Fryers & OTG' },
+  'appliances:chimneys':          { minPercent: 6.0,  minCash: 800,  label: 'Kitchen Chimneys' },
+  'appliances:fans-coolers':      { minPercent: 8.0,  minCash: 300,  label: 'Fans & Air Coolers' },
+  'appliances:kitchen-appliances':{ minPercent: 8.0,  minCash: 350,  label: 'Mixers, Grinders & Small Appliances' },
+
+  // Beauty & Grooming
+  'beauty:skincare':              { minPercent: 10.0, minCash: 250,  label: 'Skincare' },
+  'beauty:fragrance':             { minPercent: 10.0, minCash: 250,  label: 'Fragrances & Perfumes' },
+  'beauty:makeup':                { minPercent: 15.0, minCash: 150,  label: 'Makeup & Cosmetics' },
+  'beauty:haircare':              { minPercent: 12.0, minCash: 200,  label: 'Haircare & Styling' },
+
+  // Fashion
+  'men-fashion':                  { minPercent: 20.0, minCash: 300,  label: "Men's Fashion" },
+  'women-fashion':                { minPercent: 20.0, minCash: 300,  label: "Women's Fashion" },
+
+  // Home & Kitchen
+  'home:kitchen-dining':          { minPercent: 12.0, minCash: 350,  label: 'Kitchen & Cookware' },
+  'home:furniture':               { minPercent: 10.0, minCash: 800,  label: 'Furniture' },
+  'home:decor':                   { minPercent: 15.0, minCash: 200,  label: 'Home Decor' },
+
+  // Grocery, Fitness, Baby & Others
+  'grocery':                      { minPercent: 10.0, minCash: 150,  label: 'Grocery & Gourmet' },
+  'fitness:gym-equipment':        { minPercent: 8.0,  minCash: 600,  label: 'Gym Equipment' },
+  'baby-kids':                    { minPercent: 15.0, minCash: 250,  label: 'Baby & Kids' },
+  'auto':                         { minPercent: 10.0, minCash: 300,  label: 'Automotive & Riding' },
+  'books-stationery':             { minPercent: 15.0, minCash: 150,  label: 'Books & Stationery' },
 };
 ```
 

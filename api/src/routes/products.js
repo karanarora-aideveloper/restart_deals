@@ -6,7 +6,7 @@ import ScrapingLog from '../db/models/scrapingLog.js';
 import { computePriceStats } from '../utils/priceAnalytics.js';
 import { resolveRedirect, parseProductUrl } from '../utils/urlParser.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
-import { rankCrossStoreMatches, extractBrand, tokenizeTitle } from '../utils/vectorMatcher.js';
+import { rankCrossStoreMatches, extractBrand, tokenizeTitle, extractModelIdentifiers } from '../utils/vectorMatcher.js';
 import { extractVariant, variantsMatch, variantMismatchReason } from '../utils/variantExtractor.js';
 import { cacheMiddleware, apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
@@ -40,7 +40,7 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
     if (req.query.country && req.query.country !== 'all') {
       const cCode = req.query.country.toUpperCase();
       if (cCode === 'IN') {
-        query.$or = [{ country: 'IN' }, { country: { $exists: false } }, { country: null }];
+        query.$and = (query.$and || []).concat([{ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] }]);
       } else {
         query.country = cCode;
       }
@@ -134,10 +134,12 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
         { $or: [{ images: { $size: 0 } }, { images: { $exists: false } }] }
       ]);
     } else if (req.query.imageStatus === 'has_image') {
-      query.$or = [
-        { imageUrl: { $exists: true, $ne: null, $ne: '' } },
-        { 'images.0': { $exists: true } }
-      ];
+      query.$and = (query.$and || []).concat([{
+        $or: [
+          { imageUrl: { $exists: true, $ne: null, $ne: '' } },
+          { 'images.0': { $exists: true } }
+        ]
+      }]);
     }
 
     const rawQuery = req.query.q || req.query.search;
@@ -352,15 +354,20 @@ async function handleProductDiscoveryOrSync({
   const cleanTitle = (typeof title === 'string' && title.trim()) ? title.trim() : null;
   const cleanImg = (typeof imageUrl === 'string' && imageUrl.trim()) ? imageUrl.trim() : '';
 
-  let product = await Product.findOne({ productId: parsed.productId, merchant: parsed.merchant });
-  if (!product) {
-    product = await Product.findOne({ productId: parsed.productId });
+  let product = await Product.findOne({ cleanUrl: parsed.cleanUrl })
+    || await Product.findOne({ productId: parsed.productId, country: parsed.country });
+  if (!product && parsed.productId) {
+    product = await Product.findOne({ productId: parsed.productId, merchant: parsed.merchant, country: parsed.country });
   }
 
   // If not in Product collection, check Deal collection for prior seed
   if (!product) {
-    const deal = await Deal.findOne({ productId: parsed.productId, merchant: parsed.merchant })
-      .sort({ createdAt: -1 });
+    const deal = await Deal.findOne({
+      $or: [
+        { dealUrl: parsed.cleanUrl },
+        { productId: parsed.productId, country: parsed.country, merchant: parsed.merchant }
+      ]
+    }).sort({ createdAt: -1 });
     if (deal) {
       product = new Product({
         productId: parsed.productId,
@@ -380,8 +387,9 @@ async function handleProductDiscoveryOrSync({
             date: new Date(deal.createdAt || now).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
           }
         ],
-        category: deal.category || 'general',
-        subcategory: deal.subcategory || '',
+        category: (deal.category && deal.category !== 'general') ? deal.category : 'home',
+        subcategory: deal.subcategory || 'decor',
+        country: parsed.country || deal.country || 'IN',
       });
       await product.save();
     }
@@ -399,7 +407,9 @@ async function handleProductDiscoveryOrSync({
       images: cleanImg ? [cleanImg] : [],
       price: livePrice || 0,
       originalPrice: liveMRP || livePrice || 0,
-      category: 'general',
+      category: 'home',
+      subcategory: 'decor',
+      country: parsed.country || 'IN',
       priceSource: (source === 'extension' || userId) ? 'extension' : 'user_search',
       priceUpdatedAt: now,
       priceHistory: livePrice ? [{
@@ -728,7 +738,11 @@ router.get('/:id', cacheMiddleware(30), async (req, res) => {
       product = await Product.findById(req.params.id);
     }
     if (!product) {
-      product = await Product.findOne({ productId: req.params.id });
+      const targetCountry = req.query.country ? req.query.country.toUpperCase() : 'IN';
+      product = await Product.findOne({ productId: req.params.id, country: targetCountry });
+      if (!product) {
+        product = await Product.findOne({ productId: req.params.id });
+      }
     }
     
     if (!product) {
@@ -947,7 +961,11 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       product = await Product.findById(req.params.id);
     }
     if (!product) {
-      product = await Product.findOne({ productId: req.params.id });
+      const targetCountry = req.query.country ? req.query.country.toUpperCase() : 'IN';
+      product = await Product.findOne({ productId: req.params.id, country: targetCountry });
+      if (!product) {
+        product = await Product.findOne({ productId: req.params.id });
+      }
     }
 
     if (!product) {
@@ -962,17 +980,22 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       ? product.variant
       : extractVariant(product.title);
 
-    // Extract brand and search query from product title
+    // Extract brand, model identifiers, and search query tokens
     const brand = extractBrand(product.title);
+    const models = extractModelIdentifiers(product.title);
     const tokens = tokenizeTitle(product.title);
     const cleanSearchQuery = [brand, ...tokens.slice(0, 5)].filter(Boolean).join(' ');
+
+    const targetCountry = (product.country || 'IN').toUpperCase();
 
     const STORES_CONFIG = [
       {
         id: 'amazon',
-        name: 'Amazon India',
+        name: targetCountry === 'US' ? 'Amazon US' : 'Amazon India',
         logo: '🛍️',
-        searchUrl: (q) => `https://www.amazon.in/s?k=${encodeURIComponent(q)}`,
+        searchUrl: (q) => targetCountry === 'US'
+          ? `https://www.amazon.com/s?k=${encodeURIComponent(q)}`
+          : `https://www.amazon.in/s?k=${encodeURIComponent(q)}`,
       },
       {
         id: 'flipkart',
@@ -993,6 +1016,12 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
         searchUrl: (q) => `https://www.nykaa.com/search/result/?q=${encodeURIComponent(q)}`,
       },
       {
+        id: 'croma',
+        name: 'Croma',
+        logo: '🔌',
+        searchUrl: (q) => `https://www.croma.com/searchB?q=${encodeURIComponent(q)}`,
+      },
+      {
         id: 'ajio',
         name: 'Ajio',
         logo: '🕶️',
@@ -1000,40 +1029,69 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       }
     ];
 
-    // Find candidate products across all other merchants
-    const candidateQuery = { merchant: { $ne: currentMerchant } };
-    if (brand && brand.length > 2) {
-      candidateQuery.$or = [
-        { title: new RegExp(brand, 'i') },
-        { category: product.category || 'general' }
-      ];
+    // Find candidate products across all other merchants strictly within the SAME country
+    const candidateQuery = {
+      merchant: { $ne: currentMerchant },
+      country: targetCountry,
+      price: { $gt: 0 },
+      isActive: { $ne: false },
+    };
+
+    const searchConditions = [];
+    if (brand && brand.length >= 2) {
+      searchConditions.push({ title: new RegExp('\\b' + brand, 'i') });
+    }
+    for (const m of models) {
+      if (m.length >= 2) {
+        searchConditions.push({ title: new RegExp(m, 'i') });
+      }
+    }
+    if (searchConditions.length === 0 && tokens.length > 0) {
+      searchConditions.push({ title: new RegExp(tokens[0], 'i') });
+    }
+
+    if (searchConditions.length > 0) {
+      candidateQuery.$or = searchConditions;
     }
 
     const candidateProducts = await Product.find(candidateQuery)
-      .select('_id productId merchant title cleanUrl price category images imageUrl')
-      .limit(60)
+      .select('_id productId merchant title cleanUrl price category images imageUrl country variant')
+      .limit(80)
       .lean();
 
-    // Run Semantic Vector Matching & Cosine Ranking
+    // Run Semantic Vector Matching & Cosine Ranking with Specification Parity
     const { exactMatches, similarMatches } = rankCrossStoreMatches(product, candidateProducts);
 
     const stores = [];
+    let bestSavings = 0;
+    let savingsMessage = null;
+    let bestStoreName = null;
 
-    // 1. Primary Store (The verified store of this product)
+    // 1. Primary Store (The store of the product being viewed)
+    const primaryConf = STORES_CONFIG.find(c => c.id === currentMerchant) || {
+      id: currentMerchant,
+      name: currentMerchant.charAt(0).toUpperCase() + currentMerchant.slice(1),
+      logo: '🛒'
+    };
+
     stores.push({
       id: currentMerchant,
-      name: currentMerchant === 'amazon' ? 'Amazon India' : currentMerchant.charAt(0).toUpperCase() + currentMerchant.slice(1),
-      logo: currentMerchant === 'amazon' ? '🛍️' : currentMerchant === 'flipkart' ? '⚡' : '👗',
+      name: primaryConf.name,
+      logo: primaryConf.logo,
       price: currentPrice,
       hasRealPrice: true,
       inStock: product.isActive !== false,
-      delivery: 'Fast Delivery',
+      delivery: 'Current Store',
       isPrimary: true,
       url: product.cleanUrl,
-      buttonText: 'Buy on ' + (currentMerchant.charAt(0).toUpperCase() + currentMerchant.slice(1)),
+      buttonText: 'Buy on ' + primaryConf.name,
+      priceDifference: 0,
+      isCheaper: false,
+      statusBadge: 'Current Deal',
+      savingsAmount: 0,
     });
 
-    // 2. Secondary Stores with Vector Matching
+    // 2. Secondary Stores with Exact Matches & Fallback Searches
     for (const conf of STORES_CONFIG) {
       if (conf.id === currentMerchant) continue;
 
@@ -1041,6 +1099,31 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       const exactMatch = exactMatches.find(m => m.product.merchant && m.product.merchant.toLowerCase() === conf.id);
 
       if (exactMatch && exactMatch.product.price) {
+        const matchedPrice = Number(exactMatch.product.price);
+        const priceDifference = currentPrice - matchedPrice; // positive means other store is cheaper
+        const isOtherStoreCheaper = priceDifference > 0;
+        const isOtherStoreMoreExpensive = priceDifference < 0;
+
+        let statusBadge = 'Same Price';
+        let savingsAmount = 0;
+        if (isOtherStoreCheaper) {
+          savingsAmount = priceDifference;
+          statusBadge = targetCountry === 'US'
+            ? `Save $${priceDifference.toFixed(2)}`
+            : `Save ₹${priceDifference.toLocaleString('en-IN')}`;
+          if (priceDifference > bestSavings) {
+            bestSavings = priceDifference;
+            bestStoreName = conf.name;
+            savingsMessage = targetCountry === 'US'
+              ? `Save $${priceDifference.toFixed(2)} on ${conf.name}!`
+              : `Save ₹${priceDifference.toLocaleString('en-IN')} on ${conf.name}!`;
+          }
+        } else if (isOtherStoreMoreExpensive) {
+          statusBadge = targetCountry === 'US'
+            ? `+$${Math.abs(priceDifference).toFixed(2)}`
+            : `+₹${Math.abs(priceDifference).toLocaleString('en-IN')}`;
+        }
+
         const matchedVariant = exactMatch.product.variant?.display
           ? exactMatch.product.variant
           : extractVariant(exactMatch.product.title);
@@ -1051,16 +1134,21 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
           id: conf.id,
           name: conf.name,
           logo: conf.logo,
-          price: exactMatch.product.price,
+          price: matchedPrice,
           hasRealPrice: true,
           matchScore: exactMatch.matchScore,
           inStock: exactMatch.product.isActive !== false,
-          delivery: 'Verified Match',
+          delivery: 'Verified Exact Match',
           isPrimary: false,
           url: exactMatch.product.cleanUrl,
           matchedProductId: exactMatch.product._id || exactMatch.product.productId,
-          buttonText: 'View on ' + conf.name,
-          // Variant info
+          buttonText: isOtherStoreCheaper
+            ? (targetCountry === 'US' ? `Buy for $${matchedPrice.toFixed(2)}` : `Buy for ₹${matchedPrice.toLocaleString('en-IN')}`)
+            : `View on ${conf.name}`,
+          priceDifference,
+          isCheaper: isOtherStoreCheaper,
+          statusBadge,
+          savingsAmount,
           matchedVariant: matchedVariant ? matchedVariant.display : null,
           variantMismatch: mismatch,
           variantWarning: mismatchReason,
@@ -1078,6 +1166,10 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
           isPrimary: false,
           url: conf.searchUrl(cleanSearchQuery),
           buttonText: 'Search on ' + conf.name,
+          priceDifference: null,
+          isCheaper: false,
+          statusBadge: null,
+          savingsAmount: 0,
         });
       }
     }
@@ -1088,6 +1180,10 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
       currentVariant: currentVariant ? currentVariant.display : null,
       stores,
       exactMatchesCount: exactMatches.length,
+      hasExactMatch: exactMatches.length > 0,
+      bestSavings,
+      savingsMessage,
+      bestStoreName,
       similarMatches: similarMatches.slice(0, 4).map(m => ({
         _id: m.product._id,
         productId: m.product.productId,
@@ -1097,6 +1193,8 @@ router.get('/:id/cross-store-compare', cacheMiddleware(30), async (req, res) => 
         imageUrl: m.product.imageUrl || (m.product.images && m.product.images[0]),
         cleanUrl: m.product.cleanUrl,
         matchScore: m.matchScore,
+        variant: m.product.variant?.display || extractVariant(m.product.title)?.display || null,
+        mismatchReason: m.matchDetails?.mismatchReason || null,
       }))
     });
   } catch (err) {

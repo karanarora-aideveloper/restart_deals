@@ -259,14 +259,77 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  async function loadTrendingDeals() {
+  function formatTimeAgo(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  }
+
+  function getStoreBadge(merchant = '', url = '') {
+    const m = (merchant || '').toLowerCase();
+    const u = (url || '').toLowerCase();
+    if (m === 'amazon' || u.includes('amazon.')) return '🛍️ Amazon';
+    if (m === 'flipkart' || u.includes('flipkart.')) return '⚡ Flipkart';
+    if (m === 'shopsy' || u.includes('shopsy.')) return '🛍️ Shopsy';
+    if (m === 'myntra' || u.includes('myntra.')) return '👗 Myntra';
+    if (m === 'nykaa' || u.includes('nykaa.')) return '💄 Nykaa';
+    if (m === 'ajio' || u.includes('ajio.')) return '✨ Ajio';
+    return (merchant || 'Store').toUpperCase();
+  }
+
+  let activeDealsCategory = 'all';
+
+  async function loadTrendingDeals(category = 'all', isRefresh = false) {
+    activeDealsCategory = category;
     try {
-      dealsList.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:8px;">Loading live deals...</div>';
-      const res = api && typeof api.getTrendingDeals === 'function' ? await api.getTrendingDeals(6) : null;
+      const refreshBtn = document.getElementById('deals-refresh-btn');
+      if (refreshBtn && isRefresh) {
+        refreshBtn.classList.add('spinning');
+      }
+
+      dealsList.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:12px;">⚡ Loading latest price drops...</div>';
       
-      const deals = res?.deals || res?.data || [];
-      if (!deals || deals.length === 0) {
-        dealsList.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:8px;">No live deals currently.</div>';
+      const res = api && typeof api.getTrendingDeals === 'function'
+        ? await api.getTrendingDeals(14, category)
+        : null;
+
+      if (refreshBtn) {
+        setTimeout(() => refreshBtn.classList.remove('spinning'), 400);
+      }
+
+      let deals = res?.deals || res?.data || [];
+      if (!Array.isArray(deals)) deals = [];
+
+      // Guarantee deals are sorted strictly by deal time (freshest first)
+      deals.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.lastVerifiedAt || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.createdAt || b.lastVerifiedAt || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      if (deals.length === 0) {
+        dealsList.innerHTML = `
+          <div class="deals-empty-state">
+            No live drops in this category right now.<br/>
+            <button id="reset-deals-cat-btn" style="margin-top:6px; background:#7c3aed; color:#fff; border:none; border-radius:6px; padding:3px 9px; font-size:10px; cursor:pointer;">Show All Deals</button>
+          </div>
+        `;
+        const resetBtn = document.getElementById('reset-deals-cat-btn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            const allPill = document.querySelector('.cat-pill[data-category="all"]');
+            if (allPill) allPill.click();
+          });
+        }
         return;
       }
 
@@ -278,16 +341,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.target = '_blank';
         item.rel = 'noopener noreferrer';
 
-        const img = d.imageUrl || '../icons/icon-48.png';
+        const img = d.imageUrl || (d.images && d.images[0]) || '../icons/icon-48.png';
         const disc = d.discountPercentage ? `${d.discountPercentage}% OFF` : 'DROP';
+        const dealDate = d.createdAt || d.lastVerifiedAt || d.updatedAt;
+        const timeAgo = formatTimeAgo(dealDate);
+        const exactTime = dealDate ? new Date(dealDate).toLocaleString('en-IN') : '';
+        const storeBadge = getStoreBadge(d.merchant, d.dealUrl);
+        const currentPrice = d.dealPrice || d.price || 0;
+        const origPrice = d.originalPrice || d.previousPrice || 0;
 
         item.innerHTML = `
           <img src="${img}" class="deal-img" alt="" />
           <div class="deal-content">
+            <div class="deal-top-row">
+              <span class="deal-store-tag">${storeBadge}</span>
+              ${timeAgo ? `<span class="deal-time" title="${exactTime}">⏱️ ${timeAgo}</span>` : ''}
+            </div>
             <div class="deal-title" title="${d.title || ''}">${d.title || 'Verified Price Drop'}</div>
             <div class="deal-meta">
-              <span class="deal-price">${formatPrice(d.dealPrice || d.price)}</span>
-              ${d.originalPrice ? `<span class="deal-mrp">${formatPrice(d.originalPrice)}</span>` : ''}
+              <span class="deal-price">${formatPrice(currentPrice)}</span>
+              ${origPrice && origPrice > currentPrice ? `<span class="deal-mrp">${formatPrice(origPrice)}</span>` : ''}
               <span class="deal-tag">${disc}</span>
             </div>
           </div>
@@ -304,8 +377,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (e) {
       console.warn('[Popup] Failed to load trending deals:', e);
-      dealsList.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:8px;">Visit shoppersdeals.in for live drops.</div>';
+      dealsList.innerHTML = '<div style="font-size:11px; color:#94a3b8; text-align:center; padding:10px;">Visit <a href="https://shoppersdeals.in" target="_blank" style="color:#7c3aed; font-weight:600;">shoppersdeals.in</a> for live price drops.</div>';
     }
+  }
+
+  // Category Tabs Listener
+  const catPills = document.querySelectorAll('.cat-pill');
+  catPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      catPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const cat = pill.getAttribute('data-category') || 'all';
+      loadTrendingDeals(cat);
+    });
+  });
+
+  // Refresh Deals Button Listener
+  const refreshBtn = document.getElementById('deals-refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadTrendingDeals(activeDealsCategory, true);
+    });
   }
 
   // Handle Lookup Form

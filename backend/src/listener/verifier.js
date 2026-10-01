@@ -367,11 +367,13 @@ export function cleanAndParseUrl(url) {
  * @param {string|null} merchant
  * @returns {Promise<boolean>}
  */
-export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant = null) {
+export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant = null, country = null) {
   const sixtyMinsAgo = new Date(Date.now() - 60 * 60 * 1000);
   const identityMatch = [{ dealUrl: cleanUrl }];
   if (productId && merchant) {
-    identityMatch.push({ productId, merchant });
+    const matchObj = { productId, merchant };
+    if (country) matchObj.country = country;
+    identityMatch.push(matchObj);
   }
   const count = await Deal.countDocuments({
     createdAt: { $gte: sixtyMinsAgo },
@@ -1289,6 +1291,18 @@ export function calculateDiscount(original, deal) {
  * misroute it to men's/women's watches.
  */
 const CATEGORY_KEYWORDS = [
+  // appliances (granular high-ticket)
+  [/\b(refrigerator|fridge|single door|double door|side-by-side|frost free)\b/i, 'appliances', 'refrigerators'],
+  [/\b(washing machine|washer dryer|front load|top load|semi automatic)\b/i, 'appliances', 'washing-machines'],
+  [/\b(air conditioner|inverter ac|split ac|window ac|\b1\.5 ton\b|\b1 ton\b|\b2 ton\b)\b/i, 'appliances', 'air-conditioners'],
+  [/\b(water purifier|ro\+uv|ro\+uf|aquaguard|alkaline purifier|livpure|kent ro)\b/i, 'appliances', 'water-purifiers'],
+  [/\b(geyser|water heater|instant geyser|storage water heater)\b/i, 'appliances', 'geysers'],
+  [/\b(air fryer|digital air fryer)\b/i, 'appliances', 'air-fryers'],
+  [/\b(microwave|convection microwave|grill microwave|\botg\b|oven toaster grill)\b/i, 'appliances', 'microwaves'],
+  [/\b(chimney|kitchen chimney|auto-clean chimney)\b/i, 'appliances', 'chimneys'],
+  [/\b(ceiling fan|bldc fan|pedestal fan|table fan|exhaust fan|air cooler|desert cooler|tower fan)\b/i, 'appliances', 'fans-coolers'],
+  [/\b(mixer grinder|juicer mixer|induction cooktop|induction stove|electric kettle|sandwich maker|pop-up toaster|blender|hand blender|food processor)\b/i, 'appliances', 'kitchen-appliances'],
+
   // electronics
   [/\b(mouse|keyboard|laptop|notebook|desktop|monitor|webcam|motherboard|graphics card|\bssd\b|\bram\b|hard ?disk|pen ?drive|memory card)\b/i, 'electronics', 'laptops'],
   [/\b(smartphone|mobile phone|\bmobile\b|\btablet\b|\bipad\b)\b/i, 'electronics', 'mobiles'],
@@ -1298,6 +1312,7 @@ const CATEGORY_KEYWORDS = [
   [/\b(smartwatch|fitness band|wearable)\b/i, 'electronics', 'wearables'],
   [/\b(charger|\bcable\b|power ?bank|adapter|\busb\b)\b/i, 'electronics', 'accessories'],
   [/\b(gaming|game console|joystick|controller|playstation|xbox)\b/i, 'electronics', 'gaming'],
+
   // beauty
   [/\b(shampoo|conditioner|hair oil|hair serum)\b/i, 'beauty', 'haircare'],
   [/\b(soap|body wash|body lotion|moisturi[sz]er|sunscreen|shower gel)\b/i, 'beauty', 'bath-body'],
@@ -1306,31 +1321,42 @@ const CATEGORY_KEYWORDS = [
   [/\b(perfume|deodorant|\bdeo\b|fragrance|body spray)\b/i, 'beauty', 'fragrance'],
   [/\b(trimmer|shaver|razor|hair dryer|hair straightener)\b/i, 'beauty', 'appliances'],
   [/\b(nail polish|manicure|nail art)\b/i, 'beauty', 'nailcare'],
+
   // fitness
   [/\b(protein|\bwhey\b|supplement|creatine|multivitamin|\bbcaa\b)\b/i, 'fitness', 'nutrition'],
   [/\b(dumbbell|treadmill|resistance band|kettlebell|gym equipment)\b/i, 'fitness', 'gym-equipment'],
   [/\b(yoga mat|\byoga\b)\b/i, 'fitness', 'yoga'],
   [/\b(cricket|badminton|football|\bracket\b|sports gear)\b/i, 'fitness', 'sports-gear'],
+
   // home
-  [/\b(cookware|kadai|\btawa\b|pressure cooker|mixer grinder|induction|cooker)\b/i, 'home', 'kitchen'],
+  [/\b(cookware|kadai|\btawa\b|pressure cooker|dinner set|water bottle|lunch box)\b/i, 'home', 'kitchen-dining'],
   [/\b(bedsheet|\bpillow\b|blanket|\bquilt\b|mattress)\b/i, 'home', 'bedding'],
   [/\b(curtain|cushion|wall art|showpiece|home decor)\b/i, 'home', 'decor'],
   [/\b(\bsofa\b|dining table|office chair|furniture|wardrobe)\b/i, 'home', 'furniture'],
-  [/\b(refrigerator|washing machine|air conditioner|\bgeyser\b|water heater)\b/i, 'home', 'appliances-large'],
-  [/\b(exhaust fan|ceiling fan|table fan|ventilat(?:or|ion)|room heater|water purifier)\b/i, 'home', 'appliances-large'],
   [/\b(storage box|organizer|storage rack)\b/i, 'home', 'storage'],
   [/\b(\bdrill\b|screwdriver|tool ?kit)\b/i, 'home', 'tools'],
   [/\b(cleaning|\bmop\b|detergent|\bbroom\b)\b/i, 'home', 'cleaning'],
-  // general — Master's own category list has no top-level "auto"/"books"/etc.; these are
-  // subcategories *of* general (confirmed live: general|auto|"Car & Bike Accessories" etc.), so
-  // without an explicit entry here a clear hint like "Motorbike Accessories & Parts" still fell
-  // through to general with no subcategory at all (confirmed live: a bike cover did exactly this).
-  [/\b(bike cover|motorbike|scooter|car cover|car accessories|helmet|riding gear|dashboard camera)\b/i, 'general', 'auto'],
-  [/\b(book\b|novel|stationery|notebook set|pen set)\b/i, 'general', 'books-stationery'],
-  [/\b(grocery|groceries|gourmet|snacks pack|spices)\b/i, 'general', 'groceries'],
-  [/\b(pet food|dog collar|cat litter|pet supplies|aquarium)\b/i, 'general', 'pet-supplies'],
-  [/\b(baby toy|kids toy|action figure|board game|stroller|diaper)\b/i, 'general', 'baby-toys'],
-  [/\b(guitar|keyboard piano|violin|drum kit|musical instrument)\b/i, 'general', 'musical'],
+
+  // grocery
+  [/\b(coffee|tea|green tea|filter coffee)\b/i, 'grocery', 'coffee-tea'],
+  [/\b(almond|badam|cashew|kaju|walnut|akhrot|date|khajur|makhana|dry fruit)\b/i, 'grocery', 'dry-fruits'],
+  [/\b(chocolate|cookie|biscuit|namkeen|chips|wafer|snack)\b/i, 'grocery', 'snacks-beverages'],
+  [/\b(cooking oil|mustard oil|ghee|masala|turmeric|spice|atta|rice)\b/i, 'grocery', 'cooking-staples'],
+  [/\b(oats|muesli|corn flakes|honey|peanut butter)\b/i, 'grocery', 'breakfast-dairy'],
+
+  // baby & kids
+  [/\b(diaper|pant diaper|baby wipes|wipes|rash cream)\b/i, 'baby-kids', 'diapers-wipes'],
+  [/\b(baby toy|kids toy|action figure|board game|stroller|lego|puzzle)\b/i, 'baby-kids', 'toys-games'],
+  [/\b(stroller|pram|baby carrier|high chair)\b/i, 'baby-kids', 'baby-gear'],
+
+  // auto
+  [/\b(bike cover|motorbike|scooter|car cover|car accessories|helmet|riding gear|dashboard camera)\b/i, 'auto', 'helmets-riding'],
+  [/\b(car charger|dash cam|car mobile holder|tire inflator|car vacuum)\b/i, 'auto', 'car-accessories'],
+
+  // books & stationery
+  [/\b(book\b|novel|paperback|hardcover)\b/i, 'books-stationery', 'books'],
+  [/\b(stationery|notebook set|pen set|gel pen|notebook)\b/i, 'books-stationery', 'stationery'],
+  [/\b(printer paper|toner cartridge|office chair|desk organizer)\b/i, 'books-stationery', 'office-supplies'],
 ];
 
 // A men's/women's garment word alone (e.g. "trouser") is gender-neutral — the actual signal for
@@ -1430,7 +1456,7 @@ export async function deriveCategory(channelCategory, categoryHint, titleText) {
     }
   }
 
-  return { category: 'general', subcategory: '' };
+  return { category: 'home', subcategory: 'decor' };
 }
 
 /**
@@ -1539,26 +1565,15 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   }
 
   // 4. Deduplication Check (60-minute window)
-  const isDup = await isDuplicateLast60Mins(cleanUrl, productId, merchant);
+  const isDup = await isDuplicateLast60Mins(cleanUrl, productId, merchant, country);
   if (isDup) {
     console.log(`[Verifier] Deal for URL ${cleanUrl} was processed in last 60 minutes. Skipping & ignoring.`);
     return null;
   }
 
   // 5. Query Existing Product Details in MongoDB ("products" & "verified_links" collections)
-  //
-  // BUG (fixed): existingProduct used to carry the same "images.0": { $exists: true } filter as
-  // the VerifiedLink lookup below. That's the right gate for VerifiedLink (a display-image cache
-  // — no point returning an entry with nothing to show), but existingProduct's OTHER job is
-  // seeding previousTrackedPrice/existingCanonicalMRP just below, which has nothing to do with
-  // images. A product whose first scrape got a price but no image (any merchant image-selector
-  // miss, transient scrape hiccup) would come back null here forever until an image scrape
-  // happened to succeed — silently resetting its price history to "none" on every single
-  // verification in between, even though Product.price was being tracked correctly the whole
-  // time (confirmed live: 0 of 1,051 needsEnrichment:true products had ever recorded a
-  // previousPrice — this filter, not lack of real price data, was why).
-  let existingProduct = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
-  let productDetails = await VerifiedLink.findOne({ $or: [{ cleanUrl }, { productId, merchant }], "images.0": { $exists: true } });
+  let existingProduct = await Product.findOne({ $or: [{ cleanUrl }, { productId, country }] });
+  let productDetails = await VerifiedLink.findOne({ $or: [{ cleanUrl }, { productId, merchant, country }], "images.0": { $exists: true } });
 
   if (!productDetails && existingProduct) {
     productDetails = existingProduct;
@@ -1968,7 +1983,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   try {
     if (!productRecord) {
-      productRecord = await Product.findOne({ $or: [{ productId }, { cleanUrl }] });
+      productRecord = await Product.findOne({ $or: [{ cleanUrl }, { productId, country }] });
     }
     const effectivePrice = verifiedDealPrice || liveScrapedPrice || productRecord?.price || null;
 
@@ -2115,17 +2130,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     title: actualTitle,
     dealPrice: verifiedDealPrice,
     merchant,
+    country,
     isExpired: { $ne: true },
     productId: { $ne: productId },
   });
   if (crossListingDuplicate) {
-    console.log(`[Verifier] Skipping ${productId} — "${actualTitle}" at ₹${verifiedDealPrice} is already an active deal under a different listing (${crossListingDuplicate.productId}). Treating as a duplicate relisting.`);
+    console.log(`[Verifier] Skipping ${productId} — "${actualTitle}" at price ${verifiedDealPrice} is already an active deal under a different listing (${crossListingDuplicate.productId}). Treating as a duplicate relisting.`);
     return null;
   }
 
   // 10. Database Save (Deals Collection)
   try {
-    let deal = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, merchant }] });
+    let deal = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, country, merchant }] });
 
     if (deal) {
       const isSameSource = deal.sourceChannelId === sourceChannelId && deal.sourceMessageId === sourceMessageId;
@@ -2238,7 +2254,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   } catch (dealSaveErr) {
     if (dealSaveErr.code === 11000) {
       console.warn(`[Verifier Warning] Duplicate key collision (E11000) while saving deal for ${cleanUrl}. Fetching existing deal instead.`);
-      const existing = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, merchant }, { sourceChannelId, sourceMessageId }] });
+      const existing = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, country, merchant }, { sourceChannelId, sourceMessageId }] });
       return existing;
     }
     console.error(`[Verifier Error] Failed to save/update deal for ${cleanUrl}:`, dealSaveErr.message);

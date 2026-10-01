@@ -36,8 +36,7 @@ const bankOfferSchema = new mongoose.Schema({
 const productSchema = new mongoose.Schema({
   productId: { 
     type: String, 
-    required: true,
-    unique: true 
+    required: true
   },
   cleanUrl: { 
     type: String, 
@@ -106,7 +105,7 @@ const productSchema = new mongoose.Schema({
   // after this schema was written (electronics/fashion/home/beauty all postdate it).
   category: {
     type: String,
-    default: 'general'
+    default: 'home'
   },
   // Same story as category — no hardcoded enum, values managed via the Master collection
   // (type: 'subcategory', metadata.parentCategory pointing at the category id). Empty string
@@ -114,7 +113,7 @@ const productSchema = new mongoose.Schema({
   // the AI classifier didn't find a confident subcategory match).
   subcategory: {
     type: String,
-    default: ''
+    default: 'decor'
   },
   isActive: {
     type: Boolean,
@@ -277,6 +276,7 @@ const productSchema = new mongoose.Schema({
   optimisticConcurrency: false
 });
 
+productSchema.index({ productId: 1, country: 1 }, { unique: true });
 productSchema.index({ cleanUrl: 1 });
 productSchema.index({ isActive: 1, country: 1, lastChecked: -1 });
 productSchema.index({ category: 1, isActive: 1, lastChecked: -1 });

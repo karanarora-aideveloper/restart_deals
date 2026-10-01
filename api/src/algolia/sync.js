@@ -26,8 +26,8 @@ function dealToRecord(deal) {
     title: deal.title || '',
     description: deal.description || '',
     merchant: getMerchant(deal.dealUrl),
-    category: deal.category || 'general',
-    subcategory: deal.subcategory || '',
+    category: deal.category || 'home',
+    subcategory: deal.subcategory || 'decor',
     imageUrl: deal.imageUrl,
     dealUrl: deal.dealUrl,
     dealPrice: deal.dealPrice ?? null,
@@ -50,8 +50,8 @@ function productToRecord(product) {
     productId: product.productId,
     title: product.title || '',
     merchant: getMerchant(product.merchant),
-    category: product.category || 'general',
-    subcategory: product.subcategory || '',
+    category: product.category || 'home',
+    subcategory: product.subcategory || 'decor',
     imageUrl: product.imageUrl,
     cleanUrl: product.cleanUrl,
     price: product.price ?? null,
@@ -65,7 +65,7 @@ function productToRecord(product) {
 const INDIA_QUERY = { $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] };
 
 async function syncDeals() {
-  const deals = await Deal.find(INDIA_QUERY).lean();
+  const deals = await Deal.find({ ...INDIA_QUERY, isExpired: { $ne: true } }).lean();
   // Same >90%-off cap as /api/deals (see api/src/routes/deals.js) — these are overwhelmingly bad
   // scrapes, not real discounts, and search must not surface them just because the REST route
   // filters them out. saveObjects only ever upserts by objectID, though — it never removes a

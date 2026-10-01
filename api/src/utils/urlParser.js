@@ -140,10 +140,28 @@ export function parseProductUrl(url) {
       }
     }
 
+    let country = 'IN';
+    if (hostname.endsWith('amazon.com') || hostname === 'amazon.com') {
+      country = 'US';
+    } else if (hostname.endsWith('amazon.co.uk')) {
+      country = 'UK';
+    } else if (hostname.endsWith('amazon.ca')) {
+      country = 'CA';
+    } else if (hostname.endsWith('amazon.com.au')) {
+      country = 'AU';
+    } else {
+      country = 'IN';
+    }
+
+    const currencyMap = { US: 'USD', UK: 'GBP', CA: 'CAD', AU: 'AUD', IN: 'INR' };
+    const currency = currencyMap[country] || 'INR';
+
     return {
       merchant,
       productId,
       cleanUrl,
+      country,
+      currency,
       isProductUrl: !!productId,
     };
   } catch (e) {

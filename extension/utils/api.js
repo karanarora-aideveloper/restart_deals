@@ -228,9 +228,13 @@
     }
   }
 
-  async function getTrendingDeals(limit = 8) {
+  async function getTrendingDeals(limit = 12, category = 'all') {
     try {
-      return await fetchWithFallback(`/api/deals?limit=${limit}&isVerified=true`);
+      let url = `/api/deals?limit=${limit}&isVerified=true&sort=latest`;
+      if (category && category !== 'all') {
+        url += `&category=${encodeURIComponent(category)}`;
+      }
+      return await fetchWithFallback(url);
     } catch (e) {
       return { success: false, deals: [] };
     }

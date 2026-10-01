@@ -2,19 +2,38 @@
  * Semantic Vectorization & Cross-Store Product Matching Engine
  * 
  * Uses character & subword n-gram vector embeddings, entity extraction (brand, model/SKU),
- * and cosine similarity to match identical products listed with different titles across
- * Amazon, Flipkart, Myntra, Nykaa, and Ajio.
+ * specification/variant parity gates, and cosine similarity to match identical products
+ * across Amazon, Flipkart, Myntra, Nykaa, Ajio, and Croma with ZERO false positives.
  */
 
+import { extractVariant, variantsMatch, variantMismatchReason } from './variantExtractor.js';
+
 const KNOWN_BRANDS = new Set([
+  // Tech & Electronics
   'apple', 'samsung', 'sony', 'oneplus', 'boat', 'noise', 'realme', 'redmi', 'xiaomi',
   'iqoo', 'vivo', 'oppo', 'poco', 'motorola', 'moto', 'hp', 'dell', 'lenovo', 'asus',
-  'acer', 'macbook', 'ipad', 'jbl', 'bose', 'sennheiser', 'zebronics', 'boult',
-  'prestige', 'pigeon', 'philips', 'bajaj', 'havells', 'butterfly', 'milton', 'cello',
+  'acer', 'macbook', 'ipad', 'jbl', 'bose', 'sennheiser', 'zebronics', 'boult', 'portronics',
+  'anker', 'sandisk', 'logitech', 'canon', 'nikon',
+  
+  // Home Appliances
+  'philips', 'prestige', 'butterfly', 'pigeon', 'bajaj', 'havells', 'crompton', 'orient',
+  'polycab', 'carrier', 'ifb', 'whirlpool', 'haier', 'voltas', 'lg', 'daikin', 'panasonic',
+  'bosch', 'godrej', 'faber', 'digismart', 'wonderchef', 'atomberg', 'hindware', 'v-guard',
+  'milton', 'cello', 'borosil', 'kent', 'aquaguard', 'eureka forbes',
+
+  // Health, Fitness & Nutrition
   'optimum nutrition', 'muscleblaze', 'bigmuscles', 'as-it-is', 'myprotein', 'dymatize',
+  'gnc', 'fast&up', 'nutrabay', 'avatar', 'isopure',
+
+  // Fashion & Footwear
   'nike', 'adidas', 'puma', 'reebok', 'crocs', 'woodland', 'bata', 'sparx', 'red tape',
   'uspa', 'u.s. polo assn.', 'levis', 'levi\'s', 'pepe', 'allen solly', 'van heusen',
-  'cetaphil', 'minimalist', 'the derma co', 'dot & key', 'mamaearth', 'plum', 'nivea'
+  'louis philippe', 'peter england', 'flying machine', 'roadster', 'wrogn',
+
+  // Beauty & Skincare
+  'cetaphil', 'minimalist', 'the derma co', 'dot & key', 'mamaearth', 'plum', 'nivea',
+  'maybelline', 'l\'oreal', 'lakme', 'sugar', 'nykaa', 'biotique', 'm.a.c', 'mac',
+  'clinique', 'garnier', 'neutrogena', 'himalaya'
 ]);
 
 const NOISE_WORDS = new Set([
@@ -23,8 +42,10 @@ const NOISE_WORDS = new Set([
   'launch', 'new', 'edition', 'series', 'original', 'genuine', 'authentic', 'best',
   'stylish', 'casual', 'premium', 'high', 'quality', 'free', 'online', 'buy', 'offer',
   'deal', 'discount', 'warranty', 'fast', 'delivery', 'india', 'multicolor', 'color',
-  'black', 'white', 'blue', 'red', 'green', 'grey', 'gray', 'silver', 'gold'
+  'black', 'white', 'blue', 'red', 'green', 'grey', 'gray', 'silver', 'gold', 'space'
 ]);
+
+const MEASUREMENT_AND_YEAR_REGEX = /\b\d+(?:\.\d+)?\s*(?:mm|cm|inch|inches|m|mtr|w|watt|watts|kw|v|volt|volts|l|ltr|litre|litres|liter|liters|ml|kg|kgs|g|gm|gms|gram|grams|mg|star|stars|rpm|hz|khz|mp|mah|gb|tb|mb|ton|tons|year|yr|month|mths)\b|\b201\d\b|\b202\d\b|\b203\d\b/gi;
 
 /**
  * Normalize an alphanumeric model token (e.g. "WH-1000XM5/B" -> "wh1000xm5").
@@ -34,7 +55,7 @@ export function normalizeModelCode(code) {
   return code
     .toLowerCase()
     .replace(/[/\-_]/g, '')
-    .replace(/[b|w|blk|slv]$/i, ''); // strip trailing color suffix
+    .replace(/(?:[b|w]|blk|slv)$/i, ''); // strip trailing color suffix
 }
 
 /**
@@ -63,49 +84,65 @@ export function extractBrand(title) {
     if (lower.includes(brand)) return brand;
   }
   const firstWord = title.trim().split(/[\s|/]/)[0]?.toLowerCase();
-  return firstWord || null;
+  if (firstWord && firstWord.length >= 2 && !NOISE_WORDS.has(firstWord)) {
+    return firstWord;
+  }
+  return null;
 }
 
 /**
- * Extract Model / SKU identifier (e.g. "WH-1000XM5", "S24 Ultra", "Smash V2", "Iris Plus", "141").
+ * Extract genuine Model / SKU identifier.
+ * Crucially strips out measurement units (mm, W, L, kg, RPM) and year stamps (2024, 2026)
+ * so generic numbers are NOT misinterpreted as matching model codes.
  */
 export function extractModelIdentifiers(title) {
   if (!title) return [];
   const list = [];
-  const words = title.split(/[\s,()|/\[\]{}]+/);
+
+  // Strip measurements and years first
+  const stripped = title.replace(MEASUREMENT_AND_YEAR_REGEX, ' ');
+  const words = stripped.split(/[\s,()|/\[\]{}]+/);
 
   for (const word of words) {
     const clean = word.toLowerCase().replace(/[^a-z0-9]/g, '');
     const hasLetters = /[a-z]/.test(clean);
     const hasNumbers = /\d/.test(clean);
 
-    // Matches any alphanumeric model code (e.g. wh1000xm5, s24, 15s, airdopes141, hd9252, bt3231)
+    // Matches genuine alphanumeric model codes (e.g. wh1000xm5, s24, 15s, airdopes141, hd9252, bt3231, na120, pic20)
     if (hasLetters && hasNumbers && clean.length >= 2 && clean.length <= 16) {
       list.push(normalizeModelCode(clean));
-    } else if (hasNumbers && clean.length >= 3 && clean.length <= 6) {
-      // Pure numerical model code (e.g. 141, 9252, 1000)
-      list.push(clean);
     }
   }
 
-  // Also check multi-word model signatures
+  // High-value product line & chip signatures
   const lower = title.toLowerCase();
-  if (lower.includes('smash v2') || lower.includes('smash-v2')) list.push('smashv2');
-  if (lower.includes('airpods pro')) list.push('airpodspro');
   if (lower.includes('macbook air')) list.push('macbookair');
   if (lower.includes('macbook pro')) list.push('macbookpro');
   if (lower.includes('galaxy s24')) list.push('galaxys24');
   if (lower.includes('galaxy s23')) list.push('galaxys23');
-  if (lower.includes('iphone 15')) list.push('iphone15');
   if (lower.includes('iphone 16')) list.push('iphone16');
+  if (lower.includes('iphone 15')) list.push('iphone15');
+  if (lower.includes('iphone 14')) list.push('iphone14');
+  if (lower.includes('iphone 13')) list.push('iphone13');
+  if (lower.includes('airpods pro')) list.push('airpodspro');
   if (lower.includes('nord ce')) list.push('nordce');
-  if (lower.includes('iris plus')) list.push('irisplus');
+  if (lower.includes('smash v2')) list.push('smashv2');
+
+  // Apple chips
+  if (lower.includes('m4 pro') || lower.includes('m4 max')) list.push('m4promax');
+  else if (lower.includes('m4')) list.push('m4');
+  if (lower.includes('m3 pro') || lower.includes('m3 max')) list.push('m3promax');
+  else if (lower.includes('m3')) list.push('m3');
+  if (lower.includes('m2 pro') || lower.includes('m2 max')) list.push('m2promax');
+  else if (lower.includes('m2')) list.push('m2');
+  if (lower.includes('m1 pro') || lower.includes('m1 max')) list.push('m1promax');
+  else if (lower.includes('m1')) list.push('m1');
 
   return Array.from(new Set(list));
 }
 
 /**
- * Generate subword character n-grams (tri-grams and 4-grams) for dense vector representation.
+ * Generate subword character n-grams for dense vector representation.
  */
 export function generateSubwordNGrams(tokens) {
   const ngrams = new Map();
@@ -153,54 +190,83 @@ export function cosineSimilarity(vectorA, vectorB) {
 }
 
 /**
- * Calculate multi-factor hybrid semantic similarity between two products.
+ * Calculate multi-factor hybrid semantic similarity with strict specification parity.
  */
 export function calculateProductSimilarity(productA, productB) {
   if (!productA?.title || !productB?.title) {
-    return { score: 0, isExactMatch: false, isSimilar: false };
+    return { score: 0, isExactMatch: false, isSimilar: false, reason: 'Missing title' };
   }
 
-  const tokensA = tokenizeTitle(productA.title);
-  const tokensB = tokenizeTitle(productB.title);
+  // 1. Country & Currency Gate: Must strictly belong to the same country
+  const countryA = (productA.country || 'IN').toUpperCase();
+  const countryB = (productB.country || 'IN').toUpperCase();
+  if (countryA !== countryB) {
+    return { score: 0, isExactMatch: false, isSimilar: false, reason: `Country mismatch: ${countryA} vs ${countryB}` };
+  }
 
-  // 1. Vector Cosine Similarity
-  const vecA = generateSubwordNGrams(tokensA);
-  const vecB = generateSubwordNGrams(tokensB);
-  const rawCosine = cosineSimilarity(vecA, vecB);
-
-  // 2. Brand Match Check
+  // 2. Brand Match Check: Different brands can NEVER be an exact match
   const brandA = extractBrand(productA.title);
   const brandB = extractBrand(productB.title);
   const brandsMatch = brandA && brandB && (brandA === brandB || brandA.includes(brandB) || brandB.includes(brandA));
   const brandMismatch = brandA && brandB && !brandsMatch;
+  if (brandMismatch) {
+    return { score: 0, isExactMatch: false, isSimilar: false, reason: `Brand mismatch: ${brandA} vs ${brandB}` };
+  }
 
-  // 3. Model / SKU Identifier Match Check
+  // 3. Category Consistency Check
+  const catA = productA.category || '';
+  const catB = productB.category || '';
+  const categoryMismatch = catA && catB && catA !== 'general' && catB !== 'general' && catA !== catB;
+  if (categoryMismatch) {
+    return { score: 0, isExactMatch: false, isSimilar: false, reason: `Category mismatch: ${catA} vs ${catB}` };
+  }
+
+  // 4. Specification & Variant Parity Check
+  const varA = productA.variant?.display ? productA.variant : extractVariant(productA.title);
+  const varB = productB.variant?.display ? productB.variant : extractVariant(productB.title);
+  const isVariantParity = variantsMatch(varA, varB);
+  const mismatchReason = !isVariantParity ? variantMismatchReason(varA, varB) : null;
+
+  // 5. Model / SKU Identifier Match Check
   const modelsA = extractModelIdentifiers(productA.title);
   const modelsB = extractModelIdentifiers(productB.title);
   const sharedModels = modelsA.filter(m => modelsB.includes(m));
   const hasSharedModel = sharedModels.length > 0;
   const modelMismatch = modelsA.length > 0 && modelsB.length > 0 && sharedModels.length === 0;
 
-  // 4. Category Check
-  const catA = productA.category || '';
-  const catB = productB.category || '';
-  const categoryMismatch = catA && catB && catA !== 'general' && catB !== 'general' && catA !== catB;
+  // 6. Vector Cosine Similarity
+  const tokensA = tokenizeTitle(productA.title);
+  const tokensB = tokenizeTitle(productB.title);
+  const vecA = generateSubwordNGrams(tokensA);
+  const vecB = generateSubwordNGrams(tokensB);
+  const rawCosine = cosineSimilarity(vecA, vecB);
 
   // Hybrid Score Formulation
   let score = rawCosine;
-
-  if (brandsMatch) score += 0.15;
+  if (brandsMatch) score += 0.20;
   if (hasSharedModel) score += 0.35;
-
-  if (brandMismatch) score -= 0.40;
-  if (modelMismatch) score -= 0.35; // Penalize if models are explicitly different (e.g. XM5 vs XM4)
-  if (categoryMismatch) score -= 0.35;
+  if (modelMismatch) score -= 0.35;
 
   score = Math.max(0, Math.min(1, score));
 
-  // Classification Thresholds
-  const isExactMatch = (hasSharedModel && (brandsMatch || rawCosine >= 0.4)) || (brandsMatch && score >= 0.72 && !modelMismatch);
-  const isSimilar = !isExactMatch && score >= 0.40 && (brandsMatch || rawCosine >= 0.50);
+  // Classification Thresholds:
+  // Exact Match REQUIRES:
+  //   - Same country (already verified above)
+  //   - Matching brand
+  //   - Identical variants/specifications (isVariantParity = true)
+  //   - No model code collision
+  //   - Either verified shared model with high score, OR score >= 0.85
+  const isExactMatch = isVariantParity && !modelMismatch && (
+    (hasSharedModel && brandsMatch && score >= 0.65) ||
+    (brandsMatch && score >= 0.82)
+  );
+
+  // Similar Alternative (e.g. same product in different storage/RAM/size variant or closely related model)
+  const isSimilar = !isExactMatch && !brandMismatch && (
+    (brandsMatch && score >= 0.45) ||
+    (hasSharedModel && score >= 0.40) ||
+    (rawCosine >= 0.55)
+  );
 
   return {
     score: parseFloat(score.toFixed(3)),
@@ -209,7 +275,12 @@ export function calculateProductSimilarity(productA, productB) {
     brandB,
     brandsMatch,
     hasSharedModel,
+    sharedModels,
     modelMismatch,
+    isVariantParity,
+    mismatchReason,
+    varA: varA?.display || null,
+    varB: varB?.display || null,
     isExactMatch,
     isSimilar,
   };

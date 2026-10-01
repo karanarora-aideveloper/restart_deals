@@ -38,7 +38,7 @@ const dealChannelEventSchema = new mongoose.Schema({
   cacheAgeMinutes:   { type: Number, default: null },
 
   // Timestamp of this event
-  createdAt:         { type: Date, default: Date.now, index: true },
+  createdAt:         { type: Date, default: Date.now },
 }, {
   // No updatedAt — this is an append-only event log, records are never mutated.
   timestamps: false,

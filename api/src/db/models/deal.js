@@ -116,7 +116,7 @@ const dealSchema = new mongoose.Schema({
   // after this schema was written (electronics/fashion/home/beauty all postdate it).
   category: {
     type: String,
-    default: 'general'
+    default: 'home'
   },
   // Same story as category — no hardcoded enum, values managed via the Master collection
   // (type: 'subcategory', metadata.parentCategory pointing at the category id). Empty string
@@ -124,7 +124,7 @@ const dealSchema = new mongoose.Schema({
   // AI classifier didn't find a confident subcategory match).
   subcategory: {
     type: String,
-    default: ''
+    default: 'decor'
   },
   isVerified: { 
     type: Boolean, 

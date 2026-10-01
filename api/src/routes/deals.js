@@ -23,7 +23,20 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
     }
 
     if (req.query.category && req.query.category !== 'all') {
-      query.category = req.query.category.toLowerCase();
+      const cat = req.query.category.toLowerCase().trim();
+      if (cat === 'fashion') {
+        query.category = { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] };
+      } else if (cat === 'electronics') {
+        query.category = { $in: ['electronics', 'appliances', 'mobiles', 'laptops', 'audio', 'accessories'] };
+      } else if (cat === 'beauty') {
+        query.category = { $in: ['beauty', 'personal-care', 'makeup', 'skincare'] };
+      } else if (cat === 'home') {
+        query.category = { $in: ['home', 'kitchen', 'home-kitchen', 'appliances'] };
+      } else if (cat === 'grocery') {
+        query.category = { $in: ['grocery', 'gourmet', 'food'] };
+      } else {
+        query.category = cat;
+      }
     }
 
     if (req.query.subcategory && req.query.subcategory !== 'all') {
@@ -82,11 +95,11 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
     }
 
     // Deals above 90% off are overwhelmingly bad scrapes (a wrong/inflated originalPrice, not a
-    // real discount) rather than genuine steals — capped out of every listing unconditionally,
-    // not just the default sort, so nothing past or future in this range ever reaches the app.
-    query.discountPercentage = { ...(query.discountPercentage || {}), $lte: 90 };
+    // real discount) rather than genuine steals — capped out of every listing unconditionally.
+    // Zero-discount items must also be excluded so non-deals never reach the user feed.
+    query.discountPercentage = { ...(query.discountPercentage || {}), $lte: 90, $gt: 0 };
     if (req.query.minDiscount) {
-      query.discountPercentage.$gte = parseFloat(req.query.minDiscount);
+      query.discountPercentage.$gte = Math.max(parseFloat(req.query.minDiscount) || 0, 1);
     }
 
     let sort = { createdAt: -1 };
@@ -99,6 +112,8 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         sort = { dealPrice: -1 };
       } else if (req.query.sort === 'rating') {
         sort = { rating: -1 };
+      } else if (req.query.sort === 'latest') {
+        sort = { createdAt: -1 };
       }
     }
 

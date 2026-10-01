@@ -18,9 +18,19 @@ export const CATEGORY_THRESHOLDS = {
   'electronics:accessories':      { minPercent: 12.0, minCash: 250, label: 'Electronic Accessories' },
   'electronics':                  { minPercent: 5.0, minCash: 800,  label: 'General Electronics' },
 
-  // Appliances
-  'appliances':                   { minPercent: 6.0, minCash: 1500, label: 'Large Appliances' },
-  'home:appliances-large':        { minPercent: 6.0, minCash: 1500, label: 'Large Home Appliances' },
+  // Appliances (Granular High-Ticket)
+  'appliances:refrigerators':     { minPercent: 6.0,  minCash: 1500, label: 'Refrigerators' },
+  'appliances:washing-machines':  { minPercent: 6.0,  minCash: 1200, label: 'Washing Machines' },
+  'appliances:air-conditioners':  { minPercent: 5.0,  minCash: 1500, label: 'Air Conditioners' },
+  'appliances:water-purifiers':   { minPercent: 8.0,  minCash: 800,  label: 'Water Purifiers' },
+  'appliances:geysers':           { minPercent: 10.0, minCash: 500,  label: 'Geysers & Water Heaters' },
+  'appliances:microwaves':        { minPercent: 8.0,  minCash: 800,  label: 'Microwave Ovens' },
+  'appliances:air-fryers':        { minPercent: 10.0, minCash: 400,  label: 'Air Fryers' },
+  'appliances:chimneys':          { minPercent: 8.0,  minCash: 1000, label: 'Kitchen Chimneys' },
+  'appliances:fans-coolers':      { minPercent: 10.0, minCash: 350,  label: 'Fans & Air Coolers' },
+  'appliances:kitchen-appliances':{ minPercent: 10.0, minCash: 300,  label: 'Mixers & Small Appliances' },
+  'appliances':                   { minPercent: 6.0,  minCash: 1000, label: 'Home Appliances' },
+  'home:appliances-large':        { minPercent: 6.0,  minCash: 1500, label: 'Large Home Appliances' },
 
   // Beauty & Grooming
   'beauty:skincare':              { minPercent: 10.0, minCash: 250, label: 'Skincare' },
@@ -41,6 +51,7 @@ export const CATEGORY_THRESHOLDS = {
   'fashion':                      { minPercent: 20.0, minCash: 300, label: 'General Fashion' },
 
   // Home & Kitchen
+  'home:kitchen-dining':          { minPercent: 12.0, minCash: 350, label: 'Cookware & Kitchenware' },
   'home:kitchen':                 { minPercent: 12.0, minCash: 350, label: 'Kitchen & Cookware' },
   'home:furniture':               { minPercent: 10.0, minCash: 800, label: 'Furniture' },
   'home:decor':                   { minPercent: 15.0, minCash: 250, label: 'Home Decor' },
@@ -48,11 +59,30 @@ export const CATEGORY_THRESHOLDS = {
   'home':                         { minPercent: 12.0, minCash: 350, label: 'General Home' },
 
   // Fitness
-  'fitness:gym-equipment':        { minPercent: 8.0, minCash: 600,  label: 'Gym Equipment' },
+  'fitness:gym-equipment':        { minPercent: 8.0,  minCash: 600, label: 'Gym Equipment' },
+  'fitness:nutrition':            { minPercent: 10.0, minCash: 300, label: 'Nutrition & Supplements' },
   'fitness':                      { minPercent: 10.0, minCash: 400, label: 'General Fitness' },
 
+  // Groceries, Food & Gourmet
+  'grocery':                      { minPercent: 12.0, minCash: 100, label: 'Groceries & Gourmet' },
+  'grocery:coffee-tea':           { minPercent: 12.0, minCash: 100, label: 'Coffee & Tea' },
+  'grocery:dry-fruits':           { minPercent: 12.0, minCash: 150, label: 'Dry Fruits & Nuts' },
+  'grocery:snacks-beverages':     { minPercent: 15.0, minCash: 100, label: 'Snacks & Drinks' },
+
+  // Baby & Toys
+  'baby-kids':                    { minPercent: 15.0, minCash: 200, label: 'Baby Care & Toys' },
+  'baby-kids:diapers-wipes':      { minPercent: 12.0, minCash: 150, label: 'Diapers & Wipes' },
+  'baby-kids:toys-games':         { minPercent: 15.0, minCash: 200, label: 'Toys & Games' },
+
+  // Automotive
+  'auto':                         { minPercent: 12.0, minCash: 250, label: 'Automotive Accessories' },
+  'auto:helmets-riding':          { minPercent: 10.0, minCash: 300, label: 'Helmets & Riding Gear' },
+
+  // Books & Stationery
+  'books-stationery':             { minPercent: 15.0, minCash: 150, label: 'Books & Stationery' },
+
   // Default Fallback
-  'general':                      { minPercent: 10.0, minCash: 200, label: 'General Goods' },
+  'general':                      { minPercent: 10.0, minCash: 200, label: 'Everyday Goods' },
 };
 
 /**

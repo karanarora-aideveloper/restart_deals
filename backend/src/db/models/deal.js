@@ -124,14 +124,14 @@ const dealSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    default: 'general'
+    default: 'home'
   },
   // Same story as category — no hardcoded enum, values managed via the Master collection
   // (type: 'subcategory', metadata.parentCategory pointing at the category id). Empty string
   // means "not yet classified".
   subcategory: {
     type: String,
-    default: ''
+    default: 'decor'
   },
   isVerified: { 
     type: Boolean, 
