@@ -5,8 +5,11 @@
 const AMAZON_IN_TAG = process.env.AMAZON_IN_AFFILIATE_TAG || 'shoppersdea03-21';
 const AMAZON_US_TAG = process.env.AMAZON_US_AFFILIATE_TAG || '';
 const FLIPKART_AFFID = process.env.FLIPKART_AFFILIATE_TAG || '';
-const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '';
+const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '197022';
+const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '';
 const WEBSITE_BASE_URL = (process.env.WEBSITE_BASE_URL || 'https://www.shoppersdeals.in').replace(/\/+$/, '');
+
+const memoryUrlCache = new Map();
 
 /**
  * Appends or injects the appropriate merchant affiliate tracking parameters.
@@ -49,11 +52,12 @@ export function buildAffiliateUrl(urlStr, country = 'IN', merchant = 'generic') 
     }
 
     // 4. Cuelinks Wrapper for Indian Merchants (Flipkart, Myntra, Ajio, Meesho, Nykaa, etc.)
-    if (CUELINKS_PUB_ID && upperCountry === 'IN') {
+    const cuelinksPubId = process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID;
+    if (cuelinksPubId && upperCountry === 'IN') {
       const cuelinksMerchants = ['flipkart', 'shopsy', 'myntra', 'ajio', 'meesho', 'nykaa', 'croma', 'tatacliq'];
       const isEligible = cuelinksMerchants.some(m => hostname.includes(m) || merchant === m);
       if (isEligible) {
-        return `https://linksredirect.com/?pub_id=${encodeURIComponent(CUELINKS_PUB_ID)}&url=${encodeURIComponent(urlStr)}`;
+        return `https://linksredirect.com/?pub_id=${encodeURIComponent(cuelinksPubId)}&url=${encodeURIComponent(urlStr)}`;
       }
     }
 
@@ -89,4 +93,55 @@ export function formatPriceCurrency(amount, country = 'IN') {
 
   // Default to INR
   return `₹${Math.round(Number(amount)).toLocaleString('en-IN')}`;
+}
+
+/**
+ * Async version of buildAffiliateUrl with Cuelinks API v3 link conversion support.
+ */
+export async function buildAffiliateUrlAsync(urlStr, country = 'IN', merchant = 'generic', subId = 'tg') {
+  if (!urlStr) return '';
+  const apiKey = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || CUELINKS_API_KEY;
+  const upperCountry = (country || 'IN').toUpperCase();
+
+  // If Amazon, use standard direct Amazon Associates tag
+  if (urlStr.includes('amazon.')) {
+    return buildAffiliateUrl(urlStr, country, merchant);
+  }
+
+  // If Indian merchant and Cuelinks API key is available, use API v3 conversion
+  if (apiKey && upperCountry === 'IN') {
+    try {
+      const cacheKey = `${urlStr}:${subId}`;
+      if (memoryUrlCache.has(cacheKey)) return memoryUrlCache.get(cacheKey);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+
+      const res = await fetch('https://developers.cuelinks.com/pub_api/v3/links/convert', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ url: urlStr, subid: subId, shorten: false }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        const affUrl = data?.affiliate_url || data?.url || data?.data?.affiliate_url;
+        if (affUrl) {
+          memoryUrlCache.set(cacheKey, affUrl);
+          return affUrl;
+        }
+      }
+    } catch (e) {
+      // Fallback to sync builder
+    }
+  }
+
+  return buildAffiliateUrl(urlStr, country, merchant);
 }

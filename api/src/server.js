@@ -16,6 +16,7 @@ import seoRouter from './routes/seo.js';
 import notificationsRouter from './routes/notifications.js';
 import alertsRouter from './routes/alerts.js';
 import pushRouter from './routes/push.js';
+import cuelinksRouter from './routes/cuelinks.js';
 import xBotRouter from './routes/xBot.js';
 import crawlerRouter from './routes/crawler.js';
 import monitoringRouter from './routes/monitoring.js';
@@ -89,6 +90,9 @@ app.use('/notifications', notificationsRouter);
 
 app.use('/api/push', pushRouter);
 app.use('/push', pushRouter);
+
+app.use('/api/cuelinks', cuelinksRouter);
+app.use('/cuelinks', cuelinksRouter);
 
 // Bind API routes (Admin-Protected)
 app.use('/api/admin', requireAdminAuth, adminRouter);
