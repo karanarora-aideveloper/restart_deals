@@ -179,7 +179,7 @@ const dealSchema = new mongoose.Schema({
   }
 });
 
-dealSchema.index({ sourceChannelId: 1, sourceMessageId: 1 }, { unique: true });
+dealSchema.index({ sourceChannelId: 1, sourceMessageId: 1 }, { unique: true, sparse: true });
 dealSchema.index({ dealUrl: 1 });
 dealSchema.index({ productId: 1, merchant: 1 });
 dealSchema.index({ isExpired: 1, country: 1, createdAt: -1 });
