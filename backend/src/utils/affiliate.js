@@ -5,7 +5,7 @@
 const AMAZON_IN_TAG = process.env.AMAZON_IN_AFFILIATE_TAG || 'shoppersdea03-21';
 const AMAZON_US_TAG = process.env.AMAZON_US_AFFILIATE_TAG || '';
 const FLIPKART_AFFID = process.env.FLIPKART_AFFILIATE_TAG || '';
-const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '197022';
+const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '325472';
 const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '';
 const WEBSITE_BASE_URL = (process.env.WEBSITE_BASE_URL || 'https://www.shoppersdeals.in').replace(/\/+$/, '');
 
@@ -43,22 +43,21 @@ export function buildAffiliateUrl(urlStr, country = 'IN', merchant = 'generic') 
       }
     }
 
-    // 3. Flipkart / Shopsy Direct Tag
-    if (hostname.includes('flipkart.com') || hostname.includes('shopsy.in')) {
-      if (FLIPKART_AFFID) {
-        parsed.searchParams.set('affid', FLIPKART_AFFID);
-        return parsed.toString();
-      }
+    // 3. Already converted Cuelinks redirect
+    if (hostname.includes('linksredirect.com') || hostname.includes('clnk.in')) {
+      return parsed.toString();
     }
 
-    // 4. Cuelinks Wrapper for Indian Merchants (Flipkart, Myntra, Ajio, Meesho, Nykaa, etc.)
+    // 4. Flipkart / Shopsy Direct Tag (if specifically configured)
+    if ((hostname.includes('flipkart.com') || hostname.includes('shopsy.in')) && FLIPKART_AFFID) {
+      parsed.searchParams.set('affid', FLIPKART_AFFID);
+      return parsed.toString();
+    }
+
+    // 5. Cuelinks Universal Wrapper for all Non-Amazon Indian Merchants (Flipkart, Myntra, Ajio, Meesho, Nykaa, Croma, etc.)
     const cuelinksPubId = process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID;
-    if (cuelinksPubId && upperCountry === 'IN') {
-      const cuelinksMerchants = ['flipkart', 'shopsy', 'myntra', 'ajio', 'meesho', 'nykaa', 'croma', 'tatacliq'];
-      const isEligible = cuelinksMerchants.some(m => hostname.includes(m) || merchant === m);
-      if (isEligible) {
-        return `https://linksredirect.com/?pub_id=${encodeURIComponent(cuelinksPubId)}&url=${encodeURIComponent(urlStr)}`;
-      }
+    if (cuelinksPubId && upperCountry === 'IN' && !hostname.includes('amazon.')) {
+      return `https://linksredirect.com/?cid=${encodeURIComponent(cuelinksPubId)}&subid=tg&source=api&url=${encodeURIComponent(urlStr)}`;
     }
 
     return parsed.toString();
@@ -124,7 +123,7 @@ export async function buildAffiliateUrlAsync(urlStr, country = 'IN', merchant = 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ url: urlStr, subid: subId, shorten: false }),
+        body: JSON.stringify({ url: urlStr, subid: subId, shorten: false, channel_id: Number(process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID) }),
         signal: controller.signal,
       });
 
