@@ -33,7 +33,7 @@ function optionalAuth(req, res, next) {
  */
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { productId, merchant, targetPrice, email, phone } = req.body;
+    const { productId, merchant, targetPrice, email, phone, source = 'web', extensionUserId } = req.body;
 
     if (!productId || !targetPrice) {
       return res.status(400).json({ success: false, error: 'productId and targetPrice are required' });
@@ -48,7 +48,7 @@ router.post('/', optionalAuth, async (req, res) => {
     const cleanEmail = email ? email.trim().toLowerCase() : null;
     const cleanPhone = phone ? phone.replace(/[^0-9+]/g, '') : null;
 
-    if (!userId && !cleanEmail && !cleanPhone) {
+    if (!userId && !cleanEmail && !cleanPhone && !extensionUserId) {
       return res.status(400).json({
         success: false,
         error: 'Please provide an email address or phone number to receive price drop alerts.',
@@ -75,6 +75,7 @@ router.post('/', optionalAuth, async (req, res) => {
         ...(userId ? [{ userId }] : []),
         ...(cleanEmail ? [{ email: cleanEmail }] : []),
         ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+        ...(extensionUserId ? [{ extensionUserId }] : []),
       ],
     };
 
@@ -85,6 +86,8 @@ router.post('/', optionalAuth, async (req, res) => {
       alert.initialPrice = initialPrice;
       alert.title = title || alert.title;
       alert.imageUrl = imageUrl || alert.imageUrl;
+      if (source) alert.source = source;
+      if (extensionUserId) alert.extensionUserId = extensionUserId;
       alert.updatedAt = new Date();
       await alert.save();
     } else {
@@ -99,9 +102,20 @@ router.post('/', optionalAuth, async (req, res) => {
         userId: userId || undefined,
         email: cleanEmail || undefined,
         phone: cleanPhone || undefined,
+        source: source || 'web',
+        extensionUserId: extensionUserId || undefined,
         status: 'active',
       });
       await alert.save();
+    }
+
+    // If alert came from extension, ensure product has extension tracking flagged
+    if (product && (source === 'extension' || extensionUserId)) {
+      product.isTrackedByExtension = true;
+      if (extensionUserId && Array.isArray(product.extensionUsers) && !product.extensionUsers.includes(extensionUserId)) {
+        product.extensionUsers.push(extensionUserId);
+      }
+      product.save().catch(() => {});
     }
 
     res.json({

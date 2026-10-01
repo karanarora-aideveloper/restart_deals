@@ -165,8 +165,48 @@ const productSchema = new mongoose.Schema({
   // Discovery engine source tracking
   productSource: {
     type: String,
-    enum: ['telegram', 'top20_catalog', 'user_search', 'bestseller'],
+    enum: ['telegram', 'top20_catalog', 'user_search', 'bestseller', 'extension', 'extension_discovered', 'web_user'],
     default: 'telegram'
+  },
+  // Extension & User attribution tracking
+  discoveredBy: {
+    source: {
+      type: String,
+      default: null,
+    },
+    userId: {
+      type: String,
+      default: null,
+    },
+    sourceUrl: {
+      type: String,
+      default: null,
+    },
+    extensionVersion: {
+      type: String,
+      default: null,
+    },
+    discoveredAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  isTrackedByExtension: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  extensionUsers: {
+    type: [String],
+    default: [],
+  },
+  extensionViewsCount: {
+    type: Number,
+    default: 0,
+  },
+  lastExtensionViewAt: {
+    type: Date,
+    default: null,
   },
   // Engine 2: Top-20 core product tracking
   isTop20: {
@@ -213,6 +253,10 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  lastHistoryBackfillAt: {
+    type: Date,
+    default: null
+  },
   country: {
     type: String,
     default: 'IN'
@@ -240,6 +284,10 @@ productSchema.index({ merchant: 1, category: 1 });
 productSchema.index({ lastChecked: 1 });
 productSchema.index({ lastStoreSyncAt: 1 });
 productSchema.index({ updatedAt: -1 });
+productSchema.index({ productSource: 1 });
+productSchema.index({ isTrackedByExtension: 1, lastExtensionViewAt: -1 });
+productSchema.index({ 'discoveredBy.userId': 1 });
+productSchema.index({ extensionUsers: 1 });
 
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema, 'products');
 

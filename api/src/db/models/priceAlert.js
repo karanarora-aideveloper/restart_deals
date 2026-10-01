@@ -43,6 +43,15 @@ const priceAlertSchema = new mongoose.Schema({
     type: String,
     index: true,
   },
+  source: {
+    type: String,
+    default: 'web',
+  },
+  extensionUserId: {
+    type: String,
+    default: null,
+    index: true,
+  },
   status: {
     type: String,
     enum: ['active', 'triggered', 'cancelled'],

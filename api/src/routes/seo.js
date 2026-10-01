@@ -41,6 +41,135 @@ router.get('/sitemap-data', async (req, res) => {
 });
 
 /**
+ * GET /api/seo/sitemap-summary
+ * Returns total counts and chunk partition counts for products and deals.
+ * Used by frontend to build dynamic <sitemapindex>.
+ */
+router.get('/sitemap-summary', async (req, res) => {
+  try {
+    const CHUNK_SIZE = 5000;
+    const [inProductsTotal, usProductsTotal, dealsTotal] = await Promise.all([
+      Product.countDocuments({
+        country: 'IN',
+        $or: [
+          { imageUrl: { $exists: true, $ne: '' } },
+          { 'images.0': { $exists: true, $ne: '' } },
+        ],
+      }),
+      Product.countDocuments({
+        country: 'US',
+        $or: [
+          { imageUrl: { $exists: true, $ne: '' } },
+          { 'images.0': { $exists: true, $ne: '' } },
+        ],
+      }),
+      Deal.countDocuments({
+        isExpired: { $ne: true },
+        $or: [
+          { imageUrl: { $exists: true, $ne: '' } },
+          { 'images.0': { $exists: true, $ne: '' } },
+        ],
+      }),
+    ]);
+
+    const inChunks = Math.max(1, Math.ceil(inProductsTotal / CHUNK_SIZE));
+    const usChunks = Math.max(1, Math.ceil(usProductsTotal / CHUNK_SIZE));
+
+    res.json({
+      success: true,
+      chunkSize: CHUNK_SIZE,
+      inProductsTotal,
+      usProductsTotal,
+      dealsTotal,
+      inChunks,
+      usChunks,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[API Error] GET /api/seo/sitemap-summary failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch sitemap summary' });
+  }
+});
+
+/**
+ * GET /api/seo/sitemap-products
+ * Returns lightweight ID and lastmod for a specific country and page chunk (up to 5,000 items).
+ * Payload size is ~300KB, preventing Next.js 2MB cache overflow and timeouts.
+ */
+router.get('/sitemap-products', async (req, res) => {
+  try {
+    const countryUpper = (req.query.country || 'IN').toUpperCase();
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit, 10) || 5000));
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find(
+      {
+        country: countryUpper,
+        $or: [
+          { imageUrl: { $exists: true, $ne: '' } },
+          { 'images.0': { $exists: true, $ne: '' } },
+        ],
+      },
+      '_id updatedAt lastChecked'
+    )
+      .sort({ updatedAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({
+      success: true,
+      country: countryUpper,
+      page,
+      limit,
+      count: products.length,
+      products: products.map((p) => ({
+        id: p._id,
+        lastmod: p.updatedAt || p.lastChecked || new Date().toISOString(),
+      })),
+    });
+  } catch (err) {
+    console.error('[API Error] GET /api/seo/sitemap-products failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch products sitemap' });
+  }
+});
+
+/**
+ * GET /api/seo/sitemap-deals
+ * Returns lightweight ID and lastmod for all active verified deals.
+ */
+router.get('/sitemap-deals', async (req, res) => {
+  try {
+    const deals = await Deal.find(
+      {
+        isExpired: { $ne: true },
+        $or: [
+          { imageUrl: { $exists: true, $ne: '' } },
+          { 'images.0': { $exists: true, $ne: '' } },
+        ],
+      },
+      '_id updatedAt createdAt'
+    )
+      .sort({ createdAt: -1 })
+      .limit(10000)
+      .lean();
+
+    res.json({
+      success: true,
+      count: deals.length,
+      deals: deals.map((d) => ({
+        id: d._id,
+        lastmod: d.updatedAt || d.createdAt || new Date().toISOString(),
+      })),
+    });
+  } catch (err) {
+    console.error('[API Error] GET /api/seo/sitemap-deals failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch deals sitemap' });
+  }
+});
+
+/**
  * GET /sitemap.xml
  * Dynamically generates sitemap from active deals and products.
  */

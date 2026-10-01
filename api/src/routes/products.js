@@ -9,7 +9,7 @@ import { scrapeProductUrl } from '../utils/productScraper.js';
 import { rankCrossStoreMatches, extractBrand, tokenizeTitle } from '../utils/vectorMatcher.js';
 import { extractVariant, variantsMatch, variantMismatchReason } from '../utils/variantExtractor.js';
 import { cacheMiddleware } from '../utils/cache.js';
-import { PRIORITY } from '../services/scraperQueue.js';
+import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 
 const router = express.Router();
 
@@ -60,6 +60,16 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
 
     if (req.query.productSource && req.query.productSource !== 'all') {
       query.productSource = req.query.productSource;
+    }
+
+    if (req.query.trackedByExtension === 'true') {
+      query.isTrackedByExtension = true;
+    } else if (req.query.trackedByExtension === 'false') {
+      query.$and = (query.$and || []).concat([{ $or: [{ isTrackedByExtension: false }, { isTrackedByExtension: { $exists: false } }] }]);
+    }
+
+    if (req.query.extensionUserId) {
+      query.extensionUsers = req.query.extensionUserId;
     }
 
     // Deal frequency & count filter (Admin feature: find products with multiple deals)
@@ -215,7 +225,8 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
         createdAt: created,
         lastChecked: lastScraped,
         priceHistoryCount: (priceHistory || []).length,
-        dealsCount: dealCountMap.get(obj.productId) || 0
+        dealsCount: dealCountMap.get(obj.productId) || 0,
+        extensionUsersCount: (obj.extensionUsers || []).length
       };
     });
 
@@ -272,9 +283,48 @@ router.patch('/:id/flag', async (req, res) => {
 });
 
 /**
+ * Helper to tag product source, anonymous extension user attribution, and tracking metadata.
+ */
+function applyTrackingAttribution(product, { source, userId, extensionUserId, sourceUrl, extensionVersion, now = new Date() }) {
+  const effectiveUserId = (userId || extensionUserId || '').trim() || null;
+  const isFromExtension = source === 'extension' || source === 'chrome_extension' || source === 'extension_discovered' || Boolean(effectiveUserId);
+
+  if (isFromExtension) {
+    product.isTrackedByExtension = true;
+    product.extensionViewsCount = (product.extensionViewsCount || 0) + 1;
+    product.lastExtensionViewAt = now;
+
+    if (effectiveUserId) {
+      if (!Array.isArray(product.extensionUsers)) {
+        product.extensionUsers = [];
+      }
+      if (!product.extensionUsers.includes(effectiveUserId)) {
+        product.extensionUsers.push(effectiveUserId);
+      }
+    }
+  }
+
+  // Populate discoveredBy if missing or empty
+  if (!product.discoveredBy || !product.discoveredBy.source) {
+    product.discoveredBy = {
+      source: isFromExtension ? 'extension' : (source || 'web_user'),
+      userId: effectiveUserId,
+      sourceUrl: sourceUrl || product.cleanUrl || null,
+      extensionVersion: extensionVersion || null,
+      discoveredAt: now,
+    };
+  }
+
+  // If newly discovered via extension, tag productSource
+  if (isFromExtension && (!product.productSource || product.productSource === 'telegram')) {
+    product.productSource = 'extension';
+  }
+}
+
+/**
  * POST /api/products/lookup-url
  * On-demand lookup and price resolution of a pasted product link from Amazon, Flipkart, Myntra, etc.
- * Body: { url: string }
+ * Body: { url: string, title?: string, price?: number, mrp?: number, source?: string, userId?: string, sourceUrl?: string }
  */
 router.post('/lookup-url', async (req, res) => {
   try {
@@ -327,41 +377,72 @@ router.post('/lookup-url', async (req, res) => {
       }
     }
 
-    // On-Demand Ingestion: If product is still not in DB, live scrape it now!
-    if (!product && parsed.cleanUrl) {
-      console.log(`[API Lookup] Product not in DB. Initiating instant live scrape for ${parsed.cleanUrl}...`);
-      const scraped = await scrapeProductUrl(parsed.cleanUrl, PRIORITY.INTERACTIVE);
-      if (scraped && scraped.title) {
-        const now = new Date();
-        const initialPrice = scraped.price || scraped.originalPrice || 0;
-        const initialMRP = scraped.originalPrice || scraped.price || initialPrice;
+    const { title, price, mrp, originalPrice, imageUrl, source, userId, extensionUserId, sourceUrl, extensionVersion } = req.body;
+    const now = new Date();
+    const livePrice = Number(price) || 0;
+    const liveMRP = Number(mrp || originalPrice) || livePrice;
+    const cleanTitle = (typeof title === 'string' && title.trim()) ? title.trim() : null;
+    const cleanImg = typeof imageUrl === 'string' ? imageUrl.trim() : '';
 
-        product = new Product({
-          productId: parsed.productId,
-          cleanUrl: parsed.cleanUrl,
-          merchant: parsed.merchant,
-          title: scraped.title,
-          imageUrl: scraped.imageUrl,
-          images: scraped.images,
-          rating: scraped.rating,
-          reviews: scraped.reviews,
-          price: initialPrice,
-          originalPrice: initialMRP,
-          category: scraped.category || 'general',
-          priceSource: 'scraped',
-          priceUpdatedAt: now,
-          priceHistory: initialPrice ? [{
-            price: initialPrice,
-            originalPrice: initialMRP,
-            timestamp: now,
-          }] : [],
-          lastChecked: now,
-          createdAt: now,
-          updatedAt: now,
+    let isNew = false;
+    // Ingest into DB if not found, without hanging on a 30s scraper
+    if (!product && parsed.cleanUrl) {
+      isNew = true;
+      product = new Product({
+        productId: parsed.productId,
+        cleanUrl: parsed.cleanUrl,
+        merchant: parsed.merchant,
+        title: cleanTitle || 'Queued for Price Tracking',
+        imageUrl: cleanImg,
+        images: cleanImg ? [cleanImg] : [],
+        price: livePrice,
+        originalPrice: liveMRP,
+        category: 'general',
+        priceSource: (source === 'extension' || userId) ? 'extension' : 'user_search',
+        priceUpdatedAt: now,
+        priceHistory: livePrice ? [{
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        }] : [],
+        lastStoreSyncAt: null,
+        lastChecked: now,
+        isTrackedByUsers: true,
+        source: (source === 'extension' || userId) ? 'extension' : 'user_search',
+        createdAt: now,
+        updatedAt: now,
+      });
+      applyTrackingAttribution(product, { source, userId, extensionUserId, sourceUrl: sourceUrl || parsed.cleanUrl, extensionVersion, now });
+      await product.save();
+      console.log(`[API Lookup POST] ✓ Ingested newly discovered product into DB: "${product.title}" (${product.productId})`);
+
+      // Asynchronously dispatch to BullMQ scraper queue (non-blocking)
+      if (scraperQueue && scraperQueue.queue) {
+        scraperQueue.queue.add('scrape', {
+          url: parsed.cleanUrl,
+          source: (source === 'extension' || userId) ? 'extension' : 'user_search',
+          enqueuedAt: Date.now(),
+        }, { priority: PRIORITY.CATALOG_TOP20 }).catch(err => {
+          console.warn('[API Lookup POST] Background queue add warning:', err.message);
         });
-        await product.save();
-        console.log(`[API Lookup] ✓ Successfully scraped & ingested new product into DB: "${scraped.title}" (₹${initialPrice})`);
       }
+    } else if (product) {
+      if (livePrice && (!product.price || Math.abs(product.price - livePrice) > 0)) {
+        product.price = livePrice;
+        if (liveMRP && (!product.originalPrice || product.originalPrice < liveMRP)) {
+          product.originalPrice = liveMRP;
+        }
+        product.priceUpdatedAt = now;
+        product.lastChecked = now;
+        if (!product.priceHistory) product.priceHistory = [];
+        product.priceHistory.push({
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        });
+      }
+      applyTrackingAttribution(product, { source, userId, extensionUserId, sourceUrl: sourceUrl || parsed.cleanUrl, extensionVersion, now });
+      await product.save();
     }
 
     if (product) {
@@ -369,25 +450,18 @@ router.post('/lookup-url', async (req, res) => {
       const priceStats = computePriceStats(productObj);
       return res.json({
         success: true,
-        found: true,
+        found: !isNew,
+        isNew,
+        queued: true,
+        message: isNew
+          ? 'Product was not in database. Added to database and queued for ongoing price tracking.'
+          : 'Product found in database.',
         data: {
           ...productObj,
           priceStats,
         },
       });
     }
-
-    // Product could not be scraped / not reachable
-    return res.json({
-      success: true,
-      found: false,
-      parsed: {
-        merchant: parsed.merchant,
-        productId: parsed.productId,
-        cleanUrl: parsed.cleanUrl,
-      },
-      message: 'Product link parsed, but live product details could not be extracted at this moment.',
-    });
   } catch (err) {
     console.error('[API Error] POST /api/products/lookup-url failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to lookup product URL' });
@@ -395,12 +469,164 @@ router.post('/lookup-url', async (req, res) => {
 });
 
 /**
+ * POST /api/products/track
+ * Ingests and queues a product discovered via extension or user browsing.
+ * Non-blocking: immediately stores baseline in MongoDB Atlas and enqueues background scrape.
+ * Body: { url, title, price, mrp, originalPrice, imageUrl, source, userId, extensionUserId, sourceUrl, extensionVersion }
+ */
+router.post('/track', async (req, res) => {
+  try {
+    const {
+      url, title, price, mrp, originalPrice, imageUrl,
+      source = 'extension',
+      userId,
+      extensionUserId,
+      sourceUrl,
+      extensionVersion,
+    } = req.body;
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ success: false, error: 'url is required' });
+    }
+
+    const resolved = await resolveRedirect(url.trim());
+    const parsed = parseProductUrl(resolved);
+
+    if (!parsed || !parsed.productId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Could not identify a supported product from the provided URL.',
+      });
+    }
+
+    let product = await Product.findOne({ productId: parsed.productId, merchant: parsed.merchant });
+    if (!product) {
+      product = await Product.findOne({ productId: parsed.productId });
+    }
+
+    const now = new Date();
+    const livePrice = Number(price) || 0;
+    const liveMRP = Number(mrp || originalPrice) || livePrice;
+    const cleanTitle = (typeof title === 'string' && title.trim()) ? title.trim() : 'Tracked Product';
+    const cleanImg = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+
+    let isNew = false;
+    if (!product) {
+      isNew = true;
+      product = new Product({
+        productId: parsed.productId,
+        cleanUrl: parsed.cleanUrl,
+        merchant: parsed.merchant,
+        title: cleanTitle,
+        imageUrl: cleanImg,
+        images: cleanImg ? [cleanImg] : [],
+        price: livePrice,
+        originalPrice: liveMRP,
+        category: 'general',
+        priceSource: 'extension',
+        priceUpdatedAt: now,
+        priceHistory: livePrice ? [{
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        }] : [],
+        lastStoreSyncAt: null, // Marked for priority pickup by dailyProductRefresher!
+        lastChecked: now,
+        isTrackedByUsers: true,
+        source: 'extension',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      applyTrackingAttribution(product, {
+        source,
+        userId,
+        extensionUserId,
+        sourceUrl: sourceUrl || url,
+        extensionVersion,
+        now,
+      });
+
+      await product.save();
+      console.log(`[API /track] ✓ Added new product from extension to DB: "${product.title}" (${product.productId}) - User: ${userId || 'anon'}`);
+
+      // Asynchronously dispatch to BullMQ scraper queue (non-blocking)
+      if (scraperQueue && scraperQueue.queue) {
+        scraperQueue.queue.add('scrape', {
+          url: parsed.cleanUrl,
+          source: 'extension',
+          enqueuedAt: Date.now(),
+        }, { priority: PRIORITY.CATALOG_TOP20 }).catch(err => {
+          console.warn('[API /track] Background queue add warning:', err.message);
+        });
+      }
+    } else {
+      // Product already in DB: update live price if changed
+      if (livePrice && (!product.price || Math.abs(product.price - livePrice) > 0)) {
+        product.price = livePrice;
+        if (liveMRP && (!product.originalPrice || product.originalPrice < liveMRP)) {
+          product.originalPrice = liveMRP;
+        }
+        product.priceUpdatedAt = now;
+        product.lastChecked = now;
+        if (!product.priceHistory) product.priceHistory = [];
+        product.priceHistory.push({
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        });
+      }
+
+      applyTrackingAttribution(product, {
+        source,
+        userId,
+        extensionUserId,
+        sourceUrl: sourceUrl || url,
+        extensionVersion,
+        now,
+      });
+
+      await product.save();
+      console.log(`[API /track] Updated tracking attribution for existing product: "${product.title}" (${product.productId}) - User: ${userId || 'anon'}`);
+    }
+
+    const productObj = product.toObject ? product.toObject() : product;
+    const priceStats = computePriceStats(productObj);
+
+    return res.json({
+      success: true,
+      found: !isNew,
+      isNew,
+      queued: true,
+      message: isNew
+        ? 'Product was not in database. Added to database and queued for ongoing price tracking.'
+        : 'Product found in database.',
+      data: {
+        ...productObj,
+        priceStats,
+      },
+    });
+  } catch (err) {
+    console.error('[API Error] POST /api/products/track failed:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to track product' });
+  }
+});
+
+/**
  * GET /api/products/lookup
- * Query param version: GET /api/products/lookup?url=...
+ * Query param version: GET /api/products/lookup?url=...&title=...&price=...&source=extension&userId=...&sourceUrl=...
  */
 router.get('/lookup', async (req, res) => {
   try {
-    const { url } = req.query;
+    const {
+      url, title, price, mrp, originalPrice, imageUrl,
+      source,
+      userId,
+      extensionUserId,
+      sourceUrl,
+      extensionVersion,
+    } = req.query;
+
     if (!url || typeof url !== 'string') {
       return res.status(400).json({ success: false, error: 'url query parameter is required' });
     }
@@ -420,48 +646,104 @@ router.get('/lookup', async (req, res) => {
       product = await Product.findOne({ productId: parsed.productId });
     }
 
-    // On-Demand Ingestion if not found
-    if (!product && parsed.cleanUrl) {
-      console.log(`[API Lookup GET] Product not in DB. Live scraping ${parsed.cleanUrl}...`);
-      const scraped = await scrapeProductUrl(parsed.cleanUrl, PRIORITY.INTERACTIVE);
-      if (scraped && scraped.title) {
-        const now = new Date();
-        const initialPrice = scraped.price || scraped.originalPrice || 0;
-        const initialMRP = scraped.originalPrice || scraped.price || initialPrice;
+    const now = new Date();
+    const livePrice = Number(price) || 0;
+    const liveMRP = Number(mrp || originalPrice) || livePrice;
+    const cleanTitle = (typeof title === 'string' && title.trim()) ? title.trim() : null;
+    const cleanImg = typeof imageUrl === 'string' ? imageUrl.trim() : '';
 
-        product = new Product({
-          productId: parsed.productId,
-          cleanUrl: parsed.cleanUrl,
-          merchant: parsed.merchant,
-          title: scraped.title,
-          imageUrl: scraped.imageUrl,
-          images: scraped.images,
-          rating: scraped.rating,
-          reviews: scraped.reviews,
-          price: initialPrice,
-          originalPrice: initialMRP,
-          category: scraped.category || 'general',
-          priceSource: 'scraped',
-          priceUpdatedAt: now,
-          priceHistory: initialPrice ? [{
-            price: initialPrice,
-            originalPrice: initialMRP,
-            timestamp: now,
-          }] : [],
-          lastChecked: now,
-          createdAt: now,
-          updatedAt: now,
+    let isNew = false;
+
+    // If product not in DB, ingest baseline immediately without blocking on a 30s scraper!
+    if (!product && parsed.cleanUrl) {
+      isNew = true;
+      product = new Product({
+        productId: parsed.productId,
+        cleanUrl: parsed.cleanUrl,
+        merchant: parsed.merchant,
+        title: cleanTitle || 'Queued for Price Tracking',
+        imageUrl: cleanImg,
+        images: cleanImg ? [cleanImg] : [],
+        price: livePrice,
+        originalPrice: liveMRP,
+        category: 'general',
+        priceSource: (source === 'extension' || userId) ? 'extension' : 'user_search',
+        priceUpdatedAt: now,
+        priceHistory: livePrice ? [{
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        }] : [],
+        lastStoreSyncAt: null, // Marked for priority pickup by dailyProductRefresher!
+        lastChecked: now,
+        isTrackedByUsers: true,
+        source: (source === 'extension' || userId) ? 'extension' : 'user_search',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      applyTrackingAttribution(product, {
+        source,
+        userId,
+        extensionUserId,
+        sourceUrl: sourceUrl || url,
+        extensionVersion,
+        now,
+      });
+
+      await product.save();
+      console.log(`[API Lookup GET] ✓ Ingested newly discovered product into DB: "${product.title}" (${product.productId}) - Source: ${product.productSource}`);
+
+      // Asynchronously dispatch to BullMQ scraper queue (non-blocking)
+      if (scraperQueue && scraperQueue.queue) {
+        scraperQueue.queue.add('scrape', {
+          url: parsed.cleanUrl,
+          source: (source === 'extension' || userId) ? 'extension' : 'user_search',
+          enqueuedAt: Date.now(),
+        }, { priority: PRIORITY.CATALOG_TOP20 }).catch(err => {
+          console.warn('[API Lookup GET] Background queue add warning:', err.message);
         });
-        await product.save();
       }
     }
 
     if (product) {
+      // If already in DB and client passed live price, record checkpoint if updated
+      if (!isNew && livePrice && (!product.price || Math.abs(product.price - livePrice) > 0)) {
+        product.price = livePrice;
+        if (liveMRP && (!product.originalPrice || product.originalPrice < liveMRP)) {
+          product.originalPrice = liveMRP;
+        }
+        product.priceUpdatedAt = now;
+        product.lastChecked = now;
+        if (!product.priceHistory) product.priceHistory = [];
+        product.priceHistory.push({
+          price: livePrice,
+          originalPrice: liveMRP,
+          timestamp: now,
+        });
+      }
+
+      applyTrackingAttribution(product, {
+        source,
+        userId,
+        extensionUserId,
+        sourceUrl: sourceUrl || url,
+        extensionVersion,
+        now,
+      });
+
+      await product.save();
+
       const productObj = product.toObject ? product.toObject() : product;
       const priceStats = computePriceStats(productObj);
       return res.json({
         success: true,
-        found: true,
+        found: !isNew,
+        isNew,
+        queued: true,
+        message: isNew
+          ? 'Product was not in database. Added to database and queued for ongoing price tracking.'
+          : 'Product found in database.',
         data: {
           ...productObj,
           priceStats,
