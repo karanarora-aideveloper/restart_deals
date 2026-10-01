@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShoppersDeals Price Tracker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <img src="../icons/icon-32.png" class="brand-logo" alt="ShoppersDeals" width="22" height="22">
+      <div class="brand-text">
+        <span class="brand-title">ShoppersDeals</span>
+        <span class="brand-subtitle">Smart Price Tracker</span>
+      </div>
+    </div>
+    <a href="https://shoppersdeals.in" target="_blank" rel="noopener noreferrer" class="web-link" title="Open ShoppersDeals Website">
+      shoppersdeals.in ↗
+    </a>
+  </header>
+
+  <!-- URL Search / Lookup Bar -->
+  <div class="search-section">
+    <form id="lookup-form" class="search-form">
+      <input type="text" id="lookup-input" class="search-input" placeholder="Paste Amazon or Flipkart link..." autocomplete="off" />
+      <button type="submit" class="search-btn" title="Inspect Price History">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="content-area">
+    <!-- Active Tab Detected Product Section -->
+    <div id="active-product-card" class="product-card" style="display: none;">
+      <div class="product-badge-row">
+        <span id="product-store-badge" class="store-badge">🛍️ Amazon</span>
+        <span id="product-verdict-badge" class="verdict-badge">🔥 All-Time Low</span>
+      </div>
+
+      <!-- Notice Banner for Newly Tracked Products -->
+      <div id="product-notice-banner" style="display: none; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px; color: #5b21b6; line-height: 1.35;">
+        <strong>✨ First Time Tracking This Product!</strong><br/>
+        This item was not in our database. We've added it to our tracking network and scheduled ongoing daily price checks!
+      </div>
+
+      <div class="product-main-row">
+        <img id="product-img" src="../icons/icon-48.png" class="product-thumb" alt="Product" />
+        <div class="product-info">
+          <h3 id="product-title" class="product-heading">Loading product...</h3>
+          <div class="product-prices">
+            <span id="product-current-price" class="current-price">₹0</span>
+            <span id="product-original-price" class="original-price">₹0</span>
+            <span id="product-discount" class="discount-badge">0% OFF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Smart Price Analytics & Advice Mount -->
+      <div id="analytics-mount" style="margin-bottom: 10px;"></div>
+
+      <!-- Price Position Gauge Mount -->
+      <div id="gauge-mount" style="margin-bottom: 10px;"></div>
+
+      <!-- Quick Stats -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-lbl">Lowest</span>
+          <span id="stat-lowest" class="stat-num text-green">₹0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-lbl">Average</span>
+          <span id="stat-average" class="stat-num">₹0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-lbl">Highest</span>
+          <span id="stat-highest" class="stat-num text-red">₹0</span>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div id="chart-container" class="chart-container">
+        <!-- SVG Chart Injected Here -->
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-state" class="state-box" style="display: none;">
+      <div class="spinner"></div>
+      <p class="state-text">Fetching authentic price checkpoints...</p>
+    </div>
+
+    <!-- Error / Not on Store Page State -->
+    <div id="idle-state" class="state-box">
+      <div class="hero-icon">⚡</div>
+      <h4 class="state-title">Instant Price Verification</h4>
+      <p class="state-desc">Open any product page on Amazon, Flipkart, Myntra, or Nykaa to see complete price graphs, or paste a link above.</p>
+    </div>
+
+    <!-- Trending Deals Header -->
+    <div class="section-divider">
+      <span class="divider-title">🔥 Live Verified Price Drops</span>
+      <a href="https://shoppersdeals.in" target="_blank" rel="noopener noreferrer" class="divider-link">View All</a>
+    </div>
+
+    <!-- Trending Deals List -->
+    <div id="deals-list" class="deals-list">
+      <!-- Deal cards dynamically injected here -->
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <a href="https://t.me/ShoppersDealsAlertBot" target="_blank" rel="noopener noreferrer" class="bot-button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+      Get Free Telegram Bot Price Drop Alerts
+    </a>
+  </footer>
+
+  <script src="../utils/parser.js"></script>
+  <script src="../utils/api.js"></script>
+  <script src="../utils/chart.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

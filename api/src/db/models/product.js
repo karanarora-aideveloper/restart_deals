@@ -91,7 +91,7 @@ const productSchema = new mongoose.Schema({
   },
   priceSource: {
     type: String,
-    enum: ['scraped', 'ai_text', 'price_history']
+    enum: ['scraped', 'ai_text', 'price_history', 'extension', 'user_search']
   },
   originalPrice: {
     type: Number

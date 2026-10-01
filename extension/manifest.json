@@ -1,0 +1,77 @@
+{
+  "manifest_version": 3,
+  "name": "ShoppersDeals: Price History & Tracker",
+  "short_name": "ShoppersDeals",
+  "version": "1.0.0",
+  "description": "Authentic price history graphs, lowest price tracker & price drop alerts for Amazon, Flipkart, Myntra, Nykaa & Ajio.",
+  "homepage_url": "https://shoppersdeals.in",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "ShoppersDeals Price Tracker"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.amazon.in/*",
+    "*://*.flipkart.com/*",
+    "*://*.myntra.com/*",
+    "*://*.nykaa.com/*",
+    "*://*.ajio.com/*",
+    "https://api.shoppersdeals.in/*",
+    "http://localhost:5001/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.amazon.in/*",
+        "*://*.flipkart.com/*",
+        "*://*.myntra.com/*",
+        "*://*.nykaa.com/*",
+        "*://*.ajio.com/*"
+      ],
+      "js": [
+        "utils/parser.js",
+        "utils/api.js",
+        "utils/chart.js",
+        "content/injector.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.png",
+        "content/styles.css"
+      ],
+      "matches": [
+        "*://*.amazon.in/*",
+        "*://*.flipkart.com/*",
+        "*://*.myntra.com/*",
+        "*://*.nykaa.com/*",
+        "*://*.ajio.com/*"
+      ]
+    }
+  ]
+}
