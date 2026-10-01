@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Deal from '../db/models/deal.js';
+import Product from '../db/models/product.js';
 import { cacheMiddleware } from '../utils/cache.js';
 
 const router = express.Router();
@@ -117,12 +118,67 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       }
     }
 
-    const total = await Deal.countDocuments(query);
-    const deals = await Deal.find(query)
+    let total = await Deal.countDocuments(query);
+    let deals = await Deal.find(query)
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean();
+
+    // Fallback: If searching by keyword and 0 promotional deals found, search the permanent Product catalog
+    if (deals.length === 0 && req.query.q && page === 1) {
+      const qStr = req.query.q.trim();
+      const searchTokens = qStr.split(/\s+/).filter(Boolean);
+      const prodConditions = searchTokens.map(token => {
+        const regex = new RegExp(token, 'i');
+        return {
+          $or: [
+            { title: regex },
+            { productId: regex },
+            { cleanUrl: regex },
+            { brand: regex },
+            { merchant: regex }
+          ]
+        };
+      });
+      const prodQuery = {
+        $and: prodConditions,
+        isActive: true,
+        $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }]
+      };
+      const prods = await Product.find(prodQuery)
+        .select('_id productId title brand merchant category subcategory imageUrl images cleanUrl price originalPrice previousPrice rating country lastChecked')
+        .limit(limit)
+        .lean();
+
+      if (prods.length > 0) {
+        deals = prods.map(p => {
+          const discountPct = (p.originalPrice && p.price && p.originalPrice > p.price)
+            ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+            : 0;
+          return {
+            _id: p._id,
+            productId: p.productId,
+            title: p.title,
+            dealUrl: p.cleanUrl,
+            imageUrl: p.imageUrl || (p.images && p.images[0]),
+            dealPrice: p.price,
+            originalPrice: p.originalPrice,
+            previousPrice: p.previousPrice,
+            discountPercentage: discountPct,
+            merchant: p.merchant,
+            category: p.category,
+            subcategory: p.subcategory,
+            country: p.country || 'IN',
+            isExpired: false,
+            resolvedToProduct: true,
+            matchedProductId: p._id.toString(),
+            linkedProductId: p._id.toString(),
+          };
+        });
+        total = deals.length;
+      }
+    }
 
     res.json({
       success: true,
@@ -153,7 +209,42 @@ router.get('/:id', cacheMiddleware(30), async (req, res) => {
     if (!deal) {
       deal = await Deal.findOne({ productId: req.params.id }).sort({ createdAt: -1 }).lean();
     }
+
+    // Fallback: Check if the ID belongs to a canonical tracked Product
     if (!deal) {
+      let product = null;
+      if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+        product = await Product.findById(req.params.id).lean();
+      }
+      if (!product) {
+        product = await Product.findOne({ productId: req.params.id }).lean();
+      }
+      if (product) {
+        const discountPct = (product.originalPrice && product.price && product.originalPrice > product.price)
+          ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+          : 0;
+        return res.json({
+          success: true,
+          data: {
+            _id: product._id,
+            productId: product.productId,
+            title: product.title,
+            dealUrl: product.cleanUrl,
+            imageUrl: product.imageUrl || (product.images && product.images[0]),
+            dealPrice: product.price,
+            originalPrice: product.originalPrice,
+            previousPrice: product.previousPrice,
+            discountPercentage: discountPct,
+            merchant: product.merchant,
+            category: product.category,
+            subcategory: product.subcategory,
+            country: product.country || 'IN',
+            isExpired: false,
+            resolvedToProduct: true,
+            matchedProductId: product._id.toString(),
+          }
+        });
+      }
       return res.status(404).json({ success: false, error: 'Deal not found' });
     }
     res.json({ success: true, data: deal });

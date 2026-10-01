@@ -44,18 +44,23 @@ function dealToRecord(deal) {
 }
 
 function productToRecord(product) {
+  const img = product.imageUrl || (product.images && product.images[0]) || '';
   return {
     objectID: product._id.toString(),
     type: 'product',
     productId: product.productId,
     title: product.title || '',
+    brand: product.brand || '',
     merchant: getMerchant(product.merchant),
     category: product.category || 'home',
     subcategory: product.subcategory || 'decor',
-    imageUrl: product.imageUrl,
+    imageUrl: img,
     cleanUrl: product.cleanUrl,
     price: product.price ?? null,
     originalPrice: product.originalPrice ?? null,
+    previousPrice: product.previousPrice ?? null,
+    rating: product.rating ?? null,
+    country: product.country || 'IN',
     lastChecked: product.lastChecked ? new Date(product.lastChecked).getTime() : 0,
   };
 }
@@ -75,15 +80,19 @@ async function syncDeals() {
     .filter((d) => isUsableImageUrl(d.imageUrl) && !(d.discountPercentage > 90))
     .map(dealToRecord);
   if (records.length === 0) return 0;
-  await algoliaClient.saveObjects({ indexName: DEALS_INDEX, objects: records });
+  await algoliaClient.replaceAllObjects({ indexName: DEALS_INDEX, objects: records });
   return records.length;
 }
 
 async function syncProducts() {
-  const products = await Product.find({ ...INDIA_QUERY, isActive: true }).lean();
-  const records = products.filter((p) => isUsableImageUrl(p.imageUrl)).map(productToRecord);
+  const products = await Product.find({ ...INDIA_QUERY, isActive: true })
+    .select('_id productId title brand merchant category subcategory imageUrl images cleanUrl price originalPrice previousPrice rating country lastChecked')
+    .lean();
+  const records = products
+    .filter((p) => isUsableImageUrl(p.imageUrl || (p.images && p.images[0])))
+    .map(productToRecord);
   if (records.length === 0) return 0;
-  await algoliaClient.saveObjects({ indexName: PRODUCTS_INDEX, objects: records });
+  await algoliaClient.replaceAllObjects({ indexName: PRODUCTS_INDEX, objects: records });
   return records.length;
 }
 
@@ -99,8 +108,8 @@ async function configureIndexSettings() {
   await algoliaClient.setSettings({
     indexName: PRODUCTS_INDEX,
     indexSettings: {
-      searchableAttributes: ['title', 'merchant', 'category'],
-      attributesForFaceting: ['category', 'subcategory', 'merchant'],
+      searchableAttributes: ['title', 'brand', 'productId', 'merchant', 'category', 'subcategory'],
+      attributesForFaceting: ['category', 'subcategory', 'merchant', 'country'],
       customRanking: ['desc(lastChecked)'],
     },
   });
