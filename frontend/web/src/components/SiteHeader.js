@@ -101,9 +101,12 @@ export default function SiteHeader() {
     return baseHref;
   };
 
+  // Only synchronize query from URL when the user is NOT actively focused/typing in the search input.
   useEffect(() => {
-    setQuery(searchParams.get('q') || '');
-  }, [searchParams, pathname]);
+    if (!focused) {
+      setQuery(searchParams.get('q') || '');
+    }
+  }, [searchParams, pathname, focused]);
 
   const pushQuery = useCallback((value) => {
     const val = (value || '').trim();
@@ -128,72 +131,88 @@ export default function SiteHeader() {
     }
   }, [pathname, router, searchParams, activeCountry]);
 
-  // Debounce URL updates while typing so we don't spam navigation on every keystroke.
-  useEffect(() => {
-    const current = searchParams.get('q') || '';
-    if (query === current) return;
-    // If it looks like a URL, do not push to ?q= URL query parameter while typing
-    if (query.startsWith('http') || query.includes('amazon.') || query.includes('flipkart.')) return;
-    const t = setTimeout(() => pushQuery(query), 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
-
-  const handleKeyDown = async (e) => {
-    if (e.key === 'Enter') {
-      const q = query.trim();
-      if (
-        q.startsWith('http') ||
-        q.includes('amazon.') ||
-        q.includes('flipkart.com') ||
-        q.includes('amzn.to') ||
-        q.includes('fkrt.it') ||
-        q.includes('myntra.com') ||
-        q.includes('nykaa.com') ||
-        q.includes('ajio.com')
-      ) {
-        e.preventDefault();
-        setIsResolvingUrl(true);
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/products/lookup-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: q }),
-          });
-          const data = await res.json();
-          if (data.success && data.found && data.data) {
-            router.push(`/product/${data.data._id || data.data.productId}`);
-            return;
-          }
-          if (data.parsed && data.parsed.productId) {
-            router.push(`/product/${data.parsed.productId}`);
-            return;
-          }
-        } catch (err) {
-          console.error('[SiteHeader URL Lookup Error]', err);
-        } finally {
-          setIsResolvingUrl(false);
-        }
-      }
-      pushQuery(query);
+  const executeSearch = async (rawQuery) => {
+    const q = (rawQuery || '').trim();
+    if (!q) {
+      pushQuery('');
+      return;
     }
+
+    if (
+      q.startsWith('http') ||
+      q.includes('amazon.') ||
+      q.includes('flipkart.com') ||
+      q.includes('amzn.to') ||
+      q.includes('fkrt.it') ||
+      q.includes('myntra.com') ||
+      q.includes('nykaa.com') ||
+      q.includes('ajio.com')
+    ) {
+      setIsResolvingUrl(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/products/lookup-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: q }),
+        });
+        const data = await res.json();
+        if (data.success && data.found && data.data) {
+          router.push(`/product/${data.data._id || data.data.productId}`);
+          return;
+        }
+        if (data.parsed && data.parsed.productId) {
+          router.push(`/product/${data.parsed.productId}`);
+          return;
+        }
+      } catch (err) {
+        console.error('[SiteHeader URL Lookup Error]', err);
+      } finally {
+        setIsResolvingUrl(false);
+      }
+    }
+    pushQuery(q);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      executeSearch(query);
+    }
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    pushQuery('');
   };
 
   const currentCountryObj = SUPPORTED_COUNTRIES.find((c) => c.code === activeCountry) || SUPPORTED_COUNTRIES[0];
 
   const renderSearch = (idPrefix) => (
-    <>
-      {isResolvingUrl ? (
-        <svg className="h-4 w-4 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9a9a9a" strokeWidth="2" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      )}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        executeSearch(query);
+      }}
+      className="flex w-full items-center"
+      role="search"
+    >
+      <button
+        type="submit"
+        aria-label="Submit search"
+        className="flex shrink-0 items-center justify-center text-[#9a9a9a] transition-colors hover:text-brand"
+      >
+        {isResolvingUrl ? (
+          <svg className="h-4 w-4 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        )}
+      </button>
       <input
         id={`${idPrefix}-search`}
         type="search"
@@ -207,18 +226,26 @@ export default function SiteHeader() {
         className="ml-2 flex-1 bg-transparent text-[13px] text-[#1a1a1a] placeholder:text-[#9a9a9a] outline-none"
       />
       {!!query && (
-        <button type="button" aria-label="Clear search" onClick={() => setQuery('')}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="#c4c4c4"><circle cx="12" cy="12" r="10" /></svg>
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={handleClear}
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#9a9a9a] transition-colors hover:bg-neutral-200 hover:text-[#333]"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       )}
-    </>
+    </form>
   );
 
   return (
     <header className="sticky top-0 z-50 w-full">
       {/* Announcement strip — festive sale context */}
       <div className="w-full bg-gradient-to-r from-[#FF6B00] via-[#e05d00] to-[#FF6B00]">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-center px-4 py-1.5 md:px-8">
+        <div className="mx-auto flex w-full max-w-[1720px] 2xl:max-w-[1840px] items-center justify-center px-4 py-1.5 md:px-8">
           <p className="truncate text-[11px] font-black tracking-wide text-white text-center">
             <span className="md:hidden">🔥 Amazon GIF &amp; Flipkart BBD LIVE — Real deals tracked in real-time</span>
             <span className="hidden md:inline">🔥 Amazon Great Indian Festival &amp; Flipkart Big Billion Days are LIVE — Every deal verified against 90-day price history</span>
@@ -228,7 +255,7 @@ export default function SiteHeader() {
 
       {/* Main bar */}
       <div className="w-full border-b border-[#eee] bg-white">
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-2.5 md:px-8 md:py-3">
+        <div className="mx-auto w-full max-w-[1720px] 2xl:max-w-[1840px] px-4 py-2.5 md:px-8 md:py-3">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex shrink-0 flex-row items-center">
               <Image src="/logo.png" alt="ShoppersDeals Logo" width={32} height={32} className="mr-1.5 h-7 w-7 rounded-md md:mr-2 md:h-8 md:w-8" priority />
@@ -263,8 +290,8 @@ export default function SiteHeader() {
 
             {/* Desktop search */}
             <div
-              className={`hidden h-10 max-w-[460px] flex-1 items-center rounded-full border bg-[#f5f5f6] px-4 md:flex ${
-                focused ? 'border-brand' : 'border-[#e8e8e8]'
+              className={`hidden h-10 max-w-[560px] xl:max-w-[640px] flex-1 items-center rounded-full border bg-[#f5f5f6] px-4 md:flex ${
+                focused ? 'border-brand ring-2 ring-brand/10 bg-white' : 'border-[#e8e8e8]'
               }`}
             >
               {renderSearch('desktop')}

@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function SiteFooter() {
   return (
     <footer className="w-full bg-[#0f172a] pt-12 text-[#94a3b8]">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-wrap justify-between gap-10 px-6 pb-10">
+      <div className="mx-auto flex w-full max-w-[1720px] 2xl:max-w-[1840px] flex-wrap justify-between gap-10 px-6 pb-10">
         {/* Brand & Mission */}
         <div className="min-w-[280px] max-w-[420px] flex-1">
           <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ export default function SiteFooter() {
 
       {/* Bottom Copyright & Disclaimer Bar */}
       <div className="w-full border-t border-[#1e293b] px-6 py-5 text-center bg-[#090e1a]">
-        <p className="mx-auto max-w-[1440px] text-[11px] leading-relaxed text-[#64748b]">
+        <p className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] text-[11px] leading-relaxed text-[#64748b]">
           © {new Date().getFullYear()} ShoppersDeals. All rights reserved. Prices and availability are accurate as of the date/time indicated and are subject to change. As an Amazon Associate and affiliate partner, we earn from qualifying purchases.
         </p>
       </div>
