@@ -33,14 +33,21 @@ export default function PushPromptBanner() {
     return () => clearTimeout(timer);
   }, [isSupported, isSubscribed, permission]);
 
+  const [blockedMsg, setBlockedMsg] = useState('');
+
   const handleAllow = async () => {
     try {
+      setBlockedMsg('');
       const res = await subscribeToPush();
       if (res?.success) {
         setSuccessMsg('🎉 Notifications enabled! You will get instant alerts on price drops.');
         setTimeout(() => {
           setIsVisible(false);
         }, 2200);
+      } else if (res?.reason === 'permission_denied') {
+        setBlockedMsg('Chrome blocked notifications for this site. Click the 🔒 or 🔔 icon in the address bar above to switch Notifications to Allow.');
+      } else {
+        setIsVisible(false);
       }
     } catch (err) {
       console.warn('[PushPromptBanner] User closed or denied permission:', err.message);
@@ -89,7 +96,28 @@ export default function PushPromptBanner() {
 
         {/* Content body */}
         <div className="p-4">
-          {successMsg ? (
+          {blockedMsg ? (
+            <div>
+              <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800">
+                <span className="text-base shrink-0">🔒</span>
+                <div>
+                  <p className="font-bold text-rose-900">Chrome blocked notifications for this site</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-rose-700">
+                    Click the <strong>🔒 lock or 🔔 crossed-out bell icon in your Chrome address bar</strong> above, and switch <strong>Notifications to &quot;Allow&quot;</strong>.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsVisible(false)}
+                  className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          ) : successMsg ? (
             <div className="flex items-center gap-2.5 py-1 text-xs font-bold text-emerald-700">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 font-black">
                 ✓

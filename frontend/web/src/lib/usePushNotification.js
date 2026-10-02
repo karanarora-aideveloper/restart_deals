@@ -99,7 +99,7 @@ export function usePushNotification() {
    */
   const subscribeToPush = useCallback(async (productId = null) => {
     if (!isSupported) {
-      throw new Error('Browser push notifications are not supported on this device/browser.');
+      return { success: false, error: 'Browser push notifications are not supported on this device/browser.' };
     }
 
     setLoading(true);
@@ -111,7 +111,8 @@ export function usePushNotification() {
       setPermission(perm);
 
       if (perm !== 'granted') {
-        throw new Error('Notification permission was ' + perm);
+        // User dismissed or denied permission — standard user action, not a fatal exception
+        return { success: false, reason: 'permission_' + perm, permission: perm };
       }
 
       // 2. Register service worker if needed
@@ -171,9 +172,9 @@ export function usePushNotification() {
 
       return { success: true, subscription: sub };
     } catch (err) {
-      console.error('[usePushNotification] Error subscribing:', err);
+      console.warn('[usePushNotification] Subscription not completed:', err.message);
       setError(err.message);
-      throw err;
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
@@ -221,7 +222,7 @@ export function usePushNotification() {
 
       return true;
     } catch (err) {
-      console.error('[usePushNotification] Error tracking product:', err);
+      console.warn('[usePushNotification] Error tracking product:', err.message);
       setError(err.message);
       return false;
     } finally {

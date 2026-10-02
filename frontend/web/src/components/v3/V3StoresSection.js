@@ -10,7 +10,7 @@ import {
   AjioLogo,
   MeeshoLogo,
   CromaLogo,
-} from '@/components/v2/BrandAndStoreLogos';
+} from '@/components/BrandAndStoreLogos';
 
 export default function V3StoresSection() {
   const stores = [
@@ -42,7 +42,7 @@ export default function V3StoresSection() {
           {stores.map((s) => (
             <Link
               key={s.id}
-              href={`/v3#deals`}
+              href={`/#deals`}
               className="flex flex-col items-center justify-between rounded-2xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-4 transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 hover:bg-white hover:shadow-md text-center group min-w-0"
             >
               <div className="h-8 sm:h-10 flex items-center justify-center max-w-full overflow-hidden">

@@ -10,7 +10,7 @@ import {
   AjioLogo,
   MeeshoLogo,
   CromaLogo,
-} from '@/components/v2/BrandAndStoreLogos';
+} from '@/components/BrandAndStoreLogos';
 import { logEvent } from '@/lib/analytics';
 
 const MONITORED_STORES = [
@@ -106,7 +106,7 @@ export default function V3StoreDealsRail() {
           {MONITORED_STORES.map((store) => (
             <Link
               key={store.id}
-              href={`/v3#deals`}
+              href={`/#deals`}
               onClick={() => handleStoreClick(store)}
               className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-slate-50/50 p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-400 hover:bg-white hover:shadow-md min-w-0"
             >

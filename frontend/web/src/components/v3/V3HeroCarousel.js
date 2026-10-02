@@ -14,6 +14,7 @@ const SLIDES = [
     ctaText: 'Explore Verified Deals',
     ctaHref: '#deals',
     bgGradient: 'from-[#1E1B4B] via-[#2E2875] to-[#B45309]',
+    image: '/carousel/festival.jpg',
     icon: '⚡',
   },
   {
@@ -26,6 +27,7 @@ const SLIDES = [
     ctaText: 'View Card Offers',
     ctaHref: '/credit-cards',
     bgGradient: 'from-[#0B132B] via-[#1C2541] to-[#059669]',
+    image: '/carousel/cards.jpg',
     icon: '💳',
   },
   {
@@ -38,6 +40,7 @@ const SLIDES = [
     ctaText: 'Shop Fashion Deals',
     ctaHref: '#deals',
     bgGradient: 'from-[#2A0845] via-[#6441A5] to-[#BE185D]',
+    image: '/carousel/fashion.jpg',
     icon: '💄',
   },
   {
@@ -50,6 +53,7 @@ const SLIDES = [
     ctaText: 'Compare Grocery Now',
     ctaHref: '/compare?cat=grocery',
     bgGradient: 'from-[#022C22] via-[#065F46] to-[#0D9488]',
+    image: '/carousel/grocery.jpg',
     icon: '🛒',
   },
 ];
@@ -116,10 +120,16 @@ export default function V3HeroCarousel() {
             </div>
           </div>
 
-          {/* Right Icon Graphic */}
-          <div className="hidden lg:flex shrink-0 items-center justify-center">
-            <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-white/10 border border-white/20 text-6xl shadow-2xl backdrop-blur-xs">
-              {slide.icon}
+          {/* Right Illustrated Graphic Banner */}
+          <div className="hidden md:flex shrink-0 items-center justify-center">
+            <div className="relative w-72 lg:w-96 aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/20 group">
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="w-full h-full object-cover object-center transform transition-transform duration-700 hover:scale-105"
+                loading="eager"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
             </div>
           </div>
         </div>

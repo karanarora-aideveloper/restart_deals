@@ -135,20 +135,6 @@ export default function RootLayout({ children }) {
           </>
         )}
 
-        {/* Cuelinks Auto-Monetization Script: Automatically monetizes any static or markdown links */}
-        <Script id="cuelinks-js" strategy="lazyOnload">
-          {`
-            var pubID = "325472";
-            var cId = "325472";
-            var cueLinks = true;
-            var installationSource = "js";
-            (function() {
-              var cl = document.createElement('script'); cl.type = 'text/javascript'; cl.async = true;
-              cl.src = 'https://cdn0.cuelinks.com/js/cuelinksv2.js';
-              var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(cl, s);
-            })();
-          `}
-        </Script>
 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }} />

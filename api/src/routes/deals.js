@@ -113,7 +113,7 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         sort = { dealPrice: -1 };
       } else if (req.query.sort === 'rating') {
         sort = { rating: -1 };
-      } else if (req.query.sort === 'latest') {
+      } else if (req.query.sort === 'latest' || req.query.sort === 'newest') {
         sort = { createdAt: -1 };
       }
     }

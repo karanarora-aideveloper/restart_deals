@@ -3,6 +3,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import V3DealCard from './V3DealCard';
 import { getSavedDeals } from '@/lib/savedDeals';
+import { API_BASE_URL } from '@/lib/config';
+import { isUsableImageUrl } from '@/lib/affiliate';
+
+function sortDealsByDealTime(items) {
+  if (!Array.isArray(items)) return [];
+  return [...items].sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
+    const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
+    return timeB - timeA;
+  });
+}
 
 const CATEGORIES = [
   { id: 'all', label: 'All Categories' },
@@ -35,7 +46,7 @@ const STORES = [
 ];
 
 export default function V3FeedContainer({ initialDeals = [], initialHasMore = false, category = 'all', country = 'in' }) {
-  const [deals, setDeals] = useState(initialDeals);
+  const [deals, setDeals] = useState(() => sortDealsByDealTime(initialDeals));
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -48,6 +59,11 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
   useEffect(() => {
     setSavedDeals(getSavedDeals());
   }, []);
+
+  useEffect(() => {
+    setDeals(sortDealsByDealTime(initialDeals));
+    setHasMore(initialHasMore);
+  }, [initialDeals, initialHasMore]);
 
   // Fetch deals with filters
   const fetchFilteredDeals = useCallback(async (cat, store, minDisc, targetPage = 1, append = false) => {
@@ -69,17 +85,18 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
       if (store && store !== 'all') params.set('merchant', store);
       if (minDisc && minDisc > 0) params.set('minDiscount', minDisc.toString());
 
-      const res = await fetch(`/api/deals?${params.toString()}`);
+      const res = await fetch(`${API_BASE_URL}/api/deals?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch deals');
       const data = await res.json();
-      const newItems = data.items || data.deals || [];
+      const rawList = data.data || data.deals || data.items || [];
+      const newItems = sortDealsByDealTime(rawList.filter((d) => isUsableImageUrl(d.imageUrl)));
 
       if (append) {
-        setDeals((prev) => [...prev, ...newItems]);
+        setDeals((prev) => sortDealsByDealTime([...prev, ...newItems]));
       } else {
         setDeals(newItems);
       }
-      setHasMore(Boolean(data.hasMore));
+      setHasMore(Boolean(data.pagination ? targetPage < data.pagination.pages : rawList.length >= 24));
       setPage(targetPage);
     } catch (err) {
       console.error('[V3FeedContainer Fetch Error]', err);

@@ -8,14 +8,27 @@ import React from 'react';
  */
 
 export function AmazonLogo({ className = 'h-5 w-auto' }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (hasError) {
+    return (
+      <svg className={className} viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="2" y="20" fontFamily="sans-serif" fontSize="18" fontWeight="900" fill="#111827">amazon</text>
+        <path d="M5 23c20 6 50 6 65-3" stroke="#FF9900" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M68 18l3 2.5-3 2.5" fill="#FF9900" />
+      </svg>
+    );
+  }
+
   return (
-    <svg className={className} viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* amazon wordmark + smile */}
-      <path d="M16.5 17.5c-3.8 0-6.2-2.1-6.2-5.5 0-3.6 2.7-5.4 6.8-5.4 2.2 0 4 .5 5.2 1.1v-1.6c0-2.3-1.6-3.6-4.5-3.6-2.3 0-4.3.7-5.7 1.8l-1.3-2.6C12.8.5 15.4 0 18.5 0c4.9 0 7.8 2.4 7.8 6.8v10.4h-3.2v-2c-1.3 1.4-3.5 2.3-6.6 2.3zm.7-2.6c2.4 0 4.2-1.3 4.9-2.8V9.8c-.9-.4-2.2-.8-3.9-.8-2.6 0-4.3 1.1-4.3 3.1 0 1.7 1.2 2.8 3.3 2.8zM31 17.2V0h3.5v6.5c1.4-1.6 3.5-2.5 5.7-2.5 4.3 0 7.5 3.3 7.5 8.2 0 5-3.2 8.3-7.5 8.3-2.2 0-4.3-.9-5.7-2.5v7.8H31zm8.3-2.6c2.8 0 4.9-2.1 4.9-5.3 0-3.2-2.1-5.3-4.9-5.3-2.8 0-4.9 2.1-4.9 5.3 0 3.2 2.1 5.3 4.9 5.3z" fill="#111827"/>
-      {/* Orange smile curve */}
-      <path d="M5.5 22.8c18.5 7.8 45.2 5.5 61.2-4.2 1.2-.7 2.3 1 1.2 1.9-17.5 10.6-46.6 13-64 4.3-1.2-.6.4-2.5 1.6-2z" fill="#FF9900"/>
-      <path d="M69.8 19.3c-.8 1.4-2.4 2.8-4.2 3.6-.3.1-.6-.2-.4-.5 1-1.3 2.6-3.7 2.8-5.3.1-.3.4-.4.6-.2 1 1 2.8 2 4.4 2.5.4.1.4.6.1.7-1.1.4-2.4-.1-3.3-.8z" fill="#FF9900"/>
-    </svg>
+    <img
+      src="/amazon.webp"
+      alt="Amazon"
+      className={className}
+      loading="eager"
+      decoding="async"
+      onError={() => setHasError(true)}
+    />
   );
 }
 

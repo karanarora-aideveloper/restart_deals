@@ -230,8 +230,16 @@ export default function ProfilePage() {
                 onClick={async () => {
                   setPushStatusMsg('');
                   try {
-                    await subscribeToPush();
-                    setPushStatusMsg('Push alerts enabled successfully!');
+                    const res = await subscribeToPush();
+                    if (res?.success) {
+                      setPushStatusMsg('Push alerts enabled successfully!');
+                    } else if (res?.reason === 'permission_denied') {
+                      setPushStatusMsg('Notifications are blocked in your browser settings. Please enable them to get alerts.');
+                    } else if (res?.reason === 'permission_default') {
+                      setPushStatusMsg('Notification prompt was dismissed.');
+                    } else {
+                      setPushStatusMsg(res?.error || 'Could not enable push alerts.');
+                    }
                   } catch (err) {
                     setPushStatusMsg(err.message || 'Could not enable push alerts.');
                   }

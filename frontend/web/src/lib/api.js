@@ -113,7 +113,13 @@ export async function fetchDeals({
   // filter below so a page that happens to be mostly imageless doesn't look like "no more
   // results" and cut pagination short.
   const finalItems = aggregateSeriesFeed(raw.filter((d) => isUsableImageUrl(d.imageUrl)));
-  return { items: finalItems, hasMore: raw.length >= limit };
+  // Guarantee strict newest-first sorting by authentic deal publication timestamp
+  const sortedItems = [...finalItems].sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
+    const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
+    return timeB - timeA;
+  });
+  return { items: sortedItems, hasMore: raw.length >= limit };
 }
 
 export async function fetchDealById(id) {

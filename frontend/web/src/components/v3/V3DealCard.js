@@ -7,7 +7,7 @@ import { logEvent } from '@/lib/analytics';
 import { isDealSaved, saveDealItem } from '@/lib/savedDeals';
 import { useAuth } from '@/components/AuthProvider';
 import { emitSavedChanged } from '@/lib/useSavedCount';
-import { renderStoreLogo } from '@/components/v2/BrandAndStoreLogos';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 function formatInr(val) {
   if (val === null || val === undefined || isNaN(val)) return 'Special Price';
@@ -43,7 +43,8 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   const saved = isDealSaved(dealId, savedDeals);
   const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
   const affiliateUrl = getAffiliateUrl(deal.dealUrl || deal.url, dealCountry);
-  const verifiedTime = formatRelativeTime(deal.lastVerifiedAt || deal.updatedAt || deal.createdAt);
+  const dealTime = deal.createdAt || deal.postedAt || deal.updatedAt || deal.lastVerifiedAt;
+  const verifiedTime = formatRelativeTime(dealTime);
 
   const rawImage = deal.imageUrl || (Array.isArray(deal.images) && deal.images[0]) || '';
   const hasValidImage = isUsableImageUrl(rawImage) && !imgError;
@@ -84,8 +85,8 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
         {/* Top Header: Store Logo + Verified Badge + Wishlist */}
         <div className="flex items-center justify-between gap-1.5 mb-2">
           {/* Store Logo */}
-          <div className="flex items-center rounded-lg border border-slate-200/70 bg-slate-50/80 px-2 py-1 max-w-[85px] sm:max-w-[95px] overflow-hidden">
-            {renderStoreLogo(deal.merchant || merchant.name, 'h-4 w-full object-contain')}
+          <div className="flex h-7 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 min-w-[70px] max-w-[92px] shrink-0">
+            {renderStoreLogo(deal.merchant || merchant.name, 'h-4 max-h-4 w-auto max-w-full object-contain')}
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
