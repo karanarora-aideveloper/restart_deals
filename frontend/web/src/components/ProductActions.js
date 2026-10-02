@@ -194,6 +194,19 @@ export default function ProductActions({ product, merchant }) {
     }
   };
 
+  const handleQuickPushTrack = async () => {
+    if (!prodId || isTracked || pushLoading) return;
+    try {
+      const ok = await trackProduct(prodId);
+      if (ok) {
+        setJustTracked(true);
+        logEvent('track_product_push', { product_id: prodId, title: product?.title });
+      }
+    } catch (err) {
+      console.warn('[handleQuickPushTrack] Failed to track product:', err);
+    }
+  };
+
   return (
     <>
       {/* 1. Data Freshness Bar — Fix #4: amber warning when data is stale */}
