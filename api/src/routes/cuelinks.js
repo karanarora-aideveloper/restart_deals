@@ -5,6 +5,30 @@ import { requireAdminAuth } from '../middleware/adminAuth.js';
 const router = express.Router();
 
 /**
+ * GET / or /api/cuelinks or /api/coupons
+ * When accessed via /api/coupons, directly returns coupons list.
+ * When accessed via /api/cuelinks, returns integration status.
+ */
+router.get('/', async (req, res) => {
+  try {
+    if (req.baseUrl.includes('coupons')) {
+      const { page = 1, per_page = 20, campaign_id, q } = req.query;
+      const data = await cuelinksService.getCoupons({
+        page: Number(page),
+        per_page: Number(per_page),
+        campaign_id,
+        search: q,
+      });
+      return res.json(data);
+    }
+    const status = await cuelinksService.checkStatus();
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/cuelinks/status
  * Public status check for Cuelinks integration
  */
