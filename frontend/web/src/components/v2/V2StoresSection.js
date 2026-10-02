@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { renderStoreLogo } from './BrandAndStoreLogos';
 
 const STORES = [
   {
@@ -8,11 +9,10 @@ const STORES = [
     name: 'Amazon India',
     tagline: 'Great Indian Festival',
     discount: 'Up to 80% Off',
-    badge: 'Prime Verified',
+    badge: 'Verified Deals',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
     borderHover: 'hover:border-amber-400 hover:shadow-amber-100',
     bgGradient: 'from-amber-500/10 via-amber-50/40 to-white',
-    icon: '🛒',
     popularIn: 'Electronics, Mobiles, Pantry',
   },
   {
@@ -20,11 +20,10 @@ const STORES = [
     name: 'Flipkart',
     tagline: 'Big Billion Days',
     discount: 'Up to 85% Off',
-    badge: 'Plus Assured',
+    badge: 'Assured Loot',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
     borderHover: 'hover:border-blue-400 hover:shadow-blue-100',
     bgGradient: 'from-blue-500/10 via-blue-50/40 to-white',
-    icon: '⚡',
     popularIn: 'Smartphones, TVs, Laptops',
   },
   {
@@ -36,7 +35,6 @@ const STORES = [
     badgeColor: 'bg-pink-100 text-pink-800 border-pink-300',
     borderHover: 'hover:border-pink-400 hover:shadow-pink-100',
     bgGradient: 'from-pink-500/10 via-pink-50/40 to-white',
-    icon: '👗',
     popularIn: 'Sneakers, Clothing, Watches',
   },
   {
@@ -44,11 +42,10 @@ const STORES = [
     name: 'Nykaa',
     tagline: 'Beauty Mega Sale',
     discount: 'Up to 60% Off',
-    badge: 'Authentic Brands',
+    badge: 'Authentic Beauty',
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
     borderHover: 'hover:border-rose-400 hover:shadow-rose-100',
     bgGradient: 'from-rose-500/10 via-rose-50/40 to-white',
-    icon: '💄',
     popularIn: 'Makeup, Skincare, Fragrances',
   },
   {
@@ -60,7 +57,6 @@ const STORES = [
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
     borderHover: 'hover:border-amber-500 hover:shadow-amber-100',
     bgGradient: 'from-amber-600/10 via-amber-50/40 to-white',
-    icon: '🕶️',
     popularIn: 'Streetwear, Jackets, Footwear',
   },
   {
@@ -72,7 +68,6 @@ const STORES = [
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
     borderHover: 'hover:border-purple-400 hover:shadow-purple-100',
     bgGradient: 'from-purple-500/10 via-purple-50/40 to-white',
-    icon: '🎁',
     popularIn: 'Home Essentials, Kitchen, Ethnic',
   },
 ];
@@ -109,7 +104,7 @@ export default function V2StoresSection({ activeMerchant = 'all', onSelectMercha
           )}
         </div>
 
-        {/* Store Cards Grid */}
+        {/* Store Cards Grid with Official Logos */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5 sm:gap-4">
           {STORES.map((s) => {
             const isSelected = activeMerchant.toLowerCase() === s.id;
@@ -123,10 +118,12 @@ export default function V2StoresSection({ activeMerchant = 'all', onSelectMercha
                     : 'border-slate-200 hover:shadow-lg hover:-translate-y-1 ' + s.borderHover
                 }`}
               >
-                {/* Store Icon & Badge */}
-                <div className="flex items-center justify-between gap-1 mb-3">
-                  <span className="text-2xl">{s.icon}</span>
-                  <span className={`rounded-full border px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider ${s.badgeColor}`}>
+                {/* Official Store Logo & Badge */}
+                <div className="flex items-center justify-between gap-1 mb-3.5">
+                  <div className="h-6 flex items-center">
+                    {renderStoreLogo(s.id, 'h-5 max-w-[85px] object-contain')}
+                  </div>
+                  <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${s.badgeColor}`}>
                     {s.badge}
                   </span>
                 </div>

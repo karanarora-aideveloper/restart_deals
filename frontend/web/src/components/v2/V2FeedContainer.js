@@ -39,8 +39,8 @@ export default function V2FeedContainer({
     setDeals((prev) => prev.filter((d) => (d._id || d.id) !== dealId));
   }, []);
 
-  // Fetch when Category or Store changes from API
-  const fetchCategoryOrStore = useCallback(async (cat, store) => {
+  // Fetch from backend whenever Category, Store, or Brand changes
+  const fetchFilteredDeals = useCallback(async (cat, store, brandQuery) => {
     setIsRefreshing(true);
     try {
       const params = new URLSearchParams();
@@ -49,6 +49,7 @@ export default function V2FeedContainer({
       params.set('country', 'in'); // Strict India filter
       if (cat && cat !== 'all') params.set('category', cat);
       if (store && store !== 'all') params.set('merchant', store);
+      if (brandQuery && brandQuery !== 'all') params.set('q', brandQuery);
 
       const res = await fetch(`${API_BASE_URL}/api/deals?${params.toString()}`);
       const data = await res.json();
@@ -57,7 +58,7 @@ export default function V2FeedContainer({
       );
       setDeals(items);
       setPage(1);
-      setHasMore(items.length >= 30);
+      setHasMore(items.length >= 20);
     } catch (err) {
       console.error('[V2FeedContainer Refresh Error]', err);
     } finally {
@@ -67,20 +68,21 @@ export default function V2FeedContainer({
 
   const handleSelectMerchant = (merchantId) => {
     setActiveMerchant(merchantId);
-    fetchCategoryOrStore(activeCategory, merchantId);
+    fetchFilteredDeals(activeCategory, merchantId, activeBrand);
     feedTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleSelectBrand = (brandId) => {
     setActiveBrand(brandId);
+    fetchFilteredDeals(activeCategory, activeMerchant, brandId);
     feedTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Client-side filtering & sorting for zero-latency filter response
+  // Client-side filtering & sorting for instant responsiveness
   const filteredDeals = useMemo(() => {
     let result = [...deals];
 
-    // Filter strictly to Indian deals to prevent random US items
+    // Filter strictly to Indian deals
     result = result.filter((d) => (d.country || 'IN').toUpperCase() === 'IN');
 
     // Filter by merchant
@@ -93,10 +95,11 @@ export default function V2FeedContainer({
 
     // Filter by brand
     if (activeBrand !== 'all') {
+      const target = activeBrand.toLowerCase();
       result = result.filter((d) => {
         const title = (d.title || '').toLowerCase();
         const brand = (d.brand || '').toLowerCase();
-        return title.includes(activeBrand.toLowerCase()) || brand.includes(activeBrand.toLowerCase());
+        return title.includes(target) || brand.includes(target);
       });
     }
 
@@ -141,6 +144,7 @@ export default function V2FeedContainer({
       params.set('country', 'in'); // Strict India filter
       if (activeCategory !== 'all') params.set('category', activeCategory);
       if (activeMerchant !== 'all') params.set('merchant', activeMerchant);
+      if (activeBrand !== 'all') params.set('q', activeBrand);
 
       const res = await fetch(`${API_BASE_URL}/api/deals?${params.toString()}`);
       const data = await res.json();
@@ -154,7 +158,7 @@ export default function V2FeedContainer({
           return [...prev, ...unique];
         });
         setPage(nextPage);
-        setHasMore(newItems.length >= 30);
+        setHasMore(newItems.length >= 25);
       } else {
         setHasMore(false);
       }
@@ -163,7 +167,7 @@ export default function V2FeedContainer({
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, activeCategory, activeMerchant]);
+  }, [loadingMore, hasMore, page, activeCategory, activeMerchant, activeBrand]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -180,13 +184,13 @@ export default function V2FeedContainer({
 
   return (
     <div className="w-full">
-      {/* ═══ SECTION 1: DEALS BY STORES ═══ */}
+      {/* ═══ SECTION 1: DEALS BY STORES (Official Logos) ═══ */}
       <V2StoresSection
         activeMerchant={activeMerchant}
         onSelectMerchant={handleSelectMerchant}
       />
 
-      {/* ═══ SECTION 2: DEALS BY BRANDS ═══ */}
+      {/* ═══ SECTION 2: DEALS BY BRANDS (Official Vector Logos) ═══ */}
       <V2BrandsSection
         activeBrand={activeBrand}
         onSelectBrand={handleSelectBrand}
@@ -209,7 +213,7 @@ export default function V2FeedContainer({
               <span className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 font-bold text-slate-800 shadow-2xs border">
                 <span>Brand:</span>
                 <span className="capitalize">{activeBrand}</span>
-                <button type="button" onClick={() => setActiveBrand('all')} className="text-slate-400 hover:text-red-500 font-black">×</button>
+                <button type="button" onClick={() => handleSelectBrand('all')} className="text-slate-400 hover:text-red-500 font-black">×</button>
               </span>
             )}
             {activeMinDiscount > 0 && (
@@ -222,7 +226,7 @@ export default function V2FeedContainer({
               type="button"
               onClick={() => {
                 handleSelectMerchant('all');
-                setActiveBrand('all');
+                handleSelectBrand('all');
                 setActiveMinDiscount(0);
               }}
               className="ml-auto font-black text-brand underline text-[11px]"
@@ -272,7 +276,7 @@ export default function V2FeedContainer({
               type="button"
               onClick={() => {
                 handleSelectMerchant('all');
-                setActiveBrand('all');
+                handleSelectBrand('all');
                 setActiveMinDiscount(0);
               }}
               className="mt-5 rounded-xl bg-brand px-5 py-2.5 text-xs font-extrabold text-white shadow-xs hover:bg-[#e05d00]"
