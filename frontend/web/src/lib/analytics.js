@@ -128,6 +128,9 @@ export function initPostHog() {
         },
       },
       loaded: (ph) => {
+        if (typeof window !== 'undefined') {
+          window.posthog = ph;
+        }
         if (process.env.NODE_ENV === 'development') {
           ph.debug(false);
         }
@@ -142,6 +145,9 @@ export function initPostHog() {
       },
     });
 
+    if (typeof window !== 'undefined') {
+      window.posthog = posthog;
+    }
     isInitialized = true;
   } catch (err) {
     console.warn('[PostHog Init Error]', err);
