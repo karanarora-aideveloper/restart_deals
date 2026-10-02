@@ -137,21 +137,89 @@ router.get('/', optionalAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     const email = req.query.email ? req.query.email.trim().toLowerCase() : null;
+    const phone = req.query.phone ? req.query.phone.replace(/[^0-9+]/g, '') : null;
 
-    if (!userId && !email) {
-      return res.status(400).json({ success: false, error: 'Authentication token or email query parameter is required' });
+    if (!userId && !email && !phone) {
+      return res.status(400).json({ success: false, error: 'Authentication token, email, or phone query parameter is required' });
     }
 
     const filter = {
       status: 'active',
-      ...(userId ? { userId } : { email }),
+      $or: [
+        ...(userId ? [{ userId }] : []),
+        ...(email ? [{ email }] : []),
+        ...(phone ? [{ phone }] : []),
+      ],
     };
 
-    const alerts = await PriceAlert.find(filter).sort({ createdAt: -1 }).lean();
-    res.json({ success: true, data: alerts });
+    const rawAlerts = await PriceAlert.find(filter).sort({ createdAt: -1 }).lean();
+
+    // Enrich alerts with current live price and fresh assets from products collection
+    const enrichedAlerts = await Promise.all(
+      rawAlerts.map(async (alert) => {
+        let prod = null;
+        if (alert.productId) {
+          prod = await Product.findOne({ productId: alert.productId }).select('price previousPrice originalPrice imageUrl images cleanUrl title merchant').lean();
+          if (!prod && mongoose.Types.ObjectId.isValid(alert.productId)) {
+            prod = await Product.findById(alert.productId).select('price previousPrice originalPrice imageUrl images cleanUrl title merchant').lean();
+          }
+        }
+        const currentPrice = prod?.price != null ? prod.price : alert.initialPrice;
+        const targetMet = currentPrice != null && currentPrice <= alert.targetPrice;
+        const priceDrop = alert.initialPrice && currentPrice ? alert.initialPrice - currentPrice : 0;
+
+        return {
+          ...alert,
+          currentPrice,
+          originalPrice: prod?.originalPrice || null,
+          title: alert.title || prod?.title || 'Tracked Product',
+          imageUrl: alert.imageUrl || prod?.imageUrl || (prod?.images && prod.images[0]) || '',
+          cleanUrl: alert.cleanUrl || prod?.cleanUrl || '',
+          merchant: alert.merchant || prod?.merchant || 'amazon',
+          targetMet,
+          priceDrop: Math.max(0, priceDrop),
+          linkedProductId: prod?._id ? prod._id.toString() : null,
+        };
+      })
+    );
+
+    res.json({ success: true, data: enrichedAlerts });
   } catch (err) {
     console.error('[API Error] GET /api/alerts failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to fetch alerts' });
+  }
+});
+
+/**
+ * PATCH /api/alerts/:id
+ * Update target price or details of an active alert
+ */
+router.patch('/:id', async (req, res) => {
+  try {
+    const { targetPrice } = req.body;
+    const numericTarget = Number(targetPrice);
+    if (isNaN(numericTarget) || numericTarget <= 0) {
+      return res.status(400).json({ success: false, error: 'targetPrice must be a positive number' });
+    }
+
+    const alert = await PriceAlert.findByIdAndUpdate(
+      req.params.id,
+      { $set: { targetPrice: numericTarget, updatedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!alert) {
+      return res.status(404).json({ success: false, error: 'Price alert not found' });
+    }
+
+    res.json({
+      success: true,
+      message: `Target price updated to ₹${numericTarget.toLocaleString('en-IN')}`,
+      data: alert,
+    });
+  } catch (err) {
+    console.error(`[API Error] PATCH /api/alerts/${req.params.id} failed:`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to update alert: ' + err.message });
   }
 });
 
