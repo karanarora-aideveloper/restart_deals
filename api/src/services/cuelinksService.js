@@ -177,13 +177,13 @@ export async function getCampaigns({ page = 1, per_page = 20, access_status = 'o
 /**
  * Fetches live promotional offers, discounts, and coupons from Cuelinks API v3
  */
-export async function getOffers({ page = 1, per_page = 20, campaign_id = null } = {}) {
+export async function getOffers({ page = 1, per_page = 20, campaign_id = null, offer_type = null, search = null } = {}) {
   const apiKey = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || CUELINKS_API_KEY;
   if (!apiKey) {
     return { success: false, error: 'CUELINKS_API_KEY is not configured', offers: [] };
   }
 
-  const cacheKey = `cuelinks:offers:${page}:${per_page}:${campaign_id || 'all'}`;
+  const cacheKey = `cuelinks:offers:${page}:${per_page}:${campaign_id || 'all'}:${offer_type || 'all'}:${search || 'all'}`;
   try {
     const cached = await defaultRedis.get(cacheKey);
     if (cached) return JSON.parse(cached);
@@ -194,6 +194,8 @@ export async function getOffers({ page = 1, per_page = 20, campaign_id = null } 
     url.searchParams.set('page', String(page));
     url.searchParams.set('per_page', String(per_page));
     if (campaign_id) url.searchParams.set('campaign_id', String(campaign_id));
+    if (offer_type) url.searchParams.set('offer_type', offer_type);
+    if (search) url.searchParams.set('q', search);
 
     const res = await fetch(url.toString(), {
       headers: {
@@ -218,6 +220,13 @@ export async function getOffers({ page = 1, per_page = 20, campaign_id = null } 
     console.error('[Cuelinks v3 Error] getOffers failed:', err.message);
     return { success: false, error: err.message, offers: [] };
   }
+}
+
+/**
+ * Convenience method to fetch verified coupon codes
+ */
+export async function getCoupons({ page = 1, per_page = 20, campaign_id = null, search = null } = {}) {
+  return getOffers({ page, per_page, campaign_id, offer_type: 'coupon', search });
 }
 
 /**
@@ -278,6 +287,7 @@ export default {
   getFallbackCuelinksUrl,
   getCampaigns,
   getOffers,
+  getCoupons,
   checkStatus,
   isCuelinksConfigured,
 };

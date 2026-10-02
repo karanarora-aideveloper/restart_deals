@@ -63,15 +63,36 @@ router.get('/campaigns', async (req, res) => {
 
 /**
  * GET /api/cuelinks/offers
- * Retrieves live promotional offers, discounts, and coupons
+ * Retrieves live promotional offers, discounts, and deals
  */
 router.get('/offers', async (req, res) => {
   try {
-    const { page = 1, per_page = 20, campaign_id } = req.query;
+    const { page = 1, per_page = 20, campaign_id, offer_type, q } = req.query;
     const data = await cuelinksService.getOffers({
       page: Number(page),
       per_page: Number(per_page),
       campaign_id,
+      offer_type,
+      search: q,
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/cuelinks/coupons
+ * Retrieves active verified merchant coupons with promo codes
+ */
+router.get('/coupons', async (req, res) => {
+  try {
+    const { page = 1, per_page = 20, campaign_id, q } = req.query;
+    const data = await cuelinksService.getCoupons({
+      page: Number(page),
+      per_page: Number(per_page),
+      campaign_id,
+      search: q,
     });
     res.json(data);
   } catch (err) {

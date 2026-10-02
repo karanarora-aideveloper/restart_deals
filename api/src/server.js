@@ -93,6 +93,7 @@ app.use('/push', pushRouter);
 
 app.use('/api/cuelinks', cuelinksRouter);
 app.use('/cuelinks', cuelinksRouter);
+app.use('/api/coupons', cuelinksRouter);
 
 // Bind API routes (Admin-Protected)
 app.use('/api/admin', requireAdminAuth, adminRouter);
