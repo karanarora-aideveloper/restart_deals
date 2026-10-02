@@ -25,9 +25,9 @@ export function isCuelinksConfigured() {
  */
 export function getFallbackCuelinksUrl(targetUrl, subId = 'shoppersdeals') {
   if (!targetUrl) return '';
-  const pubId = process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID;
-  const subParam = subId ? `&subid=${encodeURIComponent(subId)}` : '';
-  return `https://linksredirect.com/?pub_id=${encodeURIComponent(pubId)}${subParam}&url=${encodeURIComponent(targetUrl)}`;
+  const channelId = process.env.CUELINKS_CHANNEL_ID || process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID || '325472';
+  const subParam = subId ? `&subid=${encodeURIComponent(subId)}` : '&subid=shoppersdeals';
+  return `https://linksredirect.com/?cid=${encodeURIComponent(channelId)}${subParam}&source=api&url=${encodeURIComponent(targetUrl)}`;
 }
 
 /**
@@ -70,6 +70,7 @@ export async function convertUrl(targetUrl, subId = 'shoppersdeals', shorten = f
 
   // 3. Call Cuelinks v3 Link Conversion API
   try {
+    const channelId = Number(process.env.CUELINKS_CHANNEL_ID || process.env.CUELINKS_PUB_ID || CUELINKS_PUB_ID || 325472);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
 
@@ -83,6 +84,7 @@ export async function convertUrl(targetUrl, subId = 'shoppersdeals', shorten = f
       body: JSON.stringify({
         url: targetUrl,
         subid: subId,
+        channel_id: channelId,
         shorten: Boolean(shorten),
       }),
       signal: controller.signal,
