@@ -6,25 +6,25 @@ import Link from 'next/link';
 const SLIDES = [
   {
     id: 'festival',
-    tag: '🔥 MEGA FESTIVAL DEALS',
+    tag: '🔥 VERIFIED FESTIVAL DEALS',
     tagColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
-    title: 'Up to 85% Off + Extra 7% Real Cashback',
-    subtitle: 'Amazon & Flipkart: Autonomous price radar detects genuine drops on iPhone, Samsung S24, Laptops & Smart TVs.',
-    badge: '🎁 Flat ₹1,500 Extra Reward on Bank Offers',
+    title: 'Up to 80% Off with 90-Day Price History Tracker',
+    subtitle: 'Amazon & Flipkart: Autonomous price radar catches genuine price drops on iPhone, Samsung S24, Laptops & Smart TVs.',
+    badge: '📉 100% Empirical Selling Baselines (Zero Fake Discounts)',
     ctaText: 'Explore Verified Deals',
     ctaHref: '#deals',
     bgGradient: 'from-[#1E1B4B] via-[#2E2875] to-[#B45309]',
     icon: '⚡',
   },
   {
-    id: 'credit-cards',
-    tag: '💳 EXCLUSIVE BANK REWARDS',
+    id: 'bank-offers',
+    tag: '💳 INSTANT BANK OFFERS',
     tagColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-    title: 'Top Cashback Credit Cards + Flat ₹2,000 Reward',
-    subtitle: 'Flipkart Axis, Amazon Pay ICICI & Swiggy HDFC: 5% to 10% unlimited cashback on every online order.',
-    badge: '🎉 Lifetime Free • Instant Digital Approval • No Fee',
-    ctaText: 'Find Your Best Card',
-    ctaHref: '#credit-cards',
+    title: 'Instant 10% Bank Discounts on HDFC, ICICI & Axis',
+    subtitle: 'Check which credit card gives the maximum instant discount & reward points for your online shopping.',
+    badge: '🏛️ Compare Top 10+ E-Commerce Credit Cards',
+    ctaText: 'View Card Offers',
+    ctaHref: '/credit-cards',
     bgGradient: 'from-[#0B132B] via-[#1C2541] to-[#059669]',
     icon: '💳',
   },
@@ -32,8 +32,8 @@ const SLIDES = [
     id: 'fashion',
     tag: '👗 FASHION & LIFESTYLE',
     tagColor: 'bg-pink-500/20 text-pink-300 border-pink-400/30',
-    title: '50% - 80% Off Brands + Extra 8.5% Cashback',
-    subtitle: 'Myntra, Nykaa & Ajio: Nike, Puma, Levi\'s, Maybelline & MAC verified against 90-day selling baselines.',
+    title: '50% - 80% Off Brands with Anti-Inflation Radar',
+    subtitle: 'Myntra, Nykaa & Ajio: Nike, Puma, Levi\'s, Maybelline & MAC verified against historical selling prices.',
     badge: '🛍️ Verified Against 90-Day Selling History',
     ctaText: 'Shop Fashion Deals',
     ctaHref: '#deals',
@@ -111,7 +111,7 @@ export default function V3HeroCarousel() {
               </Link>
 
               <span className="text-[11px] text-white/80 font-semibold hidden sm:inline">
-                CashKaro + Buyhatke Best-of-Both Engine
+                Verified with ShoppersDeals Autonomous Radar
               </span>
             </div>
           </div>
