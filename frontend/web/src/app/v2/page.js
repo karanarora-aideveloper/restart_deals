@@ -15,11 +15,11 @@ export default async function V2HomePage({ searchParams }) {
   const merchant = sp?.merchant || 'all';
   const country = sp?.country || 'in';
 
-  // Fetch initial batch of verified deals
+  // Fetch initial batch of verified deals (strictly India locale for INR prices)
   const { items: rawDeals, hasMore } = await fetchDeals({
     category,
     merchant,
-    country,
+    country: (country || 'in').toLowerCase(),
     sort: 'newest',
     minDiscount: 15,
   });
@@ -40,9 +40,9 @@ export default async function V2HomePage({ searchParams }) {
         <div className="mx-auto flex w-full max-w-[1720px] 2xl:max-w-[1840px] items-center justify-between text-xs font-bold">
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-indigo-500/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-indigo-200">
-              Preview Mode
+              Iteration 2 Preview
             </span>
-            <span>✨ New Homepage Design Preview (Buyhatke-Inspired Wide Layout)</span>
+            <span>✨ ShoppersDeals V2 — Deals by Stores, Deals by Brands &amp; 90-Day Math Tracker</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-indigo-200">Reviewing on separate /v2 URL</span>
@@ -59,11 +59,12 @@ export default async function V2HomePage({ searchParams }) {
       {/* Hero Section with Price History Scanner & Tool Highlights */}
       <V2Hero activeCategory={category} />
 
-      {/* Live Deals Feed with Store Rail, Discount Bands & 6-Col Wide Grid */}
+      {/* Live Deals Feed with Deals by Stores, Deals by Brands, Discount Bands & 6-Col Wide Grid */}
       <V2FeedContainer
         initialDeals={deals}
         initialHasMore={hasMore}
-        activeCategory={category}
+        category={category}
+        country={country || 'in'}
       />
 
       {/* Why ShoppersDeals Authority Strip */}

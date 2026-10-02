@@ -263,7 +263,13 @@ export default function V2Hero({ onFilterChange, activeCategory = 'all' }) {
               <button
                 key={c.id}
                 type="button"
-                onClick={() => onFilterChange?.(c.id)}
+                onClick={() => {
+                  if (onFilterChange) {
+                    onFilterChange(c.id);
+                  } else {
+                    router.push(c.id === 'all' ? '/v2' : `/v2?category=${c.id}`);
+                  }
+                }}
                 className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold transition-all ${
                   isSelected
                     ? 'bg-slate-900 text-white shadow-sm'
