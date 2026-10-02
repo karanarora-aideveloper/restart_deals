@@ -68,6 +68,32 @@ function extractBasicMetadata(html) {
   }
 }
 
+function isChallengeOrBlockedHtml(html) {
+  if (!html || html.length < 500) return true;
+  const lower = html.toLowerCase();
+  return (
+    lower.includes('robot check') ||
+    lower.includes('type the characters you see in this image') ||
+    lower.includes('api-services-support@amazon.com') ||
+    lower.includes('checking your browser before accessing') ||
+    lower.includes('challenge-running') ||
+    lower.includes('cf-browser-verification') ||
+    lower.includes('waf-challenge') ||
+    lower.includes('access denied') ||
+    lower.includes('detected unusual traffic')
+  );
+}
+
+function isValidHtmlResult(url, html, extracted) {
+  if (!html || isChallengeOrBlockedHtml(html)) return false;
+  // If it's a search/listing page:
+  if (url.includes('/s?') || url.includes('/bestsellers') || url.includes('/search')) {
+    return html.includes('data-asin') || html.includes('s-result-item') || html.includes('_1AtVbE');
+  }
+  // If it's a product detail page:
+  return Boolean(extracted && extracted.price != null && extracted.price > 0);
+}
+
 async function recordScrapingLog(data) {
   try {
     await ScrapingLog.create({
@@ -134,6 +160,89 @@ export async function executeScrapingAntJob(url, source = 'other') {
     const token = leased.token;
     excludedTokens.add(token);
 
+    const fastApiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=false&proxy_type=${proxyType}${countryParam}`;
+
+    // TIER 1: Fast Raw HTML Request (1 API credit, ~1-3s response)
+    // Most Amazon India PDPs & search listing pages return full price and metadata in raw HTML.
+    try {
+      const fastStartTime = Date.now();
+      const fastRes = await fetch(fastApiUrl, { signal: AbortSignal.timeout(15000) });
+      const fastDurationMs = Date.now() - fastStartTime;
+
+      if (fastRes.ok) {
+        const html = await fastRes.text();
+        const extracted = extractBasicMetadata(html);
+
+        if (isValidHtmlResult(url, html, extracted)) {
+          await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 } }).catch(() => {});
+          await recordScrapingLog({
+            url,
+            source,
+            tokenUsed: token,
+            status: 'success_fast_tier',
+            statusCode: 200,
+            durationMs: fastDurationMs,
+            extractedData: extracted,
+          });
+          console.log(`[ScraperWorker] ⚡ Fast Tier Success in ${fastDurationMs}ms (1 credit): "${extracted.title?.slice(0, 40) || url.slice(0, 40)}" (₹${extracted.price || 0})`);
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        } else {
+          console.log(`[ScraperWorker] Fast Tier HTML did not contain valid price/listing for ${url.slice(0, 45)}. Escalating to Headless Browser Tier...`);
+        }
+      } else if (fastRes.status === 403) {
+        console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... received HTTP 403 on fast tier. Rotating token...`);
+        await recordScrapingLog({
+          url,
+          source,
+          tokenUsed: token,
+          status: '403_exhausted',
+          statusCode: 403,
+          durationMs: fastDurationMs,
+          errorMessage: 'Token quota exhausted or invalid (403)',
+        });
+        checkScrapingAntUsage(token).then(async (usage) => {
+          if (!usage.valid) {
+            await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+          } else {
+            await ScrapingAntToken.updateOne(
+              { token },
+              {
+                status: 'parked',
+                remainedCredits: 0,
+                planName: usage.planName,
+                planTotalCredits: usage.planTotalCredits,
+                renewalDate: usage.renewalDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                lastCheckedAt: new Date(),
+                exhaustedAt: new Date()
+              }
+            ).catch(() => {});
+          }
+        }).catch(() => {});
+        triggerTokenReplenishmentIfLow().catch(() => {});
+        lastError = new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403)`);
+        continue;
+      } else if (fastRes.status === 429) {
+        console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit on fast tier.`);
+        await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }).catch(() => {});
+        await recordScrapingLog({
+          url,
+          source,
+          tokenUsed: token,
+          status: '429_rate_limit',
+          statusCode: 429,
+          durationMs: fastDurationMs,
+          errorMessage: 'ScrapingAnt rate limit (429) - 60s cooldown applied',
+        });
+        lastError = new Error('ScrapingAnt rate limit (429)');
+        continue;
+      }
+    } catch (fastErr) {
+      console.log(`[ScraperWorker] Fast Tier attempt skipped/timed out (${fastErr.message}). Escalating to Headless Browser Tier...`);
+    }
+
+    // TIER 2: Full Headless Browser with Anti-Detect (10 credits, 30-70s)
+    // Used when fast tier encounters JS rendering requirement or anti-bot challenge.
     const apiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;
 
     let response = null;
@@ -210,7 +319,6 @@ export async function executeScrapingAntJob(url, source = 'other') {
         errorMessage: 'Token quota exhausted or invalid (403)',
       });
 
-      // Verify token via ScrapingAnt usage API: park with exact renewal date or delete if dead
       checkScrapingAntUsage(token).then(async (usage) => {
         if (!usage.valid) {
           console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... is dead/invalid (${usage.error}). Deleting from DB.`);
@@ -232,14 +340,13 @@ export async function executeScrapingAntJob(url, source = 'other') {
         }
       }).catch(() => {});
 
-      // Proactively trigger autonomous replenishment if active pool is low
       triggerTokenReplenishmentIfLow().catch(err => {
         console.warn('[ScraperWorker] Failed to trigger token replenishment:', err.message);
       });
 
       console.log(`[ScraperWorker] 🔄 Seamlessly rotating to next active token without failing job (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
       lastError = new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403)`);
-      continue; // Job does NOT fail; immediately tries next token!
+      continue;
     }
 
     // 423 Anti-scraping protection
@@ -270,7 +377,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
         url,
         source,
         tokenUsed: token,
-        status: 'success',
+        status: 'success_headless_tier',
         statusCode: 200,
         durationMs,
         extractedData: extracted,

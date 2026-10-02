@@ -966,3 +966,47 @@ export function startBestsellerCrawlerScheduler() {
     ensureCrawlerDefaults().catch(err => console.error('[Shoppers Deals Engine] Default bootstrap failed:', err.message));
   }, 5000);
 }
+
+/**
+ * Auto-seed a new keyword into CrawlerSeed when a user searches for something
+ * that returns zero results in our catalog.
+ */
+export async function autoSeedZeroResultQuery(queryText, preferredStore = 'amazon') {
+  if (!queryText || typeof queryText !== 'string') return null;
+  const clean = queryText.replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (clean.length < 3 || clean.length > 60) return null;
+
+  // Filter out pure numbers or generic stopwords
+  if (/^\d+$/.test(clean) || ['the', 'and', 'for', 'all', 'deal', 'deals', 'price', 'track', 'product'].includes(clean)) {
+    return null;
+  }
+
+  try {
+    const existing = await CrawlerSeed.findOne({
+      store: preferredStore,
+      keywords: clean,
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const searchUrl = buildStoreSearchUrl(preferredStore, clean);
+    const newSeed = await CrawlerSeed.create({
+      store: preferredStore,
+      category: 'search',
+      subcategory: 'user_requested',
+      keywords: clean,
+      url: searchUrl,
+      topN: 20,
+      isEnabled: true,
+      frequencyHours: 12, // User-requested search keywords crawled with higher priority (12h)
+    });
+
+    console.log(`[Crawler Auto-Seed] 🎯 Auto-seeded new keyword from user search miss: "${clean}" (${preferredStore})`);
+    return newSeed;
+  } catch (err) {
+    // Ignore duplicate key collision
+    return null;
+  }
+}

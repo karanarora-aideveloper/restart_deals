@@ -7,6 +7,7 @@ import {
   ensureCrawlerDefaults,
   buildStoreSearchUrl,
   buildAmazonSearchUrl,
+  autoSeedZeroResultQuery,
 } from '../jobs/bestsellerCrawler.js';
 
 const router = express.Router();
@@ -153,6 +154,25 @@ router.post('/run-now', async (req, res) => {
     res.json({
       success: true,
       message: seedIds ? `Crawl started for ${seedIds.length} seed(s).` : 'Full crawl started across all enabled seeds.',
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Auto-seed endpoint (called on search misses or via PostHog analytics webhooks)
+router.post('/seeds/auto-seed', async (req, res) => {
+  try {
+    const { query, store = 'amazon' } = req.body;
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ success: false, error: 'query is required.' });
+    }
+
+    const seed = await autoSeedZeroResultQuery(query, store);
+    res.json({
+      success: true,
+      seeded: Boolean(seed),
+      seed,
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -88,26 +88,91 @@ export async function refreshStaleProductBatch(batchSize = 10) {
   };
 
   try {
-    // 1. Find stale products sorted by:
-    // a) Products with deals (higher priority)
-    // b) Products whose lastChecked is oldest
-    const staleProducts = await Product.find({
-      $or: [
-        { lastStoreSyncAt: { $lt: twentyFourHoursAgo } },
-        { lastStoreSyncAt: null },
-        { lastStoreSyncAt: { $exists: false } }
-      ]
-    })
+    const nowTime = Date.now();
+    const fourHoursAgo = new Date(nowTime - 4 * 60 * 60 * 1000);
+    const twelveHoursAgo = new Date(nowTime - 12 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(nowTime - 24 * 60 * 60 * 1000);
+
+    // 1. TIER 1: User-tracked products and products with active price alerts
+    // High-frequency 4-hour monitoring so users get fast price-drop alerts.
+    const activeAlertProductIds = await PriceAlert.find({ status: 'active' }).distinct('productId');
+    const userMonitoredQuery = {
+      $and: [
+        {
+          $or: [
+            { productId: { $in: activeAlertProductIds } },
+            { isTrackedByUsers: true },
+            { isTrackedByExtension: true },
+            { 'extensionUsers.0': { $exists: true } },
+          ],
+        },
+        {
+          $or: [
+            { lastStoreSyncAt: { $lt: fourHoursAgo } },
+            { lastStoreSyncAt: null },
+            { lastStoreSyncAt: { $exists: false } },
+          ],
+        },
+      ],
+    };
+
+    let staleProducts = await Product.find(userMonitoredQuery)
       .sort({ lastStoreSyncAt: 1 })
       .limit(batchSize);
 
+    const userMonitoredCount = staleProducts.length;
+
+    // 2. TIER 2: Products backing active public deals on the feed (12h cadence)
+    if (staleProducts.length < batchSize) {
+      const remainingSlots = batchSize - staleProducts.length;
+      const existingIds = staleProducts.map((p) => p._id);
+      const activeDealProductIds = await Deal.find({ isExpired: { $ne: true } }).distinct('productId');
+
+      const dealMonitoredQuery = {
+        _id: { $nin: existingIds },
+        productId: { $in: activeDealProductIds },
+        $or: [
+          { lastStoreSyncAt: { $lt: twelveHoursAgo } },
+          { lastStoreSyncAt: null },
+          { lastStoreSyncAt: { $exists: false } },
+        ],
+      };
+
+      const dealProducts = await Product.find(dealMonitoredQuery)
+        .sort({ lastStoreSyncAt: 1 })
+        .limit(remainingSlots);
+
+      staleProducts = staleProducts.concat(dealProducts);
+    }
+
+    // 3. TIER 3: General catalog items (standard 24h rolling cadence)
+    if (staleProducts.length < batchSize) {
+      const remainingSlots = batchSize - staleProducts.length;
+      const existingIds = staleProducts.map((p) => p._id);
+
+      const generalCatalogQuery = {
+        _id: { $nin: existingIds },
+        $or: [
+          { lastStoreSyncAt: { $lt: twentyFourHoursAgo } },
+          { lastStoreSyncAt: null },
+          { lastStoreSyncAt: { $exists: false } },
+        ],
+      };
+
+      const catalogProducts = await Product.find(generalCatalogQuery)
+        .sort({ lastStoreSyncAt: 1 })
+        .limit(remainingSlots);
+
+      staleProducts = staleProducts.concat(catalogProducts);
+    }
+
     if (staleProducts.length === 0) {
-      console.log('[Daily Refresher] ✓ All catalog products are fresh (store-synced within last 24h).');
+      console.log('[Daily Refresher] ✓ All catalog products are fresh across all 3 tiers.');
       isRefreshing = false;
       return { skipped: true, reason: 'all_fresh' };
     }
 
-    console.log(`[Daily Refresher] Starting refresh batch for ${staleProducts.length} stale product(s)...`);
+    console.log(`[Daily Refresher] Starting prioritized refresh batch for ${staleProducts.length} product(s) (User-Monitored: ${userMonitoredCount})...`);
 
     for (const product of staleProducts) {
       stats.processed++;
@@ -280,34 +345,21 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
               // Route deal to universal outbound publish queue (Telegram, Twitter, WhatsApp)
               await enqueueDealForPublishing(synthesizedDeal._id, { sourceEngine: 'catalog_refresher' });
-
-              // Evaluate personalized user price alerts
-              await evaluateAndTriggerPriceAlerts({
-                productId: product.productId,
-                livePrice,
-                title: product.title,
-                dealUrl: product.cleanUrl,
-                imageUrl: product.imageUrl || (product.images && product.images[0]) || '',
-                merchant: product.merchant || 'amazon',
-                country: product.country || 'IN',
-              });
             }
           }
 
-          // 4. Evaluate User Price Alerts
-          const matchingAlerts = await PriceAlert.find({
+          // 4. Evaluate User Price Alerts (Unconditional — triggers whenever livePrice <= targetPrice)
+          const triggeredAlerts = await evaluateAndTriggerPriceAlerts({
             productId: product.productId,
-            status: 'active'
+            livePrice,
+            title: product.title,
+            dealUrl: product.cleanUrl,
+            imageUrl: product.imageUrl || (product.images && product.images[0]) || '',
+            merchant: product.merchant || 'amazon',
+            country: product.country || 'IN',
           });
-
-          for (const alert of matchingAlerts) {
-            if (alert.targetPrice && livePrice <= alert.targetPrice) {
-              alert.status = 'triggered';
-              alert.triggeredAt = now;
-              await alert.save();
-              stats.alertsTriggered++;
-              console.log(`[Daily Refresher] 🔔 Price Alert Triggered for user "${alert.userId || alert.email}"! Target: ₹${alert.targetPrice}, Live: ₹${livePrice}`);
-            }
+          if (triggeredAlerts > 0) {
+            stats.alertsTriggered += triggeredAlerts;
           }
 
         } else {

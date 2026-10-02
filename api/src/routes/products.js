@@ -10,6 +10,8 @@ import { rankCrossStoreMatches, extractBrand, tokenizeTitle, extractModelIdentif
 import { extractVariant, variantsMatch, variantMismatchReason, extractVariantTraits, generateSeriesKey, COLOR_HEX_MAP, getBeautyShadeHex } from '../utils/variantExtractor.js';
 import { cacheMiddleware, apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
+import { autoSeedZeroResultQuery } from '../jobs/bestsellerCrawler.js';
 
 const router = express.Router();
 
@@ -182,6 +184,10 @@ router.get('/', cacheMiddleware(20), async (req, res) => {
     }
 
     const total = await Product.countDocuments(query);
+    if (rawQuery && page === 1 && total === 0) {
+      autoSeedZeroResultQuery(rawQuery).catch(() => {});
+    }
+
     const products = await Product.find(query)
       .sort(sort)
       .skip(skip)
@@ -551,6 +557,21 @@ async function handleProductDiscoveryOrSync({
         console.warn('[API Product Ingest] Deal check notice:', dealErr.message);
       }
     }
+  }
+
+  // Unconditionally evaluate User Price Alerts on any live price discovery/update
+  if (livePrice && product) {
+    evaluateAndTriggerPriceAlerts({
+      productId: product.productId,
+      livePrice,
+      title: product.title,
+      dealUrl: product.cleanUrl,
+      imageUrl: product.imageUrl || (product.images && product.images[0]) || '',
+      merchant: product.merchant || 'amazon',
+      country: product.country || 'IN',
+    }).catch(err => {
+      console.warn('[API Product Ingest] Price alert evaluation warning:', err.message);
+    });
   }
 
   // Invalidate public products cache

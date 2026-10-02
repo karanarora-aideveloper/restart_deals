@@ -617,6 +617,64 @@ function extractShopsyMRP($, livePrice) {
 }
 
 
+export const JUNK_TITLE_PATTERNS = [
+  /^(possible\s+)?price\s+error/i,
+  /^recurring\s+savings/i,
+  /^below\s+avg(\.?\s+price)?/i,
+  /^price\s+drop(\s+alert)?/i,
+  /^loot\s+(deal|offer)/i,
+  /^(grab|order|buy)\s+fast/i,
+  /^don'?t\s+miss/i,
+  /^limited\s+time/i,
+  /^flash\s+sale/i,
+  /^hurry\s+up/i,
+  /^flat\s+\d+%\s+off/i,
+  /^(amazon|flipkart|myntra|nykaa|ajio)\s+(steal|deal|special|offer|loot)/i,
+  /^check\s+this\s+out/i,
+  /^huge\s+discount/i,
+  /^lowest\s+price\s+ever/i,
+  /^steals?\s+deal/i,
+  /^super\s+hot\s+deal/i,
+  /^unbelievable\s+price/i,
+  /^product\s+item/i,
+  /^tracked\s+product/i,
+  /^queued\s+for\s+price\s+tracking/i,
+  /^deal\s+item/i,
+  /^hot\s+deal/i,
+  /^best\s+price/i,
+  /^crazy\s+deal/i,
+  /^mega\s+sale/i,
+  /^lightning\s+deal/i,
+];
+
+export function isGenericOrJunkTitle(t) {
+  if (!t || typeof t !== 'string') return true;
+  const lower = t.toLowerCase().trim();
+  if (lower.length < 8) return true; // Too short to be an authentic product title
+  // Single word titles that are just a brand name or category (e.g. "boldfit", "smartwatch")
+  if (!lower.includes(' ') && lower.length < 15) return true;
+
+  if (
+    lower === 'amazon.com' ||
+    lower === 'amazon.in' ||
+    lower.startsWith('amazon.in :') ||
+    lower.startsWith('amazon.com :') ||
+    lower.includes('robot check') ||
+    lower.includes('online shopping site') ||
+    lower.includes('page not found') ||
+    lower.includes('access denied') ||
+    lower.includes('item not found')
+  ) {
+    return true;
+  }
+
+  for (const pattern of JUNK_TITLE_PATTERNS) {
+    if (pattern.test(lower)) return true;
+  }
+
+  return false;
+}
+
 /**
  * Extracts clean, human-readable product title from Telegram deal message text.
  */
@@ -636,7 +694,7 @@ export function extractTitleFromMessage(text) {
       .replace(/\s+https?:\/\/\S+/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (cleaned.length > 5 && !cleaned.toLowerCase().startsWith('deal') && !cleaned.toLowerCase().startsWith('click')) {
+    if (cleaned.length > 8 && !isGenericOrJunkTitle(cleaned) && !cleaned.toLowerCase().startsWith('deal') && !cleaned.toLowerCase().startsWith('click')) {
       return cleaned.slice(0, 140);
     }
   }
@@ -1912,30 +1970,14 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     console.log(`[Verifier Info] Incomplete or non-deal product for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ₹${verifiedDealPrice || 'N/A'}, discount: ${discountPercentage}%. Saved to products catalog for price tracking. Skipping Deal broadcast.`);
   }
 
-  const isGenericTitle = (t) => {
-    if (!t) return true;
-    const lower = t.toLowerCase().trim();
-    return (
-      lower === 'amazon.com' ||
-      lower === 'amazon.in' ||
-      lower.startsWith('amazon.in :') ||
-      lower.startsWith('amazon.com :') ||
-      lower.includes('robot check') ||
-      lower.includes('online shopping site') ||
-      lower.includes('page not found')
-    );
-  };
-
-  // Title Resolution:
+  // Title Resolution: Always prioritize authentic store-scraped PDP title over Telegram message copy
   let actualTitle;
-  if (!isNewProduct && !isMetadataStale && existingProduct.title && !isGenericTitle(existingProduct.title)) {
-    actualTitle = existingProduct.title;
-  } else {
-    const validDetailsTitle = !isGenericTitle(productDetails?.title) ? productDetails?.title : null;
-    const validScrapedTitle = !isGenericTitle(scrapedData?.title) ? scrapedData?.title : null;
-    const messageTitle = extractTitleFromMessage(messageText);
-    actualTitle = validScrapedTitle || validDetailsTitle || messageTitle || `${merchant} Deal (${productId})`;
-  }
+  const validScrapedTitle = !isGenericOrJunkTitle(scrapedData?.title) ? scrapedData?.title : null;
+  const validDetailsTitle = !isGenericOrJunkTitle(productDetails?.title) ? productDetails?.title : null;
+  const validExistingTitle = (!isNewProduct && !isMetadataStale && !isGenericOrJunkTitle(existingProduct.title)) ? existingProduct.title : null;
+  const messageTitle = extractTitleFromMessage(messageText);
+
+  actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || `${merchant} Deal (${productId})`;
 
   // Static Metadata Resolution (30-day lifecycle)
   let productBrand = null;
