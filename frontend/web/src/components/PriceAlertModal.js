@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { formatInr } from '@/lib/affiliate';
 import { useAuth } from '@/components/AuthProvider';
 import { usePushNotification } from '@/lib/usePushNotification';
+import { trackPriceAlertCreate, trackEvent } from '@/lib/analytics';
 
 export default function PriceAlertModal({ product, isOpen, onClose }) {
   const { user, token } = useAuth();
@@ -90,6 +91,7 @@ export default function PriceAlertModal({ product, isOpen, onClose }) {
         }
       }
 
+      trackPriceAlertCreate(product, numTarget, hasPush ? 'web_push' : email ? 'email' : 'whatsapp');
       setSuccess(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to set alert');
@@ -196,6 +198,13 @@ export default function PriceAlertModal({ product, isOpen, onClose }) {
                   href={`https://t.me/ShoppersDealsAlertBot?start=track_${product?.productId || product?._id}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    trackEvent('telegram_alert_bot_clicked', {
+                      product_id: product?.productId,
+                      merchant: product?.merchant,
+                      target_price: Number(targetPrice) || null,
+                    });
+                  }}
                   className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50/70 p-2.5 transition-colors hover:bg-sky-100/70 group"
                 >
                   <div className="flex items-center gap-2.5">

@@ -9,6 +9,7 @@ import MobileTabBar from '@/components/MobileTabBar';
 import CompareDock from '@/components/CompareDock';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 import PushPromptBanner from '@/components/PushPromptBanner';
+import PostHogProvider from '@/components/PostHogProvider';
 import { SITE_URL, GA_MEASUREMENT_ID } from '@/lib/config';
 import './globals.css';
 
@@ -152,24 +153,26 @@ export default function RootLayout({ children }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSchema) }} />
 
-        <AuthProvider>
-          <CompareProvider>
-            <Suspense fallback={null}>
-              <NavigationProgressBar />
-            </Suspense>
-            {/* SiteHeader reads useSearchParams (for the search box) — Suspense keeps that from
-                forcing every page in the app to opt out of static rendering. */}
-            <Suspense fallback={<div className="h-[96px] w-full border-b border-[#eee] bg-white md:h-[76px]" />}>
-              <SiteHeader />
-            </Suspense>
+        <PostHogProvider>
+          <AuthProvider>
+            <CompareProvider>
+              <Suspense fallback={null}>
+                <NavigationProgressBar />
+              </Suspense>
+              {/* SiteHeader reads useSearchParams (for the search box) — Suspense keeps that from
+                  forcing every page in the app to opt out of static rendering. */}
+              <Suspense fallback={<div className="h-[96px] w-full border-b border-[#eee] bg-white md:h-[76px]" />}>
+                <SiteHeader />
+              </Suspense>
 
-            <main className="flex-1 pb-16 md:pb-0">{children}</main>
-            <CompareDock />
-            <PushPromptBanner />
-            <SiteFooter />
-            <MobileTabBar />
-          </CompareProvider>
-        </AuthProvider>
+              <main className="flex-1 pb-16 md:pb-0">{children}</main>
+              <CompareDock />
+              <PushPromptBanner />
+              <SiteFooter />
+              <MobileTabBar />
+            </CompareProvider>
+          </AuthProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

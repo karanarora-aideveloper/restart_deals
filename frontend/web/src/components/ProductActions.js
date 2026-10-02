@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAffiliateUrl, formatInr, formatRelativeTime } from '@/lib/affiliate';
-import { logEvent } from '@/lib/analytics';
+import {
+  logEvent,
+  trackOutboundClick,
+  trackWishlistToggle,
+  trackPriceAlertOpen,
+  trackEvent,
+} from '@/lib/analytics';
 import { API_BASE_URL } from '@/lib/config';
 import PriceAlertModal from './PriceAlertModal';
 import { usePushNotification } from '@/lib/usePushNotification';
@@ -105,7 +111,9 @@ export default function ProductActions({ product, merchant }) {
       country: product?.country,
     };
     const updated = await saveDealItem(dealObject, authUser);
-    setIsWishlisted(isDealSaved(prodId, updated));
+    const nextSaved = isDealSaved(prodId, updated);
+    setIsWishlisted(nextSaved);
+    trackWishlistToggle(product, nextSaved, updated.length);
     emitSavedChanged();
   };
 
@@ -174,6 +182,7 @@ export default function ProductActions({ product, merchant }) {
 
   // Fix #6: Share this deal via Web Share API (WhatsApp / native share sheet on mobile)
   const handleShare = () => {
+    trackEvent('product_shared', { product_id: prodId, title: product?.title, merchant: product?.merchant });
     const shareText = `🔥 ${product?.title || 'Check this deal'}\n💰 Now at ${formatInr(product?.price, product?.country)} — Track price history on ShoppersDeals`;
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
     if (navigator?.share) {
@@ -282,7 +291,10 @@ export default function ProductActions({ product, merchant }) {
           href={getAffiliateUrl(activeVariant?.cleanUrl || product.cleanUrl, activeVariant?.country || product?.country)}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          onClick={() => logEvent('click_deal', { item_id: activeVariant?._id || activeVariant?.productId || product._id || product.productId, item_name: activeVariant?.title || product.title })}
+          onClick={() => {
+            const destUrl = getAffiliateUrl(activeVariant?.cleanUrl || product.cleanUrl, activeVariant?.country || product?.country);
+            trackOutboundClick(activeVariant || product, destUrl, 'pdp_hero_buy_btn');
+          }}
           className={`group flex w-full items-center justify-between gap-3 rounded-2xl p-3 sm:p-3.5 font-black transition-all duration-200 ${theme.containerClass}`}
         >
           {/* Store Logo / Badge + Name */}
@@ -334,7 +346,10 @@ export default function ProductActions({ product, merchant }) {
 
           <button
             type="button"
-            onClick={() => setIsAlertModalOpen(true)}
+            onClick={() => {
+              trackPriceAlertOpen(product);
+              setIsAlertModalOpen(true);
+            }}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 px-2 text-xs sm:text-sm font-bold text-gray-700 shadow-2xs transition-all hover:border-brand/40 hover:bg-orange-50/50 hover:text-brand active:scale-[0.98]"
           >
             <span className="text-sm">🔔</span>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
 import { formatInr } from '@/lib/affiliate';
+import { trackSearch } from '@/lib/analytics';
 import { ShieldTrustIcon, ShoppingCookieMascot } from './icons/BuyhatkeIcons';
 
 export default function HeroSearch() {
@@ -77,6 +78,8 @@ export default function HeroSearch() {
     if (e) e.preventDefault();
     const query = (directQuery || inputValue).trim();
     if (!query) return;
+
+    trackSearch(query, 1, { is_url_scan: isUrl(query) });
 
     setErrorMsg('');
 

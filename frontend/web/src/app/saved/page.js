@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { getSavedDeals } from '@/lib/savedDeals';
 import { SAVED_CHANGED_EVENT } from '@/lib/useSavedCount';
 import { isUsableImageUrl } from '@/lib/affiliate';
+import { trackWishlistShare } from '@/lib/analytics';
 import DealCard from '@/components/DealCard';
 
 export default function SavedPage() {
@@ -81,6 +82,7 @@ export default function SavedPage() {
   const totalSavings = Math.max(0, totalOriginalValue - totalCartValue);
 
   const handleShareWishlist = () => {
+    trackWishlistShare(visibleDeals.length, totalCartValue, totalSavings);
     const text = `🛍️ My Universal Wishlist on ShoppersDeals (${visibleDeals.length} items, Total Savings ₹${totalSavings.toLocaleString('en-IN')})! Check live prices:`;
     const url = typeof window !== 'undefined' ? window.location.href : '';
     if (navigator?.share) {

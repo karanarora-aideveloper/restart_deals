@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAffiliateUrl } from '@/lib/affiliate';
 import { API_BASE_URL } from '@/lib/config';
+import { trackCouponCopied, trackOutboundClick } from '@/lib/analytics';
 
 // Curated active merchant coupons and promo codes fallback for instant zero-latency loading
 const KNOWN_STORE_COUPONS = {
@@ -145,8 +146,10 @@ export default function ProductCouponsOffers({ product, merchant }) {
     };
   }, [merchantKey, product]);
 
-  const handleCopy = (code) => {
+  const handleCopy = (item) => {
+    const code = typeof item === 'string' ? item : item?.code;
     if (!code || code === 'CLAIM DEAL') return;
+    trackCouponCopied(typeof item === 'object' ? item : { code, merchant: merchantKey }, 'pdp_card');
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(code).then(() => {
         setCopiedCode(code);
@@ -221,7 +224,7 @@ export default function ProductCouponsOffers({ product, merchant }) {
                 {isCoupon ? (
                   <button
                     type="button"
-                    onClick={() => handleCopy(item.code)}
+                    onClick={() => handleCopy(item)}
                     className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-black transition-all ${
                       isCopied
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700 shadow-2xs'
@@ -237,6 +240,7 @@ export default function ProductCouponsOffers({ product, merchant }) {
                   href={item.url || affiliateUrl}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
+                  onClick={() => trackOutboundClick(product, item.url || affiliateUrl, 'pdp_coupon_apply')}
                   className="rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-black transition-colors"
                 >
                   Apply ↗

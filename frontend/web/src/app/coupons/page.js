@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/config';
+import { trackCouponCopied, trackFilterChange } from '@/lib/analytics';
 
 // Curated top verified coupons database for immediate offline/instant rendering
 const CURATED_COUPONS = [
@@ -226,8 +227,10 @@ export default function CouponsHubPage() {
     });
   }, [allCoupons, selectedStore, selectedType, searchQuery]);
 
-  const handleCopy = (code) => {
+  const handleCopy = (item) => {
+    const code = typeof item === 'string' ? item : item?.code;
     if (!code) return;
+    trackCouponCopied(typeof item === 'object' ? item : { code }, 'coupons_hub');
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(code).then(() => {
         setCopiedCode(code);

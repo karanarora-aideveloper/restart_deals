@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { formatInr } from '@/lib/affiliate';
 import { computePriceStats } from '@/lib/priceAnalytics';
+import { trackPriceHistoryInteraction } from '@/lib/analytics';
 
 /**
  * High-Precision Interactive E-Commerce Price History Chart
@@ -491,7 +492,10 @@ export default function PriceHistoryChart({ product, priceStats }) {
               <button
                 key={r}
                 type="button"
-                onClick={() => setTimeRange(r)}
+                onClick={() => {
+                  setTimeRange(r);
+                  trackPriceHistoryInteraction(product, r, isAllTimeLow);
+                }}
                 className={`rounded-lg px-2.5 py-1 text-xs font-extrabold transition-all ${
                   timeRange === r ? 'bg-white text-brand shadow-xs' : 'text-gray-600 hover:text-gray-900'
                 }`}

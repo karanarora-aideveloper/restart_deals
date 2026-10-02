@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/config';
 import { auth, googleProvider, signInWithPopup, firebaseSignOut } from '@/lib/firebase';
+import { identifyUser, resetUser } from '@/lib/analytics';
 
 const AUTH_STORAGE_KEY = '@shoppers_deals_auth_v1';
 
@@ -32,6 +33,11 @@ export function AuthProvider({ children }) {
       if (saved?.token && saved?.user) {
         setToken(saved.token);
         setUser(saved.user);
+        identifyUser(saved.user._id || saved.user.id || saved.user.email, {
+          email: saved.user.email,
+          name: saved.user.name,
+          phone: saved.user.phone,
+        });
       }
     } catch (err) {
       console.error('Failed to load auth state:', err);
@@ -43,6 +49,13 @@ export function AuthProvider({ children }) {
   const saveAuthSession = useCallback((userObj, tokenStr) => {
     setUser(userObj);
     setToken(tokenStr);
+    if (userObj) {
+      identifyUser(userObj._id || userObj.id || userObj.email, {
+        email: userObj.email,
+        name: userObj.name,
+        phone: userObj.phone,
+      });
+    }
     try {
       window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: userObj, token: tokenStr }));
     } catch (err) {
@@ -113,6 +126,7 @@ export function AuthProvider({ children }) {
     } finally {
       setUser(null);
       setToken(null);
+      resetUser();
       try {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
       } catch {
