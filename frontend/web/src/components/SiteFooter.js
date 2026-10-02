@@ -34,7 +34,8 @@ export default function SiteFooter() {
             <li><Link href="/" className="text-[#cbd5e1] hover:text-white transition-colors">Live Feed</Link></li>
             <li><Link href="/hot" className="text-[#cbd5e1] hover:text-white transition-colors">Hot Deals 🔥</Link></li>
             <li><Link href="/products" className="text-[#cbd5e1] hover:text-white transition-colors">Price Tracker</Link></li>
-            <li><Link href="/compare" className="text-[#cbd5e1] hover:text-white transition-colors">Compare Products</Link></li>
+            <li><Link href="/product-lens" className="text-[#cbd5e1] hover:text-white transition-colors font-semibold text-emerald-400">Spend Lens 🔍</Link></li>
+            <li><Link href="/profile/alerts" className="text-[#cbd5e1] hover:text-white transition-colors">Price Alerts 🔔</Link></li>
             <li><Link href="/categories" className="text-[#cbd5e1] hover:text-white transition-colors">Browse Categories</Link></li>
             <li><Link href="/blog" className="text-[#cbd5e1] hover:text-white transition-colors">Shopping Guides</Link></li>
           </ul>
