@@ -28,7 +28,7 @@ export default function V2DealCard({ deal, savedDeals = [], onSavedChange, onIma
 
   const saved = isDealSaved(dealId, savedDeals);
   const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
-  const affiliateUrl = getAffiliateUrl(deal, 'v2_home');
+  const affiliateUrl = getAffiliateUrl(deal.dealUrl, dealCountry);
 
   const handleToggleSave = async (e) => {
     e.preventDefault();

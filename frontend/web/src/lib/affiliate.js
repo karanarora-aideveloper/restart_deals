@@ -6,7 +6,8 @@ const CUELINKS_PUB_ID = process.env.NEXT_PUBLIC_CUELINKS_PUB_ID || '325472';
 /**
  * Universal Outbound Affiliate & Deep-Linking Utility for ShoppersDeals Web
  */
-export function getAffiliateUrl(urlStr, country = null) {
+export function getAffiliateUrl(urlInput, country = null) {
+  const urlStr = typeof urlInput === 'string' ? urlInput : urlInput?.dealUrl || urlInput?.url || '';
   if (!urlStr) return '';
   const lower = urlStr.toLowerCase();
 
