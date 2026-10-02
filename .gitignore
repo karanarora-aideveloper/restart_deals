@@ -1,3 +1,14 @@
 backend/.env
 **/.env
+**/.env*.local
 **/.DS_Store
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+.vercel/
+**/.vercel/
+.expo/
+**/dist/
+*.apk
+google-service-account.json

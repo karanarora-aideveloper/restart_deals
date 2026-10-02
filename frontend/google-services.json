@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "569081447163",
+    "project_id": "shoppers-deals",
+    "storage_bucket": "shoppers-deals.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:569081447163:android:0e634fb88e125a0fc4a65e",
+        "android_client_info": {
+          "package_name": "com.dreamwave.shoppersdeals"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "569081447163-fevcatu5otua0bkqju3snelj5qrjsqtv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dreamwave.shoppersdeals",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "569081447163-hbk5n6c0j4n0gt0bpjbscm138akc0eb1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL-3-JG9VAdAiWokEj7J7nKzGeKtW0T2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "569081447163-hbk5n6c0j4n0gt0bpjbscm138akc0eb1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

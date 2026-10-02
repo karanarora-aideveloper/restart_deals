@@ -1,0 +1,25 @@
+# React Native / Expo files — exclude from Vercel upload (Next.js lives in web/)
+/node_modules
+/.expo
+/android
+/ios
+/ios.bak
+/dist
+/assets
+/myntra_assets
+/src
+/components
+/App.js
+/index.js
+/app.json
+/google-service-account.json
+/google-services.json
+/GoogleService-Info.plist
+/babel.config.js
+/metro.config.js
+/eas.json
+/global.css
+/gluestack-ui.config.json
+/nativewind-env.d.ts
+/jsconfig.json
+/LICENSE
