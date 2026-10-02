@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { defaultRedis } from '../utils/redis.js';
 
 const CUELINKS_BASE_URL = 'https://developers.cuelinks.com/pub_api/v3';
-const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '';
+const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '9zEgOgIsz_yQv0efutFtq9OGTh8znPMVUJCz6O67N6o';
 const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '325472';
 
 // 1-hour in-memory cache for converted URLs to prevent duplicate network calls
@@ -17,7 +17,7 @@ function hashUrl(str) {
  * Returns whether the Cuelinks v3 API key is configured.
  */
 export function isCuelinksConfigured() {
-  return Boolean(process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY);
+  return Boolean(process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || CUELINKS_API_KEY);
 }
 
 /**
