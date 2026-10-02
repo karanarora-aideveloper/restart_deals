@@ -48,18 +48,18 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   const rawImage = deal.imageUrl || (Array.isArray(deal.images) && deal.images[0]) || '';
   const hasValidImage = isUsableImageUrl(rawImage) && !imgError;
 
-  // Buyhatke Smart Verdict Calculation
-  let verdictText = '👍 Verified Drop';
-  let verdictBg = 'bg-blue-50 text-blue-700 border-blue-200';
+  // Flipkart-grade Smart Verdict Pill
+  let verdictText = 'Verified Deal';
+  let verdictBg = 'bg-blue-50 text-blue-700 border-blue-200/80';
   if (deal.isAllTimeLow) {
-    verdictText = '🔥 Lowest in 90 Days';
-    verdictBg = 'bg-amber-50 text-amber-800 border-amber-300';
+    verdictText = '🔥 All-Time Low Price';
+    verdictBg = 'bg-amber-50 text-amber-900 border-amber-300';
   } else if (mrpDiscountPct >= 50 || priceDropPct >= 20) {
-    verdictText = '✅ Steal Deal (Buy)';
+    verdictText = '⚡ Steal Deal (Buy Now)';
     verdictBg = 'bg-emerald-50 text-emerald-800 border-emerald-300';
   } else if (hasPriceDrop) {
     verdictText = `📉 ₹${priceDropCash.toLocaleString('en-IN')} Price Drop`;
-    verdictBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    verdictBg = 'bg-teal-50 text-teal-800 border-teal-200';
   }
 
   const handleToggleSave = async (e) => {
@@ -79,20 +79,23 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   };
 
   return (
-    <article className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
-      <div>
-        {/* Top Header: Store Logo + Wishlist */}
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
-            {renderStoreLogo(deal.merchant || merchant.name, 'h-4 max-w-[70px] object-contain')}
+    <article className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
+      <div className="min-w-0">
+        {/* Top Header: Store Logo + Verified Badge + Wishlist */}
+        <div className="flex items-center justify-between gap-1.5 mb-2">
+          {/* Store Logo */}
+          <div className="flex items-center rounded-lg border border-slate-200/70 bg-slate-50/80 px-2 py-1 max-w-[85px] sm:max-w-[95px] overflow-hidden">
+            {renderStoreLogo(deal.merchant || merchant.name, 'h-4 w-full object-contain')}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[9.5px] font-semibold text-slate-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Live Verification Badge */}
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[9px] font-bold text-emerald-800 whitespace-nowrap">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>{verifiedTime}</span>
             </span>
 
+            {/* Wishlist Button */}
             <button
               type="button"
               onClick={handleToggleSave}
@@ -103,7 +106,7 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
               aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'}
             >
               <svg
-                className="h-4 w-4"
+                className="h-3.5 w-3.5"
                 viewBox="0 0 24 24"
                 fill={saved ? 'currentColor' : 'none'}
                 stroke="currentColor"
@@ -115,8 +118,8 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
           </div>
         </div>
 
-        {/* Product Image Area with High-Contrast Badge */}
-        <Link href={cardHref} className="relative block h-44 sm:h-52 w-full overflow-hidden rounded-xl bg-slate-50/70 p-2.5">
+        {/* Product Image Frame */}
+        <Link href={cardHref} className="relative block h-40 sm:h-48 w-full overflow-hidden rounded-xl bg-slate-50/80 p-2">
           {hasValidImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -131,94 +134,98 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
               }}
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center text-center p-3">
-              <span className="text-3xl mb-1">{merchant.emoji || '🛍️'}</span>
-              <span className="text-[11px] font-bold text-slate-500">{merchant.name} Verified Deal</span>
+            <div className="flex h-full w-full flex-col items-center justify-center text-center p-2">
+              <span className="text-2xl mb-1">{merchant.emoji || '🛍️'}</span>
+              <span className="text-[10px] font-bold text-slate-500 line-clamp-1">{merchant.name} Deal</span>
             </div>
           )}
 
-          {/* Top-Right Badge: Buyhatke High-Contrast Discount Pill */}
+          {/* Top-Right Badge: High-Contrast Discount or Cash Drop */}
           {hasPriceDrop && priceDropPct >= 3 ? (
-            <div className="absolute top-2 right-2 rounded-lg bg-emerald-600 px-2.5 py-1 text-center shadow-md">
-              <span className="block text-[11px] font-black uppercase text-white tracking-tight">
+            <div className="absolute top-2 right-2 rounded-lg bg-emerald-600 px-2 py-0.5 text-center shadow-md">
+              <span className="block text-[10px] font-black uppercase text-white tracking-tight whitespace-nowrap">
                 📉 {priceDropPct}% DROP
               </span>
             </div>
           ) : mrpDiscountPct > 0 ? (
-            <div className="absolute top-2 right-2 rounded-lg bg-[#5855E5] px-2.5 py-1 text-center shadow-md">
-              <span className="block text-[11px] font-black uppercase text-white tracking-tight">
+            <div className="absolute top-2 right-2 rounded-lg bg-[#5855E5] px-2 py-0.5 text-center shadow-md">
+              <span className="block text-[10px] font-black uppercase text-white tracking-tight whitespace-nowrap">
                 {mrpDiscountPct}% OFF
               </span>
             </div>
           ) : null}
         </Link>
 
-        {/* Product Title */}
-        <h3 className="mt-3 line-clamp-2 min-h-[36px] text-xs sm:text-[13px] font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
-          <Link href={cardHref}>{deal.title || 'Special Promotion Deal'}</Link>
+        {/* Title: Strict 2-line clamp with min-height */}
+        <h3 className="mt-2.5 line-clamp-2 min-h-[34px] sm:min-h-[38px] text-xs sm:text-[13px] font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
+          <Link href={cardHref} title={deal.title}>
+            {deal.title || 'Special Promotion Deal'}
+          </Link>
         </h3>
 
-        {/* Buyhatke Smart Verdict Pill */}
-        <div className="mt-2.5">
-          <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-extrabold ${verdictBg}`}>
-            {verdictText}
+        {/* Smart Verdict Pill: Wrapped cleanly with no horizontal overflow */}
+        <div className="mt-2 min-w-0">
+          <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-0.5 text-[9.5px] font-extrabold truncate ${verdictBg}`}>
+            <span className="truncate">{verdictText}</span>
           </span>
         </div>
 
-        {/* Pricing Block */}
-        <div className="mt-2.5 flex items-baseline gap-2 flex-wrap">
-          <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-950">
-            {formatInr(currentPrice)}
-          </span>
-          {hasMrp && (
-            <span className="text-xs font-bold text-slate-400 line-through">
-              {formatInr(listMrp)}
+        {/* Flipkart-Style Clean Pricing Hierarchy */}
+        <div className="mt-2.5 rounded-xl bg-slate-50/90 p-2.5 border border-slate-100 min-w-0">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-lg sm:text-xl font-black tracking-tight text-slate-950">
+              {formatInr(currentPrice)}
             </span>
-          )}
-          {mrpSavings > 0 && (
-            <span className="text-[11px] font-extrabold text-emerald-600">
-              Save ₹{mrpSavings.toLocaleString('en-IN')}
-            </span>
-          )}
-        </div>
+            {hasMrp && (
+              <span className="text-[11px] font-bold text-slate-400 line-through">
+                {formatInr(listMrp)}
+              </span>
+            )}
+            {mrpDiscountPct > 0 && (
+              <span className="text-[10px] font-extrabold text-emerald-600 whitespace-nowrap">
+                ({mrpDiscountPct}% off)
+              </span>
+            )}
+          </div>
 
-        {/* Mini Sparkline Price Trend (Buyhatke Feature) */}
-        <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 font-semibold bg-slate-50 rounded-lg px-2 py-1 border border-slate-100">
-          <span className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-              <polyline points="17 6 23 6 23 12" />
-            </svg>
-            <span>{hasPriceDrop ? `Previous: ${formatInr(previousTrackedPrice)}` : 'Historical Low Price'}</span>
-          </span>
-          <span className="text-indigo-600 font-bold">Price Tracked</span>
+          {/* Genuine Drop or Savings Callout */}
+          <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-600 min-w-0">
+            <span className="truncate text-emerald-700 font-bold">
+              {hasPriceDrop
+                ? `📉 Drop: ₹${priceDropCash.toLocaleString('en-IN')}`
+                : mrpSavings > 0
+                ? `💰 Save ₹${mrpSavings.toLocaleString('en-IN')}`
+                : 'Verified Price'}
+            </span>
+            <span className="text-[9px] text-slate-400 shrink-0 ml-1">90D Tracked</span>
+          </div>
         </div>
       </div>
 
-      {/* Dual Actions (Buyhatke Exact Layout): Buy Now + View Price Graph */}
-      <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center gap-2">
+      {/* Dual CTA Actions: Flipkart High-Converting Button Layout */}
+      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 min-w-0">
         <a
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleBuyClick}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#5855E5] py-2.5 text-xs font-black text-white shadow-xs transition-all hover:bg-[#4743DE] hover:shadow-md active:scale-[0.98]"
+          className="flex-1 min-w-0 flex items-center justify-center gap-1 rounded-xl bg-[#5855E5] py-2 px-2 text-[11px] font-black text-white shadow-xs transition-all hover:bg-[#4743DE] hover:shadow-md active:scale-[0.98]"
         >
-          <span>⚡ BUY NOW</span>
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <span className="truncate">⚡ BUY NOW</span>
+          <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
           </svg>
         </a>
 
         <Link
           href={cardHref}
-          className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 text-[11px] font-extrabold text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-600 shadow-2xs"
+          className="flex shrink-0 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white p-2 text-[11px] font-extrabold text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-600 shadow-2xs"
           title="View 90-day price history graph"
         >
-          <svg className="h-3.5 w-3.5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg className="h-3.5 w-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          <span className="hidden sm:inline">Price Graph</span>
+          <span className="hidden md:inline text-[10px]">Graph</span>
         </Link>
       </div>
     </article>
