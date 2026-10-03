@@ -80,18 +80,18 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   };
 
   return (
-    <article className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-xl">
+    <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
       <div className="min-w-0">
         {/* Top Header: Store Logo + Verified Badge + Wishlist */}
-        <div className="flex items-center justify-between gap-1.5 mb-2">
+        <div className="flex items-center justify-between gap-1.5 mb-1.5">
           {/* Store Logo */}
-          <div className="flex h-7 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1 min-w-[70px] max-w-[92px] shrink-0">
-            {renderStoreLogo(deal.merchant || merchant.name, 'h-4 max-h-4 w-auto max-w-full object-contain')}
+          <div className="flex h-6 items-center justify-center rounded-md border border-slate-200/80 bg-slate-50 px-2 py-0.5 min-w-[60px] max-w-[80px] shrink-0">
+            {renderStoreLogo(deal.merchant || merchant.name, 'h-3.5 max-h-3.5 w-auto max-w-full object-contain')}
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
             {/* Live Verification Badge */}
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[9px] font-bold text-emerald-800 whitespace-nowrap">
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>{verifiedTime}</span>
             </span>
@@ -101,13 +101,13 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
               type="button"
               onClick={handleToggleSave}
               disabled={isSaving}
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
                 saved ? 'bg-rose-50 text-rose-500' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
               }`}
               aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'}
             >
               <svg
-                className="h-3.5 w-3.5"
+                className="h-3 w-3"
                 viewBox="0 0 24 24"
                 fill={saved ? 'currentColor' : 'none'}
                 stroke="currentColor"
@@ -120,7 +120,7 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
         </div>
 
         {/* Product Image Frame */}
-        <Link href={cardHref} className="relative block h-40 sm:h-48 w-full overflow-hidden rounded-xl bg-slate-50/80 p-2">
+        <Link href={cardHref} className="relative block h-32 sm:h-36 w-full overflow-hidden rounded-lg bg-slate-50/80 p-2">
           {hasValidImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -136,21 +136,21 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center text-center p-2">
-              <span className="text-2xl mb-1">{merchant.emoji || '🛍️'}</span>
+              <span className="text-xl mb-1">{merchant.emoji || '🛍️'}</span>
               <span className="text-[10px] font-bold text-slate-500 line-clamp-1">{merchant.name} Deal</span>
             </div>
           )}
 
           {/* Top-Right Badge: High-Contrast Discount or Cash Drop */}
           {hasPriceDrop && priceDropPct >= 3 ? (
-            <div className="absolute top-2 right-2 rounded-lg bg-emerald-600 px-2 py-0.5 text-center shadow-md">
-              <span className="block text-[10px] font-black uppercase text-white tracking-tight whitespace-nowrap">
+            <div className="absolute top-1.5 right-1.5 rounded-md bg-emerald-600 px-1.5 py-0.5 text-center shadow-xs">
+              <span className="block text-[9px] font-black uppercase text-white tracking-tight whitespace-nowrap">
                 📉 {priceDropPct}% DROP
               </span>
             </div>
           ) : mrpDiscountPct > 0 ? (
-            <div className="absolute top-2 right-2 rounded-lg bg-[#5855E5] px-2 py-0.5 text-center shadow-md">
-              <span className="block text-[10px] font-black uppercase text-white tracking-tight whitespace-nowrap">
+            <div className="absolute top-1.5 right-1.5 rounded-md bg-[#5855E5] px-1.5 py-0.5 text-center shadow-xs">
+              <span className="block text-[9px] font-black uppercase text-white tracking-tight whitespace-nowrap">
                 {mrpDiscountPct}% OFF
               </span>
             </div>
@@ -158,32 +158,32 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
         </Link>
 
         {/* Title: Strict 2-line clamp with min-height */}
-        <h3 className="mt-2.5 line-clamp-2 min-h-[34px] sm:min-h-[38px] text-xs sm:text-[13px] font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
+        <h3 className="mt-2 line-clamp-2 min-h-[32px] sm:min-h-[34px] text-xs font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
           <Link href={cardHref} title={deal.title}>
             {deal.title || 'Special Promotion Deal'}
           </Link>
         </h3>
 
         {/* Smart Verdict Pill: Wrapped cleanly with no horizontal overflow */}
-        <div className="mt-2 min-w-0">
-          <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-0.5 text-[9.5px] font-extrabold truncate ${verdictBg}`}>
+        <div className="mt-1.5 min-w-0">
+          <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold truncate ${verdictBg}`}>
             <span className="truncate">{verdictText}</span>
           </span>
         </div>
 
         {/* Flipkart-Style Clean Pricing Hierarchy */}
-        <div className="mt-2.5 rounded-xl bg-slate-50/90 p-2.5 border border-slate-100 min-w-0">
+        <div className="mt-2 rounded-lg bg-slate-50/90 p-2 border border-slate-100 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-lg sm:text-xl font-black tracking-tight text-slate-950">
+            <span className="text-base sm:text-lg font-black tracking-tight text-slate-950">
               {formatInr(currentPrice)}
             </span>
             {hasMrp && (
-              <span className="text-[11px] font-bold text-slate-400 line-through">
+              <span className="text-[10px] font-bold text-slate-400 line-through">
                 {formatInr(listMrp)}
               </span>
             )}
             {mrpDiscountPct > 0 && (
-              <span className="text-[10px] font-extrabold text-emerald-600 whitespace-nowrap">
+              <span className="text-[9.5px] font-extrabold text-emerald-600 whitespace-nowrap">
                 ({mrpDiscountPct}% off)
               </span>
             )}

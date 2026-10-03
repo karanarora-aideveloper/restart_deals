@@ -81,33 +81,33 @@ export default function V3Hero() {
   };
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#EEF2FF]/70 via-white to-white pt-8 pb-10 sm:pt-12 sm:pb-14">
+    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#EEF2FF]/70 via-white to-white pt-6 pb-6 sm:pt-8 sm:pb-8">
       {/* Background ambient glow */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-64 bg-gradient-to-b from-indigo-200/20 to-transparent blur-3xl" />
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-48 bg-gradient-to-b from-indigo-200/20 to-transparent blur-3xl" />
 
-      <div className="relative mx-auto max-w-4xl px-4 text-center">
+      <div className="relative mx-auto max-w-3xl px-4 text-center">
         {/* Sparkle Pill */}
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white px-3.5 py-1 shadow-2xs">
-          <svg className="w-4 h-4 text-indigo-600 shrink-0" viewBox="0 0 17 16" fill="currentColor">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white px-3 py-0.5 shadow-2xs">
+          <svg className="w-3.5 h-3.5 text-indigo-600 shrink-0" viewBox="0 0 17 16" fill="currentColor">
             <path d="m12.97 6.17.15-.4c.2-.56.27-.7.36-.8.1-.09.23-.15.8-.36l.4-.15v-.93l-.4-.15c-.57-.21-.7-.27-.8-.36-.1-.1-.15-.23-.36-.8l-.15-.4h-.94l-.15.4c-.2.57-.27.7-.36.8-.1.09-.23.15-.8.36l-.4.15v.94l.4.14c.57.21.7.27.8.37.1.1.15.23.36.8l.15.39h.94Zm-4.86 9.52.34-.93c.47-1.26.66-1.74 1-2.1.36-.34.84-.53 2.1-1L12 9.8v-.94l-.93-.34c-1.26-.47-1.75-.66-2.1-1-.34-.36-.53-.84-1-2.1l-.34-.93H6.7l-.35.93c-.46 1.26-.65 1.74-1 2.1s-.83.53-2.1 1l-.92.34v.94l.93.34c1.26.47 1.74.66 2.09 1 .35.36.54.84 1 2.1l.35.93h.94Z" />
           </svg>
-          <h1 className="text-xs sm:text-sm font-bold tracking-tight text-indigo-700">
+          <h1 className="text-xs font-bold tracking-tight text-indigo-700">
             Price History &amp; Tracker
           </h1>
         </div>
 
         {/* Primary Headline */}
-        <p className="mt-3 text-2xl sm:text-4xl md:text-[40px] font-black leading-tight text-[#312F80] tracking-tight">
+        <p className="mt-2 text-xl sm:text-2xl md:text-[28px] font-black leading-snug text-[#312F80] tracking-tight">
           Compare prices &amp; track drops across 1 Lakh+ stores
         </p>
 
         {/* Sub-Headline */}
-        <p className="mt-1 text-sm sm:text-xl font-normal text-slate-800">
+        <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-600">
           Save instantly, everytime you shop!
         </p>
 
         {/* Central Search Box */}
-        <div className="mx-auto mt-6 max-w-2xl min-w-0">
+        <div className="mx-auto mt-4 max-w-xl min-w-0">
           <form
             onSubmit={handleSearchOrScan}
             className="relative flex items-center rounded-2xl border border-slate-200 bg-white p-1 sm:p-1.5 shadow-md shadow-indigo-100/50 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100 min-w-0"

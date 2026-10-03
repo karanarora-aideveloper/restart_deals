@@ -419,7 +419,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
       <V3SubHeader activeTab="lens" />
 
       {/* 2. Breadcrumb Navigation */}
-      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 pt-4">
+      <div className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 pt-3">
         <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500">
           <Link href="/" className="hover:text-indigo-600 transition-colors">Home</Link>
           <span>/</span>
@@ -428,27 +428,27 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
       </div>
 
       {/* 3. Hero & Universal Product Lens Scanner */}
-      <section className="relative overflow-hidden pt-6 pb-10 sm:pt-10 sm:pb-14">
+      <section className="relative overflow-hidden pt-5 pb-8 sm:pt-7 sm:pb-10">
         {/* Soft background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-emerald-200/20 rounded-full blur-3xl pointer-events-none -z-10" />
 
-        <div className="mx-auto max-w-4xl px-4 text-center">
+        <div className="mx-auto max-w-3xl px-4 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/90 px-4 py-1.5 text-xs font-black text-emerald-800 shadow-2xs backdrop-blur-xs mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/90 px-3.5 py-1 text-xs font-black text-emerald-800 shadow-2xs backdrop-blur-xs mb-3">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>✨ ShoppersDeals Spend Lens™ • Intelligent Buying Radar</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-950 leading-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 leading-tight">
             Inspect Any Product <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 bg-clip-text text-transparent">Before You Spend</span>
           </h1>
 
-          <p className="mt-3 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
             Instant <strong>Fair-Value Score (0-100)</strong>, 90-day All-Time Low radar, fake discount detection, multi-store price check, and card cashback optimization.
           </p>
 
           {/* Interactive URL / Keyword Scanner */}
-          <div ref={searchBoxRef} className="mt-8 relative max-w-2xl mx-auto text-left">
+          <div ref={searchBoxRef} className="mt-5 sm:mt-6 relative max-w-xl mx-auto text-left">
             <form onSubmit={handleFormSubmit} className="relative flex items-center shadow-lg rounded-2xl bg-white border-2 border-emerald-500/80 p-1.5 transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100">
               <div className="pl-3.5 pr-2 text-slate-400">
                 <svg className="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -567,13 +567,13 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
 
       {/* 4. Active Inspected Product Deep-Dive Section */}
       {activeProduct && (
-        <section ref={inspectionSectionRef} id="lens-details" className="scroll-mt-6 mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 mb-16">
+        <section ref={inspectionSectionRef} id="lens-details" className="scroll-mt-6 mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 mb-12">
           {/* Header Product Card */}
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-sm">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 pb-5 border-b border-slate-100">
               {/* Product Info */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 flex-1 min-w-0">
-                <div className="relative h-28 w-28 sm:h-32 sm:w-32 shrink-0 rounded-2xl bg-white border border-slate-100 p-2 shadow-2xs flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-5 flex-1 min-w-0">
+                <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-2xl bg-white border border-slate-100 p-2 shadow-2xs flex items-center justify-center">
                   {isUsableImageUrl(activeProduct.imageUrl || (activeProduct.images && activeProduct.images[0])) ? (
                     <img
                       src={activeProduct.imageUrl || activeProduct.images[0]}
@@ -581,46 +581,46 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <span className="text-3xl">🛍️</span>
+                    <span className="text-2xl">🛍️</span>
                   )}
                   {/* Store Badge */}
-                  <div className="absolute top-1.5 left-1.5 rounded-md bg-white/95 px-1.5 py-0.5 shadow-2xs border border-slate-200/80">
-                    {renderStoreLogo(activeProduct.merchant || 'amazon', 'h-3.5 w-auto')}
+                  <div className="absolute top-1 left-1 rounded-md bg-white/95 px-1.5 py-0.5 shadow-2xs border border-slate-200/80">
+                    {renderStoreLogo(activeProduct.merchant || 'amazon', 'h-3 w-auto')}
                   </div>
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600">
                       {activeProduct.category || 'Electronics'}
                     </span>
                     {activeProduct.brand && (
-                      <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 border border-indigo-100">
+                      <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-indigo-700 border border-indigo-100">
                         {activeProduct.brand}
                       </span>
                     )}
                     {lensScore.isATL && (
-                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-800 border border-emerald-200">
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-emerald-800 border border-emerald-200">
                         🔥 All-Time Low Price
                       </span>
                     )}
                   </div>
 
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-snug line-clamp-2">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug line-clamp-2">
                     {activeProduct.title}
                   </h2>
 
                   {/* Pricing row */}
-                  <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                    <span className="text-2xl sm:text-3xl font-black text-slate-950">
+                  <div className="mt-2.5 flex flex-wrap items-baseline gap-2.5">
+                    <span className="text-xl sm:text-2xl font-black text-slate-950">
                       {formatInr(currentPrice)}
                     </span>
                     {originalPrice > currentPrice && (
                       <>
-                        <span className="text-sm font-semibold text-slate-600 line-through">
+                        <span className="text-xs sm:text-sm font-semibold text-slate-500 line-through">
                           {formatInr(originalPrice)}
                         </span>
-                        <span className="rounded-lg bg-emerald-50 px-2 py-0.5 text-xs font-black text-emerald-700 border border-emerald-200">
+                        <span className="rounded-lg bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700 border border-emerald-200">
                           {discountPct}% OFF
                         </span>
                       </>
@@ -639,23 +639,23 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                 {/* Buy Button */}
                 <a
                   href={getAffiliateUrl(activeProduct.cleanUrl || activeProduct.dealUrl || activeProduct.url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-black text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition-all"
+                  className="flex-1 lg:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4.5 py-2 text-xs sm:text-sm font-black text-white shadow-xs hover:from-emerald-700 hover:to-teal-700 transition-all"
                 >
                   <span>⚡ BUY NOW</span>
-                  <span className="text-xs opacity-90">({merchantInfo.label})</span>
+                  <span className="text-[11px] opacity-90">({merchantInfo.label})</span>
                 </a>
 
                 {/* Price Alert Button */}
                 <button
                   type="button"
                   onClick={() => setIsAlertModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 transition-colors"
                 >
                   <span>🔔 Set Alert</span>
                 </button>
@@ -663,7 +663,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                 {/* Compare Link */}
                 <Link
                   href={`/compare?ids=${activeProduct._id || activeProduct.productId}`}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 transition-colors"
                 >
                   <span>⚖️ Compare</span>
                 </Link>
@@ -671,7 +671,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                 {/* 90D History Link */}
                 <Link
                   href={`/product/${activeProduct._id || activeProduct.productId}`}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 px-4 py-3 text-xs sm:text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
                 >
                   <span>📈 90D Chart</span>
                 </Link>
@@ -679,31 +679,31 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
             </div>
 
             {/* 4-Pillar Analytical Bento Grid */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4">
               {/* Pillar 1: Spend Lens Value Score */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-5 shadow-2xs flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-500">Pillar 1: Value Score</span>
-                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-black border ${lensScore.color}`}>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Pillar 1: Value Score</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-black border ${lensScore.color}`}>
                       {lensScore.badgeText}
                     </span>
                   </div>
 
                   {/* Circular Score Gauge representation */}
-                  <div className="flex items-center gap-4 my-2">
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
-                      <span className="text-2xl font-black">{lensScore.score}</span>
-                      <span className="absolute bottom-1 text-[9px] font-bold text-slate-400">/ 100</span>
+                  <div className="flex items-center gap-3 my-1.5">
+                    <div className="relative flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                      <span className="text-xl font-black">{lensScore.score}</span>
+                      <span className="absolute bottom-0.5 text-[8px] font-bold text-slate-400">/ 100</span>
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-slate-900">{lensScore.tier}</h4>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{lensScore.summary}</p>
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900">{lensScore.tier}</h4>
+                      <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-relaxed">{lensScore.summary}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1 text-xs">
                   <div className="flex items-center justify-between text-slate-600">
                     <span>MRP Authenticity:</span>
                     <span className="font-bold text-emerald-700">
@@ -720,43 +720,43 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
               </div>
 
               {/* Pillar 2: AI Buying Verdict & Timing */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-5 shadow-2xs flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-500">Pillar 2: AI Verdict</span>
-                    <span className="text-base">🤖</span>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Pillar 2: AI Verdict</span>
+                    <span className="text-sm">🤖</span>
                   </div>
 
-                  <div className="mb-2">
+                  <div className="mb-1.5">
                     {lensScore.verdictType === 'STRONG_BUY' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2 py-0.5 text-[11px] font-black text-white">
                         ✓ STRONG BUY NOW
                       </span>
                     )}
                     {lensScore.verdictType === 'BUY' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-black text-white">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2 py-0.5 text-[11px] font-black text-white">
                         ✓ SAFE VALUE PURCHASE
                       </span>
                     )}
                     {lensScore.verdictType === 'WAIT' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-black text-white">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-2 py-0.5 text-[11px] font-black text-white">
                         ⏳ CONSIDER WAITING
                       </span>
                     )}
                     {lensScore.verdictType === 'OVERPRICED' && (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-black text-white">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-2 py-0.5 text-[11px] font-black text-white">
                         ⚠️ OVERPRICED
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed mt-2">
+                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed mt-1.5">
                     {priceStats?.verdictReason || 'Analyzed against recent market price points and seasonal discounting patterns.'}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Timing Recommendation:</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Timing:</span>
                   <span className="font-bold text-slate-900">
                     {lensScore.isATL ? 'Best Time to Buy' : 'Normal Cycle'}
                   </span>
@@ -764,41 +764,41 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
               </div>
 
               {/* Pillar 3: Multi-Store Price Radar */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-5 shadow-2xs flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-500">Pillar 3: Store Radar</span>
-                    <span className="text-base">🏪</span>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Pillar 3: Store Radar</span>
+                    <span className="text-sm">🏪</span>
                   </div>
 
-                  <h4 className="text-sm font-black text-slate-900">Cross-Store Comparison</h4>
-                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900">Cross-Store Comparison</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                     Checked across Amazon, Flipkart, Myntra, Nykaa, and Croma.
                   </p>
 
-                  <div className="mt-3 rounded-xl bg-white border border-slate-100 p-2.5 space-y-2">
+                  <div className="mt-2.5 rounded-xl bg-white border border-slate-100 p-2 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
                         <span className="text-slate-700 font-bold capitalize">{activeProduct.merchant || 'Amazon'}</span>
-                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1 rounded font-bold">Current</span>
+                        <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 rounded font-bold">Current</span>
                       </div>
                       <span className="font-black text-slate-950">{formatInr(currentPrice)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Live Status:</span>
                   <span className="font-bold text-emerald-700">✓ In Stock &amp; Tracked</span>
                 </div>
               </div>
 
               {/* Pillar 4: Card Cashback & Net Effective Price */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-5 shadow-2xs flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/60 to-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-500">Pillar 4: Card Maximizer</span>
-                    <span className="text-base">💳</span>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Pillar 4: Card Maximizer</span>
+                    <span className="text-sm">💳</span>
                   </div>
 
                   {cardOffers.length > 0 ? (
@@ -807,12 +807,12 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                         <span className="text-xs font-bold text-slate-800">{cardOffers[0].name}</span>
                         <span className="text-xs font-black text-emerald-700">Save {formatInr(cardOffers[0].savings)}</span>
                       </div>
-                      <div className="mt-2 rounded-xl bg-emerald-50/80 border border-emerald-200/80 p-2.5">
+                      <div className="mt-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 p-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">Net Effective Price</span>
-                          <span className="text-sm font-black text-emerald-900">{formatInr(cardOffers[0].netPrice)}</span>
+                          <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider">Net Effective Price</span>
+                          <span className="text-xs sm:text-sm font-black text-emerald-900">{formatInr(cardOffers[0].netPrice)}</span>
                         </div>
-                        <p className="text-[10px] text-emerald-700 mt-1 font-semibold">{cardOffers[0].benefit}</p>
+                        <p className="text-[9px] text-emerald-700 mt-0.5 font-semibold">{cardOffers[0].benefit}</p>
                       </div>
                     </div>
                   ) : (
@@ -820,7 +820,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                   )}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Card Strategy:</span>
                   <Link href="/credit-cards" className="font-bold text-indigo-600 hover:underline">
                     View Top Cards →
@@ -864,18 +864,18 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
       )}
 
       {/* 5. Trending Lenses Analyzed by Spend Lens (Grid) */}
-      <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 mt-12">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 mt-8 sm:mt-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-xs font-black">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 text-xs font-black">
                 🔍
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                 Trending Products Analyzed by Spend Lens
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-0.5">
               Select any popular gadget or everyday item to load its live Fair-Value Score &amp; multi-store check.
             </p>
           </div>
@@ -887,7 +887,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveCategoryTab(tab.id)}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap ${
                   activeCategoryTab === tab.id
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -901,8 +901,8 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
         </div>
 
         {/* Curated Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredCurated.slice(0, 12).map((item) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5">
+          {filteredCurated.slice(0, 15).map((item) => {
             const p = Number(item.price ?? item.dealPrice) || 0;
             const op = Number(item.originalPrice) || 0;
             const drop = op > p ? Math.round(((op - p) / op) * 100) : 0;
@@ -911,7 +911,7 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
             return (
               <div
                 key={item._id || item.productId}
-                className={`group rounded-2xl border transition-all duration-200 bg-white p-4.5 flex flex-col justify-between shadow-2xs hover:shadow-md ${
+                className={`group rounded-2xl border transition-all duration-200 bg-white p-2.5 sm:p-3 flex flex-col justify-between shadow-2xs hover:shadow-md ${
                   isSelected
                     ? 'border-emerald-500 ring-2 ring-emerald-100'
                     : 'border-slate-200/90 hover:border-emerald-300'
@@ -919,23 +919,23 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
               >
                 <div>
                   {/* Top Bar with Store and Quick Badge */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="rounded-md bg-slate-50 px-2 py-0.5 border border-slate-100">
-                      {renderStoreLogo(item.merchant || 'amazon', 'h-3.5 w-auto')}
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="rounded-md bg-slate-50 px-1.5 py-0.5 border border-slate-100">
+                      {renderStoreLogo(item.merchant || 'amazon', 'h-3 w-auto')}
                     </div>
                     {drop > 0 ? (
-                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700 border border-emerald-200">
+                      <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
                         {drop}% OFF
                       </span>
                     ) : (
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                         Tracked
                       </span>
                     )}
                   </div>
 
                   {/* Thumbnail */}
-                  <div className="relative h-40 w-full mb-3 rounded-xl bg-slate-50/50 flex items-center justify-center overflow-hidden p-2">
+                  <div className="relative h-28 sm:h-32 w-full mb-2 rounded-xl bg-slate-50/50 flex items-center justify-center overflow-hidden p-1.5">
                     {isUsableImageUrl(item.imageUrl || (item.images && item.images[0])) ? (
                       <img
                         src={item.imageUrl || item.images[0]}
@@ -944,22 +944,22 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                         loading="lazy"
                       />
                     ) : (
-                      <span className="text-3xl text-slate-300">🛍️</span>
+                      <span className="text-2xl text-slate-300">🛍️</span>
                     )}
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
                     {item.title}
                   </h3>
 
                   {/* Price Row */}
-                  <div className="mt-2.5 flex items-baseline gap-2">
-                    <span className="text-base sm:text-lg font-black text-slate-950">
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="text-sm sm:text-base font-black text-slate-950">
                       {formatInr(p)}
                     </span>
                     {op > p && (
-                      <span className="text-xs font-semibold text-slate-400 line-through">
+                      <span className="text-[11px] font-semibold text-slate-400 line-through">
                         {formatInr(op)}
                       </span>
                     )}
@@ -967,11 +967,11 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                 </div>
 
                 {/* Bottom CTA */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => handleInspectProduct(item)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/90 py-2 text-xs font-black text-emerald-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
+                    className="w-full flex items-center justify-center gap-1 rounded-xl bg-emerald-50 border border-emerald-200/90 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
                   >
                     <span>🔍 Inspect Lens</span>
                   </button>
@@ -983,47 +983,47 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
       </section>
 
       {/* 6. Why Indian Shoppers Use Spend Lens (Trust Section) */}
-      <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 mt-16">
-        <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-emerald-50/20 to-indigo-50/20 p-6 sm:p-10 shadow-sm">
+      <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 mt-10 sm:mt-12">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-emerald-50/20 to-indigo-50/20 p-5 sm:p-7 shadow-sm">
           <div className="max-w-2xl">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 uppercase tracking-wider">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black text-emerald-800 uppercase tracking-wider">
               The Spend Lens Guarantee
             </span>
-            <h2 className="mt-3 text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+            <h2 className="mt-2 text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
               Why Never Buy Online Without Checking Spend Lens
             </h2>
-            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
               E-commerce platforms deploy artificial urgency, fluctuating MRPs, and fake sale timers. Spend Lens provides 100% empirical, unbiased verification.
             </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-2xs">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 text-xl font-bold mb-3">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+            <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-2xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 text-lg font-bold mb-2.5">
                 🛑
               </div>
-              <h3 className="text-sm font-black text-slate-900">Fake MRP Buster</h3>
-              <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900">Fake MRP Buster</h3>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                 Sellers often double MRP right before big sales to advertise 70% discounts. Lens uses empirical 90-day transaction medians to expose fake markups.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-teal-100 bg-white p-5 shadow-2xs">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 text-xl font-bold mb-3">
+            <div className="rounded-2xl border border-teal-100 bg-white p-4 shadow-2xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 text-lg font-bold mb-2.5">
                 ⚖️
               </div>
-              <h3 className="text-sm font-black text-slate-900">Cross-Store Arbitrage</h3>
-              <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900">Cross-Store Arbitrage</h3>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                 In 38% of cases, the exact same smartphone, cosmetic, or kitchen appliance is ₹200 to ₹1,500 cheaper on a competitor store like Flipkart or Nykaa.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-2xs">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 text-xl font-bold mb-3">
+            <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-2xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 text-lg font-bold mb-2.5">
                 💳
               </div>
-              <h3 className="text-sm font-black text-slate-900">Card Yield Maximizer</h3>
-              <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900">Card Yield Maximizer</h3>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                 Calculates whether Amazon Pay ICICI, Flipkart Axis, or SBI Cashback nets the lowest final checkout cost, factoring in hidden discount caps.
               </p>
             </div>

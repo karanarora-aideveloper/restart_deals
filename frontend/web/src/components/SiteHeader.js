@@ -245,7 +245,7 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-50 w-full">
       {/* Announcement strip — festive sale context */}
       <div className="w-full bg-gradient-to-r from-[#FF6B00] via-[#e05d00] to-[#FF6B00]">
-        <div className="mx-auto flex w-full max-w-[1720px] 2xl:max-w-[1840px] items-center justify-center px-4 py-1.5 md:px-8">
+        <div className="mx-auto flex w-full max-w-[1360px] 2xl:max-w-[1400px] items-center justify-center px-4 py-1.5 md:px-8">
           <p className="truncate text-[11px] font-black tracking-wide text-white text-center">
             <span className="md:hidden">🔥 Amazon GIF &amp; Flipkart BBD LIVE — Real deals tracked in real-time</span>
             <span className="hidden md:inline">🔥 Amazon Great Indian Festival &amp; Flipkart Big Billion Days are LIVE — Every deal verified against 90-day price history</span>
@@ -255,7 +255,7 @@ export default function SiteHeader() {
 
       {/* Main bar */}
       <div className="w-full border-b border-[#eee] bg-white">
-        <div className="mx-auto w-full max-w-[1720px] 2xl:max-w-[1840px] px-4 py-2.5 md:px-8 md:py-3">
+        <div className="mx-auto w-full max-w-[1360px] 2xl:max-w-[1400px] px-4 py-2 md:px-6 md:py-2.5">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex shrink-0 flex-row items-center">
               <Image src="/logo.png" alt="ShoppersDeals Logo" width={32} height={32} className="mr-1.5 h-7 w-7 rounded-md md:mr-2 md:h-8 md:w-8" priority />

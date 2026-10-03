@@ -75,32 +75,32 @@ export default function V3HeroCarousel() {
 
   return (
     <section
-      className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 mt-4 mb-6"
+      className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 mt-3 mb-4"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${slide.bgGradient} p-6 sm:p-8 md:p-10 text-white shadow-xl transition-all duration-500`}>
+      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${slide.bgGradient} p-4 sm:p-6 md:p-7 text-white shadow-lg transition-all duration-500`}>
         {/* Ambient lighting orb */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 min-w-0">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 min-w-0">
           {/* Left Text Block */}
-          <div className="max-w-2xl min-w-0">
+          <div className="max-w-xl min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider ${slide.tagColor}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${slide.tagColor}`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
                 <span>{slide.tag}</span>
               </span>
-              <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold text-white/90">
+              <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold text-white/90">
                 {slide.badge}
               </span>
             </div>
 
-            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+            <h2 className="mt-2 text-lg sm:text-xl md:text-2xl font-black tracking-tight text-white leading-snug">
               {slide.title}
             </h2>
 
-            <p className="mt-2 text-xs sm:text-sm md:text-base text-slate-100/90 leading-relaxed">
+            <p className="mt-1.5 text-xs sm:text-[13px] text-slate-100/85 leading-relaxed">
               {slide.subtitle}
             </p>
 

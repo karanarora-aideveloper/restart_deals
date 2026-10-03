@@ -103,16 +103,16 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
 
   return (
     <div className="w-full border-b border-slate-100 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1720px] 2xl:max-w-[1840px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12 py-2">
+      <div className="mx-auto flex max-w-[1360px] 2xl:max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-8 py-1.5">
         {/* Nav tabs */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto scrollbar-hide py-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide py-0.5">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <Link
                 key={tab.id}
                 href={tab.href}
-                className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all duration-200 whitespace-nowrap ${
                   isActive ? tab.activeBg : 'bg-slate-50 text-slate-600 ' + tab.hoverBg
                 }`}
               >

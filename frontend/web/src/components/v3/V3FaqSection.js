@@ -29,15 +29,15 @@ export default function V3FaqSection() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="mx-auto max-w-4xl px-4 my-14">
-      <div className="text-center mb-8">
-        <span className="rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700">
+    <section className="mx-auto max-w-3xl px-4 my-8">
+      <div className="text-center mb-6">
+        <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
           Knowledge Base
         </span>
-        <h2 className="mt-3 text-2xl sm:text-3xl font-black text-slate-900">
+        <h2 className="mt-2 text-lg sm:text-xl font-black text-slate-900">
           Frequently Asked Questions
         </h2>
-        <p className="mt-1.5 text-xs sm:text-sm text-slate-600">
+        <p className="mt-1 text-xs text-slate-600">
           Everything you need to know about price tracking, discount verification, and smart shopping.
         </p>
       </div>

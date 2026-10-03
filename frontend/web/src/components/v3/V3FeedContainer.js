@@ -127,24 +127,24 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
   };
 
   return (
-    <section id="deals" className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
+    <section id="deals" className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
       {/* Buyhatke Exact Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200/80 pb-5">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-200/80 pb-3.5">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/80 px-3 py-1 text-xs font-bold text-indigo-700">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
             <span>⚡ Unmissable Deals</span>
           </div>
-          <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-[#1E1B4B]">
+          <h2 className="mt-1.5 text-lg sm:text-xl font-black tracking-tight text-[#1E1B4B]">
             Best Discounts &amp; Verified Steals
           </h2>
-          <p className="mt-1 text-xs sm:text-sm text-slate-600">
+          <p className="mt-0.5 text-xs text-slate-600">
             Hot deals under the scanner — See what’s trending, most-searched, and whether it’s really worth the hype.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-500">Powered by</span>
-          <span className="rounded-lg bg-indigo-100/70 px-2.5 py-1 text-xs font-black text-indigo-700">
+          <span className="rounded-lg bg-indigo-100/70 px-2 py-0.5 text-xs font-black text-indigo-700">
             Smart Deal Scanner
           </span>
         </div>
@@ -227,19 +227,19 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
 
       {/* Deal Grid */}
       {loading ? (
-        <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+        <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="h-96 rounded-2xl border border-slate-200 bg-white p-4 animate-pulse">
-              <div className="h-5 w-20 rounded-md bg-slate-200 mb-3" />
-              <div className="h-44 w-full rounded-xl bg-slate-100 mb-3" />
-              <div className="h-4 w-3/4 rounded-md bg-slate-200 mb-2" />
-              <div className="h-4 w-1/2 rounded-md bg-slate-200 mb-4" />
-              <div className="h-8 w-full rounded-xl bg-slate-200" />
+            <div key={i} className="h-80 rounded-xl border border-slate-200 bg-white p-3 animate-pulse">
+              <div className="h-4 w-16 rounded-md bg-slate-200 mb-2" />
+              <div className="h-36 w-full rounded-lg bg-slate-100 mb-2" />
+              <div className="h-3 w-3/4 rounded-md bg-slate-200 mb-1.5" />
+              <div className="h-3 w-1/2 rounded-md bg-slate-200 mb-3" />
+              <div className="h-7 w-full rounded-lg bg-slate-200" />
             </div>
           ))}
         </div>
       ) : deals.length > 0 ? (
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+        <div className="mt-4 sm:mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3">
           {deals.map((deal) => (
             <V3DealCard
               key={deal._id || deal.id}

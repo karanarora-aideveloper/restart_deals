@@ -24,16 +24,16 @@ export default function V3StoresSection() {
   ];
 
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-12">
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-8 lg:p-10 shadow-sm">
-        <div className="text-center max-w-xl mx-auto mb-8">
-          <span className="rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-8">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 lg:p-7 shadow-sm">
+        <div className="text-center max-w-xl mx-auto mb-6">
+          <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
             Store Coverage
           </span>
-          <h2 className="mt-3 text-2xl sm:text-3xl font-black text-slate-900">
+          <h2 className="mt-2 text-lg sm:text-xl font-black text-slate-900">
             Over 100K+ Stores Monitored 24/7
           </h2>
-          <p className="mt-1.5 text-xs sm:text-sm text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             Direct real-time price synchronization across India’s leading retail and lifestyle platforms.
           </p>
         </div>

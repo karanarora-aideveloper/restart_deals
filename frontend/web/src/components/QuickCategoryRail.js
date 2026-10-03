@@ -78,7 +78,7 @@ export default function QuickCategoryRail() {
 
   return (
     <div className="w-full border-b border-[#f1f5f9] bg-white py-2.5 shadow-2xs">
-      <div className="mx-auto flex w-full max-w-[1720px] 2xl:max-w-[1840px] items-center gap-2 overflow-x-auto px-4 md:px-8 scrollbar-none">
+      <div className="mx-auto flex w-full max-w-[1360px] 2xl:max-w-[1400px] items-center gap-2 overflow-x-auto px-4 md:px-6 scrollbar-none">
         {tabs.map((tab) => (
           <Link
             key={tab.id}

@@ -5,23 +5,23 @@ import Link from 'next/link';
 
 export default function V3ExtensionSection() {
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-12">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1E1B4B] via-[#2A2478] to-[#5855E5] p-6 sm:p-10 lg:p-12 text-white shadow-2xl">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-8">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1E1B4B] via-[#2A2478] to-[#5855E5] p-5 sm:p-7 lg:p-8 text-white shadow-xl">
         {/* Ambient background decoration */}
-        <div className="pointer-events-none absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-indigo-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           {/* Left Column: Value Prop & CTAs */}
           <div className="lg:col-span-7 min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-white/10 px-3.5 py-1 text-xs font-bold text-indigo-200">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-white/10 px-3 py-0.5 text-xs font-bold text-indigo-200">
               <span>⭐ Chrome Extension &amp; Mobile App</span>
             </div>
 
-            <h2 className="mt-4 text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+            <h2 className="mt-3 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white leading-snug">
               Never Overpay Online Again
             </h2>
 
-            <p className="mt-3 text-sm sm:text-base lg:text-lg text-indigo-100 max-w-xl leading-relaxed">
+            <p className="mt-2 text-xs sm:text-sm text-indigo-100 max-w-xl leading-relaxed">
               Add the <strong>ShoppersDeals Smart Price Tracker</strong> to your browser. Automatically see 90-day price history charts right on Amazon, Flipkart, and Myntra so you never get tricked by fake discounts.
             </p>
 

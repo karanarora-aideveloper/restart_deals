@@ -88,15 +88,15 @@ const V3_CATEGORIES = [
 
 export default function V3CategoriesRail() {
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-6">
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-xs">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4.5 shadow-xs">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 text-sm font-black">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 text-xs font-black">
               ✨
             </span>
-            <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
+            <h2 className="text-sm sm:text-base font-black tracking-tight text-slate-900">
               Explore by Top Categories
             </h2>
           </div>
@@ -110,15 +110,15 @@ export default function V3CategoriesRail() {
         </div>
 
         {/* 8-Item Category Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
           {V3_CATEGORIES.map((cat) => (
             <Link
               key={cat.id}
               href={cat.href}
-              className="group flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 p-2.5 sm:p-3 text-center transition-all duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:bg-white hover:shadow-md"
+              className="group flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50/50 p-2 sm:p-2.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-sm"
             >
               {/* 3D Illustration Container */}
-              <div className="relative mb-2.5 h-16 w-16 sm:h-20 sm:w-20 md:h-22 md:w-22 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-transform duration-300 group-hover:scale-105">
+              <div className="relative mb-2 h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs transition-transform duration-300 group-hover:scale-105">
                 <img
                   src={cat.image}
                   alt={cat.name}
@@ -128,7 +128,7 @@ export default function V3CategoriesRail() {
               </div>
 
               {/* Title */}
-              <span className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+              <span className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
                 {cat.shortName}
               </span>
 

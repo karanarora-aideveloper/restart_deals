@@ -78,18 +78,18 @@ export default function V3StoreDealsRail() {
   };
 
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-6">
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-7 shadow-xs">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
               <span>🏪 24/7 Store Price Tracking</span>
             </div>
-            <h2 className="mt-2 text-xl sm:text-2xl font-black text-slate-900">
+            <h2 className="mt-1.5 text-base sm:text-lg font-black text-slate-900">
               Top Monitored Stores &amp; Verified Deals
             </h2>
-            <p className="mt-1 text-xs sm:text-sm text-slate-600">
+            <p className="mt-0.5 text-xs text-slate-600">
               Real-time price drop detection across India’s leading retail and lifestyle platforms.
             </p>
           </div>

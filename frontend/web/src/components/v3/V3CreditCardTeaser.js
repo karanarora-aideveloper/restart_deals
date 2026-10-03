@@ -58,7 +58,7 @@ const CARDS_TEASER = [
 
 export default function V3CreditCardTeaser() {
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-6">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-4">
       <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 p-4 sm:p-5 shadow-2xs">
         {/* Compact Header */}
         <div className="flex items-center justify-between gap-3 mb-3">

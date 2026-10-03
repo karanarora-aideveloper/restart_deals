@@ -269,20 +269,20 @@ export default function ProfileAlertsPage() {
         </div>
 
         {/* Hero Section Header */}
-        <div className="mb-6 rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 shadow-xs">
-          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <div className="mb-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs">
+          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-rose-700">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-rose-700">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500"></span>
                 </span>
                 <span>Autonomous 24/7 Price Radar</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
                 Your Price Drop Alerts &amp; Watchlist 🔔
               </h1>
-              <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+              <p className="mt-1 text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
                 Products monitored continuously across Amazon, Flipkart, Myntra &amp; Nykaa. When the live price drops to or below your target, we trigger instant alerts via Telegram, Browser WebPush, WhatsApp, and Email.
               </p>
             </div>
@@ -293,7 +293,7 @@ export default function ProfileAlertsPage() {
                 href="https://t.me/ShoppersDealsAlertBot"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition hover:bg-sky-100"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700 transition hover:bg-sky-100"
               >
                 <span>✈️ Telegram Bot</span>
                 <span className="text-[10px] rounded-md bg-sky-200/80 px-1 py-0.5 text-sky-900">98% Open</span>
@@ -312,7 +312,7 @@ export default function ProfileAlertsPage() {
                   }
                 }}
                 disabled={pushLoading || !isPushSubscribed}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition ${
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-black transition ${
                   isPushSubscribed
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                     : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
@@ -329,40 +329,40 @@ export default function ProfileAlertsPage() {
 
           {/* Action Notification Banner */}
           {actionMsg && (
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 animate-fadeIn">
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs font-bold text-emerald-800 animate-fadeIn">
               ✓ {actionMsg}
             </div>
           )}
 
           {/* Summary Metrics Bar */}
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-slate-100 pt-6">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Tracked</span>
-              <p className="mt-1 text-2xl font-black text-slate-900">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 border-t border-slate-100 pt-4">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Tracked</span>
+              <p className="mt-0.5 text-xl font-black text-slate-900">
                 {alerts.length + deviceProducts.length}
               </p>
               <span className="text-[10px] text-slate-400">Products in radar</span>
             </div>
 
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Target Reached</span>
-              <p className="mt-1 text-2xl font-black text-emerald-700">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-800">Target Reached</span>
+              <p className="mt-0.5 text-xl font-black text-emerald-700">
                 {targetMetCount}
               </p>
               <span className="text-[10px] text-emerald-700 font-semibold">Ready to buy deals</span>
             </div>
 
-            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Monitoring 24/7</span>
-              <p className="mt-1 text-2xl font-black text-amber-700">
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800">Monitoring 24/7</span>
+              <p className="mt-0.5 text-xl font-black text-amber-700">
                 {monitoringCount}
               </p>
               <span className="text-[10px] text-amber-700 font-semibold">Awaiting drop</span>
             </div>
 
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">Sync Channels</span>
-              <div className="mt-1 flex items-center gap-1.5 text-base">
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-indigo-800">Sync Channels</span>
+              <div className="mt-0.5 flex items-center gap-1.5 text-sm">
                 <span title="Telegram Bot">✈️</span>
                 <span title="Browser Web Push">🔔</span>
                 <span title="WhatsApp / Email">💬</span>

@@ -157,12 +157,12 @@ export default function V3SmartBuyersGuides() {
     : FEATURED_GUIDES.filter((g) => g.tabGroup === activeTab);
 
   return (
-    <section aria-labelledby="v3-buyers-guides-heading" className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-12">
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 lg:p-10 shadow-xs">
+    <section aria-labelledby="v3-buyers-guides-heading" className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-8">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 lg:p-7 shadow-xs">
         {/* Header with Live Monthly Timestamp & Authority Badge */}
-        <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end border-b border-slate-100 pb-6">
+        <div className="mb-4 flex flex-col justify-between gap-3 lg:flex-row lg:items-end border-b border-slate-100 pb-4">
           <div>
-            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-indigo-200/90 bg-indigo-50/80 px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200/90 bg-indigo-50/80 px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-indigo-700">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
@@ -171,11 +171,11 @@ export default function V3SmartBuyersGuides() {
             </div>
             <h2
               id="v3-buyers-guides-heading"
-              className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900"
+              className="text-lg sm:text-xl font-black tracking-tight text-slate-900"
             >
               Smart Buyer&apos;s Guides &amp; Multi-Store Benchmarks
             </h2>
-            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className="mt-1 text-xs text-slate-600 max-w-2xl leading-relaxed">
               High-ticket electronics and appliances audited side-by-side with 90-day price history, verified festive discounts, and true running costs.
             </p>
           </div>

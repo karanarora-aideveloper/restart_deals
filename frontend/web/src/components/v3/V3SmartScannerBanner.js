@@ -31,15 +31,15 @@ export default function V3SmartScannerBanner() {
   ];
 
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-8">
-      <div className="rounded-3xl border border-indigo-900/30 bg-gradient-to-br from-[#1E1B4B] via-[#2A2478] to-[#4338CA] p-6 sm:p-8 text-white shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-500/30 pb-5">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-6">
+      <div className="rounded-2xl border border-indigo-900/30 bg-gradient-to-br from-[#1E1B4B] via-[#2A2478] to-[#4338CA] p-4 sm:p-6 text-white shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-500/30 pb-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-indigo-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-indigo-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Autonomous Deal Radar</span>
             </div>
-            <h2 className="mt-2 text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">
+            <h2 className="mt-1.5 text-lg sm:text-xl font-black tracking-tight text-white">
               Smart Deal Scanner
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-indigo-200 max-w-2xl">

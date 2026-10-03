@@ -142,18 +142,18 @@ export default function V3CreditCardSection() {
   };
 
   return (
-    <section id="credit-cards" className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-12">
-      <div className="rounded-3xl border border-indigo-100 bg-white p-6 sm:p-10 shadow-sm">
+    <section id="credit-cards" className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-8">
+      <div className="rounded-2xl border border-indigo-100 bg-white p-5 sm:p-7 shadow-sm">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-100 pb-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold text-blue-800">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-0.5 text-xs font-bold text-blue-800">
               <span>💳 CashKaro-Style Credit Card Hub</span>
             </div>
-            <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className="mt-2 text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Best Cashback Credit Cards with Guaranteed Cash Rewards
             </h2>
-            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
+            <p className="mt-1 text-xs text-slate-600 max-w-2xl">
               Don’t get confused by thousands of bank cards. Compare top co-branded cards for Flipkart, Amazon, Swiggy &amp; Blinkit, and earn up to <strong>₹2,000 Extra Cash</strong> on approval.
             </p>
           </div>

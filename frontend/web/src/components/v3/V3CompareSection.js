@@ -98,37 +98,37 @@ export default function V3CompareSection() {
   ];
 
   return (
-    <section className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12 my-6">
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-7 shadow-xs">
+    <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-4">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs">
         {/* Buyhatke Banner Pill */}
-        <div className="flex justify-center -mt-5 sm:-mt-7 mb-6">
-          <p className="inline-flex items-center gap-1.5 text-center text-xs font-semibold text-[#312F80] bg-[#EFEFFF] border border-indigo-100 rounded-b-2xl px-6 py-1.5 shadow-2xs">
+        <div className="flex justify-center -mt-4 sm:-mt-5 mb-5">
+          <p className="inline-flex items-center gap-1.5 text-center text-xs font-semibold text-[#312F80] bg-[#EFEFFF] border border-indigo-100 rounded-b-xl px-5 py-1 shadow-2xs">
             <span>✨ Compare prices across flights, grocery, tech &amp; lifestyle. Pick the lowest price &amp; save.</span>
           </p>
         </div>
 
         {/* 6-Card Symmetric Responsive Grid: 6 cols on XL, 3 cols on MD, 2 cols on Mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-3">
           {cards.map((card) => (
             <Link
               key={card.id}
               href={card.href}
-              className={`group flex flex-col justify-between rounded-2xl p-4 border border-slate-200/70 transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${card.bg} ${card.hoverBorder}`}
+              className={`group flex flex-col justify-between rounded-xl p-3 border border-slate-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${card.bg} ${card.hoverBorder}`}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="p-2 rounded-xl bg-white/80 shadow-2xs">
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-1.5 rounded-lg bg-white/80 shadow-2xs">
                   {card.icon}
                 </div>
-                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-white text-xs font-bold transition-transform group-hover:translate-x-1 ${card.badgeColor}`}>
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-white text-[10px] font-bold transition-transform group-hover:translate-x-0.5 ${card.badgeColor}`}>
                   →
                 </span>
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug truncate" title={card.title}>
+                <h3 className="text-xs font-bold text-slate-900 leading-snug truncate" title={card.title}>
                   {card.title}
                 </h3>
-                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5" title={card.subtitle}>
+                <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5" title={card.subtitle}>
                   {card.subtitle}
                 </p>
               </div>

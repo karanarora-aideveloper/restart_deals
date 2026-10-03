@@ -9,8 +9,8 @@ export const metadata = {
 
 export default function CreditCardsPage() {
   return (
-    <div className="min-h-screen bg-[#FAFAFC] py-6 sm:py-10">
-      <div className="mx-auto max-w-[1720px] 2xl:max-w-[1840px] px-4 sm:px-6 lg:px-8 xl:px-12">
+    <div className="min-h-screen bg-[#FAFAFC] py-4 sm:py-6">
+      <div className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-xs font-semibold text-slate-500">
           <Link href="/" className="hover:text-indigo-600 transition-colors">Home</Link>
