@@ -2,6 +2,16 @@ import { API_BASE_URL } from './config';
 import { isUsableImageUrl } from './affiliate';
 import { searchAlgolia, hitToDeal, hitToProduct, DEALS_INDEX, PRODUCTS_INDEX } from './algolia';
 import { aggregateSeriesFeed } from './seriesAggregation';
+import {
+  directFetchProductById,
+  directFetchDealById,
+  directFetchProductVariants,
+  directFindMatchingProductId,
+  directFindLatestDealForProduct,
+  directFetchTopProductsForSubcategory,
+  directFetchSitemapProducts,
+  directFetchSitemapDeals,
+} from './dbFallback';
 
 // Server-side data fetching helpers, used from Server Components / route handlers.
 // `revalidate` keeps pages fast to build while still refreshing frequently — deals
@@ -127,7 +137,10 @@ export async function fetchDealById(id) {
   const json = await safeFetchJson(`${API_BASE_URL}/api/deals/${id}`, {
     next: { revalidate: 300 },
   });
-  return json?.success ? json.data : null;
+  if (json?.success && json.data) {
+    return json.data;
+  }
+  return await directFetchDealById(id);
 }
 
 export async function fetchProducts({
@@ -194,8 +207,11 @@ export async function fetchTopProductsForSubcategory({ subcategory, category = '
     next: { revalidate: 300 },
   });
   const raw = json?.data || json?.products || [];
-  const finalItems = aggregateSeriesFeed(raw.filter((p) => isUsableImageUrl(p.imageUrl)));
-  return finalItems.slice(0, limit);
+  if (raw.length > 0) {
+    const finalItems = aggregateSeriesFeed(raw.filter((p) => isUsableImageUrl(p.imageUrl)));
+    return finalItems.slice(0, limit);
+  }
+  return await directFetchTopProductsForSubcategory({ subcategory, category, limit });
 }
 
 export async function fetchProductById(id) {
@@ -203,7 +219,11 @@ export async function fetchProductById(id) {
   const json = await safeFetchJson(`${API_BASE_URL}/api/products/${id}`, {
     next: { revalidate: 300 },
   });
-  return json?.success ? json.data : null;
+  if (json?.success && json.data) {
+    return json.data;
+  }
+  // Architectural Safeguard: Direct MongoDB fallback when API is slow or unreachable
+  return await directFetchProductById(id);
 }
 
 export async function fetchProductVariants(id) {
@@ -211,7 +231,10 @@ export async function fetchProductVariants(id) {
   const json = await safeFetchJson(`${API_BASE_URL}/api/products/${id}/variants`, {
     next: { revalidate: 300 },
   });
-  return json?.success ? json : null;
+  if (json?.success) {
+    return json;
+  }
+  return await directFetchProductVariants(id);
 }
 
 // A Deal's `productId`+`merchant` is the same canonical identity Product tracks (see the
@@ -227,7 +250,8 @@ export async function findMatchingProductId(productId, merchant) {
   const match = (json?.data || []).find(
     (p) => p.productId === productId && (p.merchant || '').toLowerCase() === merchant.toLowerCase()
   );
-  return match?._id || null;
+  if (match?._id) return match._id;
+  return await directFindMatchingProductId(productId, merchant);
 }
 
 // Reverse lookup for the product page: the most recent Deal posted for this product, if any,
@@ -242,7 +266,8 @@ export async function findLatestDealForProduct(productId, merchant, country = 'i
   const matches = (json?.data || []).filter(
     (d) => d.productId === productId && (d.merchant || '').toLowerCase() === merchant.toLowerCase()
   );
-  return matches[0] || null;
+  if (matches[0]) return matches[0];
+  return await directFindLatestDealForProduct(productId, merchant, country);
 }
 
 // Pages through an endpoint collecting every item — used for the sitemap, which needs every
@@ -300,10 +325,10 @@ export async function fetchSitemapProducts({ country = 'IN', page = 1, limit = 5
       timeoutMs: 15000,
     }
   );
-  if (json?.success && Array.isArray(json.products)) {
+  if (json?.success && Array.isArray(json.products) && json.products.length > 0) {
     return json.products;
   }
-  return [];
+  return await directFetchSitemapProducts({ country, page, limit });
 }
 
 export async function fetchSitemapDeals() {
@@ -311,10 +336,10 @@ export async function fetchSitemapDeals() {
     next: { revalidate: 1800 },
     timeoutMs: 15000,
   });
-  if (json?.success && Array.isArray(json.deals)) {
+  if (json?.success && Array.isArray(json.deals) && json.deals.length > 0) {
     return json.deals;
   }
-  return [];
+  return await directFetchSitemapDeals();
 }
 
 export function fetchAllDeals(opts) {
