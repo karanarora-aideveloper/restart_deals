@@ -6,19 +6,8 @@ import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { useSavedCount } from '@/lib/useSavedCount';
-import { useCompare } from '@/lib/useCompare';
 import { API_BASE_URL } from '@/lib/config';
 import QuickCategoryRail from '@/components/QuickCategoryRail';
-
-const NAV_LINKS = [
-  { href: '/', label: 'Live Feed', match: (p) => p === '/' || p.startsWith('/deal/') },
-  { href: '/hot', label: 'Hot Deals' },
-  { href: '/products', label: 'Track Prices' },
-  { href: '/coupons', label: 'Coupons' },
-  { href: '/compare', label: 'Compare' },
-  { href: '/blog', label: 'Buying Guides', match: (p) => p.startsWith('/blog') },
-  { href: '/categories', label: 'Categories' },
-];
 
 const LISTING_PATHS = new Set(['/', '/hot', '/products']);
 
@@ -30,7 +19,6 @@ const SUPPORTED_COUNTRIES = [
 export default function SiteHeader() {
   const { user, isLoggedIn } = useAuth();
   const savedCount = useSavedCount();
-  const { compareItems } = useCompare();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -92,13 +80,6 @@ export default function SiteHeader() {
     const target = LISTING_PATHS.has(pathname) ? pathname : '/';
     const qs = params.toString();
     router.push(qs ? `${target}?${qs}` : target);
-  };
-
-  const getNavHref = (baseHref) => {
-    if (activeCountry && activeCountry !== 'in') {
-      return `${baseHref}?country=${activeCountry}`;
-    }
-    return baseHref;
   };
 
   // Only synchronize query from URL when the user is NOT actively focused/typing in the search input.
@@ -256,7 +237,7 @@ export default function SiteHeader() {
       {/* Main bar */}
       <div className="w-full border-b border-[#eee] bg-white">
         <div className="mx-auto w-full max-w-[1360px] 2xl:max-w-[1400px] px-4 py-2 md:px-6 md:py-2.5">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-3 md:gap-6">
             <Link href="/" className="flex shrink-0 flex-row items-center">
               <Image src="/logo.png" alt="ShoppersDeals Logo" width={32} height={32} className="mr-1.5 h-7 w-7 rounded-md md:mr-2 md:h-8 md:w-8" priority />
               <span className="text-[17px] font-black tracking-tight text-[#1a1a1a] md:text-[20px]">
@@ -264,42 +245,17 @@ export default function SiteHeader() {
               </span>
             </Link>
 
-            {/* Desktop nav */}
-            <nav aria-label="Primary" className="hidden shrink-0 items-center gap-0.5 md:flex">
-              {NAV_LINKS.map((link) => {
-                const isActive = link.match ? link.match(pathname) : pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={getNavHref(link.href)}
-                    className={`relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] uppercase tracking-[0.4px] hover:bg-[#f5f5f6] ${
-                      isActive ? 'font-black text-[#1a1a1a]' : 'font-bold text-[#6b7280]'
-                    }`}
-                  >
-                    <span>{link.label}</span>
-                    {link.href === '/compare' && isClient && compareItems.length > 0 && (
-                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-black text-white">
-                        {compareItems.length}
-                      </span>
-                    )}
-                    {isActive && <span className="absolute -bottom-0 left-3 right-3 h-[2.5px] rounded-full bg-brand" />}
-                  </Link>
-                );
-              })}
-            </nav>
-
             {/* Desktop search */}
             <div
-              className={`hidden h-10 max-w-[560px] xl:max-w-[640px] flex-1 items-center rounded-full border bg-[#f5f5f6] px-4 md:flex ${
+              className={`hidden h-10 min-w-0 max-w-[580px] xl:max-w-[680px] flex-1 items-center rounded-full border bg-[#f5f5f6] px-4 md:flex ${
                 focused ? 'border-brand ring-2 ring-brand/10 bg-white' : 'border-[#e8e8e8]'
               }`}
             >
               {renderSearch('desktop')}
             </div>
-            <div className="hidden flex-1 md:!hidden" />
 
             {/* Right actions */}
-            <div className="ml-auto flex shrink-0 items-center gap-1.5 md:ml-0 md:gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 md:gap-2.5">
               {/* Country Selector Dropdown */}
               <div className="relative" ref={countryDropdownRef}>
                 <button
