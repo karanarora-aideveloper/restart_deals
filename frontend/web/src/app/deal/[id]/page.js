@@ -92,6 +92,8 @@ export default async function DealDetailPage({ params }) {
 
   const hasMrp = Boolean(deal.originalPrice && deal.originalPrice > (deal.dealPrice || 0));
   const mrpDiscount = hasMrp ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100) : 0;
+  const origPriceStr = hasMrp ? formatInr(deal.originalPrice, dealCountry) : '';
+  const savings = hasMrp ? deal.originalPrice - (deal.dealPrice || 0) : 0;
   const isHotDeal = Boolean(stats?.isAllTimeLow || (hasRealPriceDrop && realPriceDropPct >= 20));
 
   const hasImage = isUsableImageUrl(deal.imageUrl);

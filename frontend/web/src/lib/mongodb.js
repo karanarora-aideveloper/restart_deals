@@ -1,44 +1,38 @@
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
+
+// Vercel spins up many short-lived instances; each opens its own pool. A big pool per
+// instance quickly exhausts Atlas's connection limit (M0 = 500), after which Atlas rejects
+// new TLS handshakes ("SystemOverloadedError"). Keep each instance's pool tiny and let idle
+// connections go quickly.
 const options = {
-  maxPoolSize: 10,
-  minPoolSize: 1,
+  maxPoolSize: 3,
+  minPoolSize: 0,
+  maxIdleTimeMS: 10000,
   serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 8000,
   socketTimeoutMS: 15000,
 };
 
-let client;
-let clientPromise;
-
-if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
+// Cache the connection promise on `global` in every environment so module re-evaluation
+// (HMR in dev, duplicated chunks in prod) never creates a second client in the same process.
+function getClientPromise() {
+  if (!uri) throw new Error('MONGODB_URI environment variable is missing');
   if (!global._mongoClientPromise) {
-    if (!uri) {
-      console.warn('[MongoDB] MONGODB_URI is not defined in environment.');
-    } else {
-      client = new MongoClient(uri, options);
-      global._mongoClientPromise = client.connect();
-    }
+    const client = new MongoClient(uri, options);
+    global._mongoClientPromise = client.connect().catch((err) => {
+      // Don't cache a failed connect — let the next call retry from scratch.
+      global._mongoClientPromise = undefined;
+      throw err;
+    });
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  // In production mode, it's best to not use a global variable.
-  if (uri) {
-    client = new MongoClient(uri, options);
-    clientPromise = client.connect();
-  }
+  return global._mongoClientPromise;
 }
 
 export async function getDb(dbName = 'shoppers_deals') {
-  if (!clientPromise) {
-    if (!uri) throw new Error('MONGODB_URI environment variable is missing');
-    client = new MongoClient(uri, options);
-    clientPromise = client.connect();
-  }
-  const connectedClient = await clientPromise;
+  const connectedClient = await getClientPromise();
   return connectedClient.db(dbName);
 }
 
-export default clientPromise;
+export default getClientPromise;

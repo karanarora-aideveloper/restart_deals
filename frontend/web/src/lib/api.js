@@ -4,6 +4,7 @@ import { searchAlgolia, hitToDeal, hitToProduct, DEALS_INDEX, PRODUCTS_INDEX } f
 import { aggregateSeriesFeed } from './seriesAggregation';
 import {
   directFetchProductById,
+  directFetchProductByIdWithRetry,
   directFetchDealById,
   directFetchProductVariants,
   directFindMatchingProductId,
@@ -19,15 +20,26 @@ import {
 // (or `no-store` where freshness matters more than cache hits) and layer client-side
 // polling on top for the "live" feel the native app has.
 
+// Circuit breaker: if the backend API fails (network error / timeout / 5xx / 404 from a dead
+// host), skip it for BREAKER_COOLDOWN_MS so callers fall straight through to the direct
+// MongoDB fallbacks rather than paying a failed round-trip on every call.
+const BREAKER_COOLDOWN_MS = 60_000;
+let apiDownUntil = 0;
+
 async function safeFetchJson(url, options = {}) {
+  if (Date.now() < apiDownUntil) return null;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 5000);
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status >= 404) apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
+      return null;
+    }
     return await res.json();
   } catch (err) {
+    apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
     if (err.name !== 'AbortError') {
       console.error(`[api] fetch failed for ${url}:`, err.message);
     }
@@ -223,7 +235,7 @@ export async function fetchProductById(id) {
     return json.data;
   }
   // Architectural Safeguard: Direct MongoDB fallback when API is slow or unreachable
-  return await directFetchProductById(id);
+  return await directFetchProductByIdWithRetry(id);
 }
 
 export async function fetchProductVariants(id) {

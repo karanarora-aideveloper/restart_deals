@@ -69,7 +69,22 @@ export async function directFetchProductById(id) {
     return data;
   } catch (err) {
     console.error(`[dbFallback] directFetchProductById failed for ${id}:`, err.message);
-    return null;
+    // Surface infrastructure errors instead of returning null: null means "does not exist"
+    // and makes the page render a (cacheable) 404 for a product that actually exists.
+    throw err;
+  }
+}
+
+/**
+ * Same as directFetchProductById, but retries once on transient connection errors
+ * (pool saturation / cold start) before giving up.
+ */
+export async function directFetchProductByIdWithRetry(id) {
+  try {
+    return await directFetchProductById(id);
+  } catch {
+    await new Promise((r) => setTimeout(r, 400));
+    return await directFetchProductById(id);
   }
 }
 
@@ -126,7 +141,7 @@ export async function directFetchDealById(id) {
     return data;
   } catch (err) {
     console.error(`[dbFallback] directFetchDealById failed for ${id}:`, err.message);
-    return null;
+    throw err;
   }
 }
 
@@ -141,7 +156,12 @@ export async function directFindMatchingProductId(productId, merchant) {
     if (merchant) {
       query.merchant = { $regex: new RegExp(`^${merchant}$`, 'i') };
     }
-    const match = await db.collection('products').findOne(query, { projection: { _id: 1 } });
+    const coll = db.collection('products');
+    let match = await coll.findOne(query, { projection: { _id: 1 } });
+    // Sister stores (a Flipkart deal tracked as a Shopsy product) share the same PID.
+    if (!match && merchant) {
+      match = await coll.findOne({ productId }, { projection: { _id: 1 } });
+    }
     return match ? match._id.toString() : null;
   } catch {
     return null;

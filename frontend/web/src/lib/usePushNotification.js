@@ -238,6 +238,20 @@ export function usePushNotification() {
   }, [trackedProducts]);
 
   /**
+   * Untrack / remove a product from local device tracked list
+   */
+  const untrackProduct = useCallback((productId) => {
+    if (!productId) return;
+    setTrackedProducts((prev) => {
+      const updated = prev.filter((id) => id !== productId);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(TRACKED_PRODUCTS_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, []);
+
+  /**
    * Sends a quick test push notification to verify delivery
    */
   const sendTestNotification = useCallback(async () => {
@@ -276,6 +290,7 @@ export function usePushNotification() {
     isProductTracked,
     subscribeToPush,
     trackProduct,
+    untrackProduct,
     sendTestNotification,
   };
 }
