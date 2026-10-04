@@ -1,5 +1,6 @@
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import { runBatchAutomation, getAutomationStatus } from '../scripts/scrapingAntAutomation.js';
+import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 
 const MIN_ACTIVE_TOKENS = 5;
 const TARGET_POOL_SIZE = 8;
@@ -117,24 +118,45 @@ export async function checkAndResetExpiredTokens() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const now = new Date();
 
-    const expiredTokens = await ScrapingAntToken.find({
-      status: 'exhausted',
+    const candidates = await ScrapingAntToken.find({
+      status: { $in: ['exhausted', 'parked'] },
       $or: [
         { exhaustedAt: { $lte: thirtyDaysAgo } },
         { renewalDate: { $lte: now } },
+        { renewalDate: { $exists: false } },
+        { renewalDate: null }
       ]
-    });
+    }).limit(10);
 
-    if (expiredTokens.length > 0) {
-      console.log(`[TokenReplenisher] Found ${expiredTokens.length} token(s) past 30-day cycle. Reactivating...`);
-      for (const t of expiredTokens) {
-        t.status = 'active';
-        t.usageCount = 0;
-        t.cooldownUntil = null;
-        t.exhaustedAt = undefined;
-        t.lastUsedAt = new Date();
-        await t.save();
-        console.log(`[TokenReplenisher] ✓ Reactivated 30-day renewed token: ${t.token.slice(0, 8)}...`);
+    if (candidates.length > 0) {
+      console.log(`[TokenReplenisher] Inspecting ${candidates.length} candidate token(s) for quota renewal...`);
+      for (const t of candidates) {
+        try {
+          const usage = await checkScrapingAntUsage(t.token);
+          if (usage.valid && usage.remainedCredits > 500) {
+            t.status = 'active';
+            t.usageCount = 0;
+            t.remainedCredits = usage.remainedCredits;
+            t.planTotalCredits = usage.planTotalCredits;
+            t.renewalDate = usage.renewalDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            t.cooldownUntil = null;
+            t.exhaustedAt = undefined;
+            t.lastCheckedAt = new Date();
+            t.lastUsedAt = new Date();
+            await t.save();
+            console.log(`[TokenReplenisher] ✓ Reactivated renewed token: ${t.token.slice(0, 8)}... (${usage.remainedCredits} credits)`);
+          } else if (usage.valid) {
+            t.renewalDate = usage.renewalDate || new Date(Date.now() + 24 * 60 * 60 * 1000);
+            t.remainedCredits = usage.remainedCredits;
+            t.lastCheckedAt = new Date();
+            await t.save();
+          } else {
+            t.lastCheckedAt = new Date();
+            await t.save();
+          }
+        } catch (tokenErr) {
+          console.warn(`[TokenReplenisher] Error checking candidate token ${t.token.slice(0, 8)}:`, tokenErr.message);
+        }
       }
     }
   } catch (err) {

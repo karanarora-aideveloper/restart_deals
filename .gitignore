@@ -12,3 +12,5 @@ node_modules/
 **/dist/
 *.apk
 google-service-account.json
+logs/
+*.log

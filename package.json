@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "postinstall": "npm --prefix api install && npm --prefix backend install",
-    "start": "node start-service.js"
+    "start": "node start-service.js",
+    "token:daemon": "node api/token_daemon.mjs",
+    "token:daemon:once": "node api/token_daemon.mjs --once",
+    "token:daemon:install": "node scripts/install_token_daemon.mjs",
+    "token:daemon:uninstall": "node scripts/uninstall_token_daemon.mjs",
+    "token:daemon:logs": "tail -f logs/token_daemon.log"
   },
   "engines": {
     "node": ">=20.0.0"
