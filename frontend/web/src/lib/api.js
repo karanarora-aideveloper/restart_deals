@@ -6,6 +6,7 @@ import {
   directFetchProductById,
   directFetchProductByIdWithRetry,
   directFetchDealById,
+  directFetchDeals,
   directFetchProductVariants,
   directFindMatchingProductId,
   directFindLatestDealForProduct,
@@ -20,27 +21,27 @@ import {
 // (or `no-store` where freshness matters more than cache hits) and layer client-side
 // polling on top for the "live" feel the native app has.
 
-// Circuit breaker: if the backend API fails (network error / timeout / 5xx / 404 from a dead
-// host), skip it for BREAKER_COOLDOWN_MS so callers fall straight through to the direct
-// MongoDB fallbacks rather than paying a failed round-trip on every call.
-const BREAKER_COOLDOWN_MS = 60_000;
+// Circuit breaker: only trip on genuine server infrastructure outages (5xx status or network drop),
+// NEVER on standard client responses like 404 (Not Found) or 400.
+const BREAKER_COOLDOWN_MS = 15_000;
 let apiDownUntil = 0;
 
 async function safeFetchJson(url, options = {}) {
   if (Date.now() < apiDownUntil) return null;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 5000);
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 8000);
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) {
-      if (res.status >= 404) apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
+      // Only trip circuit breaker on actual 5xx backend server crashes/outages
+      if (res.status >= 500) apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
       return null;
     }
     return await res.json();
   } catch (err) {
-    apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
     if (err.name !== 'AbortError') {
+      apiDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
       console.error(`[api] fetch failed for ${url}:`, err.message);
     }
     return null;
@@ -126,8 +127,28 @@ export async function fetchDeals({
     next: { revalidate },
   });
   let raw = json?.data || json?.deals || [];
+
+  // Fallback to direct MongoDB Atlas connection if API is restarting, cold-starting, or returned empty
+  if (!raw || raw.length === 0) {
+    try {
+      const fallbackDeals = await directFetchDeals({
+        page,
+        limit,
+        category,
+        merchant,
+        country: (country || 'in').toLowerCase(),
+        minDiscount,
+        sort,
+      });
+      if (fallbackDeals && fallbackDeals.length > 0) {
+        raw = fallbackDeals;
+      }
+    } catch (err) {
+      console.error('[fetchDeals] direct fallback failed:', err.message);
+    }
+  }
+
   // Apply minimum discount quality filter to keep junk off the main feed.
-  // This is done client-side since the backend API doesn't yet support the param.
   if (minDiscount > 0) {
     raw = raw.filter((d) => (d.discountPercentage || 0) >= minDiscount);
   }

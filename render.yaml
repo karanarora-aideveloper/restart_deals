@@ -109,3 +109,7 @@ services:
         value: 1BQANOTEuMTA4LjU2LjE5MAG7HNleeiJuIqhTAxlunMTh3/CHXt5QVgDWNnHbEI76SwelhyREa9a3feqimKvUclAalbkiD9FVcFo4hnMnZBMRlUKkMoEz0Ol5TAYmc+9wi3bJlX2Ofk8MtMNu6gFZE8m56a5xKcuBvr8M3NInzASDLKnBSOAIieUG5Xbp64hVSTtUboKJh5xSIVQjupFO1vcPQmIXN4WY/LWoMRQAsWJTfhwe6gv84M/WzNhN0B/pGfCoA8lewCWuaBMXEuMAZ1eYijH3UFwY5V5D6kG+PcDCwjdMTyx/O6opMWgoRvab6OnzKLu+NSQXeAI/kvm9BmCaOuan3UaX4LeH3Yj0VrWI1w==
       - key: DEEPSEEK_API_KEY
         value: sk-c8c1eb9405d5464ab90e47f20f35b079
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8872731267:AAHZPaj750-lxPzzLkM_kPM25RtSuQEbizM
+      - key: TELEGRAM_BOT_USERNAME
+        value: shoppersdeals_bot

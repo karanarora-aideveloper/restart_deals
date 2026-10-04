@@ -73,6 +73,20 @@ export async function evaluateAndTriggerPriceAlerts({
         `[Price Alert] 🔔 TRIGGERED for "${alert.title || title}"! Target: ${targetStr}, Live Deal: ${liveStr} (Recipient: ${recipient})`
       );
 
+      // Direct Telegram notification if user subscribed via Telegram Bot
+      if (alert.telegramChatId) {
+        sendDirectTelegramAlert({
+          chatId: alert.telegramChatId,
+          title: alert.title || title,
+          livePrice,
+          targetPrice: alert.targetPrice,
+          dealUrl: alert.cleanUrl || dealUrl,
+          merchant,
+        }).catch(tgErr => {
+          console.warn(`[Telegram Alert] Failed to send alert to ${alert.telegramChatId}:`, tgErr.message);
+        });
+      }
+
       // Broadcast event to Redis
       try {
         await defaultRedis.publish(
@@ -91,6 +105,7 @@ export async function evaluateAndTriggerPriceAlerts({
             email: alert.email,
             phone: alert.phone,
             userId: alert.userId,
+            telegramChatId: alert.telegramChatId,
             triggeredAt: now.toISOString(),
           })
         );
@@ -123,3 +138,41 @@ export async function evaluateAndTriggerPriceAlerts({
     return 0;
   }
 }
+
+async function sendDirectTelegramAlert({ chatId, title, livePrice, targetPrice, dealUrl, merchant = 'amazon' }) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || !chatId) return false;
+
+  const priceStr = `₹${Math.round(livePrice).toLocaleString('en-IN')}`;
+  const targetStr = targetPrice ? `₹${Math.round(targetPrice).toLocaleString('en-IN')}` : '';
+  const text = `🚨 <b>PRICE DROP ALERT!</b> 📉\n\n` +
+    `<b>${title}</b>\n\n` +
+    `💰 <b>Dropped to: ${priceStr}!</b>\n` +
+    (targetStr ? `🎯 Your Target: ${targetStr}\n` : '') +
+    `🏪 Store: <b>${merchant.toUpperCase()}</b>\n\n` +
+    `<i>⚡ Deals expire fast! Click below to grab it:</i>`;
+
+  const payload = {
+    chat_id: chatId,
+    parse_mode: 'HTML',
+    text,
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `🛒 BUY NOW AT ${priceStr}`, url: dealUrl }],
+        [{ text: `🌐 View on ShoppersDeals`, url: 'https://www.shoppersdeals.in' }]
+      ]
+    }
+  };
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+

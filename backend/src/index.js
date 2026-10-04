@@ -5,6 +5,7 @@ import { startTokenResetScheduler } from './listener/tokenReset.js';
 import { initDealPublishWorker } from './listener/dealPublishWorker.js';
 import { installSystemLogger } from './utils/systemLogger.js';
 import { startWatchdog } from './utils/watchdog.js';
+import { startTelegramBot, stopTelegramBot } from './services/telegramBotService.js';
 
 // Mirror all console output to Redis so the admin panel can display live logs
 installSystemLogger();
@@ -31,7 +32,10 @@ async function main() {
   // 4. Initialize Outbound Deal Publish Worker (Paced Multi-Channel Broadcaster)
   initDealPublishWorker();
 
-  // 5. Start Telegram Scraping Listener with resilient background retries
+  // 5. Start Customer AI Shopping Assistant Bot (@shoppersdeals_bot)
+  startTelegramBot();
+
+  // 6. Start Telegram Scraping Listener with resilient background retries
   const initTelegram = async () => {
     try {
       await startTelegramListener();
@@ -48,6 +52,7 @@ async function main() {
 const shutdown = async (signal) => {
   console.log(`[Process] Received ${signal}. Shutting down gracefully...`);
   try {
+    stopTelegramBot();
     await stopTelegramListener();
   } catch (e) {}
   process.exit(0);

@@ -308,3 +308,145 @@ export async function directFetchSitemapProducts({ country = 'IN', page = 1, lim
     return [];
   }
 }
+
+/**
+ * Direct MongoDB fallback for fetching verified deals feed
+ */
+export async function directFetchDeals({
+  page = 1,
+  limit = 40,
+  category = 'all',
+  merchant = 'all',
+  country = 'in',
+  minDiscount = 0,
+  sort = 'newest',
+} = {}) {
+  try {
+    const db = await getDb();
+    const skip = (page - 1) * limit;
+
+    const andConditions = [
+      { isExpired: { $ne: true } },
+    ];
+
+    const cCode = (country || 'in').toUpperCase();
+    if (cCode === 'IN') {
+      andConditions.push({ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] });
+    } else if (cCode !== 'ALL') {
+      andConditions.push({ country: cCode });
+    }
+
+    const discountCond = { $lte: 90, $gt: 0 };
+    if (minDiscount > 0) {
+      discountCond.$gte = minDiscount;
+    }
+    andConditions.push({ discountPercentage: discountCond });
+
+    if (category && category !== 'all') {
+      const cat = category.toLowerCase().trim();
+      if (cat === 'mobiles') {
+        andConditions.push({
+          $or: [
+            { category: 'mobiles' },
+            { subcategory: { $in: ['mobiles', 'Smartphones', 'accessories'] } },
+            { title: { $regex: /phone|mobile|smartphone|iphone|oneplus|samsung galaxy|redmi|realme/i } },
+          ],
+        });
+      } else if (cat === 'laptops') {
+        andConditions.push({
+          $or: [
+            { category: 'laptops' },
+            { subcategory: { $in: ['laptops', 'computers', 'accessories'] } },
+            { title: { $regex: /laptop|macbook|notebook|thinkpad|ideapad|vivobook/i } },
+          ],
+        });
+      } else if (cat === 'electronics') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['electronics', 'appliances', 'mobiles', 'laptops'] } },
+            { subcategory: { $in: ['audio', 'cameras', 'tv', 'wearables', 'gaming', 'accessories'] } },
+          ],
+        });
+      } else if (cat === 'fashion') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
+            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'bags', 'jewellery', 'watches', 'kids'] } },
+          ],
+        });
+      } else if (cat === 'beauty') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['beauty', 'personal-care'] } },
+            { subcategory: { $in: ['makeup', 'skincare', 'haircare', 'bath-body', 'fragrance', 'appliances'] } },
+          ],
+        });
+      } else if (cat === 'home') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['home', 'kitchen', 'home-kitchen', 'appliances'] } },
+            { subcategory: { $in: ['decor', 'bedding', 'cleaning', 'furniture', 'storage', 'kitchen'] } },
+          ],
+        });
+      } else if (cat === 'fitness') {
+        andConditions.push({
+          $or: [
+            { category: 'fitness' },
+            { subcategory: { $in: ['fitness-apparel', 'trackers', 'gym-equipment', 'nutrition', 'sports-gear', 'yoga'] } },
+          ],
+        });
+      } else if (cat === 'grocery') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['grocery', 'gourmet', 'food'] } },
+            { subcategory: { $in: ['breakfast-dairy', 'coffee-tea', 'cooking-staples', 'dry-fruits'] } },
+          ],
+        });
+      } else {
+        andConditions.push({ category: cat });
+      }
+    }
+
+    if (merchant && merchant !== 'all') {
+      const mStr = merchant.toLowerCase().trim();
+      andConditions.push({
+        $or: [
+          { merchant: new RegExp(mStr, 'i') },
+          { dealUrl: new RegExp(mStr, 'i') },
+        ],
+      });
+    }
+
+    let sortObj = { createdAt: -1 };
+    if (sort === 'discount') {
+      sortObj = { discountPercentage: -1 };
+    } else if (sort === 'price_asc') {
+      sortObj = { dealPrice: 1 };
+    } else if (sort === 'price_desc') {
+      sortObj = { dealPrice: -1 };
+    }
+
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const docs = await db
+      .collection('deals')
+      .find(query)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    return docs.map((d) => {
+      const deal = serializeDoc(d);
+      if (!deal.imageUrl || deal.imageUrl.includes('placeholder.png') || deal.imageUrl.includes('localhost')) {
+        const alt = (deal.images || []).find((img) => img && !img.includes('placeholder.png') && !img.includes('localhost'));
+        if (alt) deal.imageUrl = alt;
+      }
+      deal.priceStats = computePriceStats(deal);
+      return deal;
+    });
+  } catch (err) {
+    console.error('[dbFallback] directFetchDeals failed:', err.message);
+    return [];
+  }
+}

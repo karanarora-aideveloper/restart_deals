@@ -1,6 +1,7 @@
 import PriceAlert from '../db/models/priceAlert.js';
 import { defaultRedis } from './redis.js';
 import { formatPriceCurrency } from './affiliate.js';
+import { sendPriceDropTelegramNotification } from '../services/telegramBotService.js';
 
 /**
  * Real-time Price Drop Alert Evaluator for Engine 1.
@@ -61,7 +62,22 @@ export async function evaluateAndTriggerPriceAlerts({
         `[Price Alert] 🔔 TRIGGERED for "${alert.title || title}"! Target: ${targetStr}, Live Deal: ${liveStr} (Recipient: ${recipient})`
       );
 
-      // 2. Broadcast event to Redis so real-time WebSocket / SSE / Admin dashboard can react
+      // 2. Direct Telegram notification if user subscribed via Telegram Bot
+      if (alert.telegramChatId) {
+        sendPriceDropTelegramNotification({
+          chatId: alert.telegramChatId,
+          title: alert.title || title,
+          livePrice,
+          targetPrice: alert.targetPrice,
+          dealUrl: alert.cleanUrl || dealUrl,
+          merchant,
+          imageUrl: alert.imageUrl || imageUrl,
+        }).catch(tgErr => {
+          console.warn(`[Telegram Alert] Failed to send alert to ${alert.telegramChatId}:`, tgErr.message);
+        });
+      }
+
+      // 3. Broadcast event to Redis so real-time WebSocket / SSE / Admin dashboard can react
       try {
         await defaultRedis.publish(
           'events:price_alert',
@@ -79,6 +95,7 @@ export async function evaluateAndTriggerPriceAlerts({
             email: alert.email,
             phone: alert.phone,
             userId: alert.userId,
+            telegramChatId: alert.telegramChatId,
             triggeredAt: now.toISOString(),
           })
         );

@@ -16,64 +16,116 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
     const limit = parseInt(req.query.limit || '20', 10);
     const skip = (page - 1) * limit;
 
-    const query = {};
+    const andConditions = [];
 
     // Exclude expired deals by default to ensure only active, trusted deals are shown
     if (req.query.includeExpired !== 'true') {
-      query.isExpired = { $ne: true };
+      andConditions.push({ isExpired: { $ne: true } });
     }
 
     if (req.query.category && req.query.category !== 'all') {
       const cat = req.query.category.toLowerCase().trim();
-      if (cat === 'fashion') {
-        query.category = { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] };
+      if (cat === 'mobiles') {
+        andConditions.push({
+          $or: [
+            { category: 'mobiles' },
+            { subcategory: { $in: ['mobiles', 'Smartphones', 'accessories'] } },
+            { title: { $regex: /phone|mobile|smartphone|iphone|oneplus|samsung galaxy|redmi|realme/i } }
+          ]
+        });
+      } else if (cat === 'laptops') {
+        andConditions.push({
+          $or: [
+            { category: 'laptops' },
+            { subcategory: { $in: ['laptops', 'computers', 'accessories'] } },
+            { title: { $regex: /laptop|macbook|notebook|thinkpad|ideapad|vivobook/i } }
+          ]
+        });
       } else if (cat === 'electronics') {
-        query.category = { $in: ['electronics', 'appliances', 'mobiles', 'laptops', 'audio', 'accessories'] };
+        andConditions.push({
+          $or: [
+            { category: { $in: ['electronics', 'appliances', 'mobiles', 'laptops'] } },
+            { subcategory: { $in: ['audio', 'cameras', 'tv', 'wearables', 'gaming', 'accessories'] } }
+          ]
+        });
+      } else if (cat === 'fashion') {
+        andConditions.push({
+          $or: [
+            { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
+            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'bags', 'jewellery', 'watches', 'kids'] } }
+          ]
+        });
       } else if (cat === 'beauty') {
-        query.category = { $in: ['beauty', 'personal-care', 'makeup', 'skincare'] };
+        andConditions.push({
+          $or: [
+            { category: { $in: ['beauty', 'personal-care'] } },
+            { subcategory: { $in: ['makeup', 'skincare', 'haircare', 'bath-body', 'fragrance', 'appliances'] } }
+          ]
+        });
       } else if (cat === 'home') {
-        query.category = { $in: ['home', 'kitchen', 'home-kitchen', 'appliances'] };
+        andConditions.push({
+          $or: [
+            { category: { $in: ['home', 'kitchen', 'home-kitchen', 'appliances'] } },
+            { subcategory: { $in: ['decor', 'bedding', 'cleaning', 'furniture', 'storage', 'kitchen'] } }
+          ]
+        });
+      } else if (cat === 'fitness') {
+        andConditions.push({
+          $or: [
+            { category: 'fitness' },
+            { subcategory: { $in: ['fitness-apparel', 'trackers', 'gym-equipment', 'nutrition', 'sports-gear', 'yoga'] } }
+          ]
+        });
       } else if (cat === 'grocery') {
-        query.category = { $in: ['grocery', 'gourmet', 'food'] };
+        andConditions.push({
+          $or: [
+            { category: { $in: ['grocery', 'gourmet', 'food'] } },
+            { subcategory: { $in: ['breakfast-dairy', 'coffee-tea', 'cooking-staples', 'dry-fruits'] } }
+          ]
+        });
       } else {
-        query.category = cat;
+        andConditions.push({ category: cat });
       }
     }
 
     if (req.query.subcategory && req.query.subcategory !== 'all') {
-      query.subcategory = req.query.subcategory.toLowerCase();
+      andConditions.push({ subcategory: req.query.subcategory.toLowerCase() });
     }
 
     if (req.query.merchant && req.query.merchant !== 'all') {
       const mStr = req.query.merchant.toLowerCase();
-      query.$or = [
-        { merchant: new RegExp(mStr, 'i') },
-        { dealUrl: new RegExp(mStr, 'i') }
-      ];
+      andConditions.push({
+        $or: [
+          { merchant: new RegExp(mStr, 'i') },
+          { dealUrl: new RegExp(mStr, 'i') }
+        ]
+      });
     }
 
     if (req.query.country && req.query.country !== 'all') {
       const cCode = req.query.country.toUpperCase();
       if (cCode === 'IN') {
-        query.$or = [{ country: 'IN' }, { country: { $exists: false } }, { country: null }];
+        andConditions.push({ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] });
       } else {
-        query.country = cCode;
+        andConditions.push({ country: cCode });
       }
     }
 
     if (req.query.hasCoupon === 'true') {
-      query['coupon.label'] = { $exists: true, $ne: '' };
+      andConditions.push({ 'coupon.label': { $exists: true, $ne: '' } });
     } else if (req.query.hasCoupon === 'false') {
-      query.$or = [{ coupon: null }, { 'coupon.label': { $in: ['', null] } }, { coupon: { $exists: false } }];
+      andConditions.push({
+        $or: [{ coupon: null }, { 'coupon.label': { $in: ['', null] } }, { coupon: { $exists: false } }]
+      });
     }
 
     if (req.query.q) {
       const qStr = req.query.q.trim();
       if (qStr.length > 0) {
         const searchTokens = qStr.split(/\s+/).filter(Boolean);
-        const andConditions = searchTokens.map(token => {
+        searchTokens.forEach(token => {
           const regex = new RegExp(token, 'i');
-          return {
+          andConditions.push({
             $or: [
               { title: regex },
               { dealTitle: regex },
@@ -83,25 +135,25 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
               { sourceChannelName: regex },
               { merchant: regex }
             ]
-          };
+          });
         });
-        query.$and = andConditions;
       }
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
-      query.dealPrice = {};
-      if (req.query.minPrice) query.dealPrice.$gte = parseFloat(req.query.minPrice);
-      if (req.query.maxPrice) query.dealPrice.$lte = parseFloat(req.query.maxPrice);
+      const priceCond = {};
+      if (req.query.minPrice) priceCond.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) priceCond.$lte = parseFloat(req.query.maxPrice);
+      andConditions.push({ dealPrice: priceCond });
     }
 
-    // Deals above 90% off are overwhelmingly bad scrapes (a wrong/inflated originalPrice, not a
-    // real discount) rather than genuine steals — capped out of every listing unconditionally.
+    // Deals above 90% off are overwhelmingly bad scrapes rather than genuine steals.
     // Zero-discount items must also be excluded so non-deals never reach the user feed.
-    query.discountPercentage = { ...(query.discountPercentage || {}), $lte: 90, $gt: 0 };
+    const discountCond = { $lte: 90, $gt: 0 };
     if (req.query.minDiscount) {
-      query.discountPercentage.$gte = Math.max(parseFloat(req.query.minDiscount) || 0, 1);
+      discountCond.$gte = Math.max(parseFloat(req.query.minDiscount) || 0, 1);
     }
+    andConditions.push({ discountPercentage: discountCond });
 
     let sort = { createdAt: -1 };
     if (req.query.sort) {
@@ -118,12 +170,17 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       }
     }
 
-    let total = await Deal.countDocuments(query);
-    let deals = await Deal.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const [total, dealsRaw] = await Promise.all([
+      Deal.countDocuments(query),
+      Deal.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+    ]);
+    let deals = dealsRaw;
 
     // Auto-heal broken/placeholder images on the fly if an alternative image is present
     deals = deals.map(d => {

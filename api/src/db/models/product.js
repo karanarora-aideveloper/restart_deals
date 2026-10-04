@@ -256,6 +256,10 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  lastBuyhatkeSyncAt: {
+    type: Date,
+    default: null
+  },
   country: {
     type: String,
     default: 'IN'
@@ -287,6 +291,7 @@ productSchema.index({ updatedAt: -1 });
 productSchema.index({ productSource: 1 });
 productSchema.index({ isTrackedByExtension: 1, lastExtensionViewAt: -1 });
 productSchema.index({ 'discoveredBy.userId': 1 });
+productSchema.index({ country: 1, lastBuyhatkeSyncAt: 1 });
 productSchema.index({ extensionUsers: 1 });
 
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema, 'products');

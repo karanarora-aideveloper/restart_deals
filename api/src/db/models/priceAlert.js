@@ -43,6 +43,15 @@ const priceAlertSchema = new mongoose.Schema({
     type: String,
     index: true,
   },
+  telegramChatId: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  telegramUsername: {
+    type: String,
+    default: null,
+  },
   source: {
     type: String,
     default: 'web',
@@ -77,6 +86,7 @@ const priceAlertSchema = new mongoose.Schema({
 priceAlertSchema.index({ productId: 1, status: 1 });
 priceAlertSchema.index({ email: 1, status: 1 });
 priceAlertSchema.index({ userId: 1, status: 1 });
+priceAlertSchema.index({ telegramChatId: 1, status: 1 });
 
 const PriceAlert = mongoose.models.PriceAlert || mongoose.model('PriceAlert', priceAlertSchema, 'price_alerts');
 

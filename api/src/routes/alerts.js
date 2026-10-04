@@ -33,7 +33,7 @@ function optionalAuth(req, res, next) {
  */
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { productId, merchant, targetPrice, email, phone, source = 'web', extensionUserId } = req.body;
+    const { productId, merchant, targetPrice, email, phone, source = 'web', extensionUserId, telegramChatId, telegramUsername } = req.body;
 
     if (!productId || !targetPrice) {
       return res.status(400).json({ success: false, error: 'productId and targetPrice are required' });
@@ -48,10 +48,10 @@ router.post('/', optionalAuth, async (req, res) => {
     const cleanEmail = email ? email.trim().toLowerCase() : null;
     const cleanPhone = phone ? phone.replace(/[^0-9+]/g, '') : null;
 
-    if (!userId && !cleanEmail && !cleanPhone && !extensionUserId) {
+    if (!userId && !cleanEmail && !cleanPhone && !extensionUserId && !telegramChatId) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide an email address or phone number to receive price drop alerts.',
+        error: 'Please provide an email address, phone number, or Telegram Chat ID to receive price drop alerts.',
       });
     }
 
@@ -76,6 +76,7 @@ router.post('/', optionalAuth, async (req, res) => {
         ...(cleanEmail ? [{ email: cleanEmail }] : []),
         ...(cleanPhone ? [{ phone: cleanPhone }] : []),
         ...(extensionUserId ? [{ extensionUserId }] : []),
+        ...(telegramChatId ? [{ telegramChatId }] : []),
       ],
     };
 
@@ -88,6 +89,8 @@ router.post('/', optionalAuth, async (req, res) => {
       alert.imageUrl = imageUrl || alert.imageUrl;
       if (source) alert.source = source;
       if (extensionUserId) alert.extensionUserId = extensionUserId;
+      if (telegramChatId) alert.telegramChatId = telegramChatId;
+      if (telegramUsername) alert.telegramUsername = telegramUsername;
       alert.updatedAt = new Date();
       await alert.save();
     } else {
@@ -102,6 +105,8 @@ router.post('/', optionalAuth, async (req, res) => {
         userId: userId || undefined,
         email: cleanEmail || undefined,
         phone: cleanPhone || undefined,
+        telegramChatId: telegramChatId || undefined,
+        telegramUsername: telegramUsername || undefined,
         source: source || 'web',
         extensionUserId: extensionUserId || undefined,
         status: 'active',
@@ -138,9 +143,10 @@ router.get('/', optionalAuth, async (req, res) => {
     const userId = req.user?.id;
     const email = req.query.email ? req.query.email.trim().toLowerCase() : null;
     const phone = req.query.phone ? req.query.phone.replace(/[^0-9+]/g, '') : null;
+    const telegramChatId = req.query.telegramChatId ? String(req.query.telegramChatId) : null;
 
-    if (!userId && !email && !phone) {
-      return res.status(400).json({ success: false, error: 'Authentication token, email, or phone query parameter is required' });
+    if (!userId && !email && !phone && !telegramChatId) {
+      return res.status(400).json({ success: false, error: 'Authentication token, email, phone, or telegramChatId is required' });
     }
 
     const filter = {
@@ -149,6 +155,7 @@ router.get('/', optionalAuth, async (req, res) => {
         ...(userId ? [{ userId }] : []),
         ...(email ? [{ email }] : []),
         ...(phone ? [{ phone }] : []),
+        ...(telegramChatId ? [{ telegramChatId }] : []),
       ],
     };
 

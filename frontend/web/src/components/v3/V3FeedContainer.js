@@ -250,12 +250,35 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
           ))}
         </div>
       ) : (
-        <div className="mt-12 rounded-3xl border border-slate-200 bg-white p-12 text-center">
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 text-center shadow-xs">
           <span className="text-4xl">🔍</span>
           <h3 className="mt-3 text-lg font-bold text-slate-900">No matching deals found</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            Try adjusting your category, store, or discount filters above.
+          <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+            {activeCategory !== 'all' || activeStore !== 'all' || minDiscount > 0
+              ? 'No deals match your selected filters. Try clearing them to see all live deals.'
+              : 'New deals are being scanned and verified right now. Click below to refresh the feed.'}
           </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCategory('all');
+                setActiveStore('all');
+                setMinDiscount(0);
+                fetchFilteredDeals('all', 'all', 0, 1, false);
+              }}
+              className="rounded-xl bg-[#5855E5] px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#4743DE] transition-colors"
+            >
+              Reset Filters &amp; View All Deals
+            </button>
+            <button
+              type="button"
+              onClick={() => fetchFilteredDeals(activeCategory, activeStore, minDiscount, 1, false)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              ↻ Refresh Feed
+            </button>
+          </div>
         </div>
       )}
 
