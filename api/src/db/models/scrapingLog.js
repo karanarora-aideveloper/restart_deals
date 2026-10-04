@@ -36,7 +36,7 @@ const scrapingLogSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['success', 'error', '409_concurrency', '403_exhausted', '429_rate_limit', 'blocked'],
+    enum: ['success', 'success_fast_tier', 'success_headless_tier', 'error', '409_concurrency', '403_exhausted', '429_rate_limit', 'blocked'],
     default: 'success',
     index: true,
   },
