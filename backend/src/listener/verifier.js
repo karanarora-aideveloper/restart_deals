@@ -2204,11 +2204,15 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       if (productBrand || productRecord?.brand) {
         deal.brand = productBrand || productRecord?.brand;
       }
-      deal.description = dealDescription;
-      if (!deal.imageUrl && dealMainImageUrl) {
+      const isBrokenExistingImage = !deal.imageUrl ||
+        deal.imageUrl.includes('shoppersdeals-backend') ||
+        deal.imageUrl.includes('localhost') ||
+        deal.imageUrl.includes('placeholder.png');
+
+      if (dealMainImageUrl && (isBrokenExistingImage || dealMainImageUrl.includes('amazon') || dealMainImageUrl.includes('flixcart') || dealMainImageUrl.includes('rukminim') || dealMainImageUrl.includes('myntra') || dealMainImageUrl.includes('nykaa'))) {
         deal.imageUrl = dealMainImageUrl;
       }
-      if ((!deal.images || deal.images.length === 0) && dealImages.length > 0) {
+      if (dealImages && dealImages.length > 0) {
         deal.images = dealImages;
       }
       deal.rating = productRating;

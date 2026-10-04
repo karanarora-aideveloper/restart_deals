@@ -125,6 +125,15 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       .limit(limit)
       .lean();
 
+    // Auto-heal broken/placeholder images on the fly if an alternative image is present
+    deals = deals.map(d => {
+      if (!d.imageUrl || d.imageUrl.includes('shoppersdeals-backend') || d.imageUrl.includes('placeholder.png') || d.imageUrl.includes('localhost')) {
+        const alt = (d.images || []).find(img => img && !img.includes('shoppersdeals-backend') && !img.includes('placeholder.png') && !img.includes('localhost'));
+        if (alt) d.imageUrl = alt;
+      }
+      return d;
+    });
+
     // Fallback: If searching by keyword and 0 promotional deals found, search the permanent Product catalog
     if (deals.length === 0 && req.query.q && page === 1) {
       const qStr = req.query.q.trim();

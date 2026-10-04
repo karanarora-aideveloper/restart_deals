@@ -11,7 +11,7 @@ const config = {
   // Telegram photos we download as a fallback image (must be a real,
   // internet-reachable URL in production; Telegram's own link-preview fetch
   // and the app's <Image> both need to load it directly).
-  publicBaseUrl: (process.env.PUBLIC_BASE_URL || 'https://shoppersdeals-backend-production.up.railway.app').replace(/\/+$/, ''),
+  publicBaseUrl: (process.env.PUBLIC_BASE_URL || 'https://api.shoppersdeals.in').replace(/\/+$/, ''),
   telegram: {
     apiId: parseInt(process.env.TELEGRAM_API_ID || '0', 10),
     apiHash: process.env.TELEGRAM_API_HASH || '',
