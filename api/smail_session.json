@@ -52,48 +52,48 @@
     },
     {
       "name": "XSRF-TOKEN",
-      "value": "eyJpdiI6InRHTGpZbGNCeTdDcU5wN1V3OU1PR0E9PSIsInZhbHVlIjoicFU1ZmJIaldWejExU2ZaVGh2NUtEUlA2UzNvTHJwMWJhdU5sYWxnU2hQU1E3U0xUdENmUEZnZWZneGRTckt4Rmp2RFFBUkFTd3Q2QllrNHFML2xCalFYcGc3TG4wVTg3R2duS0t1VFNIOFY2TG1wR1ZXL2NOa1ZveXU1SGhPYlMiLCJtYWMiOiI1ZDUwZTIzMTc2NTA0MTNiZTA3MGZhMjU1NTYwNjBlYWEyOTM0ZDQ5NWVmMWU0MzQ3ZTE0NTM5NDNhNGMzMjVlIiwidGFnIjoiIn0%3D",
+      "value": "eyJpdiI6IlpBa2VKa1FNWTJlWmVQMVpNeVkyTmc9PSIsInZhbHVlIjoiaGF4QkwvSlBHOFpkTFJkVkx2S1UybmNCMGxobUlmRzdMOUswd2RjSWp6YUxhNG93cHJvN1ZvVDVzRWRJTGdOTmNXVFdRcDJIZHhsQXVUTjlzSDQydGFKcEtWcEJ0UzBpNndKRU14MmtyKzFJRWFvQ3hlN3RiV2FhbGdkVk1tZXkiLCJtYWMiOiIzZGVlNzE4MWQxZWEyZTZhMmRlNjYwNTFmYjI2ZmFlZTAyNzgxNzhiNjlkMzdlZWRkMTMxNjZmYTc1YmUxYjJhIiwidGFnIjoiIn0%3D",
       "domain": "my.sonjj.com",
       "path": "/",
-      "expires": 1790774820.201371,
+      "expires": 1791269300.929922,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "sonjj_session",
-      "value": "eyJpdiI6InAwby9oTlBlajhhKzJVbkwxMm1IRFE9PSIsInZhbHVlIjoidFBSY2doZkdhdDQ1VXBQV0Z2QkdxVU9qTm1OMVppTSt6ZjNzbVBCdEhSZ3ZjZnRUVlFNb1c3aUJUNG5xUUVkUmljZUJxWW9Hd0lhenVyN2twZE41UklOR1I2YVlWQzJHQWx5cnEyVURpcWFHZi9tTlM5T1F5RFNsYUtjRmtvd2UiLCJtYWMiOiI0NWE4ODMwODU2M2I0OTJhNzY2OTRkNGQzOWEyYjI0ZDY1MmI1NjQ4MDA1OTczZmJjNmZhNTg5M2I2NmI0YzBiIiwidGFnIjoiIn0%3D",
+      "value": "eyJpdiI6Ijl0ZGo5WFVYRGt5Q2g4K0FpTnh5a3c9PSIsInZhbHVlIjoiUXUvYjVCRk1UdDVLTndvUGdjd0NTV21mWkU2dFdhNXlFa0VwRDQ0c0tVV1J3L2NlWFZhcjV3bmQ0Y2M5bitYR0N3eGFHOUhCaUtjNVdJNGsyY0lrUUYyclBsTGYzSjBSUDZzRTNEUk9OaCtpWEltekwwN2EwbGwxNFNuZDhFK2giLCJtYWMiOiJlYjQyZTNlNjkxMmRkNzMwNzA4Y2I3MjcyMjY0OWQ3MTA0ZTQ4YjdlZTBjMzNlODQ4OGFjNWZmYTNlY2Q3MTBjIiwidGFnIjoiIn0%3D",
       "domain": "my.sonjj.com",
       "path": "/",
-      "expires": 1790774820.201414,
+      "expires": 1791269300.929996,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "XSRF-TOKEN",
-      "value": "eyJpdiI6IkNIZXZpMVVqdzNRcnp4THJ2NWkyY1E9PSIsInZhbHVlIjoiekJKVXRHQTk0TEc2Sk1xcmpITzNMQ1V5Rk5XeCtrL25KVnU3aTJ6Y0swUkk4cEJQMTlyWUJSaW80R0NYV3dkOGcrUnp6bGwvV214K3RVNHVJS25Sb2k5Uks1aUtpVm9GSlNEUnFoQzNFUVhUSXNrVjZZL1hiWXFPbmRxdWF2NCsiLCJtYWMiOiI5NDgxZThjNDU4MjM3NTA5NTgwZGRmMTU2MzJlMjA1M2Q1ZTU5OGM4OGE4ZTZjOTZmYmVlMTM5MGZhMGY1Y2RhIiwidGFnIjoiIn0%3D",
+      "value": "eyJpdiI6Im9TdEtpbDVraFFFekEwMThteGFNbFE9PSIsInZhbHVlIjoiTFlJRVprTjAwN0tZcEFQbmZOUmo3T3J0SXNjR0ZyL1BwUEZkN0NqNHYyL2FUd1B1clY2ejJaMmYyN2ZlTTZDeXF3TUxyZ3U3SU96VTJJNE5RTUlIdlJWaWExVlpxbEdQMGQvYUxjcmZhUm9ZQUNZbkJpQ3lQUDFLOUp5VlJqVVgiLCJtYWMiOiJiMGM5YzE5YzQwMmIzNjAzYWRmNjIzMjFmNDU5ODhmMTU2ZjgyNTdiNTAyMjMxZGJjOWViNzAxMjM5MDMwOTU0IiwidGFnIjoiIn0%3D",
       "domain": "smailpro.com",
       "path": "/",
-      "expires": 1790774824.200717,
+      "expires": 1791269305.091689,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "sonjj_session",
-      "value": "eyJpdiI6InRyTDN6MVo1eDhsNHcxYUxNZFNSNFE9PSIsInZhbHVlIjoiRXd3cVIwT2k3c3dYNklydVpFVSs4RlovNlFEQXJydlRuQysvcStNTStqemtXU3l0bGl4WktveCt5VzAyaGhYeWxxTXZOcEtsWU1OVE11TUVuRjhqanREelQ1Q1BhSGsya0s5bGVHNytrdWpybXV4eVd5QWZBb0UxY3NhcHBoVWsiLCJtYWMiOiI4ZGQyODdiYzRhZDQ5Y2Q0MjRkMTAyYjNjMjk0NzdkYjk3NjMwNzU5ZjNhNmNjZjY5NmE4Mzk1N2I3NTNjOGE0IiwidGFnIjoiIn0%3D",
+      "value": "eyJpdiI6IjJzNzkrUEJDc2xDU1FnSlVaYTFZZEE9PSIsInZhbHVlIjoibVhZMjlQODQwNE13Z2s2WGlicVVUT1VueU9yQm9KcHVJT09pRWNSekxnNVBIK0wyM29HcFM0eWlHTE1nd1ZFVWhSTStKWXAvSWsyZTQwbXZNUzlvaVpDaXJGOUxpeWozcnBVcWw3NGRZcnRmTG1Hc3JhYzNvV0w1WGIzVmJuYlgiLCJtYWMiOiIxYWJiOGNmZmE1NzliZTM2MjdjNmM0ODg2NmE3Zjg5MzMxNzQwNDMxYWNkOTYxNTAyNzdlYjhiNjRlMjMzNzZhIiwidGFnIjoiIn0%3D",
       "domain": "smailpro.com",
       "path": "/",
-      "expires": 1790774824.200803,
+      "expires": 1791269305.091765,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
     }
   ],
   "localStorage": {
-    "sessionToken": "2309aeb7202062430329ccf4511e4460a43aa33737aff43cbfc1deb44e057a2b",
+    "sessionToken": "009ad7b352ecc333527614805708558c6fa631b33999fb5891cc3c74c032ff63",
     "query": "{\"username\":\"random\",\"type\":\"alias\",\"domain\":\"gmail.com\",\"server\":\"1\"}"
   },
-  "savedAt": "2026-09-29T13:27:06.934Z"
+  "savedAt": "2026-10-05T06:48:28.784Z"
 }

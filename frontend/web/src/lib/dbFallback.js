@@ -352,17 +352,19 @@ export async function directFetchDeals({
         andConditions.push({
           $or: [
             { category: 'mobiles' },
-            { subcategory: { $in: ['mobiles', 'Smartphones', 'accessories'] } },
-            { title: { $regex: /phone|mobile|smartphone|iphone|oneplus|samsung galaxy|redmi|realme/i } },
+            { subcategory: { $in: ['mobiles', 'Smartphones'] } },
           ],
+          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'laptops', 'tv', 'decor', 'bags', 'men-topwear'] },
+          title: { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i },
         });
       } else if (cat === 'laptops') {
         andConditions.push({
           $or: [
             { category: 'laptops' },
-            { subcategory: { $in: ['laptops', 'computers', 'accessories'] } },
-            { title: { $regex: /laptop|macbook|notebook|thinkpad|ideapad|vivobook/i } },
+            { subcategory: { $in: ['laptops', 'computers'] } },
           ],
+          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'mobiles', 'tv', 'decor'] },
+          title: { $not: /\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning)\b/i },
         });
       } else if (cat === 'electronics') {
         andConditions.push({
@@ -440,7 +442,7 @@ export async function directFetchDeals({
       .limit(limit)
       .toArray();
 
-    return docs.map((d) => {
+    let deals = docs.map((d) => {
       const deal = serializeDoc(d);
       if (!deal.imageUrl || deal.imageUrl.includes('placeholder.png') || deal.imageUrl.includes('localhost')) {
         const alt = (deal.images || []).find((img) => img && !img.includes('placeholder.png') && !img.includes('localhost'));
@@ -449,6 +451,50 @@ export async function directFetchDeals({
       deal.priceStats = computePriceStats(deal);
       return deal;
     });
+
+    if (category && category.toLowerCase().trim() === 'mobiles' && deals.length < limit && page === 1) {
+      try {
+        const needed = limit - deals.length;
+        const existingTitles = new Set(deals.map((d) => (d.title || '').toLowerCase().trim()));
+        const prodDocs = await db.collection('products').find({
+          isActive: true,
+          subcategory: 'mobiles',
+          title: { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i },
+          $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }],
+        }).limit(needed * 2).toArray();
+
+        for (const p of prodDocs) {
+          if (deals.length >= limit) break;
+          const cleanT = (p.title || '').toLowerCase().trim();
+          if (existingTitles.has(cleanT)) continue;
+          const discountPct = (p.originalPrice && p.price && p.originalPrice > p.price)
+            ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+            : 0;
+          deals.push({
+            _id: p._id.toString(),
+            productId: p.productId,
+            title: p.title,
+            dealUrl: p.cleanUrl,
+            imageUrl: p.imageUrl || (p.images && p.images[0]),
+            dealPrice: p.price,
+            originalPrice: p.originalPrice,
+            previousPrice: p.previousPrice,
+            discountPercentage: discountPct,
+            merchant: p.merchant,
+            category: p.category,
+            subcategory: p.subcategory,
+            country: p.country || 'IN',
+            isExpired: false,
+            resolvedToProduct: true,
+          });
+          existingTitles.add(cleanT);
+        }
+      } catch (e) {
+        console.error('[dbFallback] mobile catalog augmentation error:', e.message);
+      }
+    }
+
+    return deals;
   } catch (err) {
     console.error('[dbFallback] directFetchDeals failed:', err.message);
     return [];

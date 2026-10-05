@@ -29,17 +29,19 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         andConditions.push({
           $or: [
             { category: 'mobiles' },
-            { subcategory: { $in: ['mobiles', 'Smartphones', 'accessories'] } },
-            { title: { $regex: /phone|mobile|smartphone|iphone|oneplus|samsung galaxy|redmi|realme/i } }
-          ]
+            { subcategory: { $in: ['mobiles', 'Smartphones'] } }
+          ],
+          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'laptops', 'tv', 'decor', 'bags', 'men-topwear'] },
+          title: { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i }
         });
       } else if (cat === 'laptops') {
         andConditions.push({
           $or: [
             { category: 'laptops' },
-            { subcategory: { $in: ['laptops', 'computers', 'accessories'] } },
-            { title: { $regex: /laptop|macbook|notebook|thinkpad|ideapad|vivobook/i } }
-          ]
+            { subcategory: { $in: ['laptops', 'computers'] } }
+          ],
+          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'mobiles', 'tv', 'decor'] },
+          title: { $not: /\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning)\b/i }
         });
       } else if (cat === 'electronics') {
         andConditions.push({
@@ -172,7 +174,7 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
 
     const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
-    const [total, dealsRaw] = await Promise.all([
+    let [total, dealsRaw] = await Promise.all([
       Deal.countDocuments(query),
       Deal.find(query)
         .sort(sort)
@@ -191,38 +193,78 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       return d;
     });
 
-    // Fallback: If searching by keyword and 0 promotional deals found, search the permanent Product catalog
-    if (deals.length === 0 && req.query.q && page === 1) {
-      const qStr = req.query.q.trim();
-      const searchTokens = qStr.split(/\s+/).filter(Boolean);
-      const prodConditions = searchTokens.map(token => {
-        const regex = new RegExp(token, 'i');
-        return {
-          $or: [
-            { title: regex },
-            { productId: regex },
-            { cleanUrl: regex },
-            { brand: regex },
-            { merchant: regex }
-          ]
-        };
-      });
-      const prodQuery = {
-        $and: prodConditions,
-        isActive: true,
-        $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }]
-      };
-      const prods = await Product.find(prodQuery)
-        .select('_id productId title brand merchant category subcategory imageUrl images cleanUrl price originalPrice previousPrice rating country lastChecked')
-        .limit(limit)
-        .lean();
+    // Catalog Augmentation / Fallback: If searching by keyword or filtering by category (e.g. mobiles)
+    // and fewer deals than requested limit exist, enrich the feed with active authentic products from the catalog
+    // so shoppers always see full, high-value deals with 0 smartwatches or accessories in mobiles.
+    if ((deals.length < limit || deals.length === 0) && (req.query.q || req.query.category) && page === 1) {
+      const needed = limit - deals.length;
+      if (needed > 0) {
+        const existingTitles = new Set(deals.map(d => (d.title || '').toLowerCase().trim()));
+        const existingIds = new Set(deals.map(d => (d.productId || d.matchedProductId || d._id?.toString())));
 
-      if (prods.length > 0) {
-        deals = prods.map(p => {
+        let prodQuery = {
+          isActive: true,
+          $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }]
+        };
+
+        if (req.query.category && req.query.category !== 'all') {
+          const cat = req.query.category.toLowerCase().trim();
+          if (cat === 'mobiles') {
+            prodQuery.subcategory = 'mobiles';
+            prodQuery.title = { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i };
+          } else if (cat === 'laptops') {
+            prodQuery.subcategory = 'laptops';
+            prodQuery.title = { $not: /\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning)\b/i };
+          } else if (cat === 'electronics') {
+            prodQuery.category = 'electronics';
+          } else {
+            prodQuery.$or = [{ category: cat }, { subcategory: cat }];
+          }
+        }
+
+        if (req.query.merchant && req.query.merchant !== 'all') {
+          prodQuery.merchant = req.query.merchant.toLowerCase().trim();
+        }
+
+        if (req.query.q) {
+          const qStr = req.query.q.trim();
+          const searchTokens = qStr.split(/\s+/).filter(Boolean);
+          const searchConds = searchTokens.map(token => {
+            const regex = new RegExp(token, 'i');
+            return {
+              $or: [
+                { title: regex },
+                { productId: regex },
+                { brand: regex },
+                { merchant: regex }
+              ]
+            };
+          });
+          prodQuery.$and = searchConds;
+        }
+
+        const prods = await Product.find(prodQuery)
+          .select('_id productId title brand merchant category subcategory imageUrl images cleanUrl price originalPrice previousPrice rating country lastChecked')
+          .limit(needed * 3)
+          .lean();
+
+        // Sort by discount percentage descending so genuine high-discount deals appear first
+        const sortedProds = prods.map(p => {
           const discountPct = (p.originalPrice && p.price && p.originalPrice > p.price)
             ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
             : 0;
-          return {
+          return { ...p, calculatedDiscount: discountPct };
+        }).sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
+
+        const mappedProds = [];
+        for (const p of sortedProds) {
+          if (mappedProds.length >= needed) break;
+          const cleanTitle = (p.title || '').toLowerCase().trim();
+          if (existingTitles.has(cleanTitle) || existingIds.has(p._id?.toString()) || (p.productId && existingIds.has(p.productId))) {
+            continue;
+          }
+
+          mappedProds.push({
             _id: p._id,
             productId: p.productId,
             title: p.title,
@@ -231,7 +273,7 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
             dealPrice: p.price,
             originalPrice: p.originalPrice,
             previousPrice: p.previousPrice,
-            discountPercentage: discountPct,
+            discountPercentage: p.calculatedDiscount,
             merchant: p.merchant,
             category: p.category,
             subcategory: p.subcategory,
@@ -240,9 +282,15 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
             resolvedToProduct: true,
             matchedProductId: p._id.toString(),
             linkedProductId: p._id.toString(),
-          };
-        });
-        total = deals.length;
+          });
+          existingTitles.add(cleanTitle);
+          existingIds.add(p._id?.toString());
+        }
+
+        if (mappedProds.length > 0) {
+          deals = deals.concat(mappedProds);
+          total = Math.max(total, deals.length);
+        }
       }
     }
 
