@@ -355,7 +355,7 @@ export async function directFetchDeals({
             { subcategory: { $in: ['mobiles', 'Smartphones'] } },
           ],
           subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'laptops', 'tv', 'decor', 'bags', 'men-topwear'] },
-          title: { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i },
+          title: { $not: /\b(watch|smartwatch|fitness\s*band|smart\s*band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|back\s*cover|charging\s*cable|type-c\s*cable|usb\s*cable|wall\s*charger|mobile\s*stand|tripod|selfie\s*stick|phone\s*holder|car\s*mount)\b/i },
         });
       } else if (cat === 'laptops') {
         andConditions.push({
@@ -363,21 +363,32 @@ export async function directFetchDeals({
             { category: 'laptops' },
             { subcategory: { $in: ['laptops', 'computers'] } },
           ],
-          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'mobiles', 'tv', 'decor'] },
-          title: { $not: /\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning)\b/i },
+          subcategory: { $nin: ['wearables', 'accessories', 'audio', 'gaming', 'cameras', 'mobiles', 'tv', 'decor', 'bags', 'furniture'] },
+          title: { $not: /\b(bag|sleeve|case|cover|stand|riser|adapter|charger|cable|cord|mouse|keyboard|mousepad|mouse\s*mat|docking\s*station|hub|cleaner|cleaning|skin|cooling\s*pad|desk)\b/i },
         });
       } else if (cat === 'electronics') {
         andConditions.push({
           $or: [
-            { category: { $in: ['electronics', 'appliances', 'mobiles', 'laptops'] } },
-            { subcategory: { $in: ['audio', 'cameras', 'tv', 'wearables', 'gaming', 'accessories'] } },
+            { category: 'electronics' },
+            { category: { $in: ['mobiles', 'laptops'] } },
+            { subcategory: { $in: ['audio', 'cameras', 'tv', 'wearables', 'gaming', 'accessories', 'mobiles', 'laptops'] } },
           ],
+          category: { $nin: ['appliances', 'home', 'men-fashion', 'women-fashion', 'beauty', 'auto'] },
+          title: { $not: /\b(washing\s*machine|refrigerator|air\s*conditioner|water\s*purifier|chimney|geyser|air\s*fryer|microwave|dress|shirt|kurti|saree)\b/i },
+        });
+      } else if (cat === 'appliances') {
+        andConditions.push({
+          $or: [
+            { category: 'appliances' },
+            { subcategory: { $in: ['refrigerators', 'washing-machines', 'air-conditioners', 'water-purifiers', 'geysers', 'air-fryers', 'microwaves', 'chimneys', 'fans-coolers', 'kitchen-appliances'] } },
+          ],
+          title: { $not: /\b(pendrive|flash\s*drive|type-c\s*usb|laundry\s*bag|liquid\s*detergent|washing\s*powder|stain\s*remover|heating\s*pad)\b/i },
         });
       } else if (cat === 'fashion') {
         andConditions.push({
           $or: [
             { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
-            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } },
+            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches', 'innerwear', 'women-innerwear'] } },
           ],
           subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] },
           title: {
@@ -388,15 +399,19 @@ export async function directFetchDeals({
         andConditions.push({
           $or: [
             { category: { $in: ['beauty', 'personal-care'] } },
-            { subcategory: { $in: ['makeup', 'skincare', 'haircare', 'bath-body', 'fragrance', 'appliances'] } },
+            { subcategory: { $in: ['makeup', 'skincare', 'haircare', 'bath-body', 'fragrance', 'appliances', 'mens-grooming', 'nailcare'] } },
           ],
+          subcategory: { $nin: ['feminine-hygiene'] },
+          title: { $not: /\b(school\s*bag|backpack|daypack|luggage|shoes?|t-?shirt|dress|jeans)\b/i },
         });
       } else if (cat === 'home') {
         andConditions.push({
           $or: [
-            { category: { $in: ['home', 'kitchen', 'home-kitchen', 'appliances'] } },
-            { subcategory: { $in: ['decor', 'bedding', 'cleaning', 'furniture', 'storage', 'kitchen'] } },
+            { category: { $in: ['home', 'kitchen', 'home-kitchen'] } },
+            { subcategory: { $in: ['decor', 'bedding', 'cleaning', 'furniture', 'storage', 'kitchen-dining', 'kitchen', 'tools', 'garden'] } },
           ],
+          category: { $nin: ['men-fashion', 'women-fashion', 'fashion', 'beauty', 'auto', 'pets', 'books-stationery', 'travel', 'electronics'] },
+          title: { $not: /\b(t-?shirt|shirt|polo|kurta|kurti|saree|sari|lehenga|dress|jeans|trouser|sneaker|shoes|heels|sandals|lipstick|perfume|deodorant|dog\s*food|cat\s*treat|chew\s*toy|trolley|suitcase|backpack|dash\s*cam)\b/i },
         });
       } else if (cat === 'fitness') {
         andConditions.push({
@@ -404,12 +419,42 @@ export async function directFetchDeals({
             { category: 'fitness' },
             { subcategory: { $in: ['fitness-apparel', 'trackers', 'gym-equipment', 'nutrition', 'sports-gear', 'yoga'] } },
           ],
+          title: { $not: /\b(chocolate|cookie|biscuit|namkeen|chips|dress|kurti|saree)\b/i },
         });
       } else if (cat === 'grocery') {
         andConditions.push({
           $or: [
             { category: { $in: ['grocery', 'gourmet', 'food'] } },
-            { subcategory: { $in: ['breakfast-dairy', 'coffee-tea', 'cooking-staples', 'dry-fruits'] } },
+            { subcategory: { $in: ['breakfast-dairy', 'coffee-tea', 'cooking-staples', 'dry-fruits', 'snacks-beverages'] } },
+          ],
+          title: { $not: /\b(coffee\s*table|centre\s*table|dining\s*table|sofa|chair|cat\s*treat|dog\s*food|chew|diya\s*batti|pooja|whey\s*protein|multivitamin)\b/i },
+        });
+      } else if (cat === 'travel' || cat === 'luggage' || cat === 'bags') {
+        andConditions.push({
+          $or: [
+            { category: 'travel' },
+            { subcategory: { $in: ['luggage', 'bags'] } },
+          ],
+        });
+      } else if (cat === 'baby-kids') {
+        andConditions.push({
+          $or: [
+            { category: 'baby-kids' },
+            { subcategory: { $in: ['toys-games', 'diapers-wipes', 'baby-gear', 'feeding-nursing'] } },
+          ],
+        });
+      } else if (cat === 'auto') {
+        andConditions.push({
+          $or: [
+            { category: 'auto' },
+            { subcategory: { $in: ['helmets-riding', 'car-accessories', 'bike-accessories', 'car-care'] } },
+          ],
+        });
+      } else if (cat === 'books' || cat === 'books-stationery') {
+        andConditions.push({
+          $or: [
+            { category: 'books-stationery' },
+            { subcategory: { $in: ['books', 'stationery', 'craft-supplies', 'office-supplies'] } },
           ],
         });
       } else {
@@ -468,13 +513,30 @@ export async function directFetchDeals({
 
         if (cat === 'mobiles') {
           prodFilter.subcategory = 'mobiles';
-          prodFilter.title = { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i };
+          prodFilter.title = { $not: /\b(watch|smartwatch|fitness\s*band|smart\s*band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|back\s*cover|charging\s*cable|type-c\s*cable|usb\s*cable|wall\s*charger|mobile\s*stand|tripod|selfie\s*stick|phone\s*holder|car\s*mount)\b/i };
+        } else if (cat === 'laptops') {
+          prodFilter.subcategory = 'laptops';
+          prodFilter.title = { $not: /\b(bag|sleeve|case|cover|stand|riser|adapter|charger|cable|cord|mouse|keyboard|mousepad|mouse\s*mat|docking\s*station|hub|cleaner|cleaning|skin|cooling\s*pad|desk)\b/i };
+        } else if (cat === 'electronics') {
+          prodFilter.$or = [
+            { category: 'electronics' },
+            { category: { $in: ['mobiles', 'laptops'] } },
+            { subcategory: { $in: ['audio', 'cameras', 'tv', 'wearables', 'gaming', 'accessories', 'mobiles', 'laptops'] } }
+          ];
+          prodFilter.category = { $nin: ['appliances', 'home', 'men-fashion', 'women-fashion', 'beauty', 'auto'] };
+          prodFilter.title = { $not: /\b(washing\s*machine|refrigerator|air\s*conditioner|water\s*purifier|chimney|geyser|air\s*fryer|microwave|dress|shirt|kurti|saree)\b/i };
+        } else if (cat === 'appliances') {
+          prodFilter.$or = [
+            { category: 'appliances' },
+            { subcategory: { $in: ['refrigerators', 'washing-machines', 'air-conditioners', 'water-purifiers', 'geysers', 'air-fryers', 'microwaves', 'chimneys', 'fans-coolers', 'kitchen-appliances'] } }
+          ];
+          prodFilter.title = { $not: /\b(pendrive|flash\s*drive|type-c\s*usb|laundry\s*bag|liquid\s*detergent|washing\s*powder|stain\s*remover|heating\s*pad)\b/i };
         } else if (cat === 'fashion') {
           prodFilter.$and = [
             {
               $or: [
                 { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
-                { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } }
+                { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches', 'innerwear', 'women-innerwear'] } }
               ]
             },
             { subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] } },
@@ -483,6 +545,52 @@ export async function directFetchDeals({
                 $not: /\b(pad|pads|whisper|stayfree|sofy|kotex|sanitary|napkin|napkins|tampon|tampons|period\s*panty|panty\s*liner|diaper|diapers|nappy|nappies|wipes|luggage|trolley|suitcase|duffle|duffel|backpack|daypack|rucksack|travel\s*bag|school\s*bag|laptop\s*bag|cabin\s*bag|cabin\s*luggage|hard\s*case|tote\s*bag|handbag|sling\s*bag|crossbody\s*bag|wallet|clutch|pouch|packing\s*cubes?|weighing\s*scale|weight\s*machine|cart|hanger|organizer)\b/i
               }
             }
+          ];
+        } else if (cat === 'beauty') {
+          prodFilter.$or = [
+            { category: { $in: ['beauty', 'personal-care'] } },
+            { subcategory: { $in: ['makeup', 'skincare', 'haircare', 'bath-body', 'fragrance', 'appliances', 'mens-grooming', 'nailcare'] } }
+          ];
+          prodFilter.subcategory = { $nin: ['feminine-hygiene'] };
+          prodFilter.title = { $not: /\b(school\s*bag|backpack|daypack|luggage|shoes?|t-?shirt|dress|jeans)\b/i };
+        } else if (cat === 'home') {
+          prodFilter.$or = [
+            { category: { $in: ['home', 'kitchen', 'home-kitchen'] } },
+            { subcategory: { $in: ['decor', 'bedding', 'cleaning', 'furniture', 'storage', 'kitchen-dining', 'kitchen', 'tools', 'garden'] } }
+          ];
+          prodFilter.category = { $nin: ['men-fashion', 'women-fashion', 'fashion', 'beauty', 'auto', 'pets', 'books-stationery', 'travel', 'electronics'] };
+          prodFilter.title = { $not: /\b(t-?shirt|shirt|polo|kurta|kurti|saree|sari|lehenga|dress|jeans|trouser|sneaker|shoes|heels|sandals|lipstick|perfume|deodorant|dog\s*food|cat\s*treat|chew\s*toy|trolley|suitcase|backpack|dash\s*cam)\b/i };
+        } else if (cat === 'fitness') {
+          prodFilter.$or = [
+            { category: 'fitness' },
+            { subcategory: { $in: ['fitness-apparel', 'trackers', 'gym-equipment', 'nutrition', 'sports-gear', 'yoga'] } }
+          ];
+          prodFilter.title = { $not: /\b(chocolate|cookie|biscuit|namkeen|chips|dress|kurti|saree)\b/i };
+        } else if (cat === 'grocery') {
+          prodFilter.$or = [
+            { category: { $in: ['grocery', 'gourmet', 'food'] } },
+            { subcategory: { $in: ['breakfast-dairy', 'coffee-tea', 'cooking-staples', 'dry-fruits', 'snacks-beverages'] } }
+          ];
+          prodFilter.title = { $not: /\b(coffee\s*table|centre\s*table|dining\s*table|sofa|chair|cat\s*treat|dog\s*food|chew|diya\s*batti|pooja|whey\s*protein|multivitamin)\b/i };
+        } else if (cat === 'travel' || cat === 'luggage' || cat === 'bags') {
+          prodFilter.$or = [
+            { category: 'travel' },
+            { subcategory: { $in: ['luggage', 'bags'] } }
+          ];
+        } else if (cat === 'baby-kids') {
+          prodFilter.$or = [
+            { category: 'baby-kids' },
+            { subcategory: { $in: ['toys-games', 'diapers-wipes', 'baby-gear', 'feeding-nursing'] } }
+          ];
+        } else if (cat === 'auto') {
+          prodFilter.$or = [
+            { category: 'auto' },
+            { subcategory: { $in: ['helmets-riding', 'car-accessories', 'bike-accessories', 'car-care'] } }
+          ];
+        } else if (cat === 'books' || cat === 'books-stationery') {
+          prodFilter.$or = [
+            { category: 'books-stationery' },
+            { subcategory: { $in: ['books', 'stationery', 'craft-supplies', 'office-supplies'] } }
           ];
         } else {
           prodFilter.$or = [{ category: cat }, { subcategory: cat }];

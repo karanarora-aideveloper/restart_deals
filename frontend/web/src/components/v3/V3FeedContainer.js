@@ -19,11 +19,13 @@ const CATEGORIES = [
   { id: 'all', label: 'All Categories' },
   { id: 'mobiles', label: 'Mobiles' },
   { id: 'electronics', label: 'Electronics' },
+  { id: 'appliances', label: 'Appliances' },
   { id: 'fashion', label: 'Fashion' },
   { id: 'beauty', label: 'Beauty' },
-  { id: 'home', label: 'Home' },
+  { id: 'home', label: 'Home & Kitchen' },
   { id: 'laptops', label: 'Laptops' },
   { id: 'fitness', label: 'Fitness' },
+  { id: 'grocery', label: 'Grocery' },
 ];
 
 const DISCOUNT_BANDS = [

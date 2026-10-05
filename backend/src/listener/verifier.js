@@ -8,6 +8,7 @@ import DealChannelEvent from '../db/models/dealChannelEvent.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
+import { classifyProduct } from '../utils/categoryClassifier.js';
 
 /**
  * Extract all HTTP/HTTPS links from text using a Regex pattern
@@ -1488,6 +1489,13 @@ export async function deriveCategory(channelCategory, categoryHint, titleText) {
 
   if (channelCategory && channelCategory !== 'auto' && validCategories.includes(channelCategory)) {
     return { category: channelCategory, subcategory: '' };
+  }
+
+  // First evaluate with the high-precision classifier
+  const highPrecision = classifyProduct(titleText, '', categoryHint);
+  if (highPrecision) {
+    const resolvedSubcategory = subcatValues.has(highPrecision.subcategory) ? highPrecision.subcategory : highPrecision.subcategory;
+    return { category: highPrecision.category, subcategory: resolvedSubcategory };
   }
 
   const combined = [categoryHint, titleText].filter(Boolean).join(' ');

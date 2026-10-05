@@ -25,7 +25,7 @@ const CATEGORIES = [
   {
     id: 'fashion',
     name: 'Fashion & Apparel',
-    tagline: 'T-Shirts, Dresses, Jeans, Ethnic Wear, Sneakers, Bags',
+    tagline: 'T-Shirts, Dresses, Jeans, Ethnic Wear, Sneakers, Watches',
     emoji: '👗',
     image: '/categories/fashion.jpg',
     color: '#e11d48',

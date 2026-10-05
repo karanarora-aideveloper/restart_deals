@@ -9,6 +9,7 @@ import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
+import { classifyProduct } from '../utils/categoryClassifier.js';
 
 /**
  * Multi-Store Search URL Builder
@@ -234,6 +235,22 @@ async function fetchCategoryHtml(url) {
 export function refineCategoryFromTitle(title, seedCategory, seedSubcategory) {
   if (!title) return { category: seedCategory, subcategory: seedSubcategory };
   const t = title.trim();
+
+  // Try high precision classifier first
+  const highPrecision = classifyProduct(t);
+  if (highPrecision) {
+    // If the classified category is a clear correction (e.g. accessories/wearables found in mobiles, or travel bags found in fashion)
+    if (seedCategory === 'electronics' || seedSubcategory === 'mobiles' || seedSubcategory === 'laptops') {
+      if (highPrecision.category === 'electronics' || highPrecision.category === 'travel' || highPrecision.category === 'home') {
+        return highPrecision;
+      }
+    }
+    if (seedCategory === 'men-fashion' || seedCategory === 'women-fashion') {
+      if (highPrecision.category === 'travel' || highPrecision.category === 'personal-care' || highPrecision.category === 'baby-kids' || highPrecision.category === 'auto') {
+        return highPrecision;
+      }
+    }
+  }
 
   // If seed is in electronics or mobiles, protect against powerbanks, smartwatches, audio, accessories
   if (seedCategory === 'electronics' || seedSubcategory === 'mobiles') {
