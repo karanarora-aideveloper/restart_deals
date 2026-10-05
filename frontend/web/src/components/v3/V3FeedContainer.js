@@ -85,7 +85,13 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
       if (store && store !== 'all') params.set('merchant', store);
       if (minDisc && minDisc > 0) params.set('minDiscount', minDisc.toString());
 
-      const res = await fetch(`${API_BASE_URL}/api/deals?${params.toString()}`);
+      let res;
+      try {
+        res = await fetch(`/api/deals?${params.toString()}`);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+      } catch {
+        res = await fetch(`${API_BASE_URL}/api/deals?${params.toString()}`);
+      }
       if (!res.ok) throw new Error('Failed to fetch deals');
       const data = await res.json();
       const rawList = data.data || data.deals || data.items || [];
