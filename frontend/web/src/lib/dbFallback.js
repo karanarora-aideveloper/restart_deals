@@ -377,8 +377,12 @@ export async function directFetchDeals({
         andConditions.push({
           $or: [
             { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
-            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'bags', 'jewellery', 'watches', 'kids'] } },
+            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } },
           ],
+          subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] },
+          title: {
+            $not: /\b(pad|pads|whisper|stayfree|sofy|kotex|sanitary|napkin|napkins|tampon|tampons|period\s*panty|panty\s*liner|diaper|diapers|nappy|nappies|wipes|luggage|trolley|suitcase|duffle|duffel|backpack|daypack|rucksack|travel\s*bag|school\s*bag|laptop\s*bag|cabin\s*bag|cabin\s*luggage|hard\s*case|tote\s*bag|handbag|sling\s*bag|crossbody\s*bag|wallet|clutch|pouch|packing\s*cubes?|weighing\s*scale|weight\s*machine|cart|hanger|organizer)\b/i
+          },
         });
       } else if (cat === 'beauty') {
         andConditions.push({
@@ -452,16 +456,39 @@ export async function directFetchDeals({
       return deal;
     });
 
-    if (category && category.toLowerCase().trim() === 'mobiles' && deals.length < limit && page === 1) {
+    if (category && category !== 'all' && deals.length < limit && page === 1) {
       try {
+        const cat = category.toLowerCase().trim();
         const needed = limit - deals.length;
         const existingTitles = new Set(deals.map((d) => (d.title || '').toLowerCase().trim()));
-        const prodDocs = await db.collection('products').find({
+        let prodFilter = {
           isActive: true,
-          subcategory: 'mobiles',
-          title: { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i },
           $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }],
-        }).limit(needed * 2).toArray();
+        };
+
+        if (cat === 'mobiles') {
+          prodFilter.subcategory = 'mobiles';
+          prodFilter.title = { $not: /\b(watch|smartwatch|band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|cover\s*for|cable|charger|adapter|stand|tripod|selfie)\b/i };
+        } else if (cat === 'fashion') {
+          prodFilter.$and = [
+            {
+              $or: [
+                { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
+                { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } }
+              ]
+            },
+            { subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] } },
+            {
+              title: {
+                $not: /\b(pad|pads|whisper|stayfree|sofy|kotex|sanitary|napkin|napkins|tampon|tampons|period\s*panty|panty\s*liner|diaper|diapers|nappy|nappies|wipes|luggage|trolley|suitcase|duffle|duffel|backpack|daypack|rucksack|travel\s*bag|school\s*bag|laptop\s*bag|cabin\s*bag|cabin\s*luggage|hard\s*case|tote\s*bag|handbag|sling\s*bag|crossbody\s*bag|wallet|clutch|pouch|packing\s*cubes?|weighing\s*scale|weight\s*machine|cart|hanger|organizer)\b/i
+              }
+            }
+          ];
+        } else {
+          prodFilter.$or = [{ category: cat }, { subcategory: cat }];
+        }
+
+        const prodDocs = await db.collection('products').find(prodFilter).limit(needed * 2).toArray();
 
         for (const p of prodDocs) {
           if (deals.length >= limit) break;
@@ -490,7 +517,7 @@ export async function directFetchDeals({
           existingTitles.add(cleanT);
         }
       } catch (e) {
-        console.error('[dbFallback] mobile catalog augmentation error:', e.message);
+        console.error('[dbFallback] catalog augmentation error:', e.message);
       }
     }
 

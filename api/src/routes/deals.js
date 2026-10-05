@@ -54,8 +54,12 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         andConditions.push({
           $or: [
             { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
-            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'bags', 'jewellery', 'watches', 'kids'] } }
-          ]
+            { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } }
+          ],
+          subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] },
+          title: {
+            $not: /\b(pad|pads|whisper|stayfree|sofy|kotex|sanitary|napkin|napkins|tampon|tampons|period\s*panty|panty\s*liner|diaper|diapers|nappy|nappies|wipes|luggage|trolley|suitcase|duffle|duffel|backpack|daypack|rucksack|travel\s*bag|school\s*bag|laptop\s*bag|cabin\s*bag|cabin\s*luggage|hard\s*case|tote\s*bag|handbag|sling\s*bag|crossbody\s*bag|wallet|clutch|pouch|packing\s*cubes?|weighing\s*scale|weight\s*machine|cart|hanger|organizer)\b/i
+          }
         });
       } else if (cat === 'beauty') {
         andConditions.push({
@@ -217,6 +221,21 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
             prodQuery.title = { $not: /\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning)\b/i };
           } else if (cat === 'electronics') {
             prodQuery.category = 'electronics';
+          } else if (cat === 'fashion') {
+            prodQuery.$and = [
+              {
+                $or: [
+                  { category: { $in: ['fashion', 'men-fashion', 'women-fashion', 'clothing', 'footwear'] } },
+                  { subcategory: { $in: ['clothing', 'footwear', 'apparel', 'jewellery', 'watches', 'kids', 'men-topwear', 'men-bottomwear', 'women-western', 'women-ethnic', 'women-footwear', 'women-watches'] } }
+                ]
+              },
+              { subcategory: { $nin: ['bags', 'women-bags', 'luggage', 'diapers-wipes', 'accessories', 'storage', 'decor'] } },
+              {
+                title: {
+                  $not: /\b(pad|pads|whisper|stayfree|sofy|kotex|sanitary|napkin|napkins|tampon|tampons|period\s*panty|panty\s*liner|diaper|diapers|nappy|nappies|wipes|luggage|trolley|suitcase|duffle|duffel|backpack|daypack|rucksack|travel\s*bag|school\s*bag|laptop\s*bag|cabin\s*bag|cabin\s*luggage|hard\s*case|tote\s*bag|handbag|sling\s*bag|crossbody\s*bag|wallet|clutch|pouch|packing\s*cubes?|weighing\s*scale|weight\s*machine|cart|hanger|organizer)\b/i
+                }
+              }
+            ];
           } else {
             prodQuery.$or = [{ category: cat }, { subcategory: cat }];
           }
