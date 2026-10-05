@@ -1361,15 +1361,18 @@ const CATEGORY_KEYWORDS = [
   [/\b(ceiling fan|bldc fan|pedestal fan|table fan|exhaust fan|air cooler|desert cooler|tower fan)\b/i, 'appliances', 'fans-coolers'],
   [/\b(mixer grinder|juicer mixer|induction cooktop|induction stove|electric kettle|sandwich maker|pop-up toaster|blender|hand blender|food processor)\b/i, 'appliances', 'kitchen-appliances'],
 
-  // electronics
-  [/\b(mouse|keyboard|laptop|notebook|desktop|monitor|webcam|motherboard|graphics card|\bssd\b|\bram\b|hard ?disk|pen ?drive|memory card)\b/i, 'electronics', 'laptops'],
-  [/\b(smartphone|mobile phone|\bmobile\b|\btablet\b|\bipad\b)\b/i, 'electronics', 'mobiles'],
-  [/\b(camera|dslr|\blens\b|tripod|action cam|gopro)\b/i, 'electronics', 'cameras'],
-  [/\b(\btv\b|television|home theatre|soundbar|projector)\b/i, 'electronics', 'tv'],
-  [/\b(earphone|earbud|headphone|neckband|bluetooth speaker|\bspeaker\b)\b/i, 'electronics', 'audio'],
-  [/\b(smartwatch|fitness band|wearable)\b/i, 'electronics', 'wearables'],
+  // electronics — specific accessories, wearables, and audio are checked before mobiles
+  // so that accessory listings mentioning compatible phones ("for iPhone", "for Samsung", "for Mobile")
+  // or smartwatches/buds by phone brands ("Redmi Watch", "OnePlus Buds") do not get misclassified as phones.
+  [/\b(power ?bank|powerbank|charger|charging cable|usb-c cable|lightning cable|type-c cable|usb cable|screen protector|tempered glass|phone case|back cover|book cover|tablet case|mobile holder|phone stand|tablet stand|car mount|phone mount|phone grip|popsocket|stylus pen|stylus pencil)\b/i, 'electronics', 'accessories'],
+  [/\b(smartwatch|smart watch|fitness band|smart band|smart ring|redmi watch|oneplus watch|galaxy watch|apple watch)\b/i, 'electronics', 'wearables'],
+  [/\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth speaker|\bspeaker\b|soundbar)\b/i, 'electronics', 'audio'],
+  [/\b(gaming|game console|gamepad|game controller|mobile controller|phone controller|joystick|controller|playstation|xbox)\b/i, 'electronics', 'gaming'],
+  [/\b(camera|dslr|\blens\b|tripod|selfie stick|gimbal|photo printer|action cam|gopro)\b/i, 'electronics', 'cameras'],
+  [/\b(\btv\b|television|home theatre|projector)\b/i, 'electronics', 'tv'],
+  [/\b(laptop|notebook|desktop|monitor|webcam|motherboard|graphics card|\bssd\b|\bram\b|hard ?disk|pen ?drive|memory card|mouse|keyboard)\b/i, 'electronics', 'laptops'],
+  [/\b(smartphone|mobile phone|keypad phone|cell phone|\bmobile\b|\btablet\b|\bipad\b|\bpad\b)\b/i, 'electronics', 'mobiles'],
   [/\b(charger|\bcable\b|power ?bank|adapter|\busb\b)\b/i, 'electronics', 'accessories'],
-  [/\b(gaming|game console|joystick|controller|playstation|xbox)\b/i, 'electronics', 'gaming'],
 
   // beauty
   [/\b(shampoo|conditioner|hair oil|hair serum)\b/i, 'beauty', 'haircare'],
@@ -1491,14 +1494,6 @@ export async function deriveCategory(channelCategory, categoryHint, titleText) {
   const lower = combined.toLowerCase();
 
   if (lower) {
-    for (const c of categoryDocs) {
-      const label = (c.label || c.value || '').toLowerCase();
-      if (label && lower.includes(label)) return { category: c.value, subcategory: '' };
-    }
-    for (const val of validCategories) {
-      if (lower.includes(val.toLowerCase())) return { category: val, subcategory: '' };
-    }
-
     for (const [pattern, category, subcategory] of CATEGORY_KEYWORDS) {
       if (!pattern.test(combined)) continue;
       const resolvedSubcategory = subcatValues.has(subcategory) ? subcategory : '';
@@ -1512,6 +1507,19 @@ export async function deriveCategory(channelCategory, categoryHint, titleText) {
       const resolvedSubcategory = subcatValues.has(subcategory) ? subcategory : '';
       return { category, subcategory: resolvedSubcategory };
     }
+
+    for (const c of categoryDocs) {
+      const label = (c.label || c.value || '').toLowerCase();
+      if (label && lower.includes(label)) return { category: c.value, subcategory: '' };
+    }
+    for (const val of validCategories) {
+      if (lower.includes(val.toLowerCase())) return { category: val, subcategory: '' };
+    }
+  }
+
+  // If text mentions electronics or computing terms, fallback to electronics:accessories rather than home:decor
+  if (/\b(electronics|tech|gadget|android|ios|apple|samsung|oneplus|xiaomi|redmi|realme|boat|noise)\b/i.test(combined)) {
+    return { category: 'electronics', subcategory: 'accessories' };
   }
 
   return { category: 'home', subcategory: 'decor' };

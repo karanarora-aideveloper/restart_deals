@@ -227,6 +227,43 @@ async function fetchCategoryHtml(url) {
 }
 
 /**
+ * Refines the category/subcategory of a scraped search result by its title.
+ * Prevents sponsored or related accessories, smartwatches, and audio devices from
+ * blindly inheriting a seed's category (e.g. powerbanks appearing under 'mobiles').
+ */
+export function refineCategoryFromTitle(title, seedCategory, seedSubcategory) {
+  if (!title) return { category: seedCategory, subcategory: seedSubcategory };
+  const t = title.trim();
+
+  // If seed is in electronics or mobiles, protect against powerbanks, smartwatches, audio, accessories
+  if (seedCategory === 'electronics' || seedSubcategory === 'mobiles') {
+    if (/\b(power ?bank|powerbank|energyshroom)\b/i.test(t)) {
+      return { category: 'electronics', subcategory: 'accessories' };
+    }
+    if (/\b(smartwatch|smart watch|fitness band|smart band|smart ring|redmi watch|oneplus watch|galaxy watch|apple watch)\b/i.test(t) || (/\bwatch\b/i.test(t) && !/\b(phone|mobile|smartphone)\b/i.test(t))) {
+      return { category: 'electronics', subcategory: 'wearables' };
+    }
+    if (/\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth speaker|\bspeaker\b|soundbar)\b/i.test(t) && !/\b(iphone 1[1-7]|galaxy s2[0-6]|mobile phone|smartphone)\b/i.test(t)) {
+      return { category: 'electronics', subcategory: 'audio' };
+    }
+    if (/\b(case for|cover for|\bcase\b|\bcover\b|screen protector|tempered glass|mobile holder|phone stand|tablet stand|car mount|phone mount|phone grip|popsocket|charger|charging cable|usb-c cable|lightning cable|usb cable|type-c cable|adapter)\b/i.test(t)) {
+      const isRealKidTablet = /\b(toddler tablet|kids tablet|children tablet)\b/i.test(t) && /\b(wifi|android|32gb|64gb)\b/i.test(t);
+      if (!isRealKidTablet) {
+        return { category: 'electronics', subcategory: 'accessories' };
+      }
+    }
+    if (/\b(tripod|selfie stick|gimbal|photo printer)\b/i.test(t)) {
+      return { category: 'electronics', subcategory: 'cameras' };
+    }
+    if (/\b(gamepad|game controller|mobile controller|phone controller)\b/i.test(t)) {
+      return { category: 'electronics', subcategory: 'gaming' };
+    }
+  }
+
+  return { category: seedCategory, subcategory: seedSubcategory };
+}
+
+/**
  * Parses an Amazon search/bestseller page and extracts topN items.
  */
 export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
@@ -263,6 +300,8 @@ export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
     const ratingMatch = ratingText.match(/([\d.]+)\s*out of/i);
     const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 4.2;
 
+    const refinedCat = refineCategoryFromTitle(title, categoryInfo.category, categoryInfo.subcategory);
+
     seenAsins.add(asin);
     items.push({
       productId: asin,
@@ -274,8 +313,8 @@ export function parseAmazonBestsellerItems(html, categoryInfo, topN = 20) {
       imageUrl: imageUrl || null,
       images: imageUrl ? [imageUrl] : [],
       rating,
-      category: categoryInfo.category,
-      subcategory: categoryInfo.subcategory,
+      category: refinedCat.category,
+      subcategory: refinedCat.subcategory,
       isActive: true,
       country: 'IN',
     });
@@ -333,6 +372,8 @@ export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
     const ratingNum = parseFloat(ratingText);
     const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.2;
 
+    const refinedCat = refineCategoryFromTitle(title, categoryInfo.category, categoryInfo.subcategory);
+
     seenIds.add(pid);
     items.push({
       productId: pid,
@@ -344,8 +385,8 @@ export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
       imageUrl: imageUrl || null,
       images: imageUrl ? [imageUrl] : [],
       rating,
-      category: categoryInfo.category,
-      subcategory: categoryInfo.subcategory,
+      category: refinedCat.category,
+      subcategory: refinedCat.subcategory,
       isActive: true,
       country: 'IN',
     });

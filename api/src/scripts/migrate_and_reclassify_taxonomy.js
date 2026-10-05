@@ -196,30 +196,30 @@ export function classifyProduct(title = '', merchant = '', currentCategory = '',
     return { category: 'appliances', subcategory: 'kitchen-appliances' };
   }
 
-  // 2. ELECTRONICS & COMPUTING
-  if (/\b(smartphone|mobile phone|galaxy s\d+|galaxy a\d+|iphone|redmi|realme|oneplus|poco|\btablet\b|\bipad\b)\b/i.test(t) && !/\b(case|cover|tempered|cable|charger)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'mobiles' };
+  // 2. ELECTRONICS & COMPUTING — specific accessories, wearables, audio, gaming, cameras, laptops before mobiles
+  if (/\b(power ?bank|powerbank|charger|charging cable|usb-c cable|lightning cable|type-c cable|usb cable|screen protector|tempered glass|phone case|back cover|book cover|tablet case|mobile holder|phone stand|tablet stand|car mount|phone mount|phone grip|popsocket|stylus pen|stylus pencil)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'accessories' };
   }
-  if (/\b(laptop|notebook|macbook|thinkpad|gaming laptop|desktop|monitor|\bpc\b|motherboard|graphics card|\bssd\b|\bram\b|hard drive|hard disk|pendrive|flash drive)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'laptops' };
+  if (/\b(smartwatch|smart watch|fitness band|smart band|smart ring|redmi watch|oneplus watch|galaxy watch|apple watch)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'wearables' };
   }
-  if (/\b(mouse|keyboard|mechanical keyboard|gaming mouse|wireless mouse)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'laptops' };
-  }
-  if (/\b(earbuds|tws|headphone|earphone|neckband|bluetooth speaker|soundbar|home theatre|subwoofer)\b/i.test(t)) {
+  if (/\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth speaker|\bspeaker\b|soundbar)\b/i.test(t) && !/\b(iphone 1[1-7]|galaxy s2[0-6]|mobile phone|smartphone)\b/i.test(t)) {
     return { category: 'electronics', subcategory: 'audio' };
+  }
+  if (/\b(gamepad|game controller|mobile controller|phone controller|gaming console|ps5|xbox|joystick)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'gaming' };
+  }
+  if (/\b(camera|dslr|mirrorless|action cam|gopro|tripod|selfie stick|gimbal|photo printer|ring light|cctv|security camera)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'cameras' };
   }
   if (/\b(smart tv|television|led tv|qled|oled|fire tv stick|streaming device|projector)\b/i.test(t) && !/\b(mount|remote)\b/i.test(t)) {
     return { category: 'electronics', subcategory: 'tv' };
   }
-  if (/\b(smartwatch|smart watch|fitness band|smart band|smart ring)\b/i.test(t) && !/\b(strap|case|guard)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'wearables' };
+  if (/\b(laptop|notebook|macbook|thinkpad|gaming laptop|desktop|monitor|\bpc\b|motherboard|graphics card|\bssd\b|\bram\b|hard drive|hard disk|pendrive|flash drive|mouse|keyboard)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'laptops' };
   }
-  if (/\b(camera|dslr|mirrorless|action cam|gopro|tripod|webcam|ring light|cctv|security camera)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'cameras' };
-  }
-  if (/\b(playstation|ps5|ps4|xbox|nintendo|game console|gamepad|controller|gaming headset)\b/i.test(t)) {
-    return { category: 'electronics', subcategory: 'gaming' };
+  if (/\b(smartphone|mobile phone|keypad phone|cell phone|iphone|galaxy s\d+|galaxy a\d+|galaxy m\d+|galaxy f\d+|galaxy z fold|galaxy z flip|redmi note|oneplus|poco|\btablet\b|\bipad\b|\bpad\b)\b/i.test(t)) {
+    return { category: 'electronics', subcategory: 'mobiles' };
   }
   if (/\b(charger|cable|power bank|adapter|fast charger|usb-c|lightning cable|tempered glass|screen protector|back cover|phone case)\b/i.test(t)) {
     return { category: 'electronics', subcategory: 'accessories' };
