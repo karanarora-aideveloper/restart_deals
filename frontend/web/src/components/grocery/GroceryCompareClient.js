@@ -20,6 +20,10 @@ export default function GroceryCompareClient() {
   const [selectedLocalityId, setSelectedLocalityId] = useState('city-centre');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState(() => searchGroceryCatalog({ localityId: 'city-centre' }));
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataSource, setDataSource] = useState('benchmark'); // 'live' | 'benchmark'
+  const [liveEtas, setLiveEtas] = useState([]);
   const [basket, setBasket] = useState({}); // { itemId: quantity }
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
@@ -30,14 +34,51 @@ export default function GroceryCompareClient() {
     return getLocalityById(selectedLocalityId);
   }, [selectedLocalityId]);
 
-  // Filtered & enriched products
-  const products = useMemo(() => {
-    return searchGroceryCatalog({
-      query: searchQuery,
-      category: selectedCategory,
-      localityId: selectedLocalityId,
-    });
-  }, [searchQuery, selectedCategory, selectedLocalityId]);
+  // Debounced search effect
+  React.useEffect(() => {
+    let isCancelled = false;
+    const q = searchQuery.trim();
+
+    // If query is empty and category is 'all', show instant catalog
+    if (!q && selectedCategory === 'all') {
+      setProducts(searchGroceryCatalog({ localityId: selectedLocalityId }));
+      setDataSource('benchmark');
+      return;
+    }
+
+    setIsLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const url = `/api/grocery/compare?q=${encodeURIComponent(q)}&locality=${selectedLocalityId}&category=${selectedCategory}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+
+        if (!isCancelled && data.success && Array.isArray(data.results)) {
+          setProducts(data.results);
+          setDataSource(data.source === 'live' ? 'live' : 'benchmark');
+          if (data.storesEta && data.storesEta.length > 0) {
+            setLiveEtas(data.storesEta);
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          // Graceful fallback to local catalog search
+          setProducts(searchGroceryCatalog({ query: q, category: selectedCategory, localityId: selectedLocalityId }));
+          setDataSource('benchmark');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, selectedLocalityId, selectedCategory]);
 
   // Basket calculations
   const basketStats = useMemo(() => {
@@ -48,12 +89,12 @@ export default function GroceryCompareClient() {
 
     Object.entries(basket).forEach(([id, qty]) => {
       if (qty <= 0) return;
-      const product = GWALIOR_STAPLES_CATALOG.find((p) => p.id === id);
+      const product = products.find((p) => p.id === id) || GWALIOR_STAPLES_CATALOG.find((p) => p.id === id);
       if (!product) return;
 
       totalItems += qty;
-      const bPrice = product.blinkit.price * qty;
-      const iPrice = product.instamart.price * qty;
+      const bPrice = (product.blinkit?.price || product.mrp || 0) * qty;
+      const iPrice = (product.instamart?.price || product.mrp || 0) * qty;
       blinkitTotal += bPrice;
       instamartTotal += iPrice;
 
@@ -300,13 +341,29 @@ export default function GroceryCompareClient() {
             )}
           </div>
 
-          {/* Catalog Count Indicator */}
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+          {/* Catalog Count Indicator & Live Sync Badge */}
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+            {dataSource === 'live' ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                100% Live Dark Store Sync
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
+                Daily Dark Store Benchmark
+              </span>
+            )}
             <span>Showing <strong className="text-slate-900">{products.length}</strong> items in Gwalior</span>
-            <span className="hidden sm:inline text-slate-300">•</span>
-            <span className="hidden sm:inline">Prices synchronized with dark stores</span>
           </div>
         </div>
+
+        {/* Live Loading Pulse Banner */}
+        {isLoading && (
+          <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 animate-pulse shadow-sm">
+            <span className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></span>
+            <span>Syncing real-time prices & stock with Gwalior dark stores (Blinkit & Swiggy Instamart)...</span>
+          </div>
+        )}
 
         {/* Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-4 scrollbar-none">
@@ -399,86 +456,118 @@ export default function GroceryCompareClient() {
                 <div className="p-4 pt-3">
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* Blinkit Card Column */}
-                    <div
-                      className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
-                        isBlinkitCheaper
-                          ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/40'
-                          : 'bg-slate-50 border-slate-200/80'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <BlinkitLogo className="h-4 w-auto" />
-                          {isBlinkitCheaper && (
-                            <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded">
-                              Cheaper
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 flex items-baseline gap-1">
-                          <span className="text-lg font-black text-slate-900">
-                            ₹{item.blinkit.price}
-                          </span>
-                          <span className="text-[11px] font-bold text-emerald-600">
-                            {item.blinkit.discountPct}% off
-                          </span>
-                        </div>
-                        <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                          <span>⏱ ~{item.blinkit.eta || '10m'}</span>
-                        </div>
-                      </div>
-
-                      {/* Launch Deep Link */}
-                      <a
-                        href={item.blinkit.deepLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2.5 block text-center py-1.5 px-2 bg-yellow-400 hover:bg-yellow-500 text-black font-extrabold text-[11px] rounded-lg transition-colors shadow-sm"
+                    {item.blinkit ? (
+                      <div
+                        className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
+                          isBlinkitCheaper
+                            ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/40'
+                            : 'bg-slate-50 border-slate-200/80'
+                        }`}
                       >
-                        Open Blinkit
-                      </a>
-                    </div>
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <BlinkitLogo className="h-4 w-auto" />
+                            {isBlinkitCheaper && (
+                              <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded">
+                                Cheaper
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex items-baseline gap-1">
+                            <span className="text-lg font-black text-slate-900">
+                              ₹{item.blinkit.price}
+                            </span>
+                            {item.blinkit.discountPct > 0 && (
+                              <span className="text-[11px] font-bold text-emerald-600">
+                                {item.blinkit.discountPct}% off
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                            <span>⏱ ~{item.blinkit.eta || '10m'}</span>
+                          </div>
+                        </div>
+
+                        {/* Launch Deep Link */}
+                        <a
+                          href={item.blinkit.deepLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2.5 block text-center py-1.5 px-2 bg-yellow-400 hover:bg-yellow-500 text-black font-extrabold text-[11px] rounded-lg transition-colors shadow-sm"
+                        >
+                          Open Blinkit
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 flex flex-col justify-between text-center">
+                        <div className="flex items-center justify-center pt-1">
+                          <BlinkitLogo className="h-3.5 w-auto opacity-40 grayscale" />
+                        </div>
+                        <div className="my-3 text-[11px] font-bold text-slate-400">
+                          Unavailable
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 py-1 rounded">
+                          Not listed in hub
+                        </span>
+                      </div>
+                    )}
 
                     {/* Swiggy Instamart Card Column */}
-                    <div
-                      className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
-                        isInstamartCheaper
-                          ? 'bg-orange-50/70 border-orange-300 ring-2 ring-orange-400/40'
-                          : 'bg-slate-50 border-slate-200/80'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <InstamartLogo className="h-4 w-auto" />
-                          {isInstamartCheaper && (
-                            <span className="text-[10px] font-black uppercase text-orange-800 bg-orange-200/80 px-1.5 py-0.2 rounded">
-                              Cheaper
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 flex items-baseline gap-1">
-                          <span className="text-lg font-black text-slate-900">
-                            ₹{item.instamart.price}
-                          </span>
-                          <span className="text-[11px] font-bold text-emerald-600">
-                            {item.instamart.discountPct}% off
-                          </span>
-                        </div>
-                        <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                          <span>⏱ ~{item.instamart.eta || '12m'}</span>
-                        </div>
-                      </div>
-
-                      {/* Launch Deep Link */}
-                      <a
-                        href={item.instamart.deepLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2.5 block text-center py-1.5 px-2 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[11px] rounded-lg transition-colors shadow-sm"
+                    {item.instamart ? (
+                      <div
+                        className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
+                          isInstamartCheaper
+                            ? 'bg-orange-50/70 border-orange-300 ring-2 ring-orange-400/40'
+                            : 'bg-slate-50 border-slate-200/80'
+                        }`}
                       >
-                        Open Instamart
-                      </a>
-                    </div>
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <InstamartLogo className="h-4 w-auto" />
+                            {isInstamartCheaper && (
+                              <span className="text-[10px] font-black uppercase text-orange-800 bg-orange-200/80 px-1.5 py-0.2 rounded">
+                                Cheaper
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex items-baseline gap-1">
+                            <span className="text-lg font-black text-slate-900">
+                              ₹{item.instamart.price}
+                            </span>
+                            {item.instamart.discountPct > 0 && (
+                              <span className="text-[11px] font-bold text-emerald-600">
+                                {item.instamart.discountPct}% off
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                            <span>⏱ ~{item.instamart.eta || '12m'}</span>
+                          </div>
+                        </div>
+
+                        {/* Launch Deep Link */}
+                        <a
+                          href={item.instamart.deepLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2.5 block text-center py-1.5 px-2 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[11px] rounded-lg transition-colors shadow-sm"
+                        >
+                          Open Instamart
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 flex flex-col justify-between text-center">
+                        <div className="flex items-center justify-center pt-1">
+                          <InstamartLogo className="h-3.5 w-auto opacity-40 grayscale" />
+                        </div>
+                        <div className="my-3 text-[11px] font-bold text-slate-400">
+                          Unavailable
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 py-1 rounded">
+                          Not listed in pod
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Add to Basket Action */}
