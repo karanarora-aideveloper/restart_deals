@@ -8,6 +8,7 @@ import {
 import {
   fetchStoreEtas,
   fetchLiveQuickCommerce,
+  DEFAULT_GWALIOR_ETAS,
 } from '@/lib/quickCommerceLiveService';
 
 export const dynamic = 'force-dynamic';
@@ -39,10 +40,17 @@ export async function GET(request) {
     const pincode = locality.pincode || '474011';
     let items = [];
     let source = 'calibrated_benchmark';
-    let storesEta = [];
+    let storesEta = DEFAULT_GWALIOR_ETAS;
 
-    // Attempt live fetch if search query is provided
-    if (q) {
+    // Fast-path: If no search query, return calibrated benchmark catalog instantly (0ms)
+    if (!q) {
+      items = searchGroceryCatalog({
+        query: '',
+        category,
+        localityId,
+      });
+    } else {
+      // Attempt live fetch with tight timeout
       try {
         const liveRes = await fetchLiveQuickCommerce({
           query: q,
@@ -54,27 +62,20 @@ export async function GET(request) {
 
         if (liveRes.items && liveRes.items.length > 0) {
           items = liveRes.items;
-          storesEta = liveRes.storesEta;
+          storesEta = liveRes.storesEta || DEFAULT_GWALIOR_ETAS;
           source = 'live';
         }
       } catch (liveErr) {
         console.warn('Live quick commerce query failed, using benchmark fallback:', liveErr.message);
       }
-    }
 
-    // Fallback to local catalog if no live items found or initial browse view
-    if (items.length === 0) {
-      items = searchGroceryCatalog({
-        query: q,
-        category,
-        localityId,
-      });
-
-      // Try fetching live ETAs in background
-      try {
-        storesEta = await fetchStoreEtas({ lat, lon: lng, pincode, city: 'Gwalior' });
-      } catch {
-        // Ignored, locality defaults exist
+      // If no live items returned (timeout or no match), fallback to local catalog immediately
+      if (items.length === 0) {
+        items = searchGroceryCatalog({
+          query: q,
+          category,
+          localityId,
+        });
       }
     }
 

@@ -34,27 +34,42 @@ export default function GroceryCompareClient() {
     return getLocalityById(selectedLocalityId);
   }, [selectedLocalityId]);
 
-  // Debounced search effect
+  // Instant local filtering + debounced background live sync
   React.useEffect(() => {
     let isCancelled = false;
     const q = searchQuery.trim();
 
-    // If query is empty and category is 'all', show instant catalog
-    if (!q && selectedCategory === 'all') {
-      setProducts(searchGroceryCatalog({ localityId: selectedLocalityId }));
+    // 1. Instant local filter: display matching catalog items immediately (0ms latency)
+    const localResults = searchGroceryCatalog({
+      query: q,
+      category: selectedCategory,
+      localityId: selectedLocalityId,
+    });
+    setProducts(localResults);
+
+    // 2. If no query or single letter, rely on instant local catalog (no network needed)
+    if (q.length < 2) {
       setDataSource('benchmark');
+      setIsLoading(false);
       return;
     }
 
+    // 3. User typed a query (>= 2 chars): show subtle background sync while querying live dark stores
     setIsLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 3000); // 3.0s max client timeout
+
     const timer = setTimeout(async () => {
       try {
         const url = `/api/grocery/compare?q=${encodeURIComponent(q)}&locality=${selectedLocalityId}&category=${selectedCategory}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
 
-        if (!isCancelled && data.success && Array.isArray(data.results)) {
+        if (!isCancelled && data.success && Array.isArray(data.results) && data.results.length > 0) {
           setProducts(data.results);
           setDataSource(data.source === 'live' ? 'live' : 'benchmark');
           if (data.storesEta && data.storesEta.length > 0) {
@@ -63,20 +78,23 @@ export default function GroceryCompareClient() {
         }
       } catch (err) {
         if (!isCancelled) {
-          // Graceful fallback to local catalog search
-          setProducts(searchGroceryCatalog({ query: q, category: selectedCategory, localityId: selectedLocalityId }));
+          // Keep instant local benchmark results on timeout or error
           setDataSource('benchmark');
         }
       } finally {
+        clearTimeout(timeoutId);
         if (!isCancelled) {
           setIsLoading(false);
         }
       }
-    }, 350);
+    }, 300);
 
     return () => {
       isCancelled = true;
       clearTimeout(timer);
+      clearTimeout(timeoutId);
+      controller.abort();
+      setIsLoading(false);
     };
   }, [searchQuery, selectedLocalityId, selectedCategory]);
 
@@ -357,11 +375,16 @@ export default function GroceryCompareClient() {
           </div>
         </div>
 
-        {/* Live Loading Pulse Banner */}
+        {/* Live Loading Non-blocking Indicator */}
         {isLoading && (
-          <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2.5 animate-pulse shadow-sm">
-            <span className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></span>
-            <span>Syncing real-time prices & stock with Gwalior dark stores (Blinkit & Swiggy Instamart)...</span>
+          <div className="mt-4 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs transition-all">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></span>
+              <span>Syncing live dark store prices & stock (Blinkit & Instamart)...</span>
+            </div>
+            <span className="text-[11px] text-amber-700 font-medium hidden sm:inline">
+              Instant catalog displayed while updating
+            </span>
           </div>
         )}
 

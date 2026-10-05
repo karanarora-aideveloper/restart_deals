@@ -10,7 +10,7 @@ const QC_CACHE = new Map();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
 // Default Gwalior dark store pods for instant fallback
-const DEFAULT_GWALIOR_ETAS = [
+export const DEFAULT_GWALIOR_ETAS = [
   { platform: 'BlinkIt', storeId: '36026', storeIds: ['36026', '48799'], open: true, eta: '8 mins' },
   { platform: 'Swiggy', storeId: '1401256', storeIds: ['1401256', '1402255'], open: true, eta: '15 mins', serviceabilityStatus: 'SERVICEABLE' },
   { platform: 'BigBasket', storeId: '28281', storeIds: ['28281'], open: true, eta: '12 mins' },
@@ -52,7 +52,7 @@ export async function fetchStoreEtas({ lat, lon, pincode = '474011', city = 'Gwa
   const url = `https://api.quickcompare.in/qc?lat=${lat}&lon=${lon}&type=home`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   try {
     const res = await fetch(url, {
@@ -106,11 +106,8 @@ export async function fetchLiveQuickCommerce({
     return cached.data;
   }
 
-  // Ensure we have dark store mappings
-  let etas = etaList;
-  if (!etas || etas.length === 0) {
-    etas = await fetchStoreEtas({ lat, lon, pincode, city });
-  }
+  // Use pre-configured Gwalior dark store pods directly (0ms network overhead)
+  const etas = etaList && etaList.length > 0 ? etaList : DEFAULT_GWALIOR_ETAS;
 
   const reqId = generateQCRequestId();
   const searchUrl = `https://api.quickcompare.in/qc?lat=${lat}&lon=${lon}&type=groupsearch&query=${encodeURIComponent(
@@ -118,7 +115,7 @@ export async function fetchLiveQuickCommerce({
   )}&pincode=${pincode}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 18000);
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
     const res = await fetch(searchUrl, {
