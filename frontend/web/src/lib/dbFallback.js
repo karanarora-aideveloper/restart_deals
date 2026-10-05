@@ -291,7 +291,11 @@ export async function directFetchSitemapProducts({ country = 'IN', page = 1, lim
       .find(
         {
           country: countryRegex,
-          $or: [{ imageUrl: { $exists: true, $ne: '' } }, { 'images.0': { $exists: true, $ne: '' } }],
+          imageUrl: {
+            $exists: true,
+            $nin: ['', null],
+            $not: /placeholder\.png|localhost|images-na\.ssl-images-amazon\.com\/images\/P\//i,
+          },
         },
         { projection: { _id: 1, updatedAt: 1, lastChecked: 1 } }
       )

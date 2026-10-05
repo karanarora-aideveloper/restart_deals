@@ -48,27 +48,32 @@ router.get('/sitemap-data', async (req, res) => {
 router.get('/sitemap-summary', async (req, res) => {
   try {
     const CHUNK_SIZE = 5000;
+    const UNUSABLE_IMG_REGEX = /placeholder\.png|localhost|images-na\.ssl-images-amazon\.com\/images\/P\//i;
+
     const [inProductsTotal, usProductsTotal, dealsTotal] = await Promise.all([
       Product.countDocuments({
         country: 'IN',
-        $or: [
-          { imageUrl: { $exists: true, $ne: '' } },
-          { 'images.0': { $exists: true, $ne: '' } },
-        ],
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: UNUSABLE_IMG_REGEX,
+        },
       }),
       Product.countDocuments({
         country: 'US',
-        $or: [
-          { imageUrl: { $exists: true, $ne: '' } },
-          { 'images.0': { $exists: true, $ne: '' } },
-        ],
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: UNUSABLE_IMG_REGEX,
+        },
       }),
       Deal.countDocuments({
         isExpired: { $ne: true },
-        $or: [
-          { imageUrl: { $exists: true, $ne: '' } },
-          { 'images.0': { $exists: true, $ne: '' } },
-        ],
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: UNUSABLE_IMG_REGEX,
+        },
       }),
     ]);
 
@@ -102,14 +107,16 @@ router.get('/sitemap-products', async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(10000, Math.max(1, parseInt(req.query.limit, 10) || 5000));
     const skip = (page - 1) * limit;
+    const UNUSABLE_IMG_REGEX = /placeholder\.png|localhost|images-na\.ssl-images-amazon\.com\/images\/P\//i;
 
     const products = await Product.find(
       {
         country: countryUpper,
-        $or: [
-          { imageUrl: { $exists: true, $ne: '' } },
-          { 'images.0': { $exists: true, $ne: '' } },
-        ],
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: UNUSABLE_IMG_REGEX,
+        },
       },
       '_id updatedAt lastChecked'
     )
@@ -141,13 +148,16 @@ router.get('/sitemap-products', async (req, res) => {
  */
 router.get('/sitemap-deals', async (req, res) => {
   try {
+    const UNUSABLE_IMG_REGEX = /placeholder\.png|localhost|images-na\.ssl-images-amazon\.com\/images\/P\//i;
+
     const deals = await Deal.find(
       {
         isExpired: { $ne: true },
-        $or: [
-          { imageUrl: { $exists: true, $ne: '' } },
-          { 'images.0': { $exists: true, $ne: '' } },
-        ],
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: UNUSABLE_IMG_REGEX,
+        },
       },
       '_id updatedAt createdAt'
     )
