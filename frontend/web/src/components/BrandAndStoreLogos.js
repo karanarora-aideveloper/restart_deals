@@ -92,6 +92,31 @@ export function CromaLogo({ className = 'h-5 w-auto' }) {
   );
 }
 
+export function BlinkitLogo({ className = 'h-5 w-auto' }) {
+  return (
+    <svg className={className} viewBox="0 0 92 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="2" width="90" height="22" rx="5" fill="#F8CB46" />
+      <text x="7" y="17" fontFamily="sans-serif" fontSize="13" fontWeight="900" fill="#000000" letterSpacing="-0.3">
+        blink<tspan fill="#0C831F">it</tspan>
+      </text>
+    </svg>
+  );
+}
+
+export function InstamartLogo({ className = 'h-5 w-auto' }) {
+  return (
+    <svg className={className} viewBox="0 0 110 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Swiggy Orange Accent */}
+      <rect x="1" y="2" width="22" height="22" rx="5" fill="#FC8019" />
+      <path d="M12 6c-2.8 0-4.5 1.8-4.5 3.8 0 3.2 4.2 3.8 4.2 5.5 0 .6-.5 1-1.3 1-.9 0-1.8-.4-2.4-1l-1.2 1.4c.9.9 2.2 1.4 3.6 1.4 2.8 0 4.6-1.7 4.6-3.8 0-3.3-4.3-3.8-4.3-5.5 0-.5.5-.9 1.1-.9.8 0 1.6.3 2.1.8l1.1-1.4C14.1 6.4 13.1 6 12 6z" fill="#FFFFFF"/>
+      {/* Instamart Wordmark */}
+      <text x="28" y="17" fontFamily="sans-serif" fontSize="13" fontWeight="900" fill="#282C3F" letterSpacing="-0.2">
+        insta<tspan fill="#FC8019">mart</tspan>
+      </text>
+    </svg>
+  );
+}
+
 /* ═══════════ OFFICIAL BRAND LOGOS (Deals by Brands) ═══════════ */
 
 export function AppleLogo({ className = 'h-6 w-auto' }) {
@@ -204,6 +229,8 @@ export function LevisLogo({ className = 'h-5 w-auto' }) {
  */
 export function renderStoreLogo(merchantName, className = 'h-4 w-auto') {
   const m = (merchantName || '').toLowerCase();
+  if (m.includes('blinkit') || m.includes('grofers')) return <BlinkitLogo className={className} />;
+  if (m.includes('instamart') || m.includes('swiggy')) return <InstamartLogo className={className} />;
   if (m.includes('amazon')) return <AmazonLogo className={className} />;
   if (m.includes('flipkart') || m.includes('shopsy')) return <FlipkartLogo className={className} />;
   if (m.includes('myntra')) return <MyntraLogo className={className} />;
