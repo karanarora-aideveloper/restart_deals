@@ -67,9 +67,8 @@ export function NykaaLogo({ className = 'h-5 w-auto' }) {
 
 export function AjioLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 80 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="80" height="28" rx="6" fill="#2C4152"/>
-      <text x="14" y="19" fontFamily="sans-serif" fontSize="15" fontWeight="900" fill="#FFFFFF" letterSpacing="3">AJIO</text>
+    <svg className={className} viewBox="0 0 70 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text x="1" y="18" fontFamily="sans-serif" fontSize="18" fontWeight="900" fill="#2C4152" letterSpacing="2.5">AJIO</text>
     </svg>
   );
 }

@@ -73,15 +73,15 @@ export function getMerchantInfo(urlOrMerchant) {
   const isNykaa = s.includes('nykaa');
   const isCroma = s.includes('croma');
 
-  if (isAmazon) return { id: 'amazon', label: 'Amazon', emoji: '🛒', logo: '/amazon.webp', btnColor: '#FF9900', textColor: '#0f172a' };
-  if (isShopsy) return { id: 'shopsy', label: 'Shopsy', emoji: '🛍️', logo: '/shopsy.webp', btnColor: '#9333ea', textColor: '#ffffff' };
-  if (isFlipkart) return { id: 'flipkart', label: 'Flipkart', emoji: '🛍️', logo: '/flipkart.webp', btnColor: '#2874F0', textColor: '#ffffff' };
-  if (isMyntra) return { id: 'myntra', label: 'Myntra', emoji: '👗', logo: '/myntra.webp', btnColor: '#e11d48', textColor: '#ffffff' };
-  if (isMeesho) return { id: 'meesho', label: 'Meesho', emoji: '🎁', logo: '/meesho.webp', btnColor: '#7c3aed', textColor: '#ffffff' };
-  if (isAjio) return { id: 'ajio', label: 'Ajio', emoji: '🕶️', logo: null, btnColor: '#16a34a', textColor: '#ffffff' };
-  if (isNykaa) return { id: 'nykaa', label: 'Nykaa', emoji: '💄', logo: null, btnColor: '#db2777', textColor: '#ffffff' };
-  if (isCroma) return { id: 'croma', label: 'Croma', emoji: '⚡', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
-  return { id: 'other', label: 'Deal', emoji: '🏷️', logo: null, btnColor: '#FF6B00', textColor: '#ffffff' };
+  if (isAmazon) return { id: 'amazon', name: 'Amazon', label: 'Amazon', emoji: '🛒', logo: '/amazon.webp', btnColor: '#FF9900', textColor: '#0f172a' };
+  if (isShopsy) return { id: 'shopsy', name: 'Shopsy', label: 'Shopsy', emoji: '🛍️', logo: '/shopsy.webp', btnColor: '#9333ea', textColor: '#ffffff' };
+  if (isFlipkart) return { id: 'flipkart', name: 'Flipkart', label: 'Flipkart', emoji: '🛍️', logo: '/flipkart.webp', btnColor: '#2874F0', textColor: '#ffffff' };
+  if (isMyntra) return { id: 'myntra', name: 'Myntra', label: 'Myntra', emoji: '👗', logo: '/myntra.webp', btnColor: '#e11d48', textColor: '#ffffff' };
+  if (isMeesho) return { id: 'meesho', name: 'Meesho', label: 'Meesho', emoji: '🎁', logo: '/meesho.webp', btnColor: '#7c3aed', textColor: '#ffffff' };
+  if (isAjio) return { id: 'ajio', name: 'Ajio', label: 'Ajio', emoji: '🕶️', logo: null, btnColor: '#16a34a', textColor: '#ffffff' };
+  if (isNykaa) return { id: 'nykaa', name: 'Nykaa', label: 'Nykaa', emoji: '💄', logo: null, btnColor: '#db2777', textColor: '#ffffff' };
+  if (isCroma) return { id: 'croma', name: 'Croma', label: 'Croma', emoji: '⚡', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
+  return { id: 'other', name: 'Deal', label: 'Deal', emoji: '🏷️', logo: null, btnColor: '#FF6B00', textColor: '#ffffff' };
 }
 
 export function formatRelativeTime(createdAt) {

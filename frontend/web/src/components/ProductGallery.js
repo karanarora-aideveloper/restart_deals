@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { isUsableImageUrl } from '@/lib/affiliate';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 export default function ProductGallery({ product, latestDeal, merchant }) {
   const images = Array.isArray(product?.images) && product.images.length > 0
@@ -45,12 +46,7 @@ export default function ProductGallery({ product, latestDeal, merchant }) {
 
         {/* Store Icon Pill with Logo */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-xs backdrop-blur-md">
-          {merchant?.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={merchant.logo} alt={merchant.label} className="h-3.5 w-auto object-contain" />
-          ) : (
-            <span className="text-[11px] font-bold text-gray-700 capitalize">{product?.merchant || 'Store'}</span>
-          )}
+          {renderStoreLogo(product?.merchant || merchant?.id, 'h-4 w-auto object-contain')}
         </div>
 
         {/* Hero Image */}

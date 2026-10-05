@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCompare } from '@/lib/useCompare';
 import { getAffiliateUrl, getMerchantInfo, formatInr, isUsableImageUrl } from '@/lib/affiliate';
 import { logEvent } from '@/lib/analytics';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 export default function ProductCard({ product, onImageUnavailable }) {
   const [imgError, setImgError] = useState(false);
@@ -72,15 +73,8 @@ export default function ProductCard({ product, onImageUnavailable }) {
       </div>
 
       <div className="flex flex-1 flex-col p-[13px]">
-        <div className="mb-1.5">
-          {merchant.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={merchant.logo} alt={merchant.label} className="h-3 w-10 object-contain" />
-          ) : (
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#888]">
-              {merchant.emoji} {(product.merchant || 'Store').toUpperCase()}
-            </span>
-          )}
+        <div className="mb-1.5 flex items-center shrink-0">
+          {renderStoreLogo(product.merchant || merchant.id || merchant.label, 'h-3.5 w-auto object-contain')}
         </div>
 
         <Link href={`/product/${productId}`}>

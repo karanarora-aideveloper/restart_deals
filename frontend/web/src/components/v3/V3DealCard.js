@@ -85,8 +85,8 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
         {/* Top Header: Store Logo + Verified Badge + Wishlist */}
         <div className="flex items-center justify-between gap-1.5 mb-1.5">
           {/* Store Logo */}
-          <div className="flex h-6 items-center justify-center rounded-md border border-slate-200/80 bg-slate-50 px-2 py-0.5 min-w-[60px] max-w-[80px] shrink-0">
-            {renderStoreLogo(deal.merchant || merchant.name, 'h-3.5 max-h-3.5 w-auto max-w-full object-contain')}
+          <div className="flex h-6 items-center shrink-0">
+            {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 max-h-4 w-auto object-contain')}
           </div>
 
           <div className="flex items-center gap-1 shrink-0">

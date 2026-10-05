@@ -11,6 +11,7 @@ import { saveDealItem, isDealSaved } from '@/lib/savedDeals';
 import { emitSavedChanged } from '@/lib/useSavedCount';
 import { trackRecentlyViewed } from '@/components/RecentlyViewed';
 import { computePriceStats } from '@/lib/priceAnalytics';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 /**
  * Myntra-style grid card — real <article>/<h3>/<a> markup (not RN View/Text) so crawlers see
@@ -183,12 +184,9 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
 
       <div className="flex flex-1 flex-col p-[13px]">
         <div className="mb-1.5 flex items-center justify-between">
-          {merchant.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={merchant.logo} alt={merchant.label} className="h-4 w-12 object-contain" />
-          ) : (
-            <span className="text-[13px] font-bold tracking-tight text-[#282C3F]">{merchant.emoji} {merchant.label}</span>
-          )}
+          <div className="flex items-center shrink-0">
+            {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 w-auto object-contain')}
+          </div>
           {isPossiblyExpired ? (
             <span className="flex items-center gap-1 rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]" suppressHydrationWarning>
               ⏱ Possibly Expired

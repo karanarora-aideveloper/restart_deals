@@ -920,8 +920,8 @@ export default function ProductLensClient({ initialProduct, initialCurated = [],
                 <div>
                   {/* Top Bar with Store and Quick Badge */}
                   <div className="flex items-center justify-between gap-1.5 mb-2">
-                    <div className="rounded-md bg-slate-50 px-1.5 py-0.5 border border-slate-100">
-                      {renderStoreLogo(item.merchant || 'amazon', 'h-3 w-auto')}
+                    <div className="flex items-center shrink-0">
+                      {renderStoreLogo(item.merchant || 'amazon', 'h-3.5 w-auto')}
                     </div>
                     {drop > 0 ? (
                       <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">

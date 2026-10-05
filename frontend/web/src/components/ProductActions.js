@@ -15,6 +15,7 @@ import { usePushNotification } from '@/lib/usePushNotification';
 import { useAuth } from '@/components/AuthProvider';
 import { getSavedDeals, saveDealItem, isDealSaved } from '@/lib/savedDeals';
 import { emitSavedChanged, SAVED_CHANGED_EVENT } from '@/lib/useSavedCount';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 function getMerchantButtonTheme(merchantId) {
   switch (merchantId) {
@@ -250,12 +251,7 @@ export default function ProductActions({ product, merchant }) {
               ) : (
                 <>
                   <span>Live Verified on</span>
-                  {merchant?.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={merchant.logo} alt={merchant.label} className="inline-block h-3.5 w-auto object-contain translate-y-[2px]" />
-                  ) : (
-                    <span>{capitalizedStore}</span>
-                  )}
+                  {renderStoreLogo(product?.merchant || merchant?.id, 'inline-block h-3.5 w-auto object-contain translate-y-[2px]')}
                   <span suppressHydrationWarning>{lastCheckedDate ? `(${formatRelativeTime(lastCheckedDate)})` : '(Today)'}</span>
                 </>
               )}
@@ -313,12 +309,7 @@ export default function ProductActions({ product, merchant }) {
           {/* Store Logo / Badge + Name */}
           <div className="flex items-center gap-2.5 min-w-0">
             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-1 ${theme.iconBgClass}`}>
-              {merchant?.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={merchant.logo} alt={merchant.label} className="h-4.5 w-auto max-w-[28px] object-contain" />
-              ) : (
-                <span className="text-base leading-none">{merchant?.emoji || '🛒'}</span>
-              )}
+              {renderStoreLogo(product?.merchant || merchant?.id, 'h-5 w-auto max-w-[28px] object-contain')}
             </span>
             <div className="flex flex-col text-left leading-tight min-w-0">
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-85">Buy Direct on</span>
