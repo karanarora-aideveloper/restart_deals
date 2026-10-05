@@ -166,6 +166,7 @@ The system is decoupled into 7 specialized, independent agents running across mi
 | **40** | **Autonomous ScrapingAnt Token Auto-Replenishment Daemon & Monthly Renewal Engine**: How to guarantee the scraper queue never stalls due to exhausted proxy tokens with zero human intervention? | **Two-Tier Autonomous Token Engine (Local Background Daemon + Cloud Quota Auto-Renewal)**: (1) **Cloud-Side Monthly Renewal Scanner (`checkAndResetExpiredTokens`)**: Runs every 15–30m in `tokenReplenisher.js` on Railway. Checks `status: 'parked'` tokens whose `renewalDate <= new Date()`, verifies live quota via ScrapingAnt API (`checkScrapingAntUsage`), and automatically reactivates renewed tokens with 10,000 credits without running browser automation. (2) **Local Autonomous Daemon (`api/token_daemon.mjs`)**: Configured as a persistent macOS LaunchAgent (`com.shoppersdeals.tokendaemon`). Checks MongoDB Atlas every 3 minutes. Whenever active tokens dip below safety threshold ($< 5$), it autonomously launches `runBatchAutomation`, provisions fresh tokens via SmailPro + 2Captcha solver on Mac, saves them directly into MongoDB Atlas, and notifies `api.shoppersdeals.in/api/tokens`, maintaining a healthy pool of 5–8 active tokens (~50,000–80,000 credits) 24/7 with zero human intervention. | **LOCKED** |
 | **41** | **Fashion Category Purity & Exclusion of Luggage, Bags, and Sanitary Necessities**: Why were sanitary pads, baby diapers, trolley luggage, and backpacks cluttering the Fashion deals feed? | **Strict Apparel/Footwear Domain Boundary with Negative Guardrails & Taxonomy Relocation**: (1) **Database Taxonomy Reclassification**: Feminine hygiene items (Whisper, Stayfree, period panties, breast pads) were reclassified to `personal-care:feminine-hygiene`. Baby & pet diapers were moved to `baby-kids:diapers-wipes` and `pets:pet-supplies`. Travel luggage (trolleys, suitcases, duffels) and everyday bags (backpacks, daypacks, handbags, wallets) were segregated to `travel:luggage` and `travel:bags`. (2) **Subcategory Whitelist & Negative Title Guardrails**: In `api/src/routes/deals.js`, `frontend/web/src/lib/dbFallback.js`, and `frontend/web/src/app/api/deals/route.js`, fashion filters enforce strict apparel/footwear boundaries (`category: { $in: ['men-fashion', 'women-fashion'] }`) while explicitly excluding `bags`, `luggage`, `storage`, and `diapers-wipes`. A strict negative title regex prevents any sanitary pads, period panties, nappies, wipes, trolleys, suitcases, backpacks, or organizers from matching under Fashion, guaranteeing 100% clean apparel, footwear, and fashion accessories (shirts, kurtas, jeans, sneakers, dresses, watches) on `shoppersdeals.in`. | **LOCKED** |
 | **42** | **Swiggy Builders Club Official MCP Server Integration (Instamart, Food, Dineout, Scenes)**: How to integrate real-time grocery prices, live inventory, and multi-service commerce directly via official Swiggy infrastructure without fragile reverse-engineering? | **Official Swiggy MCP Streamable HTTP Suite with Dynamic Client Registration (RFC 7591)**: Leverages Swiggy's official production MCP servers (`mcp.swiggy.com/im`, `mcp.swiggy.com/food`, `mcp.swiggy.com/dineout`, `mcp.swiggy.com/scenes`). (1) **Dynamic Client Registration & OAuth 2.1 PKCE**: Client dynamically registers at `POST https://mcp.swiggy.com/auth/register` to receive `client_id` (e.g. `swiggy-mcp`) without manual API key waiting. Browser OTP authorization exchanges codes for signed 5-day JWT access tokens (`mcp:tools` scope). (2) **Instamart Direct Tool Suite**: Calls `search_products`, `get_addresses`, `get_cart`, and `list_coupons` via JSON-RPC 2.0 over standard streamable HTTP (`POST https://mcp.swiggy.com/im`). Returns structured SKU variants (`spinId`, `skuId`), real-time `offerPrice` vs `mrp`, stock availability, and dark-store SLA (8–15 mins). (3) **Dual Quick Commerce Discovery Pipeline**: Engine 1 uses calibrated dark store benchmark and reverse-engineered Gwalior pods for instant 0ms keystone searches; Engine 2 enables authenticated 1-tap cart synchronization and direct Instamart checkout via official Swiggy MCP tools. Authoritative docs indexed via `https://mcp.swiggy.com/builders/llms.txt`. | **LOCKED** |
+| **43** | **Blinkit MCP Automation Engine & Chromium Cloudflare Bot Bypass Architecture**: How to automate grocery search, cart management, and dark store pricing on Blinkit without Cloudflare bot detection blocking Playwright sessions? | **Hardened Chromium Headless Driver with Direct Search Navigation & FastMCP Protocol**: (1) **Cloudflare Bot Bypass**: Original community `blinkit-mcp` launched Firefox, triggering immediate Cloudflare WAF bot block ("access denied - sorry, you have been blocked!"). Switched to Playwright Chromium with real desktop user-agent (`Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)...`) and `--disable-blink-features=AutomationControlled`, achieving status 200 and zero bot friction. (2) **Direct Search URL & Robust Selectors**: Typing in Blinkit SPA search input does not submit on Enter; patched `search_product` to navigate directly to `https://blinkit.com/s/?q={encoded_query}`. Updated card parser from fragile `div[role='button']` (only 2 out of 24 cards had this attribute) to `div[id]:not([id='app'])` filtering `ADD` and `₹`, pulling 100% of products with exact SKUs, discounts, and prices in $<2$s. (3) **Dark Store Cart & Bill Breakdown Verification**: Verified in Gwalior ("City Centre, Gwalior"): successfully sets location, adds items to cart (e.g. Amul Butter ₹65), and extracts live bill breakdowns (Items, Delivery ₹25, Handling ₹2, Grand Total ₹92) without login. (4) **Multi-Client MCP Deployment**: Registered `blinkit` server in Antigravity (`~/.gemini/config/mcp_config.json`) and Claude Desktop (`claude_desktop_config.json`), and added `npm run blinkit:cli` and `npm run blinkit:mcp` to root `package.json` with persistent session state in `~/.blinkit_mcp/cookies/auth.json`. | **LOCKED** |
 
 ---
 
@@ -324,4 +325,35 @@ This project integrates Swiggy MCP servers for official quick commerce data, inv
 - **Authorization Endpoint**: `GET https://mcp.swiggy.com/auth/authorize` (user authenticates via Phone + OTP in browser).
 - **Token Endpoint**: `POST https://mcp.swiggy.com/auth/token` (exchanges single-use authorization code for signed 5-day JWT access token).
 - **Scope**: `mcp:tools` (grants permission to call all server tools).
+
+---
+
+## 9. External Integration — Blinkit MCP Stack (`hereisSwapnil/blinkit-mcp`)
+
+This project integrates the Blinkit FastMCP automation server for automated cart population, Gwalior dark store inventory verification, and autonomous grocery shopping.
+
+### Repository & Architecture
+- **Location**: `tools/blinkit-mcp/`
+- **Protocol**: FastMCP (`mcp.server.fastmcp`) over standard I/O (stdio) or SSE (`SERVE_HTTPS=true`).
+- **Engine**: Headless Playwright Chromium with real desktop user-agent (`Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)...`) and `--disable-blink-features=AutomationControlled` to bypass Cloudflare bot detection.
+- **Session Persistence**: Stores authenticated cookies and localStorage in `~/.blinkit_mcp/cookies/auth.json`.
+- **Runner Scripts**:
+  - `npm run blinkit:cli` — Launches interactive headed browser for phone + OTP login and manual CLI testing.
+  - `npm run blinkit:mcp` — Launches FastMCP server over stdio for Claude Desktop and Antigravity.
+
+### Available MCP Tools
+1. `check_login`: Returns "Logged In" or "Not Logged In".
+2. `login(phone_number)`: Starts phone OTP authentication.
+3. `enter_otp(otp)`: Verifies OTP and permanently persists session state.
+4. `set_location(location_name)`: Sets delivery location (e.g. "City Centre, Gwalior").
+5. `search(query)`: Direct URL search returning products with exact Blinkit IDs, title, and live prices.
+6. `add_to_cart(item_id, quantity)`: Adds item by Blinkit product ID to cart.
+7. `remove_from_cart(item_id, quantity)`: Decrements or removes items from cart.
+8. `check_cart`: Inspects items, quantities, delivery charges, handling fees, and grand total.
+9. `get_addresses` & `select_address(index)`: Selects delivery address before checkout.
+10. `checkout` & `proceed_to_pay`: Initiates order placement.
+11. `select_payment_method`: Prioritizes Cash on Delivery or generates a scannable UPI QR code.
+12. `pay_now`: Finalizes payment.
+13. `get_order_history(count)`: Extracts past orders and itemized receipts for LLM analysis.
+
 

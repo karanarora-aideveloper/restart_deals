@@ -14,3 +14,9 @@ node_modules/
 google-service-account.json
 logs/
 *.log
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/

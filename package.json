@@ -10,7 +10,9 @@
     "token:daemon:once": "node api/token_daemon.mjs --once",
     "token:daemon:install": "node scripts/install_token_daemon.mjs",
     "token:daemon:uninstall": "node scripts/uninstall_token_daemon.mjs",
-    "token:daemon:logs": "tail -f logs/token_daemon.log"
+    "token:daemon:logs": "tail -f logs/token_daemon.log",
+    "blinkit:cli": "cd tools/blinkit-mcp && uv run test/cli.py",
+    "blinkit:mcp": "cd tools/blinkit-mcp && uv run main.py"
   },
   "engines": {
     "node": ">=20.0.0"
