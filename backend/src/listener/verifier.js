@@ -1877,8 +1877,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   // 2. Calculate Authentic Discount:
   // - Primary: Genuine Price Drop against our own DB previousTrackedPrice
-  // - Secondary: Authentic MRP / List price discount (standard retail discount)
-  // - Tertiary: Stated Telegram channel discount
+  // ── Authentic Price Drop Gate ──
+  // Rule: Deals are STRICTLY real price drops against historical tracked price.
+  // Printed MRP markdowns and message claims are standard retail pricing, NEVER active deals.
   let discountPercentage = 0;
   let priceSource = null;
   let genuinePriceDrop = null;
@@ -1889,42 +1890,16 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       const cashDrop = previousTrackedPrice - verifiedDealPrice;
       const thresholdCheck = meetsCategoryThreshold(category, subcategory, historyDiscount, cashDrop, country);
 
-      if (thresholdCheck.qualifies) {
+      if (thresholdCheck.qualifies && historyDiscount <= 80) {
         discountPercentage = historyDiscount;
         genuinePriceDrop = previousTrackedPrice;
         priceSource = 'price_history';
         console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}).`);
+      } else if (historyDiscount > 80) {
+        console.warn(`[Price Tracker] ⚠️ Extreme price change (>80%) detected for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice}. Marked for anomaly review. Skipping deal promotion.`);
       } else {
         console.log(`[Price Tracker] ℹ️ Sub-threshold price change for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}). Skipping deal promotion.`);
       }
-    }
-  }
-
-  if (discountPercentage === 0 && verifiedDealPrice != null && effectiveMRP != null && effectiveMRP > verifiedDealPrice) {
-    const mrpDiscount = calculateDiscount(effectiveMRP, verifiedDealPrice);
-    const mrpCashDrop = effectiveMRP - verifiedDealPrice;
-    const thresholdCheck = meetsCategoryThreshold(category, subcategory, mrpDiscount, mrpCashDrop, country);
-
-    if (thresholdCheck.qualifies && mrpDiscount <= 95) {
-      discountPercentage = mrpDiscount;
-      priceSource = liveScrapedPrice != null ? 'scraped' : 'ai_text';
-      console.log(`[Verifier] Authentic MRP discount for ${cleanUrl}: ${effectiveMRP} -> ${verifiedDealPrice} (${thresholdCheck.reason}).`);
-    }
-  }
-
-  if (discountPercentage === 0 && verifiedDealPrice != null) {
-    const msgDiscount = extractDiscountFromMessage(messageText);
-    const estimatedMRP = effectiveMRP || (msgDiscount ? Math.round(verifiedDealPrice / (1 - msgDiscount / 100)) : null);
-    const msgCashDrop = estimatedMRP ? estimatedMRP - verifiedDealPrice : 0;
-    const thresholdCheck = meetsCategoryThreshold(category, subcategory, msgDiscount || 0, msgCashDrop, country);
-
-    if (msgDiscount && thresholdCheck.qualifies && msgDiscount <= 95) {
-      discountPercentage = msgDiscount;
-      priceSource = 'ai_text';
-      if (!effectiveMRP) {
-        effectiveMRP = estimatedMRP;
-      }
-      console.log(`[Verifier] Message-stated discount qualified for ${cleanUrl}: ${msgDiscount}% OFF (${thresholdCheck.reason}).`);
     }
   }
 
