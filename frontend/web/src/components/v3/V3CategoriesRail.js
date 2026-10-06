@@ -79,7 +79,7 @@ const V3_CATEGORIES = [
     name: 'Grocery & Essentials',
     shortName: '10-Min Grocery',
     image: '/categories/grocery.jpg',
-    href: '/compare?cat=grocery',
+    href: '/compare/grocery',
     badge: 'Lowest Price',
     badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     count: 'Blinkit vs Zepto',

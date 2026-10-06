@@ -51,7 +51,7 @@ const SLIDES = [
     subtitle: 'Compare daily milk, fruits, atta & snacks across quick-commerce apps. Pick the lowest basket price in 5s.',
     badge: '💰 Save up to ₹4,500 every month on grocery',
     ctaText: 'Compare Grocery Now',
-    ctaHref: '/compare?cat=grocery',
+    ctaHref: '/compare/grocery',
     bgGradient: 'from-[#022C22] via-[#065F46] to-[#0D9488]',
     image: '/carousel/grocery.jpg',
     icon: '🛒',

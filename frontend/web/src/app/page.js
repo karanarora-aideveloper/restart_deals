@@ -138,11 +138,11 @@ export default async function HomePage({ searchParams }) {
         {/* 1. Sub-Header Navigation Strip */}
         <V3SubHeader activeTab="deals" />
 
-        {/* 2. Top Categories Strip with 3D AI Illustrations */}
-        <V3CategoriesRail />
-
-        {/* 3. Promotional Hero Carousel with 16:9 3D AI Illustrations */}
+        {/* 2. Promotional Hero Carousel with 16:9 3D AI Illustrations */}
         <V3HeroCarousel />
+
+        {/* 3. Top Categories Strip with 3D AI Illustrations */}
+        <V3CategoriesRail />
 
         {/* 4. Hero Section with Instant URL Scanner */}
         <V3Hero />
