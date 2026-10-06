@@ -10,6 +10,7 @@ import {
   fetchLiveQuickCommerce,
   DEFAULT_GWALIOR_ETAS,
 } from '@/lib/quickCommerceLiveService';
+import { recordAndEnrichPriceHistory } from '@/lib/quickCommercePriceTracker';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -133,7 +134,18 @@ export async function GET(request) {
         }
         source = 'live';
 
-        // If user specifically clicked 'loots' filter, show only verified deals
+        // Track & enrich with authentic MongoDB dark-store price drop history
+        try {
+          items = await recordAndEnrichPriceHistory({
+            items,
+            storesEta,
+            locality,
+          });
+        } catch (trackErr) {
+          console.warn('[CompareAPI] Price history tracking error:', trackErr.message);
+        }
+
+        // If user specifically clicked 'loots' filter, show only verified real price drops or arbitrage
         if (category === 'loots') {
           const lootItems = items.filter((it) => it.isLoot);
           if (lootItems.length > 0) {

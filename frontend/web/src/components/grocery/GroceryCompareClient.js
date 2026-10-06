@@ -802,15 +802,19 @@ export default function GroceryCompareClient() {
                               </span>
                             )}
                           </div>
-                          <div className="mt-2 flex items-baseline gap-1">
+                          <div className="mt-2 flex items-baseline gap-1 flex-wrap">
                             <span className="text-lg font-black text-slate-900">
                               ₹{item.blinkit.price}
                             </span>
-                            {item.blinkit.discountPct > 0 && (
+                            {item.blinkit.priceDropCash > 0 ? (
+                              <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                                📉 ₹{item.blinkit.priceDropCash} drop
+                              </span>
+                            ) : item.blinkit.discountPct > 0 ? (
                               <span className="text-[11px] font-bold text-emerald-600">
                                 {item.blinkit.discountPct}% off
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <div className="text-[10px] font-semibold text-slate-500 flex items-center justify-between mt-0.5">
                             <span className="flex items-center gap-0.5">
@@ -872,15 +876,19 @@ export default function GroceryCompareClient() {
                               </span>
                             )}
                           </div>
-                          <div className="mt-2 flex items-baseline gap-1">
+                          <div className="mt-2 flex items-baseline gap-1 flex-wrap">
                             <span className="text-lg font-black text-slate-900">
                               ₹{item.instamart.price}
                             </span>
-                            {item.instamart.discountPct > 0 && (
+                            {item.instamart.priceDropCash > 0 ? (
+                              <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                                📉 ₹{item.instamart.priceDropCash} drop
+                              </span>
+                            ) : item.instamart.discountPct > 0 ? (
                               <span className="text-[11px] font-bold text-emerald-600">
                                 {item.instamart.discountPct}% off
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <div className="text-[10px] font-semibold text-slate-500 flex items-center justify-between mt-0.5">
                             <span className="flex items-center gap-0.5">

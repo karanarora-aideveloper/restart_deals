@@ -214,13 +214,12 @@ export async function fetchLiveQuickCommerce({
       const sDisc = sMrp && sPrice && sMrp > sPrice ? Math.round(((sMrp - sPrice) / sMrp) * 100) : 0;
       const maxDiscountPct = Math.max(bDisc, sDisc);
 
-      const isLoot = maxDiscountPct >= 20 || savingCash >= 25;
+      // MRP markdown is strictly a retail discount, NEVER a price drop.
+      // Initial isLoot represents real-time cross-store arbitrage (Blinkit vs Instamart).
+      // Real historical price drops are attached by quickCommercePriceTracker from MongoDB logs.
+      const isLoot = savingCash >= 15 && cheaperStore !== 'equal';
       let lootBadge = null;
-      if (maxDiscountPct >= 40) {
-        lootBadge = `🔥 ${maxDiscountPct}% OFF Loot`;
-      } else if (maxDiscountPct >= 20) {
-        lootBadge = `📉 ${maxDiscountPct}% Drop`;
-      } else if (savingCash >= 20) {
+      if (isLoot) {
         lootBadge = `⚡ Save ₹${savingCash} on ${cheaperStore === 'blinkit' ? 'Blinkit' : 'Instamart'}`;
       }
 
@@ -287,6 +286,7 @@ export async function fetchLiveQuickCommerce({
         mrp: parseFloat(rep.mrp || bPrice || sPrice || 0),
         blinkit: blinkitItem
           ? {
+              productId: String(blinkitItem.id || ''),
               price: bPrice,
               mrp: parseFloat(blinkitItem.mrp || bPrice),
               inStock: blinkitItem.available !== false,
@@ -308,6 +308,7 @@ export async function fetchLiveQuickCommerce({
           : null,
         instamart: swiggyItem
           ? {
+              productId: String(swiggyItem.id || ''),
               price: sPrice,
               mrp: parseFloat(swiggyItem.mrp || sPrice),
               inStock: swiggyItem.available !== false,
