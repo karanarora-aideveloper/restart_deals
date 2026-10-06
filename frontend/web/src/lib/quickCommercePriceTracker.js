@@ -9,6 +9,8 @@ const COLLECTION_NAME = 'grocery_price_history';
  * Prevents false claims based on printed MRP:
  * - A Price Drop strictly requires: Current Live Price < Yesterday's Recorded Price in DB.
  * - Everyday MRP markdowns are preserved purely as retail discount information.
+ * - Pack size / unit is isolated ({ platform, storeId, productId, unit }) to eliminate
+ *   false crashes from multi-pack variations (e.g. 100g vs 3x100g).
  *
  * @param {Object} params
  * @param {Array} params.items - Parsed quick commerce product groups
@@ -38,14 +40,16 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
   const col = db.collection(COLLECTION_NAME);
 
-  // 1. Gather all keys to lookup from MongoDB
+  // 1. Gather all keys to lookup from MongoDB (pack-size isolated)
   const lookupKeys = [];
   items.forEach((item) => {
+    const cleanUnit = (item.unit || 'default').trim().toLowerCase();
     if (item.blinkit?.productId && item.blinkit?.price) {
       lookupKeys.push({
         platform: 'blinkit',
         storeId: String(blinkitStoreId),
         productId: String(item.blinkit.productId),
+        unit: cleanUnit,
       });
     }
     if (item.instamart?.productId && item.instamart?.price) {
@@ -53,6 +57,7 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
         platform: 'instamart',
         storeId: String(instamartStoreId),
         productId: String(item.instamart.productId),
+        unit: cleanUnit,
       });
     }
   });
@@ -73,7 +78,7 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
   const historyMap = new Map();
   existingRecords.forEach((doc) => {
-    const key = `${doc.platform}:${doc.storeId}:${doc.productId}`;
+    const key = `${doc.platform}:${doc.storeId}:${doc.productId}:${doc.unit}`;
     historyMap.set(key, doc);
   });
 
@@ -82,9 +87,11 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
   // 3. Evaluate each item for REAL price drops
   items.forEach((item) => {
+    const cleanUnit = (item.unit || 'default').trim().toLowerCase();
+
     // Check Blinkit
     if (item.blinkit?.productId && item.blinkit?.price) {
-      const bKey = `blinkit:${blinkitStoreId}:${item.blinkit.productId}`;
+      const bKey = `blinkit:${blinkitStoreId}:${item.blinkit.productId}:${cleanUnit}`;
       const existingDoc = historyMap.get(bKey);
       const bPrice = item.blinkit.price;
 
@@ -104,13 +111,17 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
         if (hasToday) {
           bulkOps.push({
             updateOne: {
-              filter: { platform: 'blinkit', storeId: String(blinkitStoreId), productId: String(item.blinkit.productId) },
+              filter: {
+                platform: 'blinkit',
+                storeId: String(blinkitStoreId),
+                productId: String(item.blinkit.productId),
+                unit: cleanUnit,
+              },
               update: {
                 $set: {
                   currentPrice: bPrice,
                   mrp: item.blinkit.mrp || bPrice,
                   name: item.name,
-                  unit: item.unit,
                   city,
                   lastSeenAt: now,
                 },
@@ -125,7 +136,12 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
           bulkOps.push({
             updateOne: {
-              filter: { platform: 'blinkit', storeId: String(blinkitStoreId), productId: String(item.blinkit.productId) },
+              filter: {
+                platform: 'blinkit',
+                storeId: String(blinkitStoreId),
+                productId: String(item.blinkit.productId),
+                unit: cleanUnit,
+              },
               update: {
                 $set: {
                   currentPrice: bPrice,
@@ -134,7 +150,6 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
                   priceDropPct: dropPct,
                   mrp: item.blinkit.mrp || bPrice,
                   name: item.name,
-                  unit: item.unit,
                   city,
                   lastSeenAt: now,
                 },
@@ -152,11 +167,16 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
         // First time seeing this product in this dark store
         bulkOps.push({
           updateOne: {
-            filter: { platform: 'blinkit', storeId: String(blinkitStoreId), productId: String(item.blinkit.productId) },
+            filter: {
+              platform: 'blinkit',
+              storeId: String(blinkitStoreId),
+              productId: String(item.blinkit.productId),
+              unit: cleanUnit,
+            },
             update: {
               $set: {
                 name: item.name,
-                unit: item.unit,
+                unit: cleanUnit,
                 currentPrice: bPrice,
                 previousPrice: bPrice,
                 priceDropCash: 0,
@@ -178,7 +198,7 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
     // Check Swiggy Instamart
     if (item.instamart?.productId && item.instamart?.price) {
-      const sKey = `instamart:${instamartStoreId}:${item.instamart.productId}`;
+      const sKey = `instamart:${instamartStoreId}:${item.instamart.productId}:${cleanUnit}`;
       const existingDoc = historyMap.get(sKey);
       const sPrice = item.instamart.price;
 
@@ -196,13 +216,17 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
         if (hasToday) {
           bulkOps.push({
             updateOne: {
-              filter: { platform: 'instamart', storeId: String(instamartStoreId), productId: String(item.instamart.productId) },
+              filter: {
+                platform: 'instamart',
+                storeId: String(instamartStoreId),
+                productId: String(item.instamart.productId),
+                unit: cleanUnit,
+              },
               update: {
                 $set: {
                   currentPrice: sPrice,
                   mrp: item.instamart.mrp || sPrice,
                   name: item.name,
-                  unit: item.unit,
                   city,
                   lastSeenAt: now,
                 },
@@ -216,7 +240,12 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
 
           bulkOps.push({
             updateOne: {
-              filter: { platform: 'instamart', storeId: String(instamartStoreId), productId: String(item.instamart.productId) },
+              filter: {
+                platform: 'instamart',
+                storeId: String(instamartStoreId),
+                productId: String(item.instamart.productId),
+                unit: cleanUnit,
+              },
               update: {
                 $set: {
                   currentPrice: sPrice,
@@ -225,7 +254,6 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
                   priceDropPct: dropPct,
                   mrp: item.instamart.mrp || sPrice,
                   name: item.name,
-                  unit: item.unit,
                   city,
                   lastSeenAt: now,
                 },
@@ -242,11 +270,16 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
       } else {
         bulkOps.push({
           updateOne: {
-            filter: { platform: 'instamart', storeId: String(instamartStoreId), productId: String(item.instamart.productId) },
+            filter: {
+              platform: 'instamart',
+              storeId: String(instamartStoreId),
+              productId: String(item.instamart.productId),
+              unit: cleanUnit,
+            },
             update: {
               $set: {
                 name: item.name,
-                unit: item.unit,
+                unit: cleanUnit,
                 currentPrice: sPrice,
                 previousPrice: sPrice,
                 priceDropCash: 0,
