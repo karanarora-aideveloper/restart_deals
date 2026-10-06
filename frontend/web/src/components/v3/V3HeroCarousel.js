@@ -75,17 +75,37 @@ export default function V3HeroCarousel() {
 
   return (
     <section
-      className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 mt-3 mb-4"
+      className={`relative w-full overflow-hidden bg-gradient-to-r ${slide.bgGradient} text-white shadow-sm transition-all duration-500 mb-4 sm:mb-6`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${slide.bgGradient} p-4 sm:p-6 md:p-7 text-white shadow-lg transition-all duration-500`}>
-        {/* Ambient lighting orb */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      {/* Ambient lighting orbs */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 -bottom-20 h-96 w-96 rounded-full bg-black/15 blur-3xl" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 min-w-0">
+      {/* Floating Desktop Prev/Next Buttons */}
+      <button
+        type="button"
+        onClick={() => setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length)}
+        className="hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-20 h-10 w-10 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white transition-all hover:scale-110 active:scale-95 shadow-xl border border-white/15 cursor-pointer"
+        aria-label="Previous Slide"
+      >
+        <span className="text-xl lg:text-2xl font-bold leading-none select-none">‹</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setCurrent((prev) => (prev + 1) % SLIDES.length)}
+        className="hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-20 h-10 w-10 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white transition-all hover:scale-110 active:scale-95 shadow-xl border border-white/15 cursor-pointer"
+        aria-label="Next Slide"
+      >
+        <span className="text-xl lg:text-2xl font-bold leading-none select-none">›</span>
+      </button>
+
+      {/* Centered Content Container */}
+      <div className="mx-auto w-full max-w-[1360px] 2xl:max-w-[1440px] px-4 sm:px-6 lg:px-8 py-5 sm:py-7 md:py-8 lg:py-10">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 min-w-0">
           {/* Left Text Block */}
-          <div className="max-w-xl min-w-0">
+          <div className="max-w-xl lg:max-w-2xl min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${slide.tagColor}`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
@@ -96,11 +116,11 @@ export default function V3HeroCarousel() {
               </span>
             </div>
 
-            <h2 className="mt-2 text-lg sm:text-xl md:text-2xl font-black tracking-tight text-white leading-snug">
+            <h2 className="mt-2.5 text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
               {slide.title}
             </h2>
 
-            <p className="mt-1.5 text-xs sm:text-[13px] text-slate-100/85 leading-relaxed">
+            <p className="mt-2 text-xs sm:text-sm text-slate-100/90 leading-relaxed max-w-xl">
               {slide.subtitle}
             </p>
 
@@ -108,7 +128,7 @@ export default function V3HeroCarousel() {
             <div className="mt-5 flex items-center gap-3 flex-wrap">
               <Link
                 href={slide.ctaHref}
-                className="flex items-center gap-2 rounded-2xl bg-white px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-black text-slate-950 shadow-md transition-all hover:bg-slate-100 hover:scale-105 active:scale-95"
+                className="flex items-center gap-2 rounded-xl bg-white px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-black text-slate-950 shadow-md transition-all hover:bg-slate-100 hover:scale-105 active:scale-95"
               >
                 <span>{slide.ctaText}</span>
                 <span className="text-sm font-bold">→</span>
@@ -122,7 +142,7 @@ export default function V3HeroCarousel() {
 
           {/* Right Illustrated Graphic Banner */}
           <div className="hidden md:flex shrink-0 items-center justify-center">
-            <div className="relative w-72 lg:w-96 aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/20 group">
+            <div className="relative w-72 lg:w-96 xl:w-[440px] aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/20 group">
               <img
                 src={slide.image}
                 alt={slide.title}
@@ -142,7 +162,7 @@ export default function V3HeroCarousel() {
               <button
                 key={s.id}
                 onClick={() => setCurrent(idx)}
-                className={`h-2 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all cursor-pointer ${
                   current === idx ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
@@ -150,12 +170,12 @@ export default function V3HeroCarousel() {
             ))}
           </div>
 
-          {/* Arrows */}
+          {/* Bottom Arrows */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90 cursor-pointer"
               aria-label="Previous Slide"
             >
               ←
@@ -163,7 +183,7 @@ export default function V3HeroCarousel() {
             <button
               type="button"
               onClick={() => setCurrent((prev) => (prev + 1) % SLIDES.length)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-90 cursor-pointer"
               aria-label="Next Slide"
             >
               →
