@@ -698,9 +698,10 @@ export default function GroceryCompareClient() {
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {products.map((item) => {
             const qty = basket[item.id] || 0;
-            const isInstamartCheaper = item.cheaperStore === 'instamart';
-            const isBlinkitCheaper = item.cheaperStore === 'blinkit';
-            const isEqual = item.cheaperStore === 'equal';
+            const hasBoth = !!(item.blinkit?.price && item.instamart?.price);
+            const isInstamartCheaper = hasBoth && item.cheaperStore === 'instamart' && (item.savingCash || 0) > 0;
+            const isBlinkitCheaper = hasBoth && item.cheaperStore === 'blinkit' && (item.savingCash || 0) > 0;
+            const isEqual = hasBoth && (item.cheaperStore === 'equal' || (item.savingCash || 0) === 0);
 
             return (
               <div
@@ -731,6 +732,16 @@ export default function GroceryCompareClient() {
                     {isEqual && !item.lootBadge && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                         Same Price
+                      </span>
+                    )}
+                    {!item.lootBadge && !hasBoth && item.instamart && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-100">
+                        Only on Instamart {item.instamart.discountPct > 0 ? `(${item.instamart.discountPct}% off)` : ''}
+                      </span>
+                    )}
+                    {!item.lootBadge && !hasBoth && item.blinkit && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100">
+                        Only on Blinkit {item.blinkit.discountPct > 0 ? `(${item.blinkit.discountPct}% off)` : ''}
                       </span>
                     )}
                   </div>
@@ -783,6 +794,11 @@ export default function GroceryCompareClient() {
                             {isBlinkitCheaper && (
                               <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded">
                                 Cheaper
+                              </span>
+                            )}
+                            {!hasBoth && item.blinkit && (
+                              <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                                In Stock
                               </span>
                             )}
                           </div>
@@ -848,6 +864,11 @@ export default function GroceryCompareClient() {
                             {isInstamartCheaper && (
                               <span className="text-[10px] font-black uppercase text-orange-800 bg-orange-200/80 px-1.5 py-0.2 rounded">
                                 Cheaper
+                              </span>
+                            )}
+                            {!hasBoth && item.instamart && (
+                              <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                                In Stock
                               </span>
                             )}
                           </div>
