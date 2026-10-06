@@ -26,6 +26,7 @@ export default function GroceryCompareClient() {
   const [liveEtas, setLiveEtas] = useState([]);
   const [basket, setBasket] = useState({}); // { itemId: quantity }
   const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng, localityName, pincode, isExactGps }
   const [locationStatus, setLocationStatus] = useState(null);
   const [showBasketModal, setShowBasketModal] = useState(false);
 
@@ -34,7 +35,56 @@ export default function GroceryCompareClient() {
     return getLocalityById(selectedLocalityId);
   }, [selectedLocalityId]);
 
-  // Instant local filtering + debounced background live sync
+  // Derived live dark store objects
+  const blinkitLive = useMemo(() => {
+    return liveEtas.find((e) => (e.platform || '').toLowerCase().includes('blink'));
+  }, [liveEtas]);
+
+  const instamartLive = useMemo(() => {
+    return liveEtas.find((e) => (e.platform || '').toLowerCase().includes('swiggy'));
+  }, [liveEtas]);
+
+  // Background live dark store ETA sync whenever locality or exact GPS changes
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    async function syncDarkStoreEtas() {
+      try {
+        const lat = userLocation?.lat || currentLocality.lat;
+        const lng = userLocation?.lng || currentLocality.lng;
+        const localityName = userLocation?.localityName || currentLocality.name;
+        const pincode = userLocation?.pincode || currentLocality.pincode;
+
+        const url = `/api/grocery/compare?lat=${lat}&lng=${lng}&localityName=${encodeURIComponent(
+          localityName
+        )}&pincode=${pincode}&locality=${selectedLocalityId}&category=${selectedCategory}`;
+
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (!isCancelled && data.success) {
+          if (Array.isArray(data.storesEta) && data.storesEta.length > 0) {
+            setLiveEtas(data.storesEta);
+          }
+          // If no custom search text, apply live ETAs to the catalog items immediately
+          if (!searchQuery.trim() && Array.isArray(data.results) && data.results.length > 0) {
+            setProducts(data.results);
+          }
+        }
+      } catch (err) {
+        // Fallback safely to calibrated catalog
+      }
+    }
+
+    syncDarkStoreEtas();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userLocation, selectedLocalityId, selectedCategory, currentLocality]);
+
+  // Instant local filtering + debounced background live search
   React.useEffect(() => {
     let isCancelled = false;
     const q = searchQuery.trim();
@@ -60,11 +110,21 @@ export default function GroceryCompareClient() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 3000); // 3.0s max client timeout
+    }, 4500); // 4.5s max client timeout
 
     const timer = setTimeout(async () => {
       try {
-        const url = `/api/grocery/compare?q=${encodeURIComponent(q)}&locality=${selectedLocalityId}&category=${selectedCategory}`;
+        const lat = userLocation?.lat || currentLocality.lat;
+        const lng = userLocation?.lng || currentLocality.lng;
+        const localityName = userLocation?.localityName || currentLocality.name;
+        const pincode = userLocation?.pincode || currentLocality.pincode;
+
+        const url = `/api/grocery/compare?q=${encodeURIComponent(
+          q
+        )}&lat=${lat}&lng=${lng}&localityName=${encodeURIComponent(
+          localityName
+        )}&pincode=${pincode}&locality=${selectedLocalityId}&category=${selectedCategory}`;
+
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
@@ -96,7 +156,7 @@ export default function GroceryCompareClient() {
       controller.abort();
       setIsLoading(false);
     };
-  }, [searchQuery, selectedLocalityId, selectedCategory]);
+  }, [searchQuery, selectedLocalityId, selectedCategory, userLocation, currentLocality]);
 
   // Basket calculations
   const basketStats = useMemo(() => {
@@ -153,14 +213,56 @@ export default function GroceryCompareClient() {
     setLocationStatus(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         setIsDetectingGps(false);
         const { latitude, longitude } = position.coords;
         const nearest = findNearestGwaliorLocality(latitude, longitude);
-        setSelectedLocalityId(nearest.id);
+
+        // Fast reverse geocoding via OpenStreetMap Nominatim
+        let locationLabel = nearest ? nearest.name : 'Doorstep GPS';
+        let postalCode = nearest ? nearest.pincode : '474011';
+
+        try {
+          const revRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16`
+          );
+          if (revRes.ok) {
+            const revData = await revRes.json();
+            const addr = revData.address;
+            const hood =
+              addr?.suburb ||
+              addr?.neighbourhood ||
+              addr?.residential ||
+              addr?.road ||
+              addr?.city_district;
+            if (hood) {
+              locationLabel = `${hood}, ${addr.city || 'Gwalior'}`;
+            }
+            if (addr?.postcode) {
+              postalCode = addr.postcode;
+            }
+          }
+        } catch (_) {
+          // If geocoding fails, fallback safely to nearest hub
+        }
+
+        if (nearest) {
+          setSelectedLocalityId(nearest.id);
+        }
+
+        setUserLocation({
+          lat: latitude,
+          lng: longitude,
+          localityName: locationLabel,
+          pincode: postalCode,
+          isExactGps: true,
+        });
+
         setLocationStatus({
           type: 'success',
-          message: `Auto-detected! Connected to nearest hub: ${nearest.name} (~${nearest.distanceKm || '1'} km away)`,
+          message: `📍 Exact GPS Locked (${latitude.toFixed(4)}, ${longitude.toFixed(
+            4
+          )}) — Connected to ${locationLabel} (~${nearest?.distanceKm || '1'} km)`,
         });
       },
       (error) => {
@@ -169,11 +271,11 @@ export default function GroceryCompareClient() {
           type: 'error',
           message:
             error.code === 1
-              ? 'GPS permission denied. Please select your Gwalior locality from the list.'
+              ? 'GPS permission denied. Please select your locality from the dropdown.'
               : 'Could not acquire precise GPS signal. Defaulting to City Centre.',
         });
       },
-      { timeout: 8000, enableHighAccuracy: true }
+      { timeout: 10000, enableHighAccuracy: true }
     );
   };
 
@@ -299,29 +401,73 @@ export default function GroceryCompareClient() {
 
               {/* Live Dark Store Pod Info */}
               <div className="mt-3.5 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-900/60 rounded-lg p-2 border border-yellow-500/30">
-                  <div className="flex items-center gap-1.5 font-bold text-yellow-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
-                    Blinkit Dark Store
+                {/* Blinkit Pod */}
+                <div className="bg-slate-900/70 rounded-xl p-2.5 border border-yellow-500/30 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-yellow-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                        Blinkit
+                      </div>
+                      {blinkitLive?.eta && blinkitLive.eta !== 'Closed' && blinkitLive.eta !== 'N/A' && (
+                        <span className="flex items-center gap-1 text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          Live Pod
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-300 truncate mt-1" title={blinkitLive?.storeId ? `Store #${blinkitLive.storeId} (${currentLocality.blinkitStore})` : currentLocality.blinkitStore}>
+                      {blinkitLive?.storeId ? `Hub #${blinkitLive.storeId}` : currentLocality.blinkitStore}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-200 truncate mt-0.5" title={currentLocality.blinkitStore}>
-                    {currentLocality.blinkitStore}
-                  </div>
-                  <div className="text-[11px] font-extrabold text-emerald-400 mt-0.5">
-                    ETA: ~{currentLocality.blinkitEta}
+                  <div className="mt-1.5 pt-1.5 border-t border-white/5 flex items-center justify-between">
+                    {blinkitLive?.open === false || blinkitLive?.eta === 'Closed' || blinkitLive?.eta === 'N/A' ? (
+                      <span className="text-[11px] font-extrabold text-rose-400">🔴 Pod Closed</span>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs font-black text-emerald-400">
+                        <span>⚡</span>
+                        <span>{blinkitLive?.eta || currentLocality.blinkitEta}</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] text-slate-400 font-medium">Doorstep ETA</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-900/60 rounded-lg p-2 border border-orange-500/30">
-                  <div className="flex items-center gap-1.5 font-bold text-orange-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
-                    Instamart Pod
+                {/* Swiggy Instamart Pod */}
+                <div className="bg-slate-900/70 rounded-xl p-2.5 border border-orange-500/30 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-orange-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                        Instamart
+                      </div>
+                      {instamartLive?.eta && instamartLive.eta !== 'Closed' && instamartLive.eta !== 'N/A' && (
+                        <span className="flex items-center gap-1 text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          Live Pod
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-300 truncate mt-1" title={instamartLive?.storeId ? `Pod #${instamartLive.storeId} (${currentLocality.instamartStore})` : currentLocality.instamartStore}>
+                      {instamartLive?.storeId ? `Pod #${instamartLive.storeId}` : currentLocality.instamartStore}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-200 truncate mt-0.5" title={currentLocality.instamartStore}>
-                    {currentLocality.instamartStore}
-                  </div>
-                  <div className="text-[11px] font-extrabold text-emerald-400 mt-0.5">
-                    ETA: ~{currentLocality.instamartEta}
+                  <div className="mt-1.5 pt-1.5 border-t border-white/5 flex items-center justify-between">
+                    {instamartLive?.open === false || instamartLive?.eta === 'Closed' || instamartLive?.eta === 'N/A' ? (
+                      <span className="text-[11px] font-extrabold text-rose-400">🔴 Pod Closed</span>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs font-black text-emerald-400">
+                        <span>⚡</span>
+                        <span>{instamartLive?.eta || currentLocality.instamartEta}</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] text-slate-400 font-medium">Doorstep ETA</span>
                   </div>
                 </div>
               </div>
@@ -506,8 +652,16 @@ export default function GroceryCompareClient() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                            <span>⏱ ~{item.blinkit.eta || '10m'}</span>
+                          <div className="text-[10px] font-semibold text-slate-500 flex items-center justify-between mt-0.5">
+                            <span className="flex items-center gap-0.5">
+                              <span className="text-amber-500 font-bold">⚡</span>
+                              <span className="font-bold text-slate-700">{item.blinkit.eta || blinkitLive?.eta || '8–10 mins'}</span>
+                            </span>
+                            {blinkitLive?.eta && blinkitLive.eta !== 'Closed' && blinkitLive.eta !== 'N/A' && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                Live
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -563,8 +717,16 @@ export default function GroceryCompareClient() {
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                            <span>⏱ ~{item.instamart.eta || '12m'}</span>
+                          <div className="text-[10px] font-semibold text-slate-500 flex items-center justify-between mt-0.5">
+                            <span className="flex items-center gap-0.5">
+                              <span className="text-orange-500 font-bold">⚡</span>
+                              <span className="font-bold text-slate-700">{item.instamart.eta || instamartLive?.eta || '12–15 mins'}</span>
+                            </span>
+                            {instamartLive?.eta && instamartLive.eta !== 'Closed' && instamartLive.eta !== 'N/A' && (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                                Live
+                              </span>
+                            )}
                           </div>
                         </div>
 

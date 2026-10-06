@@ -106,10 +106,16 @@ class BlinkitAuth:
         # 2. Click Login Button
         try:
             # Try multiple strategies to find the Login button
-            login_btn = self.page.locator("header div:has-text('Login'), button:has-text('Login'), div[class*='ProfileButton'], text='Login'").first
+            login_btn = self.page.locator("text='Login'").first
+            if not await login_btn.is_visible():
+                login_btn = self.page.locator("header").locator("text='Login'").first
+            if not await login_btn.is_visible():
+                login_btn = self.page.locator("div[class*='ProfileButton']").first
+
             if await login_btn.is_visible():
                 await login_btn.click()
                 print("Clicked 'Login' button.")
+                await self.page.wait_for_timeout(1000)
             else:
                 print(
                     "Could not find explicit Login button. Checking if already on login screen..."

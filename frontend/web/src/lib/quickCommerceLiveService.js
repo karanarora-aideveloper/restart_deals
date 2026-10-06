@@ -52,7 +52,7 @@ export async function fetchStoreEtas({ lat, lon, pincode = '474011', city = 'Gwa
   const url = `https://api.quickcompare.in/qc?lat=${lat}&lon=${lon}&type=home`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
   try {
     const res = await fetch(url, {
@@ -157,6 +157,11 @@ export async function fetchLiveQuickCommerce({
     }
 
     // Step 3: Normalize items for ShoppersDeals comparison UI
+    const liveBlinkitObj = etas.find((e) => (e.platform || '').toLowerCase().includes('blink'));
+    const liveSwiggyObj = etas.find((e) => (e.platform || '').toLowerCase().includes('swiggy'));
+    const liveBlinkitEta = liveBlinkitObj?.eta && liveBlinkitObj.eta !== 'N/A' && liveBlinkitObj.eta !== 'Closed' ? liveBlinkitObj.eta : null;
+    const liveInstamartEta = liveSwiggyObj?.eta && liveSwiggyObj.eta !== 'N/A' && liveSwiggyObj.eta !== 'Closed' ? liveSwiggyObj.eta : null;
+
     const items = [];
     rawGroups.forEach((group, idx) => {
       if (!group.data || !Array.isArray(group.data) || group.data.length === 0) return;
@@ -276,7 +281,8 @@ export async function fetchLiveQuickCommerce({
                     )
                   )
                 : 0,
-              eta: blinkitItem.platform?.sla || '8–10 mins',
+              eta: blinkitItem.platform?.sla || liveBlinkitEta || '8–10 mins',
+              storeOpen: liveBlinkitObj?.open !== false && liveBlinkitObj?.eta !== 'Closed',
               deepLink: blinkitItem.deeplink?.startsWith('http')
                 ? blinkitItem.deeplink
                 : `https://blinkit.com/prn/x/prid/${blinkitItem.id}`,
@@ -296,7 +302,8 @@ export async function fetchLiveQuickCommerce({
                     )
                   )
                 : 0,
-              eta: swiggyItem.platform?.sla || '12–15 mins',
+              eta: swiggyItem.platform?.sla || liveInstamartEta || '12–15 mins',
+              storeOpen: liveSwiggyObj?.open !== false && liveSwiggyObj?.eta !== 'Closed',
               deepLink: swiggyItem.deeplink || 'swiggy://instamart',
               url: swiggyItem.deeplink || 'https://www.swiggy.com/instamart',
             }
