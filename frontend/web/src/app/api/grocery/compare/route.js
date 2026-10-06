@@ -44,8 +44,24 @@ export async function GET(request) {
           instamartEta: '12–15 mins',
         };
       } else {
-        locality = findNearestGwaliorLocality(lat, lng);
-        localityId = locality.id;
+        const gwaliorCandidate = findNearestGwaliorLocality(lat, lng);
+        if (gwaliorCandidate.distanceKm <= 40) {
+          locality = gwaliorCandidate;
+          localityId = locality.id;
+        } else {
+          locality = {
+            id: 'exact-gps',
+            name: cityParam || 'Doorstep Location',
+            city: cityParam || 'Your City',
+            pincode: pincodeParam || '',
+            lat,
+            lng,
+            blinkitStore: 'Live Dark Store Hub',
+            instamartStore: 'Live Pod',
+            blinkitEta: '8–10 mins',
+            instamartEta: '12–15 mins',
+          };
+        }
       }
     } else {
       locality = getLocalityById(localityId || 'city-centre');
