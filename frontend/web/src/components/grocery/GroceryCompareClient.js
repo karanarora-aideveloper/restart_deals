@@ -75,7 +75,7 @@ export default function GroceryCompareClient() {
     return `https://www.swiggy.com/instamart/search?query=${encodeURIComponent(item.name)}`;
   };
 
-  // Background live dark store ETA sync whenever userLocation or category changes
+  // Live dark store data sync whenever userLocation or category changes
   React.useEffect(() => {
     let isCancelled = false;
 
@@ -96,9 +96,9 @@ export default function GroceryCompareClient() {
           if (Array.isArray(data.storesEta) && data.storesEta.length > 0) {
             setLiveEtas(data.storesEta);
           }
-          // If no custom search query, refresh product cards with exact live ETAs
-          if (!searchQuery.trim() && Array.isArray(data.results) && data.results.length > 0) {
+          if (Array.isArray(data.results) && data.results.length > 0) {
             setProducts(data.results);
+            setDataSource(data.source === 'live' ? 'live' : 'benchmark');
           }
         }
       } catch (err) {
@@ -123,17 +123,7 @@ export default function GroceryCompareClient() {
     let isCancelled = false;
     const q = searchQuery.trim();
 
-    // 1. Instant local filter: display matching catalog items immediately (0ms latency)
-    const localResults = searchGroceryCatalog({
-      query: q,
-      category: selectedCategory,
-    });
-    setProducts(localResults);
-
-    // 2. If no query or single letter, rely on instant local catalog (no network needed)
-    if (q.length < 2) {
-      setDataSource('benchmark');
-      setIsLoading(false);
+    if (!q) {
       return;
     }
 
@@ -723,17 +713,22 @@ export default function GroceryCompareClient() {
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       {item.categoryLabel}
                     </span>
-                    {isInstamartCheaper && (
+                    {item.lootBadge && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-xs">
+                        {item.lootBadge}
+                      </span>
+                    )}
+                    {isInstamartCheaper && !item.lootBadge && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
                         ⚡ Instamart saves ₹{item.savingCash}
                       </span>
                     )}
-                    {isBlinkitCheaper && (
+                    {isBlinkitCheaper && !item.lootBadge && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
                         ⚡ Blinkit saves ₹{item.savingCash}
                       </span>
                     )}
-                    {isEqual && (
+                    {isEqual && !item.lootBadge && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                         Same Price
                       </span>

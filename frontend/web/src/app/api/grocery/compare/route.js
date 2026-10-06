@@ -71,12 +71,70 @@ export async function GET(request) {
     const liveBlinkitEta = liveBlinkitObj?.eta && liveBlinkitObj.eta !== 'N/A' && liveBlinkitObj.eta !== 'Closed' ? liveBlinkitObj.eta : null;
     const liveInstamartEta = liveSwiggyObj?.eta && liveSwiggyObj.eta !== 'N/A' && liveSwiggyObj.eta !== 'Closed' ? liveSwiggyObj.eta : null;
 
-    // Fast-path: If no search query, return calibrated benchmark catalog with live ETAs applied
-    if (!q) {
+    // Determine dynamic query for live quick commerce pods
+    let liveQuery = q;
+    if (!liveQuery) {
+      switch (category) {
+        case 'loots':
+          liveQuery = 'chocolate';
+          break;
+        case 'dairy':
+          liveQuery = 'milk';
+          break;
+        case 'staples':
+          liveQuery = 'atta';
+          break;
+        case 'instant':
+          liveQuery = 'snack';
+          break;
+        case 'cleaning':
+          liveQuery = 'detergent';
+          break;
+        case 'hygiene':
+          liveQuery = 'shampoo';
+          break;
+        default:
+          liveQuery = 'butter';
+          break;
+      }
+    }
+
+    // Query live dark stores for exact doorstep coordinates
+    try {
+      const liveRes = await fetchLiveQuickCommerce({
+        query: liveQuery,
+        lat,
+        lon: lng,
+        pincode,
+        city: cityParam || locality.city || 'Your Location',
+        etaList: storesEta,
+      });
+
+      if (liveRes.items && liveRes.items.length > 0) {
+        items = liveRes.items;
+        if (liveRes.storesEta && liveRes.storesEta.length > 0) {
+          storesEta = liveRes.storesEta;
+        }
+        source = 'live';
+
+        // If user specifically clicked 'loots' filter, show only verified deals
+        if (category === 'loots') {
+          const lootItems = items.filter((it) => it.isLoot);
+          if (lootItems.length > 0) {
+            items = lootItems;
+          }
+        }
+      }
+    } catch (liveErr) {
+      console.warn('Live quick commerce query failed, using benchmark fallback:', liveErr.message);
+    }
+
+    // Fallback gracefully only if live APIs return 0 items (e.g. unserviceable area)
+    if (items.length === 0) {
       items = searchGroceryCatalog({
-        query: '',
-        category,
-        localityId: localityId || 'city-centre',
+        query: q,
+        category: category === 'loots' ? 'all' : category,
+        localityId,
       }).map((item) => ({
         ...item,
         blinkit: item.blinkit
@@ -94,53 +152,6 @@ export async function GET(request) {
             }
           : null,
       }));
-    } else {
-      // Attempt live fetch with exact dark store ETAs
-      try {
-        const liveRes = await fetchLiveQuickCommerce({
-          query: q,
-          lat,
-          lon: lng,
-          pincode,
-          city: locality.city || 'Gwalior',
-          etaList: storesEta,
-        });
-
-        if (liveRes.items && liveRes.items.length > 0) {
-          items = liveRes.items;
-          if (liveRes.storesEta && liveRes.storesEta.length > 0) {
-            storesEta = liveRes.storesEta;
-          }
-          source = 'live';
-        }
-      } catch (liveErr) {
-        console.warn('Live quick commerce query failed, using benchmark fallback:', liveErr.message);
-      }
-
-      // If no live items returned (timeout or no match), fallback to local catalog immediately
-      if (items.length === 0) {
-        items = searchGroceryCatalog({
-          query: q,
-          category,
-          localityId,
-        }).map((item) => ({
-          ...item,
-          blinkit: item.blinkit
-            ? {
-                ...item.blinkit,
-                eta: liveBlinkitEta || item.blinkit.eta,
-                storeOpen: liveBlinkitObj?.open !== false && liveBlinkitObj?.eta !== 'Closed',
-              }
-            : null,
-          instamart: item.instamart
-            ? {
-                ...item.instamart,
-                eta: liveInstamartEta || item.instamart.eta,
-                storeOpen: liveSwiggyObj?.open !== false && liveSwiggyObj?.eta !== 'Closed',
-              }
-            : null,
-        }));
-      }
     }
 
     // Summary statistics
@@ -163,7 +174,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      city: 'Gwalior',
+      city: cityParam || locality?.city || 'Your City',
       locality,
       source,
       storesEta,

@@ -9,13 +9,14 @@ const QC_ENC_KEY = '04026aadf583caa59cbbf8599d15889274c2fff741b3a8a19229861aa25c
 const QC_CACHE = new Map();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
-// Default Gwalior dark store pods for instant fallback
-export const DEFAULT_GWALIOR_ETAS = [
-  { platform: 'BlinkIt', storeId: '36026', storeIds: ['36026', '48799'], open: true, eta: '8 mins' },
-  { platform: 'Swiggy', storeId: '1401256', storeIds: ['1401256', '1402255'], open: true, eta: '15 mins', serviceabilityStatus: 'SERVICEABLE' },
-  { platform: 'BigBasket', storeId: '28281', storeIds: ['28281'], open: true, eta: '12 mins' },
-  { platform: 'Zepto', storeId: '', storeIds: [], open: false }
+// Default dark store pods for instant fallback
+export const DEFAULT_FALLBACK_ETAS = [
+  { platform: 'BlinkIt', storeId: 'auto', open: true, eta: '8–12 mins' },
+  { platform: 'Swiggy', storeId: 'auto', open: true, eta: '12–15 mins', serviceabilityStatus: 'SERVICEABLE' },
+  { platform: 'BigBasket', storeId: 'auto', open: true, eta: '10–15 mins' },
+  { platform: 'Zepto', storeId: '', open: false }
 ];
+export const DEFAULT_GWALIOR_ETAS = DEFAULT_FALLBACK_ETAS;
 
 function xorEncrypt(text, key) {
   let res = '';
@@ -106,8 +107,8 @@ export async function fetchLiveQuickCommerce({
     return cached.data;
   }
 
-  // Use pre-configured Gwalior dark store pods directly (0ms network overhead)
-  const etas = etaList && etaList.length > 0 ? etaList : DEFAULT_GWALIOR_ETAS;
+  // Use pre-configured dark store pods directly (0ms network overhead)
+  const etas = etaList && etaList.length > 0 ? etaList : DEFAULT_FALLBACK_ETAS;
 
   const reqId = generateQCRequestId();
   const searchUrl = `https://api.quickcompare.in/qc?lat=${lat}&lon=${lon}&type=groupsearch&query=${encodeURIComponent(
@@ -115,7 +116,7 @@ export async function fetchLiveQuickCommerce({
   )}&pincode=${pincode}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
   try {
     const res = await fetch(searchUrl, {
@@ -205,6 +206,22 @@ export async function fetchLiveQuickCommerce({
         cheaperStore = 'blinkit';
       } else if (sPrice && !bPrice) {
         cheaperStore = 'instamart';
+      }
+
+      const bMrp = blinkitItem?.mrp ? parseFloat(blinkitItem.mrp) : bPrice;
+      const sMrp = swiggyItem?.mrp ? parseFloat(swiggyItem.mrp) : sPrice;
+      const bDisc = bMrp && bPrice && bMrp > bPrice ? Math.round(((bMrp - bPrice) / bMrp) * 100) : 0;
+      const sDisc = sMrp && sPrice && sMrp > sPrice ? Math.round(((sMrp - sPrice) / sMrp) * 100) : 0;
+      const maxDiscountPct = Math.max(bDisc, sDisc);
+
+      const isLoot = maxDiscountPct >= 20 || savingCash >= 25;
+      let lootBadge = null;
+      if (maxDiscountPct >= 40) {
+        lootBadge = `🔥 ${maxDiscountPct}% OFF Loot`;
+      } else if (maxDiscountPct >= 20) {
+        lootBadge = `📉 ${maxDiscountPct}% Drop`;
+      } else if (savingCash >= 20) {
+        lootBadge = `⚡ Save ₹${savingCash} on ${cheaperStore === 'blinkit' ? 'Blinkit' : 'Instamart'}`;
       }
 
       // Infer clean category label from title
@@ -310,6 +327,9 @@ export async function fetchLiveQuickCommerce({
           : null,
         cheaperStore,
         savingCash,
+        isLoot,
+        lootBadge,
+        maxDiscountPct,
         allStores: group.data.map((d) => ({
           store: d.platform?.name,
           price: parseFloat(d.offer_price || d.mrp || 0),
@@ -321,8 +341,10 @@ export async function fetchLiveQuickCommerce({
       });
     });
 
-    // Sort: items that have Blinkit and/or Instamart with savings first
+    // Sort: loots and items that have Blinkit and/or Instamart with savings first
     items.sort((a, b) => {
+      if (a.isLoot && !b.isLoot) return -1;
+      if (!a.isLoot && b.isLoot) return 1;
       const aBoth = a.blinkit && a.instamart ? 2 : (a.blinkit || a.instamart ? 1 : 0);
       const bBoth = b.blinkit && b.instamart ? 2 : (b.blinkit || b.instamart ? 1 : 0);
       if (aBoth !== bBoth) return bBoth - aBoth;

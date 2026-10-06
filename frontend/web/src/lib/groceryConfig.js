@@ -470,6 +470,7 @@ export const GWALIOR_STAPLES_CATALOG = [
  */
 export const GROCERY_CATEGORIES = [
   { id: 'all', label: 'All Essentials' },
+  { id: 'loots', label: '🔥 Price Drop Loots' },
   { id: 'dairy', label: 'Dairy & Breakfast' },
   { id: 'staples', label: 'Atta, Rice & Oils' },
   { id: 'instant', label: 'Snacks & Beverages' },
