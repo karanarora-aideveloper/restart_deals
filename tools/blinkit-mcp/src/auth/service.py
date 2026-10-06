@@ -94,17 +94,22 @@ class BlinkitAuth:
         """Initiates the login process with a phone number."""
         print(f"Attempting to log in with {phone_number}...")
 
-        # 1. Click Login Button
+        # 1. Dismiss any location popup if visible
+        try:
+            det_btn = self.page.locator("button:has-text('Detect my location')").first
+            if await det_btn.is_visible():
+                await det_btn.click()
+                await self.page.wait_for_timeout(1500)
+        except Exception:
+            pass
+
+        # 2. Click Login Button
         try:
             # Try multiple strategies to find the Login button
-            if await self.page.is_visible("text='Login'"):
-                await self.page.click("text='Login'")
-                print("Clicked 'Login' text.")
-            elif await self.page.is_visible("div[class*='ProfileButton__Container']"):
-                await self.page.locator(
-                    "div[class*='ProfileButton__Container']"
-                ).click()
-                print("Clicked ProfileButton container.")
+            login_btn = self.page.locator("header div:has-text('Login'), button:has-text('Login'), div[class*='ProfileButton'], text='Login'").first
+            if await login_btn.is_visible():
+                await login_btn.click()
+                print("Clicked 'Login' button.")
             else:
                 print(
                     "Could not find explicit Login button. Checking if already on login screen..."
@@ -112,14 +117,13 @@ class BlinkitAuth:
         except Exception as e:
             print(f"Error clicking login button: {e}")
 
-        # 2. Wait for Login Modal / Phone Input
+        # 3. Wait for Login Modal / Phone Input
         try:
             print("Waiting for phone number input...")
-            # Increased timeout and generic selector
             phone_input = await self.page.wait_for_selector(
-                "input[type='tel'], input[name='mobile'], input[type='text']",
+                "input[placeholder*='mobile number'], input[placeholder*='Enter mobile'], input[type='tel'], input[name='mobile']",
                 state="visible",
-                timeout=30000,
+                timeout=20000,
             )
 
             if phone_input:
@@ -127,16 +131,16 @@ class BlinkitAuth:
                 await phone_input.fill(phone_number)
                 print(f"Filled phone number: {phone_number}")
 
-                # 3. Submit Phone Number
-                await self.page.wait_for_timeout(500)  # slight delay for UI update
+                # 4. Submit Phone Number
+                await self.page.wait_for_timeout(500)
 
-                # Check for "Get OTP" or "Next"
-                if await self.page.is_visible("text='Next'"):
-                    await self.page.click("text='Next'")
-                elif await self.page.is_visible("text='Continue'"):
-                    await self.page.click("text='Continue'")
+                continue_btn = self.page.locator(
+                    "button:has-text('Continue'), div[role='button']:has-text('Continue'), button:has-text('Next')"
+                ).first
+                if await continue_btn.is_visible():
+                    await continue_btn.click()
+                    print("Clicked Continue button.")
                 else:
-                    # Fallback: press Enter on the input
                     await self.page.keyboard.press("Enter")
                     print("Pressed Enter to submit.")
 
