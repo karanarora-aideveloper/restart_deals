@@ -116,7 +116,7 @@ export async function fetchLiveQuickCommerce({
   )}&pincode=${pincode}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), 22000);
 
   try {
     const res = await fetch(searchUrl, {
