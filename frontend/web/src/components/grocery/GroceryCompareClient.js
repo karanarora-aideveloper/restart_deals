@@ -8,11 +8,8 @@ import {
   InstamartLogo,
 } from '@/components/BrandAndStoreLogos';
 import {
-  GWALIOR_LOCALITIES,
   GWALIOR_STAPLES_CATALOG,
   GROCERY_CATEGORIES,
-  findNearestGwaliorLocality,
-  getLocalityById,
   searchGroceryCatalog,
 } from '@/lib/groceryConfig';
 
@@ -26,11 +23,11 @@ export default function GroceryCompareClient() {
   const [basket, setBasket] = useState({}); // { itemId: quantity }
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [userLocation, setUserLocation] = useState({
-    lat: 26.2045,
-    lng: 78.1963,
-    localityName: 'City Centre, Gwalior (Default)',
-    city: 'Gwalior',
-    pincode: '474011',
+    lat: 28.6139,
+    lng: 77.2090,
+    localityName: 'Tap "Use My GPS" or enter location',
+    city: '',
+    pincode: '',
     isExactGps: false,
   });
   const [locationStatus, setLocationStatus] = useState(null);
@@ -40,6 +37,13 @@ export default function GroceryCompareClient() {
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [isSyncingEtas, setIsSyncingEtas] = useState(false);
+
+  // Auto-detect GPS on initial visit if allowed
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      handleDetectGps({ silent: true });
+    }
+  }, []);
 
   // Derived live dark store objects
   const blinkitLive = useMemo(() => {
@@ -226,17 +230,20 @@ export default function GroceryCompareClient() {
   }, [basket]);
 
   // GPS Auto-detect handler (uses server proxy to bypass CORS)
-  const handleDetectGps = () => {
+  const handleDetectGps = (opts = {}) => {
+    const silent = opts?.silent === true;
     if (!navigator.geolocation) {
-      setLocationStatus({
-        type: 'error',
-        message: 'Geolocation is not supported by your browser.',
-      });
+      if (!silent) {
+        setLocationStatus({
+          type: 'error',
+          message: 'Geolocation is not supported by your browser.',
+        });
+      }
       return;
     }
 
     setIsDetectingGps(true);
-    setLocationStatus(null);
+    if (!silent) setLocationStatus(null);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -279,13 +286,15 @@ export default function GroceryCompareClient() {
       },
       (error) => {
         setIsDetectingGps(false);
-        setLocationStatus({
-          type: 'error',
-          message:
-            error.code === 1
-              ? 'GPS permission denied. You can search your address or pincode below.'
-              : 'Could not acquire precise GPS signal. Please search your address below.',
-        });
+        if (!silent) {
+          setLocationStatus({
+            type: 'error',
+            message:
+              error.code === 1
+                ? 'GPS permission denied. You can search your address or pincode below.'
+                : 'Could not acquire precise GPS signal. Please search your address below.',
+          });
+        }
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -361,7 +370,11 @@ export default function GroceryCompareClient() {
               <span>/</span>
               <Link href="/compare" className="hover:text-white transition-colors">Compare</Link>
               <span>/</span>
-              <span className="text-amber-400">Gwalior Quick Commerce</span>
+              <span className="text-amber-400">
+                {userLocation.isExactGps && userLocation.city
+                  ? `${userLocation.city} Quick Commerce`
+                  : 'Quick Commerce'}
+              </span>
             </div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -653,7 +666,7 @@ export default function GroceryCompareClient() {
                 Daily Dark Store Benchmark
               </span>
             )}
-            <span>Showing <strong className="text-slate-900">{products.length}</strong> items in Gwalior</span>
+            <span>Showing <strong className="text-slate-900">{products.length}</strong> items {userLocation.city ? `in ${userLocation.city}` : ''}</span>
           </div>
         </div>
 
@@ -1004,10 +1017,10 @@ export default function GroceryCompareClient() {
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900">
-                  Gwalior Grocery Basket Comparison
+                  {userLocation.city ? `${userLocation.city} Grocery Basket Comparison` : 'Live Grocery Basket Comparison'}
                 </h3>
                 <p className="text-xs font-semibold text-slate-500">
-                  Delivering to: {currentLocality.name} ({currentLocality.pincode})
+                  Delivering to: {userLocation.localityName} {userLocation.pincode ? `(${userLocation.pincode})` : ''}
                 </p>
               </div>
               <button
@@ -1092,10 +1105,10 @@ export default function GroceryCompareClient() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-8 border-t border-slate-200">
         <div className="bg-slate-50 rounded-2xl p-6 sm:p-8 border border-slate-200/80">
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            How Quick Commerce Works in Gwalior: Blinkit vs Swiggy Instamart
+            How Quick Commerce Works: Blinkit vs Swiggy Instamart {userLocation.city ? `in ${userLocation.city}` : ''}
           </h2>
           <p className="mt-2 text-sm text-slate-600 leading-relaxed max-w-3xl">
-            Quick commerce relies on hyperlocal dark store fulfillment hubs situated within 2.5–3.5 km of residential clusters. In Gwalior, both platforms have established dedicated micro-warehouses to maintain sub-15-minute delivery cycles.
+            Quick commerce relies on hyperlocal dark store fulfillment hubs situated within 2.5–3.5 km of residential clusters. Both platforms establish dedicated micro-warehouses to maintain sub-15-minute delivery cycles.
           </p>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600">
