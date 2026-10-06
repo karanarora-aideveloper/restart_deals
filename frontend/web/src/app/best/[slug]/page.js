@@ -172,7 +172,7 @@ export default async function BestCategoryPage({ params }) {
             <h2 className="mb-4 text-base font-extrabold text-gray-900">
               📊 Quick Comparison: Top 5 {config.title.replace('Top 20 Best ', '')}
             </h2>
-            <div className="overflow-x-auto [scrollbar-width:none]">
+            <div className="overflow-x-auto scrollbar-hide no-scrollbar">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50/70 text-gray-500 font-extrabold uppercase tracking-wider">

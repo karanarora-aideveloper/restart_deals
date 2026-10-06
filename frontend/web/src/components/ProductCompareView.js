@@ -181,7 +181,7 @@ export default function ProductCompareView({ initialProducts = [] }) {
       </div>
 
       {/* Main Side-by-Side Comparison Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm scrollbar-none no-scrollbar">
         <table className="w-full border-collapse text-left">
           {/* 1. STICKY TOP PRODUCT HEADER */}
           <thead>

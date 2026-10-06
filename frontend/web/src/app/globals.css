@@ -124,13 +124,65 @@ h1, h2, h3, h4, .font-heading {
   width: 100%;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Universal Scrollbar Hiding & Native App Touch Scrolling */
+.no-scrollbar,
+.scrollbar-hide,
+.scrollbar-none,
+[scrollbar-width="none"],
+[class*="scrollbar-hide"],
+[class*="scrollbar-none"],
+[class*="no-scrollbar"] {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
 }
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar,
+[scrollbar-width="none"]::-webkit-scrollbar,
+[class*="scrollbar-hide"]::-webkit-scrollbar,
+[class*="scrollbar-none"]::-webkit-scrollbar,
+[class*="no-scrollbar"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Hide horizontal scrollbars across all horizontal scroll containers for a sleek clean UI */
+.overflow-x-auto,
+.overflow-x-scroll,
+[class*="overflow-x-auto"],
+[class*="overflow-x-scroll"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-color: transparent transparent !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-x-scroll::-webkit-scrollbar,
+[class*="overflow-x-auto"]::-webkit-scrollbar,
+[class*="overflow-x-scroll"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Mobile Clean UI: Suppress all internal scrollbars on phones for a native app feel */
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
 }
 
