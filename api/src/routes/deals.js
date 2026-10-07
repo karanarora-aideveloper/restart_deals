@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Deal from '../db/models/deal.js';
 import Product from '../db/models/product.js';
 import { cacheMiddleware } from '../utils/cache.js';
+import { classifySourceEngine } from '../utils/engineClassifier.js';
 
 const router = express.Router();
 
@@ -173,6 +174,40 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       });
     }
 
+    // Filter by discovery engine: Engine 1 (Telegram Radar) vs Engine 2 (Store Watcher / Catalog)
+    if (req.query.sourceEngine && req.query.sourceEngine !== 'all') {
+      const se = req.query.sourceEngine.toLowerCase().trim();
+      if (se === 'engine1') {
+        andConditions.push({
+          $or: [
+            { sourceEngine: 'engine1' },
+            {
+              sourceChannelId: {
+                $not: { $regex: 'catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals', $options: 'i' }
+              }
+            }
+          ]
+        });
+      } else if (se === 'engine2') {
+        andConditions.push({
+          $or: [
+            { sourceEngine: 'engine2' },
+            {
+              sourceChannelId: {
+                $regex: 'catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals', $options: 'i' }
+            }
+          ]
+        });
+      }
+    }
+
+    // Filter by price history availability
+    if (req.query.hasPriceHistory === 'true') {
+      andConditions.push({ hasPriceHistory: true });
+    } else if (req.query.hasPriceHistory === 'false') {
+      andConditions.push({ hasPriceHistory: false });
+    }
+
     if (req.query.q) {
       const qStr = req.query.q.trim();
       if (qStr.length > 0) {
@@ -242,6 +277,8 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         const alt = (d.images || []).find(img => img && !img.includes('shoppersdeals-backend') && !img.includes('placeholder.png') && !img.includes('localhost'));
         if (alt) d.imageUrl = alt;
       }
+      d.sourceEngine = d.sourceEngine || classifySourceEngine(d.sourceChannelId, d.sourceChannelName);
+      d.hasPriceHistory = Boolean(d.hasPriceHistory);
       return d;
     });
 
@@ -407,6 +444,8 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
             country: p.country || 'IN',
             isExpired: false,
             resolvedToProduct: true,
+            sourceEngine: 'engine2',
+            hasPriceHistory: Boolean(p.hasPriceHistory || (p.priceHistory && p.priceHistory.length >= 2)),
             matchedProductId: p._id.toString(),
             linkedProductId: p._id.toString(),
           });

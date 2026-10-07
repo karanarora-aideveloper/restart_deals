@@ -155,6 +155,8 @@ export async function syncAllD2CStores(options = {}) {
                     sourceChannelId: 'd2c_engine',
                     sourceMessageId: `d2c_${prodData.productId}_${Date.now()}`,
                     sourceChannelName: `${store.name} D2C Discovery`,
+                    sourceEngine: 'engine2',
+                    hasPriceHistory: true,
                     originalText: `Price Drop on ${store.name}: ${existing.title} at ₹${prodData.price}`,
                     title: existing.title,
                     description: `Price drop on ${store.name} official store. Dropped from ₹${priorPrice} to ₹${prodData.price}.`,
@@ -196,6 +198,7 @@ export async function syncAllD2CStores(options = {}) {
               }
             }
 
+            existing.hasPriceHistory = Boolean(existing.priceHistory && existing.priceHistory.length >= 2);
             await existing.save();
             stats.productsUpdated++;
           } else {

@@ -47,6 +47,12 @@ const STORES = [
   { id: 'croma', label: 'Croma' },
 ];
 
+const SOURCE_ENGINES = [
+  { id: 'all', label: '⚡ All Deals', badge: 'All' },
+  { id: 'engine1', label: '📡 Engine 1 (Telegram Radar)', badge: 'Engine 1' },
+  { id: 'engine2', label: '🤖 Engine 2 (Store Watcher)', badge: 'Engine 2' },
+];
+
 export default function V3FeedContainer({ initialDeals = [], initialHasMore = false, category = 'all', country = 'in' }) {
   const [deals, setDeals] = useState(() => sortDealsByDealTime(initialDeals));
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -55,6 +61,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeCategory, setActiveCategory] = useState(category);
   const [activeStore, setActiveStore] = useState('all');
+  const [activeEngine, setActiveEngine] = useState('all');
   const [minDiscount, setMinDiscount] = useState(0);
   const [savedDeals, setSavedDeals] = useState([]);
 
@@ -68,7 +75,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
   }, [initialDeals, initialHasMore]);
 
   // Fetch deals with filters
-  const fetchFilteredDeals = useCallback(async (cat, store, minDisc, targetPage = 1, append = false) => {
+  const fetchFilteredDeals = useCallback(async (cat, store, minDisc, engine = 'all', targetPage = 1, append = false) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -86,6 +93,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
       if (cat && cat !== 'all') params.set('category', cat);
       if (store && store !== 'all') params.set('merchant', store);
       if (minDisc && minDisc > 0) params.set('minDiscount', minDisc.toString());
+      if (engine && engine !== 'all') params.set('sourceEngine', engine);
 
       let res;
       try {
@@ -114,24 +122,29 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
     }
   }, []);
 
+  const handleEngineChange = (engineId) => {
+    setActiveEngine(engineId);
+    fetchFilteredDeals(activeCategory, activeStore, minDiscount, engineId, 1, false);
+  };
+
   const handleCategoryChange = (catId) => {
     setActiveCategory(catId);
-    fetchFilteredDeals(catId, activeStore, minDiscount, 1, false);
+    fetchFilteredDeals(catId, activeStore, minDiscount, activeEngine, 1, false);
   };
 
   const handleStoreChange = (storeId) => {
     setActiveStore(storeId);
-    fetchFilteredDeals(activeCategory, storeId, minDiscount, 1, false);
+    fetchFilteredDeals(activeCategory, storeId, minDiscount, activeEngine, 1, false);
   };
 
   const handleDiscountChange = (disc) => {
     setMinDiscount(disc);
-    fetchFilteredDeals(activeCategory, activeStore, disc, 1, false);
+    fetchFilteredDeals(activeCategory, activeStore, disc, activeEngine, 1, false);
   };
 
   const handleLoadMore = () => {
     if (loadingMore || !hasMore) return;
-    fetchFilteredDeals(activeCategory, activeStore, minDiscount, page + 1, true);
+    fetchFilteredDeals(activeCategory, activeStore, minDiscount, activeEngine, page + 1, true);
   };
 
   return (
@@ -160,6 +173,24 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
 
       {/* Filter Matrix (Buyhatke Layout) */}
       <div className="mt-6 flex flex-col gap-3">
+        {/* Row 0: Discovery Engine Selector */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+          <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Deal Source:</span>
+          {SOURCE_ENGINES.map((eng) => (
+            <button
+              key={eng.id}
+              onClick={() => handleEngineChange(eng.id)}
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                activeEngine === eng.id
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 hover:bg-slate-50'
+              }`}
+            >
+              <span>{eng.label}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Row 1: Discount % Bands */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
           <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Price Drop:</span>
@@ -218,13 +249,14 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
       {/* Deals Count Banner */}
       <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
         <span>Showing <strong className="text-slate-900 font-bold">{deals.length}</strong> verified price-drop items</span>
-        {(activeCategory !== 'all' || activeStore !== 'all' || minDiscount > 0) && (
+        {(activeCategory !== 'all' || activeStore !== 'all' || minDiscount > 0 || activeEngine !== 'all') && (
           <button
             onClick={() => {
               setActiveCategory('all');
               setActiveStore('all');
               setMinDiscount(0);
-              fetchFilteredDeals('all', 'all', 0, 1, false);
+              setActiveEngine('all');
+              fetchFilteredDeals('all', 'all', 0, 'all', 1, false);
             }}
             className="text-xs font-bold text-indigo-600 hover:underline"
           >

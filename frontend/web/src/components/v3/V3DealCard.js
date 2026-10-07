@@ -63,6 +63,15 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
     verdictBg = 'bg-teal-50 text-teal-800 border-teal-200';
   }
 
+  // Engine Classification & Badging
+  const isEngine2 = deal.sourceEngine === 'engine2' ||
+    (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId));
+  const engineBadgeText = isEngine2 ? '🤖 Engine 2' : '📡 Engine 1';
+  const engineBadgeTitle = isEngine2 ? 'Discovered by Store Watcher & Crawlers (Engine 2)' : 'Captured by Telegram Deal Radar (Engine 1)';
+  const engineBadgeClass = isEngine2
+    ? 'bg-purple-50 text-purple-700 border-purple-200/90'
+    : 'bg-indigo-50 text-indigo-700 border-indigo-200/90';
+
   const handleToggleSave = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -82,11 +91,19 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   return (
     <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
       <div className="min-w-0">
-        {/* Top Header: Store Logo + Verified Badge + Wishlist */}
-        <div className="flex items-center justify-between gap-1.5 mb-1.5">
-          {/* Store Logo */}
-          <div className="flex h-6 items-center shrink-0">
-            {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 max-h-4 w-auto object-contain')}
+        {/* Top Header: Store Logo + Engine Badge + Verified Badge + Wishlist */}
+        <div className="flex items-center justify-between gap-1 mb-1.5 min-w-0">
+          {/* Store Logo & Engine Badge */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex h-5 items-center shrink-0">
+              {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-3.5 max-h-3.5 w-auto object-contain')}
+            </div>
+            <span
+              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight shrink-0 border ${engineBadgeClass}`}
+              title={engineBadgeTitle}
+            >
+              {engineBadgeText}
+            </span>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -215,7 +232,13 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
                 'Verified Price'
               )}
             </span>
-            <span className="text-[9px] text-slate-400 shrink-0 ml-1">90D Tracked</span>
+            {deal.hasPriceHistory ? (
+              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded shrink-0 ml-1" title="Price history verified against DB/Buyhatke history">
+                📈 History Tracked
+              </span>
+            ) : (
+              <span className="text-[9px] text-slate-400 shrink-0 ml-1">⚡ Live Deal</span>
+            )}
           </div>
         </div>
       </div>

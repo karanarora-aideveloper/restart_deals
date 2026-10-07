@@ -10,6 +10,7 @@ import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 import { findD2CStoreByUrl, D2C_STORES } from '../config/d2cStores.js';
+import { classifySourceEngine } from '../utils/engineClassifier.js';
 
 const D2C_DOMAINS = D2C_STORES.flatMap(s => s.domains);
 const D2C_MERCHANTS = D2C_STORES.map(s => s.merchant);
@@ -2245,12 +2246,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       if (authenticPrev != null) deal.previousPrice = authenticPrev;
       deal.category = category;
       deal.subcategory = subcategory;
+      deal.sourceEngine = classifySourceEngine(sourceChannelId, sourceChannelName);
+      deal.hasPriceHistory = Boolean(
+        productRecord?.hasPriceHistory ||
+        (productRecord?.priceHistory && productRecord.priceHistory.length >= 2) ||
+        (authenticPrev && authenticPrev > verifiedDealPrice)
+      );
       deal.isVerified = true;
       deal.createdAt = now;
       deal.updatedAt = now;
 
       await deal.save();
-      console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
+      console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%, Engine: ${deal.sourceEngine})`);
 
       // Real-time evaluation of user price drop alerts
       evaluateAndTriggerPriceAlerts({
@@ -2266,11 +2273,19 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       return deal;
     } else {
       const authenticPrev = genuinePriceDrop || productRecord?.previousPrice || previousTrackedPrice || null;
+      const calculatedSourceEngine = classifySourceEngine(sourceChannelId, sourceChannelName);
+      const calculatedHasPriceHistory = Boolean(
+        productRecord?.hasPriceHistory ||
+        (productRecord?.priceHistory && productRecord.priceHistory.length >= 2) ||
+        (authenticPrev && authenticPrev > verifiedDealPrice)
+      );
       deal = new Deal({
         sourceChannelId,
         sourceMessageId: sourceMessageId,
         country: country,
         sourceChannelName: sourceChannelName,
+        sourceEngine: calculatedSourceEngine,
+        hasPriceHistory: calculatedHasPriceHistory,
         originalText: messageText,
         title: actualTitle,
         brand: productBrand || productRecord?.brand || null,
@@ -2301,7 +2316,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         updatedAt: now
       });
       await deal.save();
-      console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%)`);
+      console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%, Engine: ${calculatedSourceEngine})`);
 
       // Real-time evaluation of user price drop alerts
       evaluateAndTriggerPriceAlerts({

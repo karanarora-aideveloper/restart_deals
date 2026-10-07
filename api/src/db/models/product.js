@@ -110,6 +110,11 @@ const productSchema = new mongoose.Schema({
     default: Date.now
   },
   priceHistory: [priceHistorySchema],
+  hasPriceHistory: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   category: {
     type: String,
     default: 'home'
@@ -170,7 +175,7 @@ const productSchema = new mongoose.Schema({
   // Discovery engine source tracking
   productSource: {
     type: String,
-    enum: ['telegram', 'top20_catalog', 'd2c_catalog', 'user_search', 'bestseller', 'extension', 'extension_discovered', 'web_user'],
+    enum: ['telegram', 'top20_catalog', 'd2c_catalog', 'user_search', 'bestseller', 'extension', 'extension_discovered', 'web_user', 'amazon_deals'],
     default: 'telegram'
   },
   // Extension & User attribution tracking

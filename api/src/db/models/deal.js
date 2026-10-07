@@ -34,6 +34,17 @@ const dealSchema = new mongoose.Schema({
   sourceChannelName: {
     type: String
   },
+  sourceEngine: {
+    type: String,
+    enum: ['engine1', 'engine2'],
+    default: 'engine1',
+    index: true
+  },
+  hasPriceHistory: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   originalText: { 
     type: String, 
     required: true 

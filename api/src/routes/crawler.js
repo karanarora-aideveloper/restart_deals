@@ -224,6 +224,25 @@ router.post('/d2c/sync', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+// Trigger Amazon Deals (amazon.in/deals) sweep on-demand
+router.post('/amazon-deals', async (req, res) => {
+  try {
+    const { syncAmazonDeals } = await import('../jobs/amazonDealsCrawler.js');
+    const maxDeals = req.body.maxDeals ? parseInt(req.body.maxDeals, 10) : 60;
+    const fetchBuyhatke = req.body.fetchBuyhatke !== false;
+
+    // Trigger asynchronously
+    syncAmazonDeals({ maxDeals, fetchBuyhatke }).catch(err => {
+      console.error('[Amazon Deals Route Trigger Error]:', err.message);
+    });
+
+    res.json({
+      success: true,
+      message: `Amazon deals sweep triggered for https://www.amazon.in/deals (max ${maxDeals} deals, Buyhatke backfill: ${fetchBuyhatke}).`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 export default router;

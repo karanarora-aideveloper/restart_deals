@@ -12,6 +12,7 @@ export async function GET(request) {
     const merchant = searchParams.get('merchant') || 'all';
     const country = searchParams.get('country') || 'in';
     const minDiscount = parseInt(searchParams.get('minDiscount') || '0', 10);
+    const sourceEngine = searchParams.get('sourceEngine') || 'all';
     const sort = searchParams.get('sort') || 'newest';
 
     const deals = await directFetchDeals({
@@ -21,6 +22,7 @@ export async function GET(request) {
       merchant,
       country,
       minDiscount,
+      sourceEngine,
       sort,
     });
 

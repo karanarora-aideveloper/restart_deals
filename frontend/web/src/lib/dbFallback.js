@@ -323,6 +323,7 @@ export async function directFetchDeals({
   merchant = 'all',
   country = 'in',
   minDiscount = 0,
+  sourceEngine = 'all',
   sort = 'newest',
 } = {}) {
   try {
@@ -341,6 +342,33 @@ export async function directFetchDeals({
       andConditions.push({ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] });
     } else if (cCode !== 'ALL') {
       andConditions.push({ country: cCode });
+    }
+
+    // Filter by discovery engine: Engine 1 (Telegram Radar) vs Engine 2 (Store Watcher)
+    if (sourceEngine && sourceEngine !== 'all') {
+      const se = sourceEngine.toLowerCase().trim();
+      if (se === 'engine1') {
+        andConditions.push({
+          $or: [
+            { sourceEngine: 'engine1' },
+            {
+              sourceChannelId: {
+                $not: { $regex: 'catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals', $options: 'i' }
+              }
+            }
+          ]
+        });
+      } else if (se === 'engine2') {
+        andConditions.push({
+          $or: [
+            { sourceEngine: 'engine2' },
+            {
+              sourceChannelId: {
+                $regex: 'catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals', $options: 'i' }
+            }
+          ]
+        });
+      }
     }
 
     const discountCond = { $lte: 90, $gt: 0 };
@@ -500,6 +528,8 @@ export async function directFetchDeals({
         const alt = (deal.images || []).find((img) => img && !img.includes('placeholder.png') && !img.includes('localhost'));
         if (alt) deal.imageUrl = alt;
       }
+      deal.sourceEngine = deal.sourceEngine || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId) ? 'engine2' : 'engine1');
+      deal.hasPriceHistory = Boolean(deal.hasPriceHistory);
       deal.priceStats = computePriceStats(deal);
       return deal;
     });

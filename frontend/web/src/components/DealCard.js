@@ -184,8 +184,18 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
 
       <div className="flex flex-1 flex-col p-[13px]">
         <div className="mb-1.5 flex items-center justify-between">
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 w-auto object-contain')}
+            <span
+              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight border ${
+                deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId))
+                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}
+              title={deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? 'Discovered by Store Watcher & Crawlers (Engine 2)' : 'Captured by Telegram Deal Radar (Engine 1)'}
+            >
+              {deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? '🤖 Engine 2' : '📡 Engine 1'}
+            </span>
           </div>
           {isPossiblyExpired ? (
             <span className="flex items-center gap-1 rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]" suppressHydrationWarning>
@@ -223,23 +233,31 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
         </Link>
 
         {/* Truth Badges */}
-        {stats?.isAllTimeLow ? (
-          <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] border border-[#86efac] px-1.5 py-0.5 text-[10px] font-extrabold text-[#15803d]">
-            🔥 All-Time Lowest Price
-          </span>
-        ) : hasRealPriceDrop && realPriceDropPct >= 5 ? (
-          <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] border border-[#86efac] px-1.5 py-0.5 text-[10px] font-extrabold text-[#15803d]">
-            📉 ₹{realPriceDrop.toLocaleString('en-IN')} True Drop
-          </span>
-        ) : stats?.isFakeMrpDiscount ? (
-          <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-[#fffbeb] border border-[#fcd34d] px-1.5 py-0.5 text-[10px] font-extrabold text-[#92400e]">
-            ⚠️ Everyday Price · Inflated MRP
-          </span>
-        ) : stats?.isBelowAverage ? (
-          <span className="mb-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-[#eff6ff] border border-[#bfdbfe] px-1.5 py-0.5 text-[10px] font-extrabold text-[#1d4ed8]">
-            ✓ Below 30-Day Average
-          </span>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-1 mb-1.5">
+          {deal.hasPriceHistory && (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 text-[9.5px] font-extrabold text-indigo-700" title="Historical price history verified">
+              📈 Price History Verified
+            </span>
+          )}
+          {stats?.isAllTimeLow ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] border border-[#86efac] px-1.5 py-0.5 text-[10px] font-extrabold text-[#15803d]">
+              🔥 All-Time Lowest Price
+            </span>
+          ) : hasRealPriceDrop && realPriceDropPct >= 5 ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#f0fdf4] border border-[#86efac] px-1.5 py-0.5 text-[10px] font-extrabold text-[#15803d]">
+              📉 ₹{realPriceDrop.toLocaleString('en-IN')} True Drop
+            </span>
+          ) : stats?.isFakeMrpDiscount ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#fffbeb] border border-[#fcd34d] px-1.5 py-0.5 text-[10px] font-extrabold text-[#92400e]">
+              ⚠️ Everyday Price · Inflated MRP
+            </span>
+          ) : stats?.isBelowAverage ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md bg-[#eff6ff] border border-[#bfdbfe] px-1.5 py-0.5 text-[10px] font-extrabold text-[#1d4ed8]">
+              ✓ Below 30-Day Average
+            </span>
+          ) : null}
+        </div>
+
 
         {deal.isSeriesCard && deal.seriesVariantCount > 1 ? (
           <div className="mb-1.5">

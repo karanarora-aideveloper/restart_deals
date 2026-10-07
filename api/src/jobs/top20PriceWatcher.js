@@ -154,6 +154,7 @@ export async function syncTop20Batch(batchSize = 5) {
           if (scraped.images && scraped.images.length > 0) product.images = scraped.images;
           if (scraped.rating) product.rating = scraped.rating;
 
+          product.hasPriceHistory = Boolean(product.priceHistory && product.priceHistory.length >= 2);
           product.lastStoreSyncAt = now;
           product.lastChecked = now;
           product.updatedAt = now;
@@ -210,6 +211,8 @@ export async function syncTop20Batch(batchSize = 5) {
                 sourceChannelId: 'catalog_top20_engine',
                 sourceMessageId: `top20_${product.productId}_${Date.now()}`,
                 sourceChannelName: 'Top-20 Catalog Price Watcher',
+                sourceEngine: 'engine2',
+                hasPriceHistory: Boolean(product.hasPriceHistory || (product.priceHistory && product.priceHistory.length >= 2)),
                 originalText: `Autonomous Price Drop Detected on Top-20 ${product.top20Subcategory || 'Catalog'}: ${product.title} at ₹${livePrice}`,
                 title: product.title,
                 description: `Autonomous price drop detected on Top-20 product (${product.merchant || 'Amazon'}). Price fell from ₹${priorTrackedPrice} to ₹${livePrice}.`,
