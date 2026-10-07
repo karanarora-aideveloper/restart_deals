@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import V3DealCard from './V3DealCard';
 import { getSavedDeals } from '@/lib/savedDeals';
 import { API_BASE_URL } from '@/lib/config';
@@ -106,15 +106,17 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
     setHasMore(initialHasMore);
   }, [initialDeals, initialHasMore]);
 
+  const prevMerchantRef = useRef(merchant);
   useEffect(() => {
-    if (merchant && merchant !== activeStore) {
-      setActiveStore(merchant);
+    if (prevMerchantRef.current !== merchant) {
+      prevMerchantRef.current = merchant;
+      setActiveStore(merchant || 'all');
       const found = STORES.find((s) => s.id === merchant);
       if (found && found.group !== 'all') {
         setSelectedStoreGroup(found.group);
       }
     }
-  }, [merchant, activeStore]);
+  }, [merchant]);
 
   const filteredStores = STORES.filter((s) => {
     if (selectedStoreGroup === 'all') return true;
@@ -180,8 +182,9 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
   };
 
   const handleStoreChange = (storeId) => {
-    setActiveStore(storeId);
-    fetchFilteredDeals(activeCategory, storeId, minDiscount, activeEngine, 1, false);
+    const nextStore = (activeStore === storeId && storeId !== 'all') ? 'all' : storeId;
+    setActiveStore(nextStore);
+    fetchFilteredDeals(activeCategory, nextStore, minDiscount, activeEngine, 1, false);
   };
 
   const handleDiscountChange = (disc) => {
@@ -310,7 +313,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
                 onClick={() => handleStoreChange(store.id)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
                   activeStore === store.id
-                    ? 'bg-emerald-700 text-white shadow-xs'
+                    ? 'bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-600/50 font-black'
                     : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-500 hover:bg-emerald-50/40'
                 }`}
               >
