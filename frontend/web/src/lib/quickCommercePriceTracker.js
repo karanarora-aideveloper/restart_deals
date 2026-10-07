@@ -2,6 +2,24 @@ import { getDb } from '@/lib/mongodb';
 
 const COLLECTION_NAME = 'grocery_price_history';
 
+let indexesEnsured = false;
+async function ensureGroceryIndexes(col) {
+  if (indexesEnsured) return;
+  try {
+    await col.createIndex(
+      { platform: 1, storeId: 1, productId: 1, unit: 1 },
+      { unique: true, background: true }
+    );
+    await col.createIndex(
+      { lastSeenAt: 1 },
+      { expireAfterSeconds: 5184000, background: true } // 60 days TTL auto-eviction
+    );
+    indexesEnsured = true;
+  } catch (err) {
+    indexesEnsured = true;
+  }
+}
+
 /**
  * Enriches quick commerce items with real historical price drop data from MongoDB,
  * and asynchronously records today's price checkpoint in the database.
@@ -39,6 +57,7 @@ export async function recordAndEnrichPriceHistory({ items = [], storesEta = [], 
   }
 
   const col = db.collection(COLLECTION_NAME);
+  ensureGroceryIndexes(col).catch(() => {});
 
   // 1. Gather all keys to lookup from MongoDB (pack-size isolated)
   const lookupKeys = [];

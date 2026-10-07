@@ -83,10 +83,15 @@ const faqSchema = {
   })),
 };
 
+const GROCERY_INTENT_REGEX = /\b(milk|bread|egg|eggs|atta|flour|rice|daal|dal|oil|ghee|butter|cheese|paneer|curd|dahi|yogurt|maggi|noodle|noodles|tea|chai|coffee|biscuit|biscuits|cookie|cookies|sugar|salt|masala|onion|onions|potato|potatoes|tomato|tomatoes|vegetable|vegetables|veggies|fruit|fruits|apple|apples|banana|bananas|snack|snacks|namkeen|chips|cold drink|coke|pepsi|grocery|groceries|blinkit|instamart|zepto)\b/i;
+
 export default async function HomePage({ searchParams }) {
   const sp = await searchParams;
   const q = sp?.q || '';
   if (q && q.trim()) {
+    if (GROCERY_INTENT_REGEX.test(q)) {
+      redirect(`/compare/grocery?q=${encodeURIComponent(q.trim())}`);
+    }
     const params = new URLSearchParams(sp);
     redirect(`/products?${params.toString()}`);
   }

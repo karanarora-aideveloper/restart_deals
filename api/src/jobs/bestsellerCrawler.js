@@ -823,6 +823,9 @@ async function crawlOneSeed(seed, stats) {
                 timestamp: now,
               });
             }
+            if (existing.priceHistory.length > 90) {
+              existing.priceHistory = existing.priceHistory.slice(-90);
+            }
 
             // Autonomous deal synthesis if qualifies
             if (priorPrice && priorPrice > prodData.price) {

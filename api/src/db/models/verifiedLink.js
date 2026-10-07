@@ -49,6 +49,7 @@ const verifiedLinkSchema = new mongoose.Schema({
 });
 
 verifiedLinkSchema.index({ productId: 1 });
+verifiedLinkSchema.index({ lastChecked: 1 }, { expireAfterSeconds: 7776000 }); // 90 days TTL auto-eviction
 
 const VerifiedLink = mongoose.models.VerifiedLink || mongoose.model('VerifiedLink', verifiedLinkSchema, 'verified_links');
 

@@ -171,32 +171,49 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
           </span>
         </div>
 
-        {/* Flipkart-Style Clean Pricing Hierarchy */}
+        {/* Clean Pricing Hierarchy — Genuine Price Drop Priority */}
         <div className="mt-2 rounded-lg bg-slate-50/90 p-2 border border-slate-100 min-w-0">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-base sm:text-lg font-black tracking-tight text-slate-950">
               {formatInr(currentPrice)}
             </span>
-            {hasMrp && (
-              <span className="text-[10px] font-bold text-slate-400 line-through">
-                {formatInr(listMrp)}
-              </span>
-            )}
-            {mrpDiscountPct > 0 && (
-              <span className="text-[9.5px] font-extrabold text-emerald-600 whitespace-nowrap">
-                ({mrpDiscountPct}% off)
-              </span>
-            )}
+            {hasPriceDrop ? (
+              <>
+                <span className="text-[10.5px] font-bold text-slate-500 line-through">
+                  {formatInr(previousTrackedPrice)}
+                </span>
+                <span className="text-[9.5px] font-black text-emerald-600 whitespace-nowrap">
+                  ({priceDropPct}% drop)
+                </span>
+              </>
+            ) : hasMrp ? (
+              <>
+                <span className="text-[10px] font-bold text-slate-400 line-through">
+                  {formatInr(listMrp)}
+                </span>
+                {mrpDiscountPct > 0 && (
+                  <span className="text-[9.5px] font-extrabold text-emerald-600 whitespace-nowrap">
+                    ({mrpDiscountPct}% off)
+                  </span>
+                )}
+              </>
+            ) : null}
           </div>
 
           {/* Genuine Drop or Savings Callout */}
           <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-600 min-w-0">
-            <span className="truncate text-emerald-700 font-bold">
-              {hasPriceDrop
-                ? `📉 Drop: ₹${priceDropCash.toLocaleString('en-IN')}`
-                : mrpSavings > 0
-                ? `💰 Save ₹${mrpSavings.toLocaleString('en-IN')}`
-                : 'Verified Price'}
+            <span className="truncate font-bold">
+              {hasPriceDrop ? (
+                <span className="text-emerald-700">
+                  📉 ₹{priceDropCash.toLocaleString('en-IN')} True Drop {hasMrp && listMrp > previousTrackedPrice ? `· MRP ₹${listMrp.toLocaleString('en-IN')}` : ''}
+                </span>
+              ) : mrpSavings > 0 ? (
+                <span className="text-slate-600">
+                  💰 Save ₹{mrpSavings.toLocaleString('en-IN')} off MRP
+                </span>
+              ) : (
+                'Verified Price'
+              )}
             </span>
             <span className="text-[9px] text-slate-400 shrink-0 ml-1">90D Tracked</span>
           </div>

@@ -5,8 +5,8 @@ import { parseShoppingQuery, searchProducts, generateProductVerdicts, buildAIInt
 import { getSession, saveSession, updateSession } from './telegramSession.js';
 import { buildAffiliateUrl } from '../utils/affiliate.js';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8872731267:AAHZPaj750-lxPzzLkM_kPM25RtSuQEbizM';
-const BASE_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const BASE_API = TELEGRAM_BOT_TOKEN ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}` : '';
 const WEBSITE_URL = (process.env.WEBSITE_BASE_URL || 'https://www.shoppersdeals.in').replace(/\/+$/, '');
 
 let isPolling = false;
@@ -27,6 +27,9 @@ function escapeHtml(text = '') {
  * Makes a Telegram Bot API HTTP request.
  */
 async function callTelegram(method, payload = {}, timeoutMs = 15000) {
+  if (!TELEGRAM_BOT_TOKEN) {
+    return { ok: false, error: 'TELEGRAM_BOT_TOKEN not configured' };
+  }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -61,6 +64,10 @@ async function sendChatAction(chatId, action = 'typing') {
  * Starts the Telegram Customer Assistant long-polling loop.
  */
 export async function startTelegramBot() {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.warn('[Telegram Bot Warning] TELEGRAM_BOT_TOKEN is not configured. Telegram bot service disabled.');
+    return;
+  }
   if (isPolling) {
     console.log('[Telegram Bot] Bot is already running.');
     return;
@@ -104,6 +111,20 @@ async function pollLoop() {
         allowed_updates: ['message', 'callback_query']
       }, 35000);
 
+      if (!res.ok) {
+        if (res.error_code === 409 || res.description?.includes('conflict') || res.description?.includes('terminated by other getUpdates')) {
+          console.warn('[Telegram Bot] ⏸️ Overlapping polling instance detected (409 Conflict). Backing off for 30s...');
+          await new Promise(r => setTimeout(r, 30000));
+        } else if (res.error_code === 429) {
+          const retryAfter = res.parameters?.retry_after || 10;
+          console.warn(`[Telegram Bot] Rate limited (429). Waiting ${retryAfter}s...`);
+          await new Promise(r => setTimeout(r, retryAfter * 1000));
+        } else {
+          await new Promise(r => setTimeout(r, 3000));
+        }
+        continue;
+      }
+
       if (res.ok && Array.isArray(res.result) && res.result.length > 0) {
         for (const update of res.result) {
           lastUpdateId = update.update_id;
@@ -114,7 +135,7 @@ async function pollLoop() {
       }
     } catch (err) {
       if (!isPolling) break;
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 3000));
     }
   }
 }
@@ -147,6 +168,14 @@ async function handleMessage(message) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (emailRegex.test(rawText)) {
     await handleEmailSubmission(chatId, rawText.toLowerCase(), username, firstName, session);
+    return;
+  }
+
+  // 1.5 Handle deep-link /start alert_PRODUCTID
+  const alertDeepLinkMatch = rawText.match(/^\/start\s+alert_([A-Za-z0-9_-]+)/i);
+  if (alertDeepLinkMatch) {
+    const pId = alertDeepLinkMatch[1];
+    await handleDeepLinkAlert(chatId, pId, username, firstName);
     return;
   }
 
@@ -223,6 +252,80 @@ async function handleMessage(message) {
   // 9. Generate Verdicts and Send Response
   const verdicts = generateProductVerdicts(parsed, products);
   await sendProductRecommendations(chatId, queryText, products, verdicts, totalCount, 0, hasMore, parsed);
+}
+
+/**
+ * Handles 1-tap price drop alert activation via deep-link (/start alert_PRODUCTID)
+ */
+async function handleDeepLinkAlert(chatId, rawProductId, username, firstName) {
+  try {
+    let product = await Product.findOne({ productId: rawProductId });
+    if (!product && rawProductId.length === 24) {
+      product = await Product.findById(rawProductId).catch(() => null);
+    }
+
+    if (!product) {
+      await callTelegram('sendMessage', {
+        chat_id: chatId,
+        text: `👋 Hey ${firstName}! We received your alert request, but couldn't find this item in our catalog. You can search for it directly by typing its name below!`,
+      });
+      return;
+    }
+
+    const currentPrice = product.price || 0;
+    const targetPrice = currentPrice > 0 ? Math.round(currentPrice * 0.9) : 0; // Default 10% drop target
+
+    await PriceAlert.findOneAndUpdate(
+      { productId: product.productId, telegramChatId: String(chatId), status: 'active' },
+      {
+        $set: {
+          productId: product.productId,
+          merchant: product.merchant || 'amazon',
+          title: product.title,
+          imageUrl: product.imageUrl || (product.images && product.images[0]) || '',
+          cleanUrl: product.cleanUrl || '',
+          targetPrice: targetPrice,
+          initialPrice: currentPrice,
+          telegramChatId: String(chatId),
+          telegramUsername: username,
+          source: 'telegram_bot_deeplink',
+          status: 'active',
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    const priceText = currentPrice > 0 ? `₹${currentPrice.toLocaleString('en-IN')}` : 'Current price';
+    const targetText = targetPrice > 0 ? `₹${targetPrice.toLocaleString('en-IN')}` : 'a lower price';
+
+    await callTelegram('sendMessage', {
+      chat_id: chatId,
+      text: `🎉 <b>Price Drop Alert Activated!</b>\n\n` +
+        `📦 <b>${escapeHtml((product.title || 'Tracked Product').slice(0, 80))}...</b>\n\n` +
+        `💰 Current Price: <b>${priceText}</b>\n` +
+        `🎯 Alert Target: <b>${targetText}</b> (10% drop)\n\n` +
+        `⚡ We monitor this product 24/7. The moment the merchant drops the price, we will ping you right here on Telegram!`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '🛍️ View On Store', url: product.cleanUrl || 'https://shoppersdeals.in' },
+            { text: '🔔 View All Alerts', callback_data: 'my_alerts' }
+          ]
+        ]
+      }
+    });
+  } catch (err) {
+    console.error('[Telegram Bot] Deep link alert error:', err);
+    await callTelegram('sendMessage', {
+      chat_id: chatId,
+      text: `Sorry ${firstName}, could not activate the alert at this moment. Please try again!`,
+    });
+  }
 }
 
 /**

@@ -5,7 +5,6 @@ import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 const MIN_ACTIVE_TOKENS = 5;
 const TARGET_POOL_SIZE = 8;
 const MAX_BATCH_SIZE = 4;
-const DEFAULT_CAPTCHA_API_KEY = '00f69cd4eefad8d5ccfe712289733973';
 
 let isReplenishing = false;
 let lastCheckTimestamp = 0;
@@ -34,8 +33,13 @@ export async function checkAndReplenishTokens({
       return { needed: true, inProgress: true, activeCount };
     }
 
+    const captchaApiKey = process.env.TWOCAPTCHA_API_KEY;
+    if (!captchaApiKey) {
+      console.warn('[TokenReplenisher Warning] TWOCAPTCHA_API_KEY is not set in environment. Autonomous replenishment skipped.');
+      return { needed: true, error: 'TWOCAPTCHA_API_KEY missing' };
+    }
+
     const tokensNeeded = Math.min(Math.max(1, targetPool - activeCount), MAX_BATCH_SIZE);
-    const captchaApiKey = process.env.TWOCAPTCHA_API_KEY || DEFAULT_CAPTCHA_API_KEY;
 
     console.log(`[TokenReplenisher] ⚠️ Active token count (${activeCount}) is below safety threshold (${minThreshold}). Starting autonomous generation of ${tokensNeeded} token(s)...`);
 

@@ -2124,6 +2124,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
           originalPrice: effectiveMRP || productRecord.originalPrice,
           timestamp: now
         });
+        if (productRecord.priceHistory.length > 90) {
+          productRecord.priceHistory = productRecord.priceHistory.slice(-90);
+        }
       } else {
         if (!productRecord.priceUpdatedAt) productRecord.priceUpdatedAt = now;
       }
@@ -2174,6 +2177,13 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
   // 10. Database Save (Deals Collection)
   try {
+    const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null);
+
+    if (!authenticPrev || authenticPrev <= verifiedDealPrice) {
+      console.log(`[Verifier] 📦 Product "${actualTitle}" does not qualify as a true deal (Current: ₹${verifiedDealPrice}, Prior: ₹${authenticPrev || 'None'}). Saved to catalog only. Skipping Deal creation.`);
+      return null;
+    }
+
     let deal = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, country, merchant }] });
 
     if (deal) {

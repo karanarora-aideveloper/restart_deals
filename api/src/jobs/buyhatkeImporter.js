@@ -203,42 +203,50 @@ export async function importBuyHatkeDeals(targetUrl, maxItems = 25) {
         await product.save();
       }
 
-      // 2. Upsert Verified Deal
-      let deal = await Deal.findOne({ dealUrl: cleanUrl });
-      if (!deal) {
-        deal = new Deal({
-          sourceChannelId: '-100_BUYHATKE_IMPORT',
-          sourceMessageId: `bh_${Date.now()}_${i}`,
-          sourceChannelName: 'BUYHATKE VERIFIED',
-          originalText: `BuyHatke Verified Deal: ${productDetails.title} at ₹${dealPrice}`,
-          title: productDetails.title,
-          description: `Verified discount on ${merchant.toUpperCase()}: ₹${dealPrice} (MRP ₹${originalPrice}, ${discountPercentage}% OFF)`,
-          imageUrl: images[0] || '',
-          images,
-          rating: productDetails.rating,
-          dealUrl: cleanUrl,
-          productId,
-          merchant,
-          dealPrice,
-          originalPrice,
-          discountPercentage,
-          priceSource: 'scraped',
-          category: 'electronics',
-          subcategory: 'Smartphones',
-          isVerified: true,
-          isExpired: false,
-          createdAt: now,
-        });
-        await deal.save();
-        stats.dealsCreated++;
-        console.log(` -> 🏷️ Published Verified Deal: [${merchant.toUpperCase()}] ₹${dealPrice} (${discountPercentage}% OFF)`);
-      } else {
-        deal.dealPrice = dealPrice;
-        deal.originalPrice = originalPrice;
-        deal.discountPercentage = discountPercentage;
-        deal.isExpired = false;
-        deal.createdAt = now;
-        await deal.save();
+      // 2. Synthesize Verified Deal ONLY IF genuine price drop against tracked history
+      const priorPrice = product.previousPrice || (product.price && product.price > dealPrice ? product.price : null);
+      if (priorPrice && priorPrice > dealPrice) {
+        const genuineDiscount = Math.round(((priorPrice - dealPrice) / priorPrice) * 100);
+        let deal = await Deal.findOne({ dealUrl: cleanUrl });
+        if (!deal) {
+          deal = new Deal({
+            sourceChannelId: '-100_BUYHATKE_IMPORT',
+            sourceMessageId: `bh_${Date.now()}_${i}`,
+            sourceChannelName: 'BUYHATKE VERIFIED',
+            originalText: `BuyHatke Verified Deal: ${productDetails.title} at ₹${dealPrice}`,
+            title: productDetails.title,
+            description: `Verified price drop on ${merchant.toUpperCase()}: dropped from ₹${priorPrice} to ₹${dealPrice} (${genuineDiscount}% DROP)`,
+            imageUrl: images[0] || '',
+            images,
+            rating: productDetails.rating,
+            dealUrl: cleanUrl,
+            productId,
+            merchant,
+            dealPrice,
+            previousPrice: priorPrice,
+            originalPrice,
+            discountPercentage: genuineDiscount,
+            priceSource: 'price_history',
+            category: 'electronics',
+            subcategory: 'Smartphones',
+            isVerified: true,
+            isExpired: false,
+            createdAt: now,
+          });
+          await deal.save();
+          stats.dealsCreated++;
+          console.log(` -> 🏷️ Published Verified Deal: [${merchant.toUpperCase()}] ₹${dealPrice} (${genuineDiscount}% TRUE DROP)`);
+        } else {
+          deal.dealPrice = dealPrice;
+          deal.previousPrice = priorPrice;
+          deal.originalPrice = originalPrice;
+          deal.discountPercentage = genuineDiscount;
+          deal.priceSource = 'price_history';
+          deal.isExpired = false;
+          deal.isVerified = true;
+          deal.updatedAt = now;
+          await deal.save();
+        }
       }
     } catch (itemErr) {
       stats.errors++;

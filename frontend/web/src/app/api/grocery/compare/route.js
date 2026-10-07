@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import {
+  ALL_INDIA_LOCALITIES,
   GWALIOR_LOCALITIES,
+  findNearestLocality,
   findNearestGwaliorLocality,
   getLocalityById,
-  searchGroceryCatalog,
 } from '@/lib/groceryConfig';
 import {
   fetchStoreEtas,
@@ -45,9 +46,9 @@ export async function GET(request) {
           instamartEta: '12–15 mins',
         };
       } else {
-        const gwaliorCandidate = findNearestGwaliorLocality(lat, lng);
-        if (gwaliorCandidate.distanceKm <= 40) {
-          locality = gwaliorCandidate;
+        const nearestCandidate = findNearestLocality(lat, lng);
+        if (nearestCandidate.distanceKm <= 35) {
+          locality = nearestCandidate;
           localityId = locality.id;
         } else {
           locality = {
@@ -157,29 +158,10 @@ export async function GET(request) {
       console.warn('Live quick commerce query failed, using benchmark fallback:', liveErr.message);
     }
 
-    // Fallback gracefully only if live APIs return 0 items (e.g. unserviceable area)
+    // If live dark stores return 0 items (e.g. unserviceable coordinates or timeout),
+    // strictly return empty results — NEVER inject hardcoded fake/mock products!
     if (items.length === 0) {
-      items = searchGroceryCatalog({
-        query: q,
-        category: category === 'loots' ? 'all' : category,
-        localityId,
-      }).map((item) => ({
-        ...item,
-        blinkit: item.blinkit
-          ? {
-              ...item.blinkit,
-              eta: liveBlinkitEta || item.blinkit.eta,
-              storeOpen: liveBlinkitObj?.open !== false && liveBlinkitObj?.eta !== 'Closed',
-            }
-          : null,
-        instamart: item.instamart
-          ? {
-              ...item.instamart,
-              eta: liveInstamartEta || item.instamart.eta,
-              storeOpen: liveSwiggyObj?.open !== false && liveSwiggyObj?.eta !== 'Closed',
-            }
-          : null,
-      }));
+      source = 'none';
     }
 
     // Summary statistics
@@ -206,7 +188,7 @@ export async function GET(request) {
       locality,
       source,
       storesEta,
-      availableLocalities: GWALIOR_LOCALITIES,
+      availableLocalities: ALL_INDIA_LOCALITIES,
       stats: {
         totalItems: items.length,
         blinkitCheaperCount,

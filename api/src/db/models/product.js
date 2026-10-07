@@ -37,15 +37,22 @@ const productSchema = new mongoose.Schema({
   productId: { 
     type: String, 
     required: true
+  }, // ASIN or Flipkart PID or canonical Product ID
+  country: {
+    type: String,
+    default: 'IN'
+  },
+  sourceChannelName: {
+    type: String
   },
   cleanUrl: { 
     type: String, 
     required: true 
-  },
+  }, // Canonical clean URL
   merchant: { 
     type: String, 
     required: true 
-  },
+  }, // amazon, flipkart, etc.
   title: { 
     type: String 
   },
@@ -82,12 +89,15 @@ const productSchema = new mongoose.Schema({
   price: {
     type: Number
   },
-  // Substitute-MRP baseline for the price-history discount fallback (see backend/src/listener/
-  // verifier.js) — only set on a genuine (>=5%) drop against our own last recorded price, used
-  // when no real scraped/text MRP was available. Distinct from originalPrice.
+  // Substitute-MRP baseline for the price-history discount fallback (see verifier.js) — only set
+  // when a genuine (>=5%) drop was detected against our own last recorded price, used when no real
+  // scraped/text MRP was available. Distinct from originalPrice, which is an actual MRP/strike-
+  // through price when one was found.
   previousPrice: {
     type: Number
   },
+  // How the current price/discount was established — lets a future pass flip isVerified based on
+  // this without another migration (only 'scraped' means a live page confirmed it this run).
   priceSource: {
     type: String,
     enum: ['scraped', 'ai_text', 'price_history', 'extension', 'user_search']
@@ -100,17 +110,13 @@ const productSchema = new mongoose.Schema({
     default: Date.now
   },
   priceHistory: [priceHistorySchema],
-  // No hardcoded enum — valid values are managed dynamically via the Master collection
-  // (type: 'category'). A stale hardcoded list here would reject any category added
-  // after this schema was written (electronics/fashion/home/beauty all postdate it).
   category: {
     type: String,
     default: 'home'
   },
   // Same story as category — no hardcoded enum, values managed via the Master collection
   // (type: 'subcategory', metadata.parentCategory pointing at the category id). Empty string
-  // means "not yet classified" (older products backfilled after this field was introduced, or
-  // the AI classifier didn't find a confident subcategory match).
+  // means "not yet classified".
   subcategory: {
     type: String,
     default: 'decor'
@@ -119,18 +125,20 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // Mirrors backend/src/db/models/product.js — true for a product seen mentioned but not yet
-  // fully verified (missing image/price/genuine discount). Must be declared here too or
-  // Mongoose strips it from API responses (this service is what the admin dashboard and app
-  // actually read from).
+  // True for a product we've seen mentioned but couldn't fully verify yet (missing an image,
+  // a price, or a genuine discount — see verifyAndProcessMessage's final gate in verifier.js).
+  // Recorded anyway so we have visibility into every product our channels cover, not just the
+  // ones that cleared the bar for a displayable Deal. Flips to false the moment a later pass
+  // (a repost, or a scheduled backfill re-scrape) completes it. Query
+  // `Product.find({ needsEnrichment: true })` to find candidates for that backfill.
   needsEnrichment: {
     type: Boolean,
     default: false
   },
   // Admin-facing "this record looks wrong" flag — a human judgment call (bad title, wrong
-  // image, garbage price, mismatched product), distinct from needsEnrichment (which is the
-  // pipeline's own "I don't have enough data yet" signal). Mirrors backend/src/db/models/
-  // product.js — must be declared here too or Mongoose strips it from API responses.
+  // image, garbage price, mismatched product), distinct from needsEnrichment above (the
+  // pipeline's own "I don't have enough data yet" signal). Set/cleared only via the admin's
+  // PATCH /api/products/:id/flag route — this pipeline never touches it.
   isFlagged: {
     type: Boolean,
     default: false
@@ -142,20 +150,18 @@ const productSchema = new mongoose.Schema({
   flaggedAt: {
     type: Date
   },
-  // Extracted variant/size information (weight, volume, pack size).
-  // Used to detect mismatches when comparing prices across stores —
-  // e.g. Amazon 2 kg vs Flipkart 1 kg should NOT be compared directly.
+  // Extracted variant/size information. Used for cross-store mismatch detection.
   variant: {
-    raw: { type: String, default: null },       // raw matched text, e.g. "8 GB RAM / 256 GB • Blue"
-    display: { type: String, default: null },   // formatted label, e.g. "256 GB • Blue" or "Shade: 128 Warm Nude"
-    weightGrams: { type: Number, default: null }, // single-unit weight in grams
-    packSize: { type: Number, default: 1 },       // number of units in pack
-    totalGrams: { type: Number, default: null }, // weightGrams * packSize
-    storageGb: { type: Number, default: null },  // tech storage in GB
-    ramGb: { type: Number, default: null },      // tech RAM in GB
-    color: { type: String, default: null },      // tech/fashion color
-    shade: { type: String, default: null },      // cosmetic/beauty shade
-    type: { type: String, default: null },       // 'weight'|'volume'|'count'|'piece'|'tech_storage'|'shade'
+    raw: { type: String, default: null },
+    display: { type: String, default: null },
+    weightGrams: { type: Number, default: null },
+    packSize: { type: Number, default: 1 },
+    totalGrams: { type: Number, default: null },
+    storageGb: { type: Number, default: null },
+    ramGb: { type: Number, default: null },
+    color: { type: String, default: null },
+    shade: { type: String, default: null },
+    type: { type: String, default: null },
   },
   // Multi-shade/size SKUs for beauty & fashion
   variants: [variantSkuSchema],
@@ -238,16 +244,17 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  lastChecked: {
-    type: Date,
-    default: Date.now
-  },
-  // lastStoreSyncAt: only updated when a real merchant network scrape happens (not on cache hits)
+  // lastStoreSyncAt: exact moment we actually fetched fresh data from the merchant's own
+  // store page (Amazon / Flipkart / etc.) — ONLY updated when a real network scrape happens,
+  // never on cache hits. This is the number to use when measuring "how fresh is our listing".
   lastStoreSyncAt: {
     type: Date,
     default: null
   },
-  // lastTelegramSeenAt: updated every time any Telegram channel posts this product URL
+  // lastTelegramSeenAt: every time any Telegram channel posts a link to this product, we
+  // stamp this. Updated on both cache hits AND fresh scrapes — it's "the last time any
+  // channel talked about this product", regardless of whether we went to the store or not.
+  // Lets the admin see which channels are repeatedly posting the same product.
   lastTelegramSeenAt: {
     type: Date,
     default: null
@@ -260,12 +267,9 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  country: {
-    type: String,
-    default: 'IN'
-  },
-  sourceChannelName: {
-    type: String
+  lastChecked: {
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,

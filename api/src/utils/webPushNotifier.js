@@ -3,20 +3,24 @@ import PushToken from '../db/models/pushToken.js';
 import PriceAlert from '../db/models/priceAlert.js';
 import { isFirebaseAdminReady, getMessaging } from './firebaseAdmin.js';
 
-// Default VAPID credentials for ShoppersDeals Web Push
-export const DEFAULT_VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BMf1wMv-5-B1yOV-brXysz3U9hJQzIUe7AinBbOfZ3HNJP0V4X9PUUK6HKxRo3c9vgFVL1VpgRilnWOj550ev5Q';
-const DEFAULT_VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '0qJjUFijCmWt5W-GhsvbLabm2iJxgneqv77JoYw5LE0';
+// VAPID credentials for ShoppersDeals Web Push
+export const DEFAULT_VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const DEFAULT_VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const DEFAULT_VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support@shoppersdeals.in';
 
-try {
-  webpush.setVapidDetails(
-    DEFAULT_VAPID_SUBJECT,
-    DEFAULT_VAPID_PUBLIC_KEY,
-    DEFAULT_VAPID_PRIVATE_KEY
-  );
-  console.log('[Web Push] VAPID details configured successfully.');
-} catch (err) {
-  console.warn('[Web Push Warning] Could not configure VAPID details:', err.message);
+if (DEFAULT_VAPID_PUBLIC_KEY && DEFAULT_VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      DEFAULT_VAPID_SUBJECT,
+      DEFAULT_VAPID_PUBLIC_KEY,
+      DEFAULT_VAPID_PRIVATE_KEY
+    );
+    console.log('[Web Push] VAPID details configured successfully.');
+  } catch (err) {
+    console.warn('[Web Push Warning] Could not configure VAPID details:', err.message);
+  }
+} else {
+  console.warn('[Web Push Warning] VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is missing from environment. Browser Web Push will be inactive.');
 }
 
 /**

@@ -1,12 +1,190 @@
 /**
- * Gwalior Quick Commerce Localities & Dark Store Mappings
- * Blinkit & Swiggy Instamart Geo-Coordinates & Delivery Zones
+ * All-India Quick Commerce Localities & Dark Store Mappings
+ * Blinkit & Swiggy Instamart Geo-Coordinates & Delivery Zones across India
  */
 
-export const GWALIOR_LOCALITIES = [
+export const ALL_INDIA_LOCALITIES = [
+  // Delhi NCR
+  {
+    id: 'delhi-cp',
+    name: 'Connaught Place / Central Delhi',
+    city: 'New Delhi',
+    pincode: '110001',
+    lat: 28.6315,
+    lng: 77.2167,
+    blinkitStore: 'Connaught Place Hub',
+    instamartStore: 'Central Delhi Pod',
+    blinkitEta: '8–10 mins',
+    instamartEta: '10–12 mins',
+  },
+  {
+    id: 'delhi-south-ext',
+    name: 'South Extension / Lajpat Nagar',
+    city: 'New Delhi',
+    pincode: '110049',
+    lat: 28.5729,
+    lng: 77.2227,
+    blinkitStore: 'South Ext Hub',
+    instamartStore: 'Lajpat Nagar Pod',
+    blinkitEta: '7–9 mins',
+    instamartEta: '9–11 mins',
+  },
+  {
+    id: 'delhi-dwarka',
+    name: 'Dwarka / Sector 10',
+    city: 'New Delhi',
+    pincode: '110075',
+    lat: 28.5823,
+    lng: 77.0500,
+    blinkitStore: 'Dwarka Sector 10 Hub',
+    instamartStore: 'Dwarka Pod',
+    blinkitEta: '8–11 mins',
+    instamartEta: '10–14 mins',
+  },
+  // Mumbai
+  {
+    id: 'mumbai-bandra',
+    name: 'Bandra West / Linking Road',
+    city: 'Mumbai',
+    pincode: '400050',
+    lat: 19.0596,
+    lng: 72.8295,
+    blinkitStore: 'Bandra West Hub',
+    instamartStore: 'Bandra Pod',
+    blinkitEta: '7–10 mins',
+    instamartEta: '9–12 mins',
+  },
+  {
+    id: 'mumbai-andheri',
+    name: 'Andheri West / Lokhandwala',
+    city: 'Mumbai',
+    pincode: '400053',
+    lat: 19.1363,
+    lng: 72.8277,
+    blinkitStore: 'Lokhandwala Hub',
+    instamartStore: 'Andheri Pod',
+    blinkitEta: '8–10 mins',
+    instamartEta: '10–13 mins',
+  },
+  {
+    id: 'mumbai-powai',
+    name: 'Powai / Hiranandani',
+    city: 'Mumbai',
+    pincode: '400076',
+    lat: 19.1176,
+    lng: 72.9060,
+    blinkitStore: 'Powai Central Hub',
+    instamartStore: 'Hiranandani Pod',
+    blinkitEta: '8–12 mins',
+    instamartEta: '9–13 mins',
+  },
+  // Bengaluru
+  {
+    id: 'blr-koramangala',
+    name: 'Koramangala / 5th Block',
+    city: 'Bengaluru',
+    pincode: '560095',
+    lat: 12.9352,
+    lng: 77.6245,
+    blinkitStore: 'Koramangala Hub',
+    instamartStore: 'Koramangala Pod',
+    blinkitEta: '6–9 mins',
+    instamartEta: '8–11 mins',
+  },
+  {
+    id: 'blr-indiranagar',
+    name: 'Indiranagar / 100ft Road',
+    city: 'Bengaluru',
+    pincode: '560038',
+    lat: 12.9784,
+    lng: 77.6408,
+    blinkitStore: 'Indiranagar Hub',
+    instamartStore: 'Indiranagar Pod',
+    blinkitEta: '7–10 mins',
+    instamartEta: '8–12 mins',
+  },
+  {
+    id: 'blr-hsr',
+    name: 'HSR Layout / Sector 1',
+    city: 'Bengaluru',
+    pincode: '560102',
+    lat: 12.9121,
+    lng: 77.6446,
+    blinkitStore: 'HSR Layout Hub',
+    instamartStore: 'HSR Pod',
+    blinkitEta: '8–10 mins',
+    instamartEta: '9–12 mins',
+  },
+  // Hyderabad
+  {
+    id: 'hyd-hitec-city',
+    name: 'Hitec City / Madhapur',
+    city: 'Hyderabad',
+    pincode: '500081',
+    lat: 17.4435,
+    lng: 78.3772,
+    blinkitStore: 'Hitec City Hub',
+    instamartStore: 'Madhapur Pod',
+    blinkitEta: '8–11 mins',
+    instamartEta: '10–13 mins',
+  },
+  // Kolkata
+  {
+    id: 'kol-salt-lake',
+    name: 'Salt Lake / Sector V',
+    city: 'Kolkata',
+    pincode: '700091',
+    lat: 22.5867,
+    lng: 88.4178,
+    blinkitStore: 'Salt Lake Hub',
+    instamartStore: 'Sector V Pod',
+    blinkitEta: '9–12 mins',
+    instamartEta: '11–14 mins',
+  },
+  // Chennai
+  {
+    id: 'chn-t-nagar',
+    name: 'T. Nagar / Pondy Bazaar',
+    city: 'Chennai',
+    pincode: '600017',
+    lat: 13.0418,
+    lng: 80.2341,
+    blinkitStore: 'T. Nagar Hub',
+    instamartStore: 'Pondy Bazaar Pod',
+    blinkitEta: '8–11 mins',
+    instamartEta: '10–13 mins',
+  },
+  // Pune
+  {
+    id: 'pune-kothrud',
+    name: 'Kothrud / Paud Road',
+    city: 'Pune',
+    pincode: '411038',
+    lat: 18.5074,
+    lng: 73.8077,
+    blinkitStore: 'Kothrud Hub',
+    instamartStore: 'Paud Road Pod',
+    blinkitEta: '8–11 mins',
+    instamartEta: '10–12 mins',
+  },
+  // Guwahati
+  {
+    id: 'guwahati-gs-road',
+    name: 'GS Road / Christian Basti',
+    city: 'Guwahati',
+    pincode: '781005',
+    lat: 26.1554,
+    lng: 91.7770,
+    blinkitStore: 'Christian Basti Hub',
+    instamartStore: 'GS Road Pod',
+    blinkitEta: '9–12 mins',
+    instamartEta: '12–15 mins',
+  },
+  // Gwalior
   {
     id: 'city-centre',
     name: 'City Centre / Govindpuri',
+    city: 'Gwalior',
     pincode: '474011',
     lat: 26.2045,
     lng: 78.1963,
@@ -18,10 +196,11 @@ export const GWALIOR_LOCALITIES = [
   {
     id: 'lashkar',
     name: 'Lashkar / Lohiya Bazaar',
+    city: 'Gwalior',
     pincode: '474001',
     lat: 26.2012,
     lng: 78.1585,
-    blinkitStore: 'Naukar Hospital / Lohiya Bazaar Hub',
+    blinkitStore: 'Naukar Hospital Hub',
     instamartStore: 'Lashkar Pod',
     blinkitEta: '11–13 mins',
     instamartEta: '14–16 mins',
@@ -29,10 +208,11 @@ export const GWALIOR_LOCALITIES = [
   {
     id: 'thatipur-morar',
     name: 'Thatipur / Morar',
+    city: 'Gwalior',
     pincode: '474006',
     lat: 26.2235,
     lng: 78.2140,
-    blinkitStore: 'Kalpi Road / Thatipur Hub',
+    blinkitStore: 'Kalpi Road Hub',
     instamartStore: 'Morar Pod',
     blinkitEta: '12–14 mins',
     instamartEta: '12–15 mins',
@@ -40,6 +220,7 @@ export const GWALIOR_LOCALITIES = [
   {
     id: 'airport-road',
     name: 'Airport Road / DD Nagar',
+    city: 'Gwalior',
     pincode: '474005',
     lat: 26.2421,
     lng: 78.2045,
@@ -51,6 +232,7 @@ export const GWALIOR_LOCALITIES = [
   {
     id: 'hazira-fort',
     name: 'Hazira / Fort View',
+    city: 'Gwalior',
     pincode: '474003',
     lat: 26.2300,
     lng: 78.1700,
@@ -60,6 +242,8 @@ export const GWALIOR_LOCALITIES = [
     instamartEta: '15–18 mins',
   },
 ];
+
+export const GWALIOR_LOCALITIES = ALL_INDIA_LOCALITIES.filter((l) => l.city === 'Gwalior');
 
 /**
  * Top 50 Daily Staples in Gwalior (Blinkit vs Swiggy Instamart)
@@ -496,15 +680,15 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Resolves closest Gwalior locality from GPS coordinates
+ * Resolves closest locality across India from GPS coordinates
  */
-export function findNearestGwaliorLocality(lat, lng) {
-  if (!lat || !lng) return GWALIOR_LOCALITIES[0];
+export function findNearestLocality(lat, lng) {
+  if (!lat || !lng) return ALL_INDIA_LOCALITIES[0];
 
-  let closest = GWALIOR_LOCALITIES[0];
+  let closest = ALL_INDIA_LOCALITIES[0];
   let minDistance = Infinity;
 
-  for (const loc of GWALIOR_LOCALITIES) {
+  for (const loc of ALL_INDIA_LOCALITIES) {
     const dist = calculateDistanceKm(lat, lng, loc.lat, loc.lng);
     if (dist < minDistance) {
       minDistance = dist;
@@ -516,12 +700,19 @@ export function findNearestGwaliorLocality(lat, lng) {
 }
 
 /**
+ * Resolves closest Gwalior locality from GPS coordinates (backwards-compatibility)
+ */
+export function findNearestGwaliorLocality(lat, lng) {
+  return findNearestLocality(lat, lng);
+}
+
+/**
  * Get locality metadata by ID
  */
 export function getLocalityById(localityId) {
   return (
-    GWALIOR_LOCALITIES.find((l) => l.id === localityId) ||
-    GWALIOR_LOCALITIES[0]
+    ALL_INDIA_LOCALITIES.find((l) => l.id === localityId) ||
+    ALL_INDIA_LOCALITIES[0]
   );
 }
 

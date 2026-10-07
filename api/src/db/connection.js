@@ -8,8 +8,13 @@ export async function connectDB() {
   }
 
   try {
-    await mongoose.connect(config.mongodbUri);
-    console.log('[API Database] Connected to MongoDB Atlas successfully.');
+    await mongoose.connect(config.mongodbUri, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('[API Database] Connected to MongoDB Atlas successfully (poolSize: 10).');
   } catch (err) {
     console.error('[API Database Error] Connection failed:', err.message);
     process.exit(1);

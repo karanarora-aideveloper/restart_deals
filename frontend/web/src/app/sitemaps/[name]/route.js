@@ -40,6 +40,9 @@ export async function GET(request, { params }) {
       '/hot',
       '/products',
       '/compare',
+      '/compare/grocery',
+      '/coupons',
+      '/credit-cards',
       '/categories',
       '/sitemap',
       '/blog',
@@ -48,8 +51,8 @@ export async function GET(request, { params }) {
     ].map((path) => ({
       url: `${SITE_URL}${path}`,
       lastModified: now,
-      changeFrequency: path === '' || path === '/hot' ? 'always' : 'daily',
-      priority: path === '' ? 1.0 : 0.8,
+      changeFrequency: path === '' || path === '/hot' || path === '/compare/grocery' ? 'always' : 'daily',
+      priority: path === '' ? 1.0 : path === '/compare/grocery' ? 0.95 : 0.8,
     }));
 
     const categoryRoutes = Object.keys(CATEGORY_LABELS).map((cat) => ({

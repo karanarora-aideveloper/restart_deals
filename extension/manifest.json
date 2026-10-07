@@ -33,17 +33,18 @@
   ],
   "host_permissions": [
     "*://*.amazon.in/*",
+    "*://*.amazon.com/*",
     "*://*.flipkart.com/*",
     "*://*.myntra.com/*",
     "*://*.nykaa.com/*",
     "*://*.ajio.com/*",
-    "https://api.shoppersdeals.in/*",
-    "http://localhost:5001/*"
+    "https://api.shoppersdeals.in/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "*://*.amazon.in/*",
+        "*://*.amazon.com/*",
         "*://*.flipkart.com/*",
         "*://*.myntra.com/*",
         "*://*.nykaa.com/*",
@@ -67,6 +68,7 @@
       ],
       "matches": [
         "*://*.amazon.in/*",
+        "*://*.amazon.com/*",
         "*://*.flipkart.com/*",
         "*://*.myntra.com/*",
         "*://*.nykaa.com/*",

@@ -9,14 +9,13 @@ const reviewSchema = new mongoose.Schema({
   verifiedPurchase: { type: Boolean, default: false }
 }, { _id: false });
 
-// Mirrors backend/src/db/models/deal.js — the extra coupon a shopper applies on the merchant page
-// for a further saving on top of dealPrice. Must be declared here too or Mongoose strips it from
-// API responses (this service is what the admin dashboard and mobile app actually read from).
+// Declared as its own schema rather than a nested object literal: a field literally named "type"
+// is ambiguous to Mongoose inside a plain nested object, and _id:false only applies to a schema.
 const couponSchema = new mongoose.Schema({
   type: { type: String, enum: ['percent', 'flat', 'code'] },
-  value: { type: Number },
-  code: { type: String },
-  label: { type: String }
+  value: { type: Number },  // percent (e.g. 2) or flat currency amount (e.g. 50); null if code-only
+  code: { type: String },   // literal code to enter, when there is one
+  label: { type: String }   // short display string, e.g. "Apply 2% coupon"
 }, { _id: false });
 
 const dealSchema = new mongoose.Schema({
@@ -27,6 +26,10 @@ const dealSchema = new mongoose.Schema({
   sourceMessageId: { 
     type: String, 
     required: true 
+  },
+  country: {
+    type: String,
+    default: 'IN'
   },
   sourceChannelName: {
     type: String
@@ -55,11 +58,13 @@ const dealSchema = new mongoose.Schema({
     type: Number 
   },
   reviews: [reviewSchema],
-  dealUrl: { 
-    type: String, 
-    required: true 
+  dealUrl: {
+    type: String,
+    required: true
   },
-  // Canonical merchant product ID (ASIN / Flipkart PID / etc.)
+  // Canonical merchant product ID (ASIN / Flipkart PID) — the real identity of "same product",
+  // since dealUrl/cleanUrl can legitimately differ between posts of the same product (e.g. Flipkart
+  // resolves the same pid through different landing-page slugs depending on the source link).
   productId: {
     type: String
   },
@@ -73,18 +78,24 @@ const dealSchema = new mongoose.Schema({
     type: Number
   },
   // Substitute-MRP baseline when the price-history fallback found a genuine (>=5%) drop against
-  // our own last recorded price — see backend/src/listener/verifier.js. Null when the discount
-  // came from a real scraped/text MRP instead (originalPrice covers that case).
+  // our own last recorded price for this product — see verifier.js. Null when the discount came
+  // from a real scraped/text MRP instead (originalPrice covers that case).
   previousPrice: {
     type: Number
   },
   discountPercentage: {
     type: Number
   },
+  // How this deal's discount was established: 'scraped' (a live page confirmed it this run),
+  // 'ai_text' (AI found both prices directly in the message text, or cache-hit without a fresh
+  // scrape), or 'price_history' (no MRP anywhere — compared against our own last known price).
   priceSource: {
     type: String,
     enum: ['scraped', 'ai_text', 'price_history', 'mrp', 'telegram_channel']
   },
+  // An extra coupon the shopper applies on the merchant page for a further saving on top of
+  // dealPrice. Lives on the Deal, not the Product — it's advertised per-post and expires, unlike
+  // the product's own identity. Null when the source message advertised no coupon.
   coupon: {
     type: couponSchema,
     default: null
@@ -111,17 +122,13 @@ const dealSchema = new mongoose.Schema({
     unitsLeft: { type: Number, default: null },
     percentClaimed: { type: Number, default: null }
   },
-  // No hardcoded enum — valid values are managed dynamically via the Master collection
-  // (type: 'category'). A stale hardcoded list here would reject any category added
-  // after this schema was written (electronics/fashion/home/beauty all postdate it).
   category: {
     type: String,
     default: 'home'
   },
   // Same story as category — no hardcoded enum, values managed via the Master collection
   // (type: 'subcategory', metadata.parentCategory pointing at the category id). Empty string
-  // means "not yet classified" (older deals backfilled after this field was introduced, or the
-  // AI classifier didn't find a confident subcategory match).
+  // means "not yet classified".
   subcategory: {
     type: String,
     default: 'decor'
@@ -142,21 +149,24 @@ const dealSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  country: {
-    type: String,
-    default: 'IN'
-  },
   publishedStatus: {
     mobileApp: { type: Boolean, default: false },
     webApp: { type: Boolean, default: false },
     telegram: { type: Boolean, default: false },
     twitter: { type: Boolean, default: false },
     whatsapp: { type: Boolean, default: false },
+    // Per-channel publish record, used by publisher.js to skip channels a deal was already
+    // sent to when the same deal gets re-verified later (e.g. re-posted from a second source
+    // channel, or re-seen after the 60-min in-process dedup window). This field was missing
+    // from this copy of the schema even though publisher.js has always written to it — under
+    // Mongoose's default strict mode an update to a path the schema doesn't define is silently
+    // dropped, so every publish's $addToSet here was a no-op and nothing was ever tracked.
     outputChannels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutputChannel' }],
-    // Mirrors backend/src/db/models/deal.js — the actual dedup key publisher.js checks
-    // before sending, e.g. "telegram:amazondeallovers". Keyed by destination rather than
-    // OutputChannel._id because the .env fallback channel has no _id and can point at the
-    // exact same physical channel a real OutputChannel doc also points at.
+    // The actual dedup key publisher.js checks before sending — e.g. "telegram:amazondeallovers".
+    // Keyed by destination, not by OutputChannel._id, because the .env fallback channel (used
+    // when zero DB channels match) has no _id, and can point at the exact same physical
+    // Telegram channel a real OutputChannel doc also points at. outputChannels above can't
+    // catch that overlap; this can, and is what idempotency actually relies on.
     publishedTo: [{ type: String }]
   },
   createdAt: { 
@@ -172,9 +182,24 @@ const dealSchema = new mongoose.Schema({
 dealSchema.index({ sourceChannelId: 1, sourceMessageId: 1 }, { unique: true, sparse: true });
 dealSchema.index({ dealUrl: 1 });
 dealSchema.index({ productId: 1, merchant: 1 });
+dealSchema.index({ productId: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, country: 1, createdAt: -1 });
 dealSchema.index({ category: 1, isExpired: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, discountPercentage: -1, createdAt: -1 });
+
+dealSchema.pre('validate', function() {
+  if (this.isVerified && !this.isExpired) {
+    if (!this.previousPrice || this.previousPrice <= this.dealPrice) {
+      this.isExpired = true;
+      this.isVerified = false;
+      this.expiredAt = this.expiredAt || new Date();
+    } else {
+      // Re-calculate genuine discount percentage strictly against previousPrice
+      this.discountPercentage = Math.round(((this.previousPrice - this.dealPrice) / this.previousPrice) * 100);
+      this.priceSource = 'price_history';
+    }
+  }
+});
 
 const Deal = mongoose.models.Deal || mongoose.model('Deal', dealSchema, 'deals');
 

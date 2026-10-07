@@ -1,33 +1,40 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   BlinkitLogo,
   InstamartLogo,
 } from '@/components/BrandAndStoreLogos';
 import {
-  GWALIOR_STAPLES_CATALOG,
   GROCERY_CATEGORIES,
-  searchGroceryCatalog,
 } from '@/lib/groceryConfig';
 
 export default function GroceryCompareClient() {
+  const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState(() => searchGroceryCatalog({ localityId: 'city-centre' }));
+  const [searchQuery, setSearchQuery] = useState(() => searchParams?.get('q') || '');
+
+  useEffect(() => {
+    const q = searchParams?.get('q');
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
+  const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [dataSource, setDataSource] = useState('benchmark'); // 'live' | 'benchmark'
+  const [dataSource, setDataSource] = useState('live'); // 'live' | 'none'
   const [liveEtas, setLiveEtas] = useState([]);
   const [basket, setBasket] = useState({}); // { itemId: quantity }
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [userLocation, setUserLocation] = useState({
     lat: 28.6139,
     lng: 77.2090,
-    localityName: 'Tap "Use My GPS" or enter location',
-    city: '',
-    pincode: '',
+    localityName: 'New Delhi (Connaught Place)',
+    city: 'New Delhi',
+    pincode: '110001',
     isExactGps: false,
   });
   const [locationStatus, setLocationStatus] = useState(null);
@@ -187,7 +194,7 @@ export default function GroceryCompareClient() {
 
     Object.entries(basket).forEach(([id, qty]) => {
       if (qty <= 0) return;
-      const product = products.find((p) => p.id === id) || GWALIOR_STAPLES_CATALOG.find((p) => p.id === id);
+      const product = products.find((p) => p.id === id);
       if (!product) return;
 
       totalItems += qty;
@@ -646,17 +653,22 @@ export default function GroceryCompareClient() {
 
           {/* Catalog Count Indicator & Live Sync Badge */}
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-            {dataSource === 'live' ? (
+            {isSyncingEtas || isLoading ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-black border border-amber-300 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-spin"></span>
+                Connecting to Live Pods...
+              </span>
+            ) : products.length > 0 ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300 shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 100% Live Dark Store Sync
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
-                Daily Dark Store Benchmark
+                Live Pod Search
               </span>
             )}
-            <span>Showing <strong className="text-slate-900">{products.length}</strong> items {userLocation.city ? `in ${userLocation.city}` : ''}</span>
+            <span>Showing <strong className="text-slate-900">{products.length}</strong> live items {userLocation.city ? `in ${userLocation.city}` : ''}</span>
           </div>
         </div>
 
@@ -665,11 +677,8 @@ export default function GroceryCompareClient() {
           <div className="mt-4 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs transition-all">
             <div className="flex items-center gap-2.5">
               <span className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></span>
-              <span>Syncing live dark store prices & stock (Blinkit & Instamart)...</span>
+              <span>Searching live dark store prices & stock (Blinkit & Instamart)...</span>
             </div>
-            <span className="text-[11px] text-amber-700 font-medium hidden sm:inline">
-              Instant catalog displayed while updating
-            </span>
           </div>
         )}
 
@@ -967,26 +976,66 @@ export default function GroceryCompareClient() {
           })}
         </div>
 
-        {/* Empty Search State */}
-        {products.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 mt-6 p-6">
-            <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl font-bold">
-              🔍
+        {/* Loading Skeletons State */}
+        {products.length === 0 && (isSyncingEtas || isLoading) && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map((idx) => (
+              <div key={idx} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/3 mb-3"></div>
+                <div className="flex gap-3 mb-4">
+                  <div className="w-16 h-16 bg-slate-100 rounded-xl flex-shrink-0"></div>
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-4 bg-slate-100 rounded w-5/6"></div>
+                    <div className="h-3 bg-slate-100 rounded w-1/2"></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div className="h-16 bg-slate-50 border border-slate-100 rounded-xl"></div>
+                  <div className="h-16 bg-slate-50 border border-slate-100 rounded-xl"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty Search or Unserviceable State */}
+        {products.length === 0 && !isSyncingEtas && !isLoading && (
+          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 mt-6 p-6 shadow-xs">
+            <div className="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl font-bold">
+              🛒
             </div>
-            <h4 className="mt-3 text-base font-bold text-slate-800">No staples matched &quot;{searchQuery}&quot;</h4>
-            <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-              Try searching for common essentials like &quot;butter&quot;, &quot;milk&quot;, &quot;atta&quot;, &quot;ghee&quot;, &quot;maggi&quot;, or clear the search query.
+            <h4 className="mt-3 text-base font-bold text-slate-900">
+              {searchQuery ? `No live items matched "${searchQuery}"` : 'No live items found for this location'}
+            </h4>
+            <p className="mt-1.5 text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              {searchQuery
+                ? 'Try searching for common daily essentials or verify that quick commerce dark stores (Blinkit / Instamart) deliver to your selected coordinates.'
+                : 'Tap "Use My GPS" or enter your delivery pincode above to fetch live dark store prices directly for your doorstep.'}
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('all');
-              }}
-              className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Reset Filters
-            </button>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {['Milk', 'Atta', 'Butter', 'Chocolate', 'Coffee', 'Bread'].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => setSearchQuery(term)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors"
+                >
+                  🔍 {term}
+                </button>
+              ))}
+            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors inline-block"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         )}
       </div>

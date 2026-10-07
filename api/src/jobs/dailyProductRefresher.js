@@ -230,6 +230,9 @@ export async function refreshStaleProductBatch(batchSize = 10) {
 
           // Keep price history sorted chronologically
           product.priceHistory.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          if (product.priceHistory.length > 90) {
+            product.priceHistory = product.priceHistory.slice(-90);
+          }
 
           if (priceChanged) {
             console.log(`[Daily Refresher] 📈 Price Update for "${product.title}": ₹${product.price} ➔ ₹${livePrice}`);

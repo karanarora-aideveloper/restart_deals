@@ -21,12 +21,12 @@ export default function robots() {
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/saved', '/profile', '/delete-account', '/api/'],
+        disallow: ['/saved', '/profile', '/delete-account', '/api/', '/r/'],
       },
       {
         userAgent: 'Bingbot',
         allow: '/',
-        disallow: ['/saved', '/profile', '/delete-account', '/api/'],
+        disallow: ['/saved', '/profile', '/delete-account', '/api/', '/r/'],
       },
       {
         userAgent: '*',
@@ -36,6 +36,7 @@ export default function robots() {
           '/profile',
           '/delete-account',
           '/api/',
+          '/r/',
           '/*?*sort=*',
           '/*?*filter=*',
         ],

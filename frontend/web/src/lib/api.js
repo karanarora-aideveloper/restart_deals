@@ -87,28 +87,30 @@ export async function fetchDeals({
         hitsPerPage: limit,
         facetFilters: facetFilters.length > 0 ? facetFilters : undefined,
       });
-      raw = prodRes.hits.map((hit) => {
-        const prod = hitToProduct(hit);
-        const discountPct = (prod.originalPrice && prod.price && prod.originalPrice > prod.price)
-          ? Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100)
-          : 0;
-        return {
-          _id: prod._id,
-          id: prod._id,
-          title: prod.title,
-          dealUrl: prod.cleanUrl,
-          imageUrl: prod.imageUrl,
-          dealPrice: prod.price,
-          originalPrice: prod.originalPrice,
-          previousPrice: prod.previousPrice,
-          discountPercentage: discountPct,
-          merchant: prod.merchant,
-          category: prod.category,
-          subcategory: prod.subcategory,
-          linkedProductId: prod._id,
-          resolvedToProduct: true,
-        };
-      });
+      raw = prodRes.hits
+        .map((hit) => {
+          const prod = hitToProduct(hit);
+          const hasRealDrop = prod.previousPrice && prod.price && prod.previousPrice > prod.price;
+          if (!hasRealDrop) return null;
+          const dropPct = Math.round(((prod.previousPrice - prod.price) / prod.previousPrice) * 100);
+          return {
+            _id: prod._id,
+            id: prod._id,
+            title: prod.title,
+            dealUrl: prod.cleanUrl,
+            imageUrl: prod.imageUrl,
+            dealPrice: prod.price,
+            originalPrice: prod.originalPrice,
+            previousPrice: prod.previousPrice,
+            discountPercentage: dropPct,
+            merchant: prod.merchant,
+            category: prod.category,
+            subcategory: prod.subcategory,
+            linkedProductId: prod._id,
+            resolvedToProduct: true,
+          };
+        })
+        .filter(Boolean);
     }
     const finalItems = aggregateSeriesFeed(raw.filter((d) => isUsableImageUrl(d.imageUrl)));
     return { items: finalItems, hasMore: page < res.nbPages };

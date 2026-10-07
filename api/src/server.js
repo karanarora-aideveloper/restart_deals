@@ -25,9 +25,18 @@ import { startDailyProductRefresher } from './jobs/dailyProductRefresher.js';
 import { startBestsellerCrawlerScheduler } from './jobs/bestsellerCrawler.js';
 import { startTop20PriceWatcherScheduler } from './jobs/top20PriceWatcher.js';
 import { startTokenReplenisherScheduler } from './services/tokenReplenisher.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { requireAdminAuth } from './middleware/adminAuth.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TELEGRAM_MEDIA_DIR = path.resolve(__dirname, '../../backend/public/telegram-media');
+
 const app = express();
+
+// Serve Telegram fallback images
+app.use('/media/telegram', express.static(TELEGRAM_MEDIA_DIR, { maxAge: '7d' }));
 
 // Mount SEO routes
 app.use('/', seoRouter);

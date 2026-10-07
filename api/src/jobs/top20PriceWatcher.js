@@ -132,9 +132,9 @@ export async function syncTop20Batch(batchSize = 5) {
             });
           }
 
-          // Keep 365-day rolling compaction
-          if (product.priceHistory.length > 365) {
-            product.priceHistory = product.priceHistory.slice(-365);
+          // Keep 90-day rolling compaction to protect database document size
+          if (product.priceHistory.length > 90) {
+            product.priceHistory = product.priceHistory.slice(-90);
           }
 
           const priceChanged = priorTrackedPrice != null && priorTrackedPrice !== livePrice;

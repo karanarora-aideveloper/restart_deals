@@ -331,6 +331,9 @@ export async function directFetchDeals({
 
     const andConditions = [
       { isExpired: { $ne: true } },
+      { isVerified: true },
+      { previousPrice: { $exists: true, $gt: 0 } },
+      { $expr: { $gt: ['$previousPrice', '$dealPrice'] } },
     ];
 
     const cCode = (country || 'in').toUpperCase();
@@ -508,6 +511,8 @@ export async function directFetchDeals({
         const existingTitles = new Set(deals.map((d) => (d.title || '').toLowerCase().trim()));
         let prodFilter = {
           isActive: true,
+          previousPrice: { $exists: true, $gt: 0 },
+          $expr: { $gt: ['$previousPrice', '$price'] },
           $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }],
         };
 
@@ -602,9 +607,10 @@ export async function directFetchDeals({
           if (deals.length >= limit) break;
           const cleanT = (p.title || '').toLowerCase().trim();
           if (existingTitles.has(cleanT)) continue;
-          const discountPct = (p.originalPrice && p.price && p.originalPrice > p.price)
-            ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+          const discountPct = (p.previousPrice && p.price && p.previousPrice > p.price)
+            ? Math.round(((p.previousPrice - p.price) / p.previousPrice) * 100)
             : 0;
+          if (discountPct <= 0) continue;
           deals.push({
             _id: p._id.toString(),
             productId: p.productId,

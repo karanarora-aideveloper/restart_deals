@@ -182,9 +182,24 @@ const dealSchema = new mongoose.Schema({
 dealSchema.index({ sourceChannelId: 1, sourceMessageId: 1 }, { unique: true, sparse: true });
 dealSchema.index({ dealUrl: 1 });
 dealSchema.index({ productId: 1, merchant: 1 });
+dealSchema.index({ productId: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, country: 1, createdAt: -1 });
 dealSchema.index({ category: 1, isExpired: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, discountPercentage: -1, createdAt: -1 });
+
+dealSchema.pre('validate', function() {
+  if (this.isVerified && !this.isExpired) {
+    if (!this.previousPrice || this.previousPrice <= this.dealPrice) {
+      this.isExpired = true;
+      this.isVerified = false;
+      this.expiredAt = this.expiredAt || new Date();
+    } else {
+      // Re-calculate genuine discount percentage strictly against previousPrice
+      this.discountPercentage = Math.round(((this.previousPrice - this.dealPrice) / this.previousPrice) * 100);
+      this.priceSource = 'price_history';
+    }
+  }
+});
 
 const Deal = mongoose.models.Deal || mongoose.model('Deal', dealSchema, 'deals');
 

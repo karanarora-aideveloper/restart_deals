@@ -143,6 +143,36 @@ export default function PriceAlertModal({ product, isOpen, onClose }) {
             </div>
           ) : (
             <form onSubmit={handleSubscribe} className="space-y-4">
+              {/* 1-Tap Telegram Bot Alert Hook */}
+              <a
+                href={`https://t.me/shoppersdeals_bot?start=alert_${product?.productId || product?._id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[#0088cc]/10 to-[#0088cc]/5 border border-[#0088cc]/30 p-3 transition hover:border-[#0088cc] hover:shadow-xs group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0088cc] text-white font-bold text-base shadow-xs">
+                    ✈️
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-[#0f172a] group-hover:text-[#0088cc] transition-colors">
+                      Instant Alert via Telegram Bot
+                    </div>
+                    <div className="text-[10px] font-medium text-[#64748b]">
+                      1-tap activation • 0s setup • Free
+                    </div>
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-lg bg-[#0088cc] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs group-hover:bg-[#0077b5]">
+                  Open Bot ↗
+                </span>
+              </a>
+
+              <div className="relative flex items-center justify-center my-1.5">
+                <div className="border-t border-[#e2e8f0] w-full"></div>
+                <span className="bg-white px-2 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] absolute">or set custom target</span>
+              </div>
+
               {/* Current Price Reference */}
               <div className="flex items-center justify-between rounded-xl bg-[#f9fafb] p-3 border border-[#f0f0f0]">
                 <div>

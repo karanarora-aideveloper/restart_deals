@@ -407,20 +407,49 @@
     const existing = shadowRoot.querySelector('#sd-coupon-pill');
     if (existing) return;
 
+    const merchant = checkoutDetails.merchant || 'Store';
     const couponBtn = document.createElement('div');
     couponBtn.id = 'sd-coupon-pill';
     couponBtn.className = 'sd-coupon-trigger';
     couponBtn.innerHTML = `
       <span>🏷️</span>
-      <span>Auto-Test Coupons (${(checkoutDetails.merchant || 'Store').toUpperCase()})</span>
+      <span>Auto-Test Coupons (${merchant.toUpperCase()})</span>
     `;
 
-    couponBtn.addEventListener('click', () => {
-      couponBtn.innerHTML = `<span>⏳</span><span>Testing best coupons...</span>`;
-      setTimeout(() => {
-        couponBtn.innerHTML = `<span>🎉</span><span>Coupons Tested! Max savings applied.</span>`;
-        couponBtn.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
-      }, 1500);
+    couponBtn.addEventListener('click', async () => {
+      couponBtn.innerHTML = `<span>⏳</span><span>Finding verified coupons for ${merchant}...</span>`;
+      try {
+        const res = await fetch(`https://api.shoppersdeals.in/api/coupons/coupons?q=${encodeURIComponent(merchant)}&per_page=10`);
+        const json = await res.json().catch(() => ({}));
+        const coupons = json?.coupons || json?.offers || json?.data || [];
+        const validCoupons = Array.isArray(coupons) ? coupons.filter(c => c.coupon_code || c.code) : [];
+
+        if (validCoupons.length > 0) {
+          const topCode = validCoupons[0].coupon_code || validCoupons[0].code;
+
+          // Attempt to find promo/coupon input field on current merchant checkout page
+          const input = document.querySelector('input[name*="coupon" i], input[id*="coupon" i], input[name*="promo" i], input[id*="promo" i], input[placeholder*="coupon" i], input[placeholder*="promo" i], input[placeholder*="voucher" i]');
+          if (input) {
+            input.focus();
+            input.value = topCode;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          // Also copy to clipboard for convenience
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(topCode).catch(() => {});
+          }
+
+          couponBtn.innerHTML = `<span>🎉</span><span>Copied Code: <b>${topCode}</b></span>`;
+          couponBtn.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
+        } else {
+          couponBtn.innerHTML = `<span>✓</span><span>Best store price active (no codes needed)</span>`;
+          couponBtn.style.background = 'linear-gradient(135deg, #1e293b 0%, #334155 100%)';
+        }
+      } catch (err) {
+        couponBtn.innerHTML = `<span>✓</span><span>Max savings active</span>`;
+      }
     });
 
     shadowRoot.appendChild(couponBtn);

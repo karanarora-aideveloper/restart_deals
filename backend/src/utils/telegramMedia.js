@@ -42,8 +42,19 @@ export async function downloadMessagePhoto(client, message) {
     const buffer = await client.downloadMedia(message, {});
     if (!buffer || buffer.length === 0) return null;
 
-    await fs.promises.writeFile(filePath, buffer);
-    console.log(`[TelegramMedia] Saved message photo as fallback image: ${filename}`);
+    try {
+      await fs.promises.writeFile(filePath, buffer);
+      console.log(`[TelegramMedia] Saved message photo as fallback image: ${filename}`);
+    } catch (writeErr) {
+      console.warn('[TelegramMedia] File write failed, continuing with data URI:', writeErr.message);
+    }
+
+    // If thumbnail/photo is under 90KB, use base64 data URI directly to guarantee zero 404s
+    // across isolated Railway containers or cold ephemeral restarts.
+    if (buffer.length <= 90 * 1024) {
+      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    }
+
     return publicUrl;
   } catch (err) {
     console.warn('[TelegramMedia Warning] Failed to download message photo:', err.message);

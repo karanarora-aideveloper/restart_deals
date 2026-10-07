@@ -18,9 +18,12 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
 
     const andConditions = [];
 
-    // Exclude expired deals by default to ensure only active, trusted deals are shown
+    // Exclude expired deals and require authentic verified price drop against history
     if (req.query.includeExpired !== 'true') {
       andConditions.push({ isExpired: { $ne: true } });
+      andConditions.push({ isVerified: true });
+      andConditions.push({ previousPrice: { $exists: true, $gt: 0 } });
+      andConditions.push({ $expr: { $gt: ['$previousPrice', '$dealPrice'] } });
     }
 
     if (req.query.category && req.query.category !== 'all') {
@@ -253,6 +256,8 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
 
         let prodQuery = {
           isActive: true,
+          previousPrice: { $exists: true, $gt: 0 },
+          $expr: { $gt: ['$previousPrice', '$price'] },
           $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }]
         };
 
@@ -370,13 +375,13 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
           .limit(needed * 3)
           .lean();
 
-        // Sort by discount percentage descending so genuine high-discount deals appear first
+        // Sort by genuine price drop percentage descending against previousPrice
         const sortedProds = prods.map(p => {
-          const discountPct = (p.originalPrice && p.price && p.originalPrice > p.price)
-            ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
+          const discountPct = (p.previousPrice && p.price && p.previousPrice > p.price)
+            ? Math.round(((p.previousPrice - p.price) / p.previousPrice) * 100)
             : 0;
           return { ...p, calculatedDiscount: discountPct };
-        }).sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
+        }).filter(p => p.calculatedDiscount > 0).sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
 
         const mappedProds = [];
         for (const p of sortedProds) {
