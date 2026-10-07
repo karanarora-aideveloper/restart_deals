@@ -179,4 +179,51 @@ router.post('/seeds/auto-seed', async (req, res) => {
   }
 });
 
+// List all supported D2C stores and their enrolled product count
+router.get('/d2c/stores', async (req, res) => {
+  try {
+    const { D2C_STORES } = await import('../config/d2cStores.js');
+    const merchants = D2C_STORES.map(s => s.merchant);
+
+    const counts = await Product.aggregate([
+      { $match: { merchant: { $in: merchants }, isActive: true } },
+      { $group: { _id: '$merchant', count: { $sum: 1 } } }
+    ]);
+    const countMap = Object.fromEntries(counts.map(c => [c._id, c.count]));
+
+    const storesWithCounts = D2C_STORES.map(s => ({
+      ...s,
+      enrolledProducts: countMap[s.merchant] || 0
+    }));
+
+    res.json({
+      success: true,
+      totalStores: D2C_STORES.length,
+      stores: storesWithCounts
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Trigger daily D2C stores catalog sweep on-demand
+router.post('/d2c/sync', async (req, res) => {
+  try {
+    const { syncAllD2CStores } = await import('../jobs/d2cCatalogSync.js');
+    const maxItemsPerStore = req.body.maxItemsPerStore ? parseInt(req.body.maxItemsPerStore, 10) : 35;
+
+    // Trigger asynchronously
+    syncAllD2CStores({ maxItemsPerStore }).catch(err => {
+      console.error('[D2C Sync Route Trigger Error]:', err.message);
+    });
+
+    res.json({
+      success: true,
+      message: `D2C catalog sweep triggered for all stores (max ${maxItemsPerStore} items/store).`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

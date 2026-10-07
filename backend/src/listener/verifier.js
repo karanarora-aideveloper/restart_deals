@@ -9,6 +9,10 @@ import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
+import { findD2CStoreByUrl, D2C_STORES } from '../config/d2cStores.js';
+
+const D2C_DOMAINS = D2C_STORES.flatMap(s => s.domains);
+const D2C_MERCHANTS = D2C_STORES.map(s => s.merchant);
 
 /**
  * Extract all HTTP/HTTPS links from text using a Regex pattern
@@ -23,15 +27,10 @@ export function extractUrls(text) {
 }
 
 // Merchant domains this pipeline recognizes when unwrapping a tracker-wrapped/embedded URL.
-// Kept as one list so the two checks below (query-param unwrap, raw-string unwrap) and the
-// merchant-name list in cleanAndParseUrl() stay in sync as merchants are added/removed — Myntra
-// and Nykaa were added here alongside Amazon/Flipkart to support fashion/beauty deal channels;
-// Ajio and Shopsy were added later for the same reason.
-// Note: all of amazon.in, flipkart.com, myntra.com, nykaa.com, ajio.com, and shopsy.in are
-// India-only regardless of their TLD — myntra.com, nykaa.com, and ajio.com are NOT US/generic
-// sites despite the .com, they simply never registered a .in domain (shopsy.in already is .in).
-// See cleanAndParseUrl()'s derivedCountry handling for each merchant.
-const SUPPORTED_MERCHANT_DOMAINS = ['amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com'];
+const SUPPORTED_MERCHANT_DOMAINS = [
+  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com',
+  ...D2C_DOMAINS
+];
 
 function isSupportedMerchantUrl(url) {
   return SUPPORTED_MERCHANT_DOMAINS.some(domain => url.includes(domain));
@@ -40,7 +39,10 @@ function isSupportedMerchantUrl(url) {
 // The merchant *names* cleanAndParseUrl() can produce, once a URL is actually parsed rather than
 // just pattern-matched by domain — used by verifyAndProcessMessage's candidate-URL loop to decide
 // which resolved URL to treat as the deal's product link.
-const SUPPORTED_MERCHANTS = ['amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'croma'];
+const SUPPORTED_MERCHANTS = [
+  'amazon', 'flipkart', 'myntra', 'nykaa', 'ajio', 'shopsy', 'meesho', 'croma',
+  ...D2C_MERCHANTS
+];
 
 // In-flight scraper promises map to prevent duplicate simultaneous scrapes for the exact same URL
 const inFlightScrapes = new Map();
@@ -341,14 +343,30 @@ export function cleanAndParseUrl(url) {
         isProductUrl = false;
       }
     } else {
-      // For general merchants, strip standard tracking parameters
-      const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'];
-      trackingParams.forEach(param => urlObj.searchParams.delete(param));
-      cleanUrl = urlObj.toString().replace(/\/$/, ''); // Remove trailing slash
-      productId = cleanUrl;
+      const d2cStore = findD2CStoreByUrl(targetUrl);
+      if (d2cStore) {
+        merchant = d2cStore.merchant;
+        derivedCountry = 'IN';
+        const prodMatch = urlObj.pathname.match(/\/products\/([a-z0-9-_]+)/i);
+        if (prodMatch) {
+          productId = prodMatch[1].toLowerCase();
+          cleanUrl = `https://${urlObj.hostname}/products/${productId}`;
+          isProductUrl = true;
+        } else {
+          cleanUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+          productId = null;
+          isProductUrl = false;
+        }
+      } else {
+        // For general merchants, strip standard tracking parameters
+        const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'];
+        trackingParams.forEach(param => urlObj.searchParams.delete(param));
+        cleanUrl = urlObj.toString().replace(/\/$/, ''); // Remove trailing slash
+        productId = cleanUrl;
 
-      const domainParts = hostname.replace('www.', '').split('.');
-      merchant = domainParts[0] || 'generic';
+        const domainParts = hostname.replace('www.', '').split('.');
+        merchant = domainParts[0] || 'generic';
+      }
     }
 
     return { cleanUrl, merchant, productId, isProductUrl, derivedCountry };

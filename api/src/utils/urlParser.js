@@ -2,8 +2,13 @@
  * URL parsing, shortlink unwrap, and canonical merchant & productId extractor.
  */
 
+import { findD2CStoreByUrl, D2C_STORES } from '../config/d2cStores.js';
+
+const D2C_DOMAINS = D2C_STORES.flatMap(s => s.domains);
+
 const SUPPORTED_MERCHANT_DOMAINS = [
-  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com'
+  'amazon.', 'flipkart.com', 'amzn.to', 'fkrt.it', 'myntra.com', 'nykaa.com', 'ajio.com', 'shopsy.in', 'meesho.com', 'croma.com',
+  ...D2C_DOMAINS
 ];
 
 export function isSupportedMerchantUrl(url) {
@@ -137,6 +142,16 @@ export function parseProductUrl(url) {
       if (idMatch) {
         productId = idMatch[1];
         cleanUrl = `https://www.croma.com${urlObj.pathname.replace(/\/$/, '')}`;
+      }
+    } else {
+      const d2cStore = findD2CStoreByUrl(unwrapped);
+      if (d2cStore) {
+        merchant = d2cStore.merchant;
+        const prodMatch = urlObj.pathname.match(/\/products\/([a-z0-9-_]+)/i);
+        if (prodMatch) {
+          productId = prodMatch[1].toLowerCase();
+          cleanUrl = `https://${urlObj.hostname}/products/${productId}`;
+        }
       }
     }
 

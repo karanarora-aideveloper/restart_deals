@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { extractVariant } from './variantExtractor.js';
+import { findD2CStoreByUrl } from '../config/d2cStores.js';
 
 /**
  * Parse HTML and extract structured product details across all supported merchants.
@@ -533,6 +534,50 @@ export function parseProductHtml(html, targetUrl) {
       });
     }
 
+  } else if (findD2CStoreByUrl(targetUrl)) {
+    const d2cStore = findD2CStoreByUrl(targetUrl);
+    category = d2cStore?.category || 'general';
+
+    // 1. Check Shopify Product JSON-LD
+    const ld = extractJsonLdPrice($);
+    if (ld.price !== null) {
+      price = ld.price;
+      if (ld.originalPrice !== null) originalPrice = ld.originalPrice;
+    }
+
+    // 2. OpenGraph / Meta tags
+    if (price === null) {
+      const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                        $('meta[property="og:price:amount"]').attr('content');
+      if (metaPrice) price = parsePriceText(metaPrice);
+    }
+
+    // 3. Common CSS selectors for Shopify themes
+    if (price === null) {
+      price = findPrice($, ['.price-item--sale', '.price__sale .price-item--regular', '.product__price', '[data-product-price]', '.price-item--regular']);
+    }
+
+    if (originalPrice === null && price !== null) {
+      originalPrice = findPrice($, ['.price-item--regular', '.price__sale s', '.price--compare', '[data-compare-price]', 's.price-item', 'del'], null, true);
+    }
+
+    title = $('meta[property="og:title"]').attr('content') ||
+            $('h1.product__title, h1.product-title, h1.title, h1').first().text().trim() ||
+            $('title').text().trim();
+
+    $('meta[property="og:image"]').each((_, el) => {
+      const src = $(el).attr('content');
+      if (src && !images.includes(src)) images.push(src);
+    });
+    $('.product__media img, .product-single__photo img, img[src*="cdn.shopify.com"]').slice(0, 4).each((_, el) => {
+      const src = $(el).attr('src') || $(el).attr('data-src');
+      if (src) {
+        const fullSrc = src.startsWith('//') ? `https:${src}` : src;
+        if (!images.includes(fullSrc)) images.push(fullSrc);
+      }
+    });
+    rating = 4.4;
+
   } else {
     title = $('meta[property="og:title"]').attr('content') || $('title').text().trim();
     $('meta[property="og:image"]').each((_, el) => {
@@ -574,6 +619,49 @@ export function parseProductHtml(html, targetUrl) {
  */
 export async function scrapeProductUrl(targetUrl, priority = PRIORITY.DAILY_REFRESH) {
   if (!targetUrl) return null;
+
+  // Fast direct PDP JSON extraction for Shopify D2C stores (zero proxy tokens consumed!)
+  const d2cStore = findD2CStoreByUrl(targetUrl);
+  if (d2cStore && targetUrl.includes('/products/')) {
+    try {
+      const jsonUrl = targetUrl.split('?')[0].replace(/\/?$/, '.json');
+      const res = await fetch(jsonUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(6000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const p = data.product;
+        if (p && p.title) {
+          const v = p.variants?.[0];
+          const rawPrice = v?.price ? parseFloat(v.price) : null;
+          const rawMrp = v?.compare_at_price ? parseFloat(v.compare_at_price) : null;
+          const price = rawPrice && !isNaN(rawPrice) ? Math.round(rawPrice) : null;
+          const originalPrice = rawMrp && !isNaN(rawMrp) && rawMrp >= (price || 0) ? Math.round(rawMrp) : price;
+
+          const images = (p.images || []).map(img => img.src).filter(Boolean);
+          const cleanTitle = p.title.replace(/\s+/g, ' ').trim();
+
+          return {
+            title: cleanTitle,
+            images,
+            imageUrl: images[0] || '',
+            rating: 4.4,
+            reviews: [],
+            price,
+            originalPrice,
+            category: d2cStore.category || 'general',
+            variant: extractVariant(cleanTitle),
+          };
+        }
+      }
+    } catch (e) {
+      // Fall through to regular headless / proxy queue
+    }
+  }
 
   const html = await scraperQueue.enqueue(targetUrl, { priority });
   if (html) {

@@ -62,6 +62,23 @@ export default function DealCard({
   const isMeesho = urlString.includes('meesho');
 
   const getMerchantStyle = () => {
+    const m = (deal.merchant || '').toLowerCase();
+    if (m === 'plum' || urlString.includes('plumgoodness')) return { label: '🌿 Plum', btnColor: '#5c2d91', textColor: '#ffffff' };
+    if (m === 'mamaearth' || urlString.includes('mamaearth')) return { label: '🌱 Mamaearth', btnColor: '#00a651', textColor: '#ffffff' };
+    if (m === 'thedermaco' || urlString.includes('thedermaco')) return { label: '🔬 Derma Co', btnColor: '#005b94', textColor: '#ffffff' };
+    if (m === 'minimalist' || urlString.includes('beminimalist')) return { label: '✨ Minimalist', btnColor: '#222222', textColor: '#ffffff' };
+    if (m === 'dotandkey' || urlString.includes('dotandkey')) return { label: '🍓 Dot & Key', btnColor: '#e91e63', textColor: '#ffffff' };
+    if (m === 'mcaffeine' || urlString.includes('mcaffeine')) return { label: '☕ mCaffeine', btnColor: '#3d2314', textColor: '#ffffff' };
+    if (m === 'foxtale' || urlString.includes('foxtale')) return { label: '🦊 Foxtale', btnColor: '#f97316', textColor: '#ffffff' };
+    if (m === 'boat' || urlString.includes('boat-lifestyle')) return { label: '🎧 boAt', btnColor: '#e60000', textColor: '#ffffff' };
+    if (m === 'noise' || urlString.includes('gonoise')) return { label: '⌚ Noise', btnColor: '#000000', textColor: '#ffffff' };
+    if (m === 'boult' || urlString.includes('boultaudio')) return { label: '🎵 Boult', btnColor: '#dc2626', textColor: '#ffffff' };
+    if (m === 'portronics' || urlString.includes('portronics')) return { label: '🔋 Portronics', btnColor: '#2563eb', textColor: '#ffffff' };
+    if (m === 'sugar' || urlString.includes('sugarcosmetics')) return { label: '💄 SUGAR', btnColor: '#2b2b2b', textColor: '#ffffff' };
+    if (m === 'snitch' || urlString.includes('snitch')) return { label: '👔 Snitch', btnColor: '#171717', textColor: '#ffffff' };
+    if (m === 'xyxx' || urlString.includes('xyxxcrew')) return { label: '🩲 XYXX', btnColor: '#0f766e', textColor: '#ffffff' };
+    if (m === 'huft' || urlString.includes('headsupfortails')) return { label: '🐾 HUFT', btnColor: '#c2410c', textColor: '#ffffff' };
+
     // logoScale: 0.8 corrects for the source image itself — amazon.webp's wordmark fills nearly
     // its whole canvas while flipkart/myntra.webp have visible padding, so at the same display
     // box Amazon reads noticeably larger (see the matching note in FilterBar.js's MERCHANTS).
