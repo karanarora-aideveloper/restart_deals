@@ -171,8 +171,8 @@ async function handleMessage(message) {
     return;
   }
 
-  // 1.5 Handle deep-link /start alert_PRODUCTID
-  const alertDeepLinkMatch = rawText.match(/^\/start\s+alert_([A-Za-z0-9_-]+)/i);
+  // 1.5 Handle deep-link /start alert_PRODUCTID or /start track_PRODUCTID
+  const alertDeepLinkMatch = rawText.match(/^\/start\s+(?:alert_|track_)([A-Za-z0-9_-]+)/i);
   if (alertDeepLinkMatch) {
     const pId = alertDeepLinkMatch[1];
     await handleDeepLinkAlert(chatId, pId, username, firstName);

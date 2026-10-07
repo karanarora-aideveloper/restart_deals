@@ -16,6 +16,8 @@ const SUPPORTED_COUNTRIES = [
   { code: 'us', label: 'United States', flag: '🇺🇸', currency: '$ USD' },
 ];
 
+const GROCERY_INTENT_REGEX = /\b(milk|bread|egg|eggs|atta|flour|rice|daal|dal|oil|ghee|butter|cheese|paneer|curd|dahi|yogurt|maggi|noodle|noodles|tea|chai|coffee|biscuit|biscuits|cookie|cookies|sugar|salt|masala|onion|onions|potato|potatoes|tomato|tomatoes|vegetable|vegetables|veggies|fruit|fruits|apple|apples|banana|bananas|snack|snacks|namkeen|chips|cold drink|coke|pepsi|grocery|groceries|blinkit|instamart|zepto)\b/i;
+
 export default function SiteHeader() {
   const { user, isLoggedIn } = useAuth();
   const savedCount = useSavedCount();
@@ -92,6 +94,10 @@ export default function SiteHeader() {
   const pushQuery = useCallback((value) => {
     const val = (value || '').trim();
     if (val) {
+      if (GROCERY_INTENT_REGEX.test(val)) {
+        router.push(`/compare/grocery?q=${encodeURIComponent(val)}`);
+        return;
+      }
       // Route all keyword searches to /products so shoppers search the full permanent product catalog with 90-day price history & cross-store insights
       const params = new URLSearchParams();
       params.set('q', val);

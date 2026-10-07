@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { fetchProductById, fetchProductVariants, findLatestDealForProduct, fetchTopProductsForSubcategory, fetchProducts } from '@/lib/api';
-import { getMerchantInfo, formatInr, formatRelativeTime, isUsableImageUrl } from '@/lib/affiliate';
+import { getMerchantInfo, formatInr, formatRelativeTime, isUsableImageUrl, getAffiliateUrl } from '@/lib/affiliate';
 import { SITE_URL } from '@/lib/config';
 import { categoryLabel, subcategoryLabel } from '@/lib/taxonomy';
 import ProductGallery from '@/components/ProductGallery';
@@ -253,7 +253,7 @@ export default async function ProductDetailPage({ params }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-gray-900 pb-16">
+    <div className="min-h-screen bg-[#f8fafc] text-gray-900 pb-24 lg:pb-16">
       {productSchema && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       )}
@@ -305,6 +305,105 @@ export default async function ProductDetailPage({ params }) {
             {/* 1. Interactive Image Gallery */}
             <ProductGallery product={product} latestDeal={latestDeal} merchant={merchant} />
 
+            {/* Mobile-Only Summary & Buying Box (Shown directly below Gallery on mobile) */}
+            <div className="flex flex-col gap-4 rounded-3xl border border-gray-200/80 bg-white p-5 shadow-xs lg:hidden">
+              {/* Category & Store Badges */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/categories/${product.category || 'general'}`}
+                    className="rounded-md bg-gray-100 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-gray-600 hover:bg-gray-200 transition-colors"
+                  >
+                    {categoryLabel(product.category) || 'Deals'}
+                  </Link>
+                  {merchant.logo ? (
+                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 shadow-2xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={merchant.logo} alt={merchant.label} className="h-4 w-auto object-contain" />
+                    </span>
+                  ) : (
+                    <span className="rounded-md bg-orange-50 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand">
+                      {merchant.emoji} {merchant.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Clean Human-Readable Title */}
+              <h1 className="text-lg font-extrabold leading-tight text-gray-900">
+                {cleanDisplayTitle(product.title)}
+              </h1>
+
+              {/* Pricing Display */}
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <span className="text-2xl font-black tracking-tight text-brand sm:text-3xl">
+                  {priceStr}
+                </span>
+                {hasRealPriceDrop ? (
+                  <>
+                    <span className="text-base font-semibold text-gray-400 line-through">
+                      Was {formatInr(product.previousPrice, productCountry)}
+                    </span>
+                    <span className="rounded-lg bg-emerald-600 px-2.5 py-0.5 text-xs font-black text-white shadow-2xs">
+                      {realPriceDropPct}% TRUE DROP
+                    </span>
+                  </>
+                ) : hasMrp ? (
+                  <>
+                    <span className="text-base font-semibold text-gray-400 line-through">
+                      MRP {formatInr(product.originalPrice, productCountry)}
+                    </span>
+                    {mrpDiscount > 0 && (
+                      <span className="rounded-lg bg-gray-100 border border-gray-200 px-2 py-0.5 text-xs font-black text-gray-700 shadow-2xs">
+                        {mrpDiscount}% OFF MRP
+                      </span>
+                    )}
+                  </>
+                ) : null}
+              </div>
+
+              {hasRealPriceDrop ? (
+                <p className="text-xs font-bold text-emerald-700">
+                  🎉 Genuine Price Drop: You save {formatInr(realPriceDrop, productCountry)} compared to yesterday!
+                </p>
+              ) : hasMrp && mrpDiscount >= 15 ? (
+                <p className="text-xs font-medium text-gray-500">
+                  Statutory List Price: {formatInr(product.originalPrice, productCountry)} (MRP)
+                </p>
+              ) : null}
+
+              {/* Coupon Highlight if Available */}
+              {latestDeal?.coupon?.label && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900">
+                  <span className="text-base">🏷️</span>
+                  <div>
+                    <p className="font-extrabold">{latestDeal.coupon.label}</p>
+                    <p className="text-[11px] text-amber-800">
+                      {latestDeal.coupon.code ? `Code: ${latestDeal.coupon.code}` : 'Apply coupon checkbox on checkout.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Variant Selector for multi-sku series */}
+              <VariantSelector
+                variantsData={variantsData}
+                currentProductId={product._id || id}
+                currentProduct={product}
+              />
+
+              {/* Live Trust Bar & Actions (CTA + Price Alert + Wishlist) */}
+              <ProductActions product={product} merchant={merchant} />
+
+              {/* Multi-Store Live Comparison & Savings Banner */}
+              <StoreComparison product={product} />
+
+              {/* Price Barometer */}
+              <div className="pt-1">
+                <PriceBarometer product={product} priceStats={stats} />
+              </div>
+            </div>
+
             {/* 2. Interactive SVG Price History Chart */}
             <PriceHistoryChart product={product} priceStats={product.priceStats} />
 
@@ -352,12 +451,17 @@ export default async function ProductDetailPage({ params }) {
             {/* 4. ShoppersDeals AI Buying Verdict & Pros/Cons */}
             <ProductAIVerdictCard product={product} />
 
+            {/* Live Verified Coupons & Bank Offers Card (Mobile View) */}
+            <div className="lg:hidden">
+              <ProductCouponsOffers product={product} merchant={merchant} />
+            </div>
+
             {/* 5. Product FAQ Accordion */}
             <ProductFAQ productTitle={product.title} merchant={product.merchant || 'Amazon'} />
           </div>
 
-          {/* Right Column: Pricing, Live Trust, CTAs & Buying Box (5 Cols Sticky on Desktop) */}
-          <div className="flex flex-col gap-6 lg:col-span-5 lg:sticky lg:top-[88px] lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
+          {/* Right Column: Pricing, Live Trust, CTAs & Buying Box (5 Cols Sticky on Desktop, Hidden on Mobile) */}
+          <div className="hidden lg:flex flex-col gap-6 lg:col-span-5 lg:sticky lg:top-[88px] lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
             <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm">
               
               {/* Category & Store Badges — Fix #3: show proper label not raw slug */}
@@ -537,6 +641,36 @@ export default async function ProductDetailPage({ params }) {
           </section>
         )}
       </main>
+
+      {/* Fixed Sticky Mobile Bottom Buy Bar */}
+      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-gray-200/80 px-4 py-2.5 flex items-center justify-between gap-3 z-40 lg:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base font-black text-brand tracking-tight">
+              {priceStr}
+            </span>
+            {hasRealPriceDrop && (
+              <span className="rounded bg-emerald-100 text-emerald-800 font-extrabold text-[10px] px-1.5 py-0.5">
+                {realPriceDropPct}% DROP
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] font-semibold text-gray-500 truncate">
+            {hasRealPriceDrop ? `Was ${formatInr(product.previousPrice, productCountry)}` : `Direct on ${merchant.label}`}
+          </span>
+        </div>
+        <a
+          href={getAffiliateUrl(product.cleanUrl, product?.country)}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 text-xs font-black text-white shadow-md active:scale-95 transition-transform shrink-0"
+        >
+          <span>Buy on {merchant.label}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
     </div>
   );
 }

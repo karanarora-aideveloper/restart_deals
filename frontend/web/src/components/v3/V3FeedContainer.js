@@ -29,11 +29,11 @@ const CATEGORIES = [
 ];
 
 const DISCOUNT_BANDS = [
-  { id: 0, label: 'All Discounts' },
-  { id: 40, label: '40%+ Off' },
-  { id: 50, label: '50%+ Off' },
-  { id: 60, label: '60%+ Off' },
-  { id: 70, label: '70%+ Off' },
+  { id: 0, label: 'All Drops' },
+  { id: 10, label: '10%+ Drop' },
+  { id: 20, label: '20%+ Drop' },
+  { id: 30, label: '30%+ Drop' },
+  { id: 50, label: '50%+ Loot' },
 ];
 
 const STORES = [
@@ -162,7 +162,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
       <div className="mt-6 flex flex-col gap-3">
         {/* Row 1: Discount % Bands */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
-          <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Discount:</span>
+          <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Price Drop:</span>
           {DISCOUNT_BANDS.map((band) => (
             <button
               key={band.id}

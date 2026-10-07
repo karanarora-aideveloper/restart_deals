@@ -35,6 +35,20 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
       hoverBg: 'hover:bg-[#FFF7D9] hover:text-[#B45309]',
     },
     {
+      id: 'grocery',
+      label: '⚡ 10m Grocery',
+      href: '/compare/grocery',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="21" r="1" />
+          <circle cx="20" cy="21" r="1" />
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+        </svg>
+      ),
+      activeBg: 'bg-[#FEF3C7] text-[#D97706]',
+      hoverBg: 'hover:bg-[#FEF3C7] hover:text-[#D97706]',
+    },
+    {
       id: 'credit-cards',
       label: 'Credit Cards',
       href: '/credit-cards',

@@ -16,14 +16,21 @@ export default async function HotDealsPage({ searchParams }) {
   const merchant = sp?.merchant || 'all';
   const country = sp?.country || 'in';
 
-  // Over-fetch then filter client/server-side for >=40% discount, mirroring the native app.
-  const { items: rawDeals } = await fetchDeals({ q, category, merchant, country, sort: 'newest', limit: 80 });
-  const filtered = rawDeals.filter((d) => d.discountPercentage && d.discountPercentage >= 40);
+  // Query hot deals with >=25% true price drop directly from DB
+  const { items: dealsRaw } = await fetchDeals({
+    q,
+    category,
+    merchant,
+    country,
+    sort: 'newest',
+    limit: 60,
+    minDiscount: 25,
+  });
 
   // Resolve canonical product links so DealCard links directly to /product/[id] instead of
   // the /deal/[id] → /product/[id] redirect chain that Google counts as "Page with redirect".
   const deals = await Promise.all(
-    filtered.map(async (d) => {
+    dealsRaw.map(async (d) => {
       if (!d.productId || !d.merchant) return d;
       const linkedProductId = await findMatchingProductId(d.productId, d.merchant);
       return linkedProductId ? { ...d, linkedProductId } : d;

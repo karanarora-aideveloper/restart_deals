@@ -641,3 +641,73 @@ export async function directFetchDeals({
     return [];
   }
 }
+
+/**
+ * Direct MongoDB fallback for fetching products catalog
+ */
+export async function directFetchProducts({
+  page = 1,
+  limit = 40,
+  category = 'all',
+  subcategory = 'all',
+  merchant = 'all',
+  country = 'in',
+  sort = 'recently_checked',
+} = {}) {
+  try {
+    const db = await getDb();
+    const skip = (page - 1) * limit;
+
+    const andConditions = [
+      { isActive: { $ne: false } },
+      {
+        imageUrl: {
+          $exists: true,
+          $nin: ['', null],
+          $not: /placeholder\.png|localhost|images-na\.ssl-images-amazon\.com\/images\/P\//i,
+        },
+      },
+    ];
+
+    const cCode = (country || 'in').toUpperCase();
+    if (cCode === 'IN') {
+      andConditions.push({ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] });
+    } else if (cCode !== 'ALL') {
+      andConditions.push({ country: cCode });
+    }
+
+    if (merchant && merchant !== 'all') {
+      andConditions.push({ merchant: { $regex: new RegExp(`^${merchant}$`, 'i') } });
+    }
+
+    if (category && category !== 'all') {
+      andConditions.push({ category: category.toLowerCase().trim() });
+    }
+
+    if (subcategory && subcategory !== 'all') {
+      andConditions.push({ subcategory: subcategory.trim() });
+    }
+
+    let sortObj = { lastChecked: -1, updatedAt: -1, _id: -1 };
+    if (sort === 'price_asc') sortObj = { price: 1, _id: -1 };
+    else if (sort === 'price_desc') sortObj = { price: -1, _id: -1 };
+    else if (sort === 'rating') sortObj = { rating: -1, _id: -1 };
+
+    const docs = await db
+      .collection('products')
+      .find({ $and: andConditions })
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    return docs.map((d) => {
+      const prod = serializeDoc(d);
+      prod.priceStats = computePriceStats(prod);
+      return prod;
+    });
+  } catch (err) {
+    console.error('[dbFallback] directFetchProducts failed:', err.message);
+    return [];
+  }
+}

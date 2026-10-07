@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAffiliateUrl } from '@/lib/affiliate';
+import { directFetchDealById, directFetchProductById } from '@/lib/dbFallback';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://shoppersdeals-api-production.up.railway.app').replace(/\/+$/, '');
 const CUELINKS_PUB_ID = process.env.NEXT_PUBLIC_CUELINKS_PUB_ID || '325472';
@@ -29,21 +30,36 @@ export async function GET(request, { params }) {
     return NextResponse.redirect('https://www.shoppersdeals.in', 302);
   }
 
-  // 2. Fetch Deal or Product from API
+  // 2. Fetch Deal or Product from API (with direct MongoDB Atlas fallback for 100% resilience)
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
+    let target = null;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
 
-    const res = await fetch(`${API_BASE}/api/deals/${dealId}`, {
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-      next: { revalidate: 60 },
-    });
-    clearTimeout(timeout);
+      const res = await fetch(`${API_BASE}/api/deals/${dealId}`, {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+        next: { revalidate: 60 },
+      });
+      clearTimeout(timeout);
 
-    if (res.ok) {
-      const json = await res.json();
-      const target = json?.data || json;
+      if (res.ok) {
+        const json = await res.json();
+        target = json?.data || json;
+      }
+    } catch (apiErr) {
+      console.warn(`[Redirect /r/${dealId}] API fetch error, switching to direct DB fallback:`, apiErr.message);
+    }
+
+    if (!target) {
+      target = await directFetchDealById(dealId).catch(() => null);
+    }
+    if (!target) {
+      target = await directFetchProductById(dealId).catch(() => null);
+    }
+
+    if (target) {
       const targetUrl = target?.dealUrl || target?.cleanUrl || target?.url;
       const country = target?.country || 'IN';
 

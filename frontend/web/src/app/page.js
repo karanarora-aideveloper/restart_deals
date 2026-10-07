@@ -100,15 +100,13 @@ export default async function HomePage({ searchParams }) {
   const merchant = sp?.merchant || 'all';
   const country = sp?.country || 'in';
 
-  // Filter deals: on unfiltered main feed require min 15% discount
-  const isUnfilteredFeed = category === 'all' && merchant === 'all' && !q;
+  // Fetch verified authentic price drops (every deal in DB has already passed category-wise dual threshold)
   const { items: rawDeals, hasMore } = await fetchDeals({
     q,
     category,
     merchant,
     country: (country || 'in').toLowerCase(),
     sort: 'newest',
-    ...(isUnfilteredFeed ? { minDiscount: 15 } : {}),
   });
 
   // Resolve matching product IDs for canonical 90-day price history charts

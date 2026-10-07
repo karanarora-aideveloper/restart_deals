@@ -11,6 +11,7 @@ import {
   directFindMatchingProductId,
   directFindLatestDealForProduct,
   directFetchTopProductsForSubcategory,
+  directFetchProducts,
   directFetchSitemapProducts,
   directFetchSitemapDeals,
 } from './dbFallback';
@@ -125,6 +126,9 @@ export async function fetchDeals({
     country: (country || 'in').toLowerCase(),
     sort,
   });
+  if (minDiscount > 0) {
+    params.set('minDiscount', String(minDiscount));
+  }
   const json = await safeFetchJson(`${API_BASE_URL}/api/deals?${params}`, {
     next: { revalidate },
   });
@@ -224,6 +228,12 @@ export async function fetchProducts({
     next: { revalidate },
   });
   const raw = json?.data || json?.deals || [];
+  if (raw.length === 0) {
+    const fallback = await directFetchProducts({ page, limit, q, category, subcategory, merchant, country, sort });
+    if (fallback && fallback.items && fallback.items.length > 0) {
+      return fallback;
+    }
+  }
   const finalItems = aggregateSeriesFeed(raw.filter((p) => isUsableImageUrl(p.imageUrl)));
   return { items: finalItems, hasMore: raw.length >= limit };
 }

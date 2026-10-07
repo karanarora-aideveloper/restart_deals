@@ -291,20 +291,24 @@ export default async function CategoryPage({ params }) {
                         {deal.title}
                       </p>
                       {deal.dealPrice && (
-                        <div className="mt-auto pt-2 flex items-baseline gap-1.5">
+                        <div className="mt-auto pt-2 flex items-baseline gap-1.5 flex-wrap">
                           <span className="text-sm font-black text-brand">
                             {formatInr(deal.dealPrice, deal.country || 'IN')}
                           </span>
-                          {deal.originalPrice && deal.originalPrice > deal.dealPrice && (
+                          {deal.previousPrice && deal.previousPrice > deal.dealPrice ? (
                             <span className="text-[10px] text-[#94a3b8] line-through">
-                              {formatInr(deal.originalPrice, deal.country || 'IN')}
+                              Was {formatInr(deal.previousPrice, deal.country || 'IN')}
                             </span>
-                          )}
+                          ) : deal.originalPrice && deal.originalPrice > deal.dealPrice ? (
+                            <span className="text-[10px] text-[#94a3b8] line-through">
+                              MRP {formatInr(deal.originalPrice, deal.country || 'IN')}
+                            </span>
+                          ) : null}
                         </div>
                       )}
-                      {deal.discountPercentage && (
-                        <span className="mt-1 inline-block rounded-md bg-[#dcfce7] px-1.5 py-0.5 text-[9.5px] font-black text-[#16a34a]">
-                          {deal.discountPercentage}% OFF
+                      {deal.discountPercentage && deal.discountPercentage > 0 && (
+                        <span className="mt-1 inline-block rounded-md bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9.5px] font-black">
+                          {deal.discountPercentage}% DROP
                         </span>
                       )}
                     </div>

@@ -225,7 +225,7 @@ export default function PriceAlertModal({ product, isOpen, onClose }) {
 
                 {/* Telegram Bot Direct 1-Click Link */}
                 <a
-                  href={`https://t.me/ShoppersDealsAlertBot?start=track_${product?.productId || product?._id}`}
+                  href={`https://t.me/ShoppersDealsAlertBot?start=alert_${product?.productId || product?._id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => {
