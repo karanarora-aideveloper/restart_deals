@@ -530,6 +530,9 @@ export async function directFetchDeals({
       }
       deal.sourceEngine = deal.sourceEngine || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId) ? 'engine2' : 'engine1');
       deal.hasPriceHistory = Boolean(deal.hasPriceHistory);
+      if (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice) {
+        deal.discountPercentage = Math.round(((deal.previousPrice - deal.dealPrice) / deal.previousPrice) * 100);
+      }
       deal.priceStats = computePriceStats(deal);
       return deal;
     });
