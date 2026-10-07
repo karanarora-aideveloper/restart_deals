@@ -2272,7 +2272,7 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
 
       return deal;
     } else {
-      const authenticPrev = genuinePriceDrop || productRecord?.previousPrice || previousTrackedPrice || null;
+      const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null);
       const calculatedSourceEngine = classifySourceEngine(sourceChannelId, sourceChannelName);
       const calculatedHasPriceHistory = Boolean(
         productRecord?.hasPriceHistory ||

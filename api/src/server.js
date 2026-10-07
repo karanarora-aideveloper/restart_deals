@@ -27,6 +27,7 @@ import { startTop20PriceWatcherScheduler } from './jobs/top20PriceWatcher.js';
 import { startTokenReplenisherScheduler } from './services/tokenReplenisher.js';
 import { initD2CCatalogSync } from './jobs/d2cCatalogSync.js';
 import { initAmazonDealsCrawlerCron } from './jobs/amazonDealsCrawler.js';
+import { initCatalogPriceHistoryCron } from './jobs/catalogPriceHistoryBackfill.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { requireAdminAuth } from './middleware/adminAuth.js';
@@ -145,6 +146,7 @@ export function startServer() {
       startTokenReplenisherScheduler();
       initD2CCatalogSync();
       initAmazonDealsCrawlerCron();
+      initCatalogPriceHistoryCron();
       resolve(server);
     });
   });

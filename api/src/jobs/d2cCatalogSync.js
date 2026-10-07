@@ -195,6 +195,12 @@ export async function syncAllD2CStores(options = {}) {
                   }).catch(() => {});
                   stats.dealsSynthesized++;
                 }
+              } else if (priorPrice && prodData.price > priorPrice) {
+                // Price reverted or increased — expire active deal
+                await Deal.updateMany(
+                  { productId: existing.productId, isExpired: false },
+                  { $set: { isExpired: true, expiredAt: now, expiryReason: 'price_reverted' } }
+                );
               }
             }
 
@@ -251,6 +257,13 @@ export function initD2CCatalogSync() {
   }, {
     timezone: 'Asia/Kolkata'
   });
+
+  // Run initial sync 35 seconds after server startup
+  setTimeout(() => {
+    syncAllD2CStores({ maxItemsPerStore: 25 }).catch(err => {
+      console.warn('[D2C Sync] Initial startup sync warning:', err.message);
+    });
+  }, 35000);
 }
 
 export default {

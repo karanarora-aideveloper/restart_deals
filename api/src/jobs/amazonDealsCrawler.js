@@ -11,6 +11,8 @@ import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { fetchBuyhatkePriceHistory } from '../services/buyhatkeService.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 import { apiCache } from '../utils/cache.js';
+import { computePriceStats } from '../utils/priceAnalytics.js';
+import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -246,8 +248,39 @@ export async function syncAmazonDeals(options = {}) {
         if (isNewProduct) stats.productsEnrolled++;
         else stats.productsUpdated++;
 
-        // Upsert into Deal collection if discount >= 5%
-        if (discountPercentage >= 5 && dealPrice > 0) {
+        // ─── STRICT ZERO-MRP DEAL VERIFICATION ───────────────────────────
+        // Never trust retailer's claimed MRP or banner discounts.
+        // A genuine deal requires a real price reduction against tracked historical prices.
+        const priceStats = computePriceStats(product);
+
+        // Check if price is genuinely lower than previous selling price or historical average
+        let genuinePrevPrice = null;
+        let genuineDiscountPct = 0;
+        let genuineCashDrop = 0;
+
+        if (priceStats && priceStats.previousPrice && priceStats.previousPrice > dealPrice) {
+          genuinePrevPrice = priceStats.previousPrice;
+          genuineCashDrop = priceStats.previousPrice - dealPrice;
+          genuineDiscountPct = Math.round((genuineCashDrop / priceStats.previousPrice) * 100);
+        } else if (priceStats && priceStats.totalPricePoints >= 2 && priceStats.averagePrice > dealPrice) {
+          genuinePrevPrice = priceStats.averagePrice;
+          genuineCashDrop = priceStats.averagePrice - dealPrice;
+          genuineDiscountPct = Math.round((genuineCashDrop / priceStats.averagePrice) * 100);
+        }
+
+        // Verify with Category Dual Threshold (Drop % or Cash Floor)
+        const thresholdCheck = meetsCategoryThreshold(
+          product.category || classification.category || 'general',
+          product.subcategory || classification.subcategory || '',
+          genuineDiscountPct,
+          genuineCashDrop,
+          'IN'
+        );
+
+        const isFakeMrp = Boolean(priceStats?.isFakeMrpDiscount);
+        const qualifiesAsDeal = !isFakeMrp && thresholdCheck.qualifies && genuineDiscountPct > 0 && dealPrice > 0;
+
+        if (qualifiesAsDeal) {
           let existingDeal = await Deal.findOne({
             $or: [
               { productId: asin },
@@ -255,15 +288,11 @@ export async function syncAmazonDeals(options = {}) {
             ]
           });
 
-          const authenticPrev = product.hasPriceHistory 
-            ? (product.previousPrice || (product.originalPrice > dealPrice ? product.originalPrice : null))
-            : (product.originalPrice > dealPrice ? product.originalPrice : null);
-
           if (existingDeal) {
             existingDeal.dealPrice = dealPrice;
             existingDeal.originalPrice = originalPrice || existingDeal.originalPrice;
-            existingDeal.discountPercentage = discountPercentage;
-            existingDeal.previousPrice = authenticPrev || existingDeal.previousPrice;
+            existingDeal.discountPercentage = genuineDiscountPct;
+            existingDeal.previousPrice = genuinePrevPrice;
             existingDeal.sourceEngine = 'engine2';
             existingDeal.hasPriceHistory = product.hasPriceHistory;
             existingDeal.sourceChannelId = existingDeal.sourceChannelId || 'amazon_deals_engine';
@@ -281,9 +310,9 @@ export async function syncAmazonDeals(options = {}) {
               sourceChannelName: 'Amazon Deals Engine',
               sourceEngine: 'engine2',
               hasPriceHistory: product.hasPriceHistory,
-              originalText: `Amazon Lightning Deal: ${title} at ₹${dealPrice} (${discountPercentage}% off)`,
+              originalText: `Amazon Price Drop: ${title} at ₹${dealPrice} (Dropped from ₹${genuinePrevPrice})`,
               title,
-              description: `Amazon verified price drop. Current deal price ₹${dealPrice}, MRP ₹${originalPrice} (${discountPercentage}% off).`,
+              description: `Amazon verified price drop. Dropped from ₹${genuinePrevPrice} to ₹${dealPrice} (${genuineDiscountPct}% real drop).`,
               imageUrl: imageUrl || product.imageUrl,
               images: imageUrl ? [imageUrl] : (product.images || []),
               rating: product.rating || 4.2,
@@ -293,8 +322,8 @@ export async function syncAmazonDeals(options = {}) {
               country: 'IN',
               originalPrice,
               dealPrice,
-              previousPrice: authenticPrev,
-              discountPercentage,
+              previousPrice: genuinePrevPrice,
+              discountPercentage: genuineDiscountPct,
               priceSource: product.hasPriceHistory ? 'price_history' : 'scraped',
               category: product.category || classification.category || 'home',
               subcategory: product.subcategory || classification.subcategory || 'decor',
@@ -308,6 +337,13 @@ export async function syncAmazonDeals(options = {}) {
             await newDeal.save();
             stats.dealsCreated++;
           }
+        } else {
+          // If not a genuine drop (e.g. price returned to standard, or fake MRP discount),
+          // expire any existing deal for this product
+          await Deal.updateMany(
+            { productId: asin, isExpired: false },
+            { $set: { isExpired: true, expiredAt: now, expiryReason: isFakeMrp ? 'fake_mrp_rejected' : 'price_standard' } }
+          );
         }
       } catch (itemErr) {
         console.error(`[Amazon Deals Crawler] Error processing deal ${item.asin}:`, itemErr.message);
@@ -329,9 +365,9 @@ export async function syncAmazonDeals(options = {}) {
  * Runs at 04:30 AM IST every day.
  */
 export function initAmazonDealsCrawlerCron() {
-  console.log('[Amazon Deals Crawler] Initializing daily Amazon Deals Cron (04:30 AM IST)...');
-  cron.schedule('30 4 * * *', async () => {
-    console.log('[Amazon Deals Crawler] Running scheduled daily crawl of amazon.in/deals...');
+  console.log('[Amazon Deals Crawler] Initializing Amazon Deals Cron (every 4 hours: 30 */4 * * *)...');
+  cron.schedule('30 */4 * * *', async () => {
+    console.log('[Amazon Deals Crawler] Running scheduled 4-hour crawl of amazon.in/deals...');
     try {
       await syncAmazonDeals({ maxDeals: 100, fetchBuyhatke: true });
     } catch (e) {
@@ -340,6 +376,13 @@ export function initAmazonDealsCrawlerCron() {
   }, {
     timezone: 'Asia/Kolkata'
   });
+
+  // Run initial crawl 25 seconds after server startup
+  setTimeout(() => {
+    syncAmazonDeals({ maxDeals: 50, fetchBuyhatke: true }).catch(err => {
+      console.warn('[Amazon Deals Crawler] Initial startup crawl warning:', err.message);
+    });
+  }, 25000);
 }
 
 // CLI Execution Support
