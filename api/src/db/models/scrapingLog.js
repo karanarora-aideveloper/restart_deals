@@ -66,10 +66,11 @@ const scrapingLogSchema = new mongoose.Schema({
 });
 
 scrapingLogSchema.index({ createdAt: -1 });
+scrapingLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 3600 }); // 7-day log retention auto-pruning
 scrapingLogSchema.index({ source: 1, createdAt: -1 });
 scrapingLogSchema.index({ status: 1, createdAt: -1 });
 scrapingLogSchema.index({ mode: 1, createdAt: -1 });
 
-const ScrapingLog = mongoose.model('ScrapingLog', scrapingLogSchema, 'scraping_logs');
+const ScrapingLog = mongoose.models.ScrapingLog || mongoose.model('ScrapingLog', scrapingLogSchema, 'scraping_logs');
 
 export default ScrapingLog;
