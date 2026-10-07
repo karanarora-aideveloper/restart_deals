@@ -587,29 +587,15 @@ async function generateTempEmail(page) {
   // live against the real modal that it's still literally "Microsoft".
   // The real bug was the Create-button click above never opening this modal
   // at all, so there was nothing for either text to match. Reverted to
-  // "Microsoft" only.
-  const providerBtn = page.locator("button:has-text('Microsoft')").first();
-  if (!(await waitVisible(providerBtn, 10_000))) {
-    // TEMPORARY diagnostic (added 2026-08-29, remove once this is diagnosed):
-    // the Settings-button fix opens *something* (confirmed via its own log
-    // line above) but "Microsoft" still isn't found in production's headless
-    // stealth browser, despite working reliably in a visible/headed Chrome
-    // session against the same account. Log the page URL, every currently-
-    // OPEN dialog's heading, and a short excerpt of body text so the next
-    // real run shows what's actually rendered (a slow-loading modal, a bot
-    // check, a different dialog like "Active email limit reached", etc.)
-    // instead of another blind guess.
-    try {
-      const url = page.url();
-      const dialogHeadings = await page.locator('dialog:visible, [role="dialog"]:visible').locator('h3, h2').allInnerTexts().catch(() => []);
-      const bodyExcerpt = (await page.locator('body').innerText().catch(() => '')).slice(0, 800);
-      console.log('[Smail Diagnostic] url:', url);
-      console.log('[Smail Diagnostic] visible dialog headings:', JSON.stringify(dialogHeadings));
-      console.log('[Smail Diagnostic] body text excerpt:', JSON.stringify(bodyExcerpt));
-    } catch (diagErr) {
-      console.log('[Smail Diagnostic] Failed to dump page state:', diagErr.message);
-    }
-    throw new Error('Could not find the "Microsoft" provider button in the Create-email modal — page structure may have changed');
+  // Prefer Google provider first to generate @gmail.com (ScrapingAnt blocks @outlook.com)
+  let providerName = 'Google';
+  let providerBtn = page.locator("button:has-text('Google')").first();
+  if (!(await waitVisible(providerBtn, 4_000))) {
+    providerName = 'Microsoft';
+    providerBtn = page.locator("button:has-text('Microsoft')").first();
+  }
+  if (!(await waitVisible(providerBtn, 6_000))) {
+    throw new Error('Could not find Google or Microsoft provider button in the Create-email modal');
   }
   let providerActive = false;
   for (let attempt = 0; attempt < 3 && !providerActive; attempt++) {
@@ -617,9 +603,9 @@ async function generateTempEmail(page) {
     await randomDelay(700, 1200);
     providerActive = await providerBtn.evaluate(el => el.className.includes('border-blue')).catch(() => false);
   }
-  console.log(`[Smail] Microsoft provider clicked (active state detected: ${providerActive})`);
+  console.log(`[Smail] ${providerName} provider clicked (active state detected: ${providerActive})`);
   if (!providerActive) {
-    throw new Error('Microsoft provider selection did not stick after 3 attempts');
+    throw new Error(`${providerName} provider selection did not stick after 3 attempts`);
   }
   await randomDelay(500, 900);
 

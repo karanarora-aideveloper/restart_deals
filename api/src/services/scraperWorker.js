@@ -234,6 +234,20 @@ export async function executeScrapingAntJob(url, source = 'other') {
         triggerTokenReplenishmentIfLow().catch(() => {});
         lastError = new Error(`ScrapingAnt token ${token.slice(0, 8)}... exhausted (403)`);
         continue;
+      } else if (fastRes.status === 409) {
+        console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 409 concurrency limit on fast tier. Applying 10s cooldown...`);
+        await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 10_000), leasedUntil: null } }).catch(() => {});
+        await recordScrapingLog({
+          url,
+          source,
+          tokenUsed: token,
+          status: '409_concurrency',
+          statusCode: 409,
+          durationMs: fastDurationMs,
+          errorMessage: 'ScrapingAnt concurrency limit (409) - 10s cooldown applied',
+        });
+        lastError = new Error('ScrapingAnt concurrency limit (409)');
+        continue;
       } else if (fastRes.status === 429) {
         console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit on fast tier.`);
         await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }).catch(() => {});
@@ -283,7 +297,11 @@ export async function executeScrapingAntJob(url, source = 'other') {
 
     // 409 Concurrency limit: another request is using this account's browser slot
     if (response.status === 409) {
-      console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 409 concurrency limit. Rotating to next token (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
+      console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 409 concurrency limit. Applying 10s cooldown (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
+      await ScrapingAntToken.updateOne(
+        { token },
+        { $set: { cooldownUntil: new Date(Date.now() + 10_000), leasedUntil: null } }
+      ).catch(() => {});
       await recordScrapingLog({
         url,
         source,
@@ -291,7 +309,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
         status: '409_concurrency',
         statusCode: 409,
         durationMs,
-        errorMessage: 'Concurrency limit (409)',
+        errorMessage: 'Concurrency limit (409) - 10s cooldown applied',
       });
       lastError = new Error('ScrapingAnt 409 concurrency limit');
       await new Promise(r => setTimeout(r, 2000));
