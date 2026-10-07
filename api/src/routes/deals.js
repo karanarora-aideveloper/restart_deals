@@ -282,10 +282,10 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       return d;
     });
 
-    // Catalog Augmentation / Fallback: If searching by keyword or filtering by category (e.g. mobiles)
+    // Catalog Augmentation / Fallback: If searching by keyword or filtering by category/merchant (e.g. mobiles, ajio, meesho)
     // and fewer deals than requested limit exist, enrich the feed with active authentic products from the catalog
     // so shoppers always see full, high-value deals with 0 smartwatches or accessories in mobiles.
-    if ((deals.length < limit || deals.length === 0) && (req.query.q || req.query.category) && page === 1) {
+    if ((deals.length < limit || deals.length === 0) && (req.query.q || req.query.category || (req.query.merchant && req.query.merchant !== 'all')) && page === 1) {
       const needed = limit - deals.length;
       if (needed > 0) {
         const existingTitles = new Set(deals.map(d => (d.title || '').toLowerCase().trim()));
@@ -387,7 +387,7 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
         }
 
         if (req.query.merchant && req.query.merchant !== 'all') {
-          prodQuery.merchant = req.query.merchant.toLowerCase().trim();
+          prodQuery.merchant = new RegExp(req.query.merchant.toLowerCase().trim(), 'i');
         }
 
         if (req.query.q) {

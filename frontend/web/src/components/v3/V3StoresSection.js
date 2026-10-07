@@ -10,17 +10,25 @@ import {
   AjioLogo,
   MeeshoLogo,
   CromaLogo,
+  MamaearthLogo,
+  BoatLogo,
+  BlinkitLogo,
 } from '@/components/BrandAndStoreLogos';
 
 export default function V3StoresSection() {
   const stores = [
-    { id: 'amazon', name: 'Amazon India', component: <AmazonLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '1,200+ Deals' },
+    { id: 'amazon', name: 'Amazon India', component: <AmazonLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '3,200+ Deals' },
     { id: 'flipkart', name: 'Flipkart', component: <FlipkartLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '950+ Deals' },
     { id: 'myntra', name: 'Myntra', component: <MyntraLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '620+ Deals' },
+    { id: 'shopsy', name: 'Shopsy', component: <span className="text-xs font-black text-purple-700">🛍️ SHOPSY</span>, dealsCount: '180+ Deals' },
     { id: 'nykaa', name: 'Nykaa', component: <NykaaLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '480+ Deals' },
     { id: 'ajio', name: 'Ajio', component: <AjioLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '340+ Deals' },
     { id: 'meesho', name: 'Meesho', component: <MeeshoLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '510+ Deals' },
     { id: 'croma', name: 'Croma', component: <CromaLogo className="h-5 sm:h-6 w-auto object-contain" />, dealsCount: '280+ Deals' },
+    { id: 'plum', name: 'Plum Goodness', component: <span className="text-xs font-black text-indigo-700">🌿 PLUM</span>, dealsCount: 'D2C Verified' },
+    { id: 'mamaearth', name: 'Mamaearth', component: <MamaearthLogo className="h-5 w-auto object-contain" />, dealsCount: 'D2C Verified' },
+    { id: 'boat', name: 'boAt', component: <BoatLogo className="h-5 w-auto object-contain" />, dealsCount: 'Top Audio' },
+    { id: 'blinkit', name: 'Blinkit', component: <BlinkitLogo className="h-4 w-auto object-contain" />, dealsCount: '10-Min Deals' },
   ];
 
   return (
@@ -34,15 +42,15 @@ export default function V3StoresSection() {
             Over 100K+ Stores Monitored 24/7
           </h2>
           <p className="mt-1 text-xs text-slate-600">
-            Direct real-time price synchronization across India’s leading retail and lifestyle platforms.
+            Direct real-time price synchronization across India’s leading marketplaces and authentic D2C brands.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {stores.map((s) => (
             <Link
               key={s.id}
-              href={`/#deals`}
+              href={`/?merchant=${s.id}#deals`}
               className="flex flex-col items-center justify-between rounded-2xl border border-slate-200/90 bg-slate-50/50 p-3 sm:p-4 transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 hover:bg-white hover:shadow-md text-center group min-w-0"
             >
               <div className="h-8 sm:h-10 flex items-center justify-center max-w-full overflow-hidden">

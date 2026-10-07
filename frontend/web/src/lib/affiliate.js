@@ -72,6 +72,23 @@ export function getMerchantInfo(urlOrMerchant) {
   const isAjio = s.includes('ajio');
   const isNykaa = s.includes('nykaa');
   const isCroma = s.includes('croma');
+  const isPlum = s.includes('plum');
+  const isMamaearth = s.includes('mamaearth');
+  const isDermaCo = s.includes('dermaco') || s.includes('derma co');
+  const isMCaffeine = s.includes('mcaffeine');
+  const isDotAndKey = s.includes('dotandkey') || s.includes('dot & key');
+  const isDrSheths = s.includes('drsheths') || s.includes('dr sheth');
+  const isSugar = s.includes('sugar');
+  const isMinimalist = s.includes('minimalist');
+  const isBoat = s.includes('boat');
+  const isNoise = s.includes('noise');
+  const isBoult = s.includes('boult');
+  const isPortronics = s.includes('portronics');
+  const isSnitch = s.includes('snitch');
+  const isXyxx = s.includes('xyxx');
+  const isBlinkit = s.includes('blinkit') || s.includes('grofers');
+  const isInstamart = s.includes('instamart') || s.includes('swiggy');
+  const isZepto = s.includes('zepto');
 
   if (isAmazon) return { id: 'amazon', name: 'Amazon', label: 'Amazon', emoji: '🛒', logo: '/amazon.webp', btnColor: '#FF9900', textColor: '#0f172a' };
   if (isShopsy) return { id: 'shopsy', name: 'Shopsy', label: 'Shopsy', emoji: '🛍️', logo: '/shopsy.webp', btnColor: '#9333ea', textColor: '#ffffff' };
@@ -81,6 +98,23 @@ export function getMerchantInfo(urlOrMerchant) {
   if (isAjio) return { id: 'ajio', name: 'Ajio', label: 'Ajio', emoji: '🕶️', logo: null, btnColor: '#16a34a', textColor: '#ffffff' };
   if (isNykaa) return { id: 'nykaa', name: 'Nykaa', label: 'Nykaa', emoji: '💄', logo: null, btnColor: '#db2777', textColor: '#ffffff' };
   if (isCroma) return { id: 'croma', name: 'Croma', label: 'Croma', emoji: '⚡', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
+  if (isPlum) return { id: 'plum', name: 'Plum Goodness', label: 'Plum', emoji: '🌿', logo: null, btnColor: '#4f46e5', textColor: '#ffffff' };
+  if (isMamaearth) return { id: 'mamaearth', name: 'Mamaearth', label: 'Mamaearth', emoji: '🌱', logo: null, btnColor: '#059669', textColor: '#ffffff' };
+  if (isDermaCo) return { id: 'thedermaco', name: 'The Derma Co', label: 'The Derma Co', emoji: '🔬', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
+  if (isMCaffeine) return { id: 'mcaffeine', name: 'mCaffeine', label: 'mCaffeine', emoji: '☕', logo: null, btnColor: '#78350f', textColor: '#ffffff' };
+  if (isDotAndKey) return { id: 'dotandkey', name: 'Dot & Key', label: 'Dot & Key', emoji: '✨', logo: null, btnColor: '#d946ef', textColor: '#ffffff' };
+  if (isDrSheths) return { id: 'drsheths', name: "Dr. Sheth's", label: "Dr. Sheth's", emoji: '🧴', logo: null, btnColor: '#0891b2', textColor: '#ffffff' };
+  if (isSugar) return { id: 'sugar', name: 'SUGAR Cosmetics', label: 'SUGAR', emoji: '💄', logo: null, btnColor: '#e11d48', textColor: '#ffffff' };
+  if (isMinimalist) return { id: 'minimalist', name: 'Minimalist', label: 'Minimalist', emoji: '🧪', logo: null, btnColor: '#1e293b', textColor: '#ffffff' };
+  if (isBoat) return { id: 'boat', name: 'boAt Lifestyle', label: 'boAt', emoji: '🎧', logo: null, btnColor: '#dc2626', textColor: '#ffffff' };
+  if (isNoise) return { id: 'noise', name: 'Noise', label: 'Noise', emoji: '⌚', logo: null, btnColor: '#2563eb', textColor: '#ffffff' };
+  if (isBoult) return { id: 'boult', name: 'Boult Audio', label: 'Boult', emoji: '🎵', logo: null, btnColor: '#0d9488', textColor: '#ffffff' };
+  if (isPortronics) return { id: 'portronics', name: 'Portronics', label: 'Portronics', emoji: '🔌', logo: null, btnColor: '#d97706', textColor: '#ffffff' };
+  if (isSnitch) return { id: 'snitch', name: 'Snitch', label: 'Snitch', emoji: '👔', logo: null, btnColor: '#0f172a', textColor: '#ffffff' };
+  if (isXyxx) return { id: 'xyxx', name: 'XYXX Apparels', label: 'XYXX', emoji: '🩳', logo: null, btnColor: '#4338ca', textColor: '#ffffff' };
+  if (isBlinkit) return { id: 'blinkit', name: 'Blinkit', label: 'Blinkit', emoji: '⚡', logo: null, btnColor: '#f59e0b', textColor: '#000000' };
+  if (isInstamart) return { id: 'instamart', name: 'Swiggy Instamart', label: 'Instamart', emoji: '🍊', logo: null, btnColor: '#ea580c', textColor: '#ffffff' };
+  if (isZepto) return { id: 'zepto', name: 'Zepto', label: 'Zepto', emoji: '⚡', logo: null, btnColor: '#7c3aed', textColor: '#ffffff' };
   return { id: 'other', name: 'Deal', label: 'Deal', emoji: '🏷️', logo: null, btnColor: '#FF6B00', textColor: '#ffffff' };
 }
 

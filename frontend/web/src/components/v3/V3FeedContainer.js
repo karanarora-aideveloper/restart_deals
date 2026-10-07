@@ -36,15 +36,40 @@ const DISCOUNT_BANDS = [
   { id: 50, label: '50%+ Loot' },
 ];
 
-const STORES = [
+const STORE_GROUPS = [
   { id: 'all', label: 'All Stores' },
-  { id: 'amazon', label: 'Amazon' },
-  { id: 'flipkart', label: 'Flipkart' },
-  { id: 'myntra', label: 'Myntra' },
-  { id: 'nykaa', label: 'Nykaa' },
-  { id: 'ajio', label: 'Ajio' },
-  { id: 'meesho', label: 'Meesho' },
-  { id: 'croma', label: 'Croma' },
+  { id: 'marketplaces', label: 'Marketplaces' },
+  { id: 'd2c', label: 'D2C Brands' },
+  { id: 'qcom', label: 'Quick Commerce' },
+];
+
+const STORES = [
+  { id: 'all', label: 'All Stores', icon: '🏪', group: 'all' },
+  // Major Marketplaces
+  { id: 'amazon', label: 'Amazon', icon: '🛒', group: 'marketplaces' },
+  { id: 'flipkart', label: 'Flipkart', icon: '🛍️', group: 'marketplaces' },
+  { id: 'myntra', label: 'Myntra', icon: '👗', group: 'marketplaces' },
+  { id: 'shopsy', label: 'Shopsy', icon: '🛍️', group: 'marketplaces' },
+  { id: 'nykaa', label: 'Nykaa', icon: '💄', group: 'marketplaces' },
+  { id: 'ajio', label: 'Ajio', icon: '🕶️', group: 'marketplaces' },
+  { id: 'meesho', label: 'Meesho', icon: '🎁', group: 'marketplaces' },
+  { id: 'croma', label: 'Croma', icon: '⚡', group: 'marketplaces' },
+  // Top D2C Brands
+  { id: 'plum', label: 'Plum Goodness', icon: '🌿', group: 'd2c' },
+  { id: 'mamaearth', label: 'Mamaearth', icon: '🌱', group: 'd2c' },
+  { id: 'thedermaco', label: 'The Derma Co', icon: '🔬', group: 'd2c' },
+  { id: 'boat', label: 'boAt Lifestyle', icon: '🎧', group: 'd2c' },
+  { id: 'mcaffeine', label: 'mCaffeine', icon: '☕', group: 'd2c' },
+  { id: 'dotandkey', label: 'Dot & Key', icon: '✨', group: 'd2c' },
+  { id: 'sugar', label: 'SUGAR', icon: '💄', group: 'd2c' },
+  { id: 'minimalist', label: 'Minimalist', icon: '🧪', group: 'd2c' },
+  { id: 'noise', label: 'Noise', icon: '⌚', group: 'd2c' },
+  { id: 'boult', label: 'Boult Audio', icon: '🎵', group: 'd2c' },
+  { id: 'snitch', label: 'Snitch', icon: '👔', group: 'd2c' },
+  // Quick Commerce
+  { id: 'blinkit', label: 'Blinkit', icon: '⚡', group: 'qcom' },
+  { id: 'instamart', label: 'Instamart', icon: '🍊', group: 'qcom' },
+  { id: 'zepto', label: 'Zepto', icon: '⚡', group: 'qcom' },
 ];
 
 const SOURCE_ENGINES = [
@@ -53,14 +78,21 @@ const SOURCE_ENGINES = [
   { id: 'engine2', label: '🤖 Engine 2 (Store Watcher)', badge: 'Engine 2' },
 ];
 
-export default function V3FeedContainer({ initialDeals = [], initialHasMore = false, category = 'all', country = 'in' }) {
+export default function V3FeedContainer({ initialDeals = [], initialHasMore = false, category = 'all', merchant = 'all', country = 'in' }) {
   const [deals, setDeals] = useState(() => sortDealsByDealTime(initialDeals));
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeCategory, setActiveCategory] = useState(category);
-  const [activeStore, setActiveStore] = useState('all');
+  const [activeStore, setActiveStore] = useState(merchant || 'all');
+  const [selectedStoreGroup, setSelectedStoreGroup] = useState(() => {
+    if (merchant && merchant !== 'all') {
+      const found = STORES.find((s) => s.id === merchant);
+      return found?.group || 'all';
+    }
+    return 'all';
+  });
   const [activeEngine, setActiveEngine] = useState('all');
   const [minDiscount, setMinDiscount] = useState(0);
   const [savedDeals, setSavedDeals] = useState([]);
@@ -73,6 +105,21 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
     setDeals(sortDealsByDealTime(initialDeals));
     setHasMore(initialHasMore);
   }, [initialDeals, initialHasMore]);
+
+  useEffect(() => {
+    if (merchant && merchant !== activeStore) {
+      setActiveStore(merchant);
+      const found = STORES.find((s) => s.id === merchant);
+      if (found && found.group !== 'all') {
+        setSelectedStoreGroup(found.group);
+      }
+    }
+  }, [merchant, activeStore]);
+
+  const filteredStores = STORES.filter((s) => {
+    if (selectedStoreGroup === 'all') return true;
+    return s.id === 'all' || s.group === selectedStoreGroup;
+  });
 
   // Fetch deals with filters
   const fetchFilteredDeals = useCallback(async (cat, store, minDisc, engine = 'all', targetPage = 1, append = false) => {
@@ -227,22 +274,51 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
           ))}
         </div>
 
-        {/* Row 3: Store Selector Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
-          <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Store:</span>
-          {STORES.map((store) => (
-            <button
-              key={store.id}
-              onClick={() => handleStoreChange(store.id)}
-              className={`rounded-lg px-3 py-1 text-xs font-bold transition-all whitespace-nowrap ${
-                activeStore === store.id
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-500'
-              }`}
-            >
-              {store.label}
-            </button>
-          ))}
+        {/* Row 3: Store Selector with Group Filter & Pills */}
+        <div className="flex flex-col gap-1.5 py-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+              <span className="text-xs font-bold text-slate-400 shrink-0 mr-1">Store:</span>
+              {STORE_GROUPS.map((grp) => (
+                <button
+                  key={grp.id}
+                  onClick={() => setSelectedStoreGroup(grp.id)}
+                  className={`rounded-md px-2.5 py-0.5 text-[11px] font-bold transition-all whitespace-nowrap ${
+                    selectedStoreGroup === grp.id
+                      ? 'bg-slate-900 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {grp.label}
+                </button>
+              ))}
+            </div>
+            {activeStore !== 'all' && (
+              <button
+                onClick={() => handleStoreChange('all')}
+                className="text-[11px] font-bold text-emerald-700 hover:underline shrink-0"
+              >
+                Clear Store ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-0.5">
+            {filteredStores.map((store) => (
+              <button
+                key={store.id}
+                onClick={() => handleStoreChange(store.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                  activeStore === store.id
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-500 hover:bg-emerald-50/40'
+                }`}
+              >
+                {store.icon && <span className="text-xs">{store.icon}</span>}
+                <span>{store.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -254,6 +330,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
             onClick={() => {
               setActiveCategory('all');
               setActiveStore('all');
+              setSelectedStoreGroup('all');
               setMinDiscount(0);
               setActiveEngine('all');
               fetchFilteredDeals('all', 'all', 0, 'all', 1, false);

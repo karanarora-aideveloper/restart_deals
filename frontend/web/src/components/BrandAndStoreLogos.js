@@ -232,12 +232,24 @@ export function renderStoreLogo(merchantName, className = 'h-4 w-auto') {
   if (m.includes('blinkit') || m.includes('grofers')) return <BlinkitLogo className={className} />;
   if (m.includes('instamart') || m.includes('swiggy')) return <InstamartLogo className={className} />;
   if (m.includes('amazon')) return <AmazonLogo className={className} />;
-  if (m.includes('flipkart') || m.includes('shopsy')) return <FlipkartLogo className={className} />;
+  if (m.includes('shopsy')) return <span className="text-xs font-black tracking-tight text-purple-700">🛍️ SHOPSY</span>;
+  if (m.includes('flipkart')) return <FlipkartLogo className={className} />;
   if (m.includes('myntra')) return <MyntraLogo className={className} />;
   if (m.includes('nykaa')) return <NykaaLogo className={className} />;
   if (m.includes('ajio')) return <AjioLogo className={className} />;
   if (m.includes('meesho')) return <MeeshoLogo className={className} />;
   if (m.includes('croma')) return <CromaLogo className={className} />;
+  if (m.includes('mamaearth')) return <MamaearthLogo className={className} />;
+  if (m.includes('boat')) return <BoatLogo className={className} />;
+  if (m.includes('plum')) return <span className="text-xs font-black tracking-tight text-indigo-700">🌿 PLUM</span>;
+  if (m.includes('dermaco') || m.includes('derma co')) return <span className="text-xs font-black tracking-tight text-sky-700">🔬 THE DERMA CO</span>;
+  if (m.includes('mcaffeine')) return <span className="text-xs font-black tracking-tight text-amber-900">☕ mCAFFEINE</span>;
+  if (m.includes('dotandkey')) return <span className="text-xs font-black tracking-tight text-pink-600">✨ DOT &amp; KEY</span>;
+  if (m.includes('sugar')) return <span className="text-xs font-black tracking-tight text-rose-600">💄 SUGAR</span>;
+  if (m.includes('minimalist')) return <span className="text-xs font-black tracking-tight text-slate-900">🧪 MINIMALIST</span>;
+  if (m.includes('noise')) return <span className="text-xs font-black tracking-tight text-blue-600">⌚ NOISE</span>;
+  if (m.includes('snitch')) return <span className="text-xs font-black tracking-tight text-slate-900">👔 SNITCH</span>;
+  if (m.includes('zepto')) return <span className="text-xs font-black tracking-tight text-purple-600">⚡ ZEPTO</span>;
   return (
     <span className="text-xs font-black uppercase tracking-wider text-slate-800">
       {merchantName || 'Store'}

@@ -534,9 +534,8 @@ export async function directFetchDeals({
       return deal;
     });
 
-    if (category && category !== 'all' && deals.length < limit && page === 1) {
+    if (((category && category !== 'all') || (merchant && merchant !== 'all')) && deals.length < limit && page === 1) {
       try {
-        const cat = category.toLowerCase().trim();
         const needed = limit - deals.length;
         const existingTitles = new Set(deals.map((d) => (d.title || '').toLowerCase().trim()));
         let prodFilter = {
@@ -546,7 +545,13 @@ export async function directFetchDeals({
           $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }],
         };
 
-        if (cat === 'mobiles') {
+        if (merchant && merchant !== 'all') {
+          prodFilter.merchant = new RegExp(merchant.toLowerCase().trim(), 'i');
+        }
+
+        if (category && category !== 'all') {
+          const cat = category.toLowerCase().trim();
+          if (cat === 'mobiles') {
           prodFilter.subcategory = 'mobiles';
           prodFilter.title = { $not: /\b(watch|smartwatch|fitness\s*band|smart\s*band|buds|earbuds|neckband|headphones|earphones|power\s*bank|tempered\s*glass|phone\s*case|back\s*cover|charging\s*cable|type-c\s*cable|usb\s*cable|wall\s*charger|mobile\s*stand|tripod|selfie\s*stick|phone\s*holder|car\s*mount)\b/i };
         } else if (cat === 'laptops') {
@@ -630,6 +635,7 @@ export async function directFetchDeals({
         } else {
           prodFilter.$or = [{ category: cat }, { subcategory: cat }];
         }
+      }
 
         const prodDocs = await db.collection('products').find(prodFilter).limit(needed * 2).toArray();
 
@@ -657,6 +663,8 @@ export async function directFetchDeals({
             country: p.country || 'IN',
             isExpired: false,
             resolvedToProduct: true,
+            sourceEngine: 'engine2',
+            hasPriceHistory: Boolean(p.hasPriceHistory || (p.priceHistory && p.priceHistory.length > 0)),
           });
           existingTitles.add(cleanT);
         }

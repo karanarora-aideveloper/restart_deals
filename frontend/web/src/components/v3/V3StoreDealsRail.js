@@ -10,6 +10,8 @@ import {
   AjioLogo,
   MeeshoLogo,
   CromaLogo,
+  MamaearthLogo,
+  BoatLogo,
 } from '@/components/BrandAndStoreLogos';
 import { logEvent } from '@/lib/analytics';
 
@@ -18,7 +20,7 @@ const MONITORED_STORES = [
     id: 'amazon',
     name: 'Amazon India',
     logo: <AmazonLogo className="h-5 sm:h-6 w-auto object-contain" />,
-    badge: '1,200+ Verified Deals',
+    badge: '3,200+ Verified Deals',
     badgeColor: 'text-amber-800 bg-amber-50 border-amber-200',
     perk: 'Prime Deals & 90-Day Lows',
   },
@@ -37,6 +39,14 @@ const MONITORED_STORES = [
     badge: '620+ Verified Deals',
     badgeColor: 'text-pink-800 bg-pink-50 border-pink-200',
     perk: 'Top Brands 50%–80% Off MRP',
+  },
+  {
+    id: 'shopsy',
+    name: 'Shopsy',
+    logo: <span className="text-sm font-black text-purple-700">🛍️ SHOPSY</span>,
+    badge: '180+ Budget Steals',
+    badgeColor: 'text-purple-800 bg-purple-50 border-purple-200',
+    perk: 'Direct Factory Pricing',
   },
   {
     id: 'nykaa',
@@ -70,6 +80,30 @@ const MONITORED_STORES = [
     badgeColor: 'text-teal-800 bg-teal-50 border-teal-200',
     perk: 'Laptops, TVs & Appliances',
   },
+  {
+    id: 'plum',
+    name: 'Plum Goodness',
+    logo: <span className="text-xs font-black text-indigo-700">🌿 PLUM GOODNESS</span>,
+    badge: 'D2C Verified',
+    badgeColor: 'text-indigo-800 bg-indigo-50 border-indigo-200',
+    perk: 'Vegan & Toxin-Free Beauty',
+  },
+  {
+    id: 'mamaearth',
+    name: 'Mamaearth',
+    logo: <MamaearthLogo className="h-5 w-auto object-contain" />,
+    badge: 'D2C Verified',
+    badgeColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    perk: 'Natural Care & Safe Formulations',
+  },
+  {
+    id: 'boat',
+    name: 'boAt Lifestyle',
+    logo: <BoatLogo className="h-5 w-auto object-contain" />,
+    badge: 'Audio Leader',
+    badgeColor: 'text-red-800 bg-red-50 border-red-200',
+    perk: 'Earbuds, Smartwatches & Audio',
+  },
 ];
 
 export default function V3StoreDealsRail() {
@@ -84,13 +118,13 @@ export default function V3StoreDealsRail() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
-              <span>🏪 24/7 Store Price Tracking</span>
+              <span>🏪 24/7 Multi-Store Tracking</span>
             </div>
             <h2 className="mt-1.5 text-base sm:text-lg font-black text-slate-900">
               Top Monitored Stores &amp; Verified Deals
             </h2>
             <p className="mt-0.5 text-xs text-slate-600">
-              Real-time price drop detection across India’s leading retail and lifestyle platforms.
+              Real-time price drop detection across India’s leading marketplaces and trending D2C brands.
             </p>
           </div>
 
@@ -102,11 +136,11 @@ export default function V3StoreDealsRail() {
         </div>
 
         {/* Store Grid */}
-        <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+        <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {MONITORED_STORES.map((store) => (
             <Link
               key={store.id}
-              href={`/#deals`}
+              href={`/?merchant=${store.id}#deals`}
               onClick={() => handleStoreClick(store)}
               className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-slate-50/50 p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-400 hover:bg-white hover:shadow-md min-w-0"
             >

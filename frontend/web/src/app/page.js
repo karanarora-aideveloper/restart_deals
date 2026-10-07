@@ -159,6 +159,7 @@ export default async function HomePage({ searchParams }) {
             initialDeals={deals}
             initialHasMore={hasMore}
             category={category}
+            merchant={merchant}
             country={country || 'in'}
           />
         </div>
