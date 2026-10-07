@@ -107,12 +107,19 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
 
               if (thresholdCheck.qualifies) {
                 // Check if deal already exists
-                const existingDeal = await Deal.findOne({
-                  $or: [
-                    { productId: prod.productId },
-                    { dealUrl: prod.cleanUrl }
-                  ]
+                let existingDeal = await Deal.findOne({
+                  productId: prod.productId,
+                  country: 'IN',
+                  isExpired: { $ne: true }
                 });
+                if (!existingDeal) {
+                  existingDeal = await Deal.findOne({
+                    $or: [
+                      { productId: prod.productId, country: 'IN' },
+                      { dealUrl: prod.cleanUrl, country: 'IN' }
+                    ]
+                  }).sort({ createdAt: -1 });
+                }
 
                 if (existingDeal) {
                   existingDeal.dealPrice = livePrice;
@@ -124,6 +131,10 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
                   existingDeal.isExpired = false;
                   existingDeal.lastVerifiedAt = now;
                   await existingDeal.save();
+                  await Deal.updateMany(
+                    { productId: prod.productId, country: 'IN', _id: { $ne: existingDeal._id }, isExpired: { $ne: true } },
+                    { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_backfiller' } }
+                  ).catch(() => {});
                 } else {
                   const newDeal = new Deal({
                     sourceChannelId: 'catalog_engine',
@@ -155,6 +166,10 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
                     updatedAt: now
                   });
                   await newDeal.save();
+                  await Deal.updateMany(
+                    { productId: prod.productId, country: 'IN', _id: { $ne: newDeal._id }, isExpired: { $ne: true } },
+                    { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_backfiller' } }
+                  ).catch(() => {});
                   stats.dealsSynthesized++;
                   console.log(`[PriceHistory Backfill] 🔥 Synthesized Deal: "${prod.title.slice(0, 40)}" (₹${genuinePrevPrice} ➔ ₹${livePrice}, ${genuineDiscountPct}% off)`);
                 }

@@ -197,6 +197,17 @@ dealSchema.index({ productId: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, country: 1, createdAt: -1 });
 dealSchema.index({ category: 1, isExpired: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, discountPercentage: -1, createdAt: -1 });
+dealSchema.index(
+  { productId: 1, country: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isExpired: false,
+      productId: { $type: 'string', $gt: '' },
+    },
+    background: true,
+  }
+);
 
 dealSchema.pre('validate', function() {
   if (this.isVerified && !this.isExpired) {
@@ -204,10 +215,23 @@ dealSchema.pre('validate', function() {
       this.isExpired = true;
       this.isVerified = false;
       this.expiredAt = this.expiredAt || new Date();
+      this.expiryReason = 'no_genuine_price_drop';
     } else {
       // Re-calculate genuine discount percentage strictly against previousPrice
       this.discountPercentage = Math.round(((this.previousPrice - this.dealPrice) / this.previousPrice) * 100);
       this.priceSource = 'price_history';
+
+      // Anomaly guardrail: reject extreme drops (>= 85%), price ratios > 10x, or known spam titles
+      if (
+        this.discountPercentage >= 85 ||
+        this.previousPrice > (this.dealPrice * 10) ||
+        (this.title && /Apply 500 Off Coupon|Amazon Item \(/i.test(this.title))
+      ) {
+        this.isExpired = true;
+        this.isVerified = false;
+        this.expiredAt = this.expiredAt || new Date();
+        this.expiryReason = 'extreme_anomaly_or_spam';
+      }
     }
   }
 });

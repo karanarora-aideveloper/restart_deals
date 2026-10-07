@@ -233,6 +233,10 @@ export async function fetchProducts({
     if (fallback && fallback.items && fallback.items.length > 0) {
       return fallback;
     }
+    if (Array.isArray(fallback) && fallback.length > 0) {
+      const finalItems = aggregateSeriesFeed(fallback.filter((p) => isUsableImageUrl(p.imageUrl)));
+      return { items: finalItems, hasMore: fallback.length >= limit };
+    }
   }
   const finalItems = aggregateSeriesFeed(raw.filter((p) => isUsableImageUrl(p.imageUrl)));
   return { items: finalItems, hasMore: raw.length >= limit };

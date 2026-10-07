@@ -408,11 +408,11 @@ export async function isDuplicateLast60Mins(cleanUrl, productId = null, merchant
  */
 export function extractPriceFromMessage(text) {
   if (!text) return null;
+  const unitLookahead = '(?![\\s-]*(?:w|watt|watts|v|volt|volts|mah|ah|gb|tb|mb|kb|ml|l|ltr|litres?|g|gram|grams|kg|mg|cm|mm|m|meters?|inches?|inch|hz|khz|ghz|fps|rpm|dpi|count|pcs|pieces?|pack|pk)\\b)';
   const patterns = [
-    /(?:@|at|for|price|just|pay|rs\.?|₹|\$)\s*[:=]?\s*[₹$]?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-    /(?:₹|\$)\s*([0-9,]+(?:\.[0-9]{1,2})?)/,
-    /\brs\.?\s*([0-9,]+)/i,
-    /@\s*([0-9,]+)/
+    new RegExp('(?:@|\\b(?:at|for|price|just|pay|rs\\.?|inr)\\b|[₹$])\\s*[:=]?\\s*[₹$]?\\s*([0-9,]+(?:\\.[0-9]{1,2})?)' + unitLookahead, 'i'),
+    new RegExp('(?:₹|\\$|\\brs\\.?\\b)\\s*([0-9,]+(?:\\.[0-9]{1,2})?)' + unitLookahead, 'i'),
+    new RegExp('@\\s*([0-9,]+)' + unitLookahead),
   ];
   for (const p of patterns) {
     const m = text.match(p);
@@ -464,11 +464,26 @@ export function extractDiscountFromMessage(text) {
 // plainly had one.
 function parsePriceText(raw) {
   if (!raw) return null;
-  const cleaned = String(raw).replace(/[^\d.]/g, '').replace(/\.$/, '');
-  if (!cleaned) return null;
-  const parsed = parseFloat(cleaned);
-  if (isNaN(parsed) || parsed <= 0 || parsed > 10000000) return null;
-  return Math.round(parsed);
+  const str = String(raw).trim();
+  // 1. Look for currency-prefixed price first (₹1,299, Rs. 499, $19.99)
+  const currencyMatch = str.match(/(?:₹|rs\.?|\$|inr)\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/i);
+  if (currencyMatch && currencyMatch[1]) {
+    const cleaned = currencyMatch[1].replace(/,/g, '');
+    const parsed = parseFloat(cleaned);
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 10000000) return Math.round(parsed);
+  }
+  // 2. Reject if the string contains spec units (e.g. "10000 mAh", "128 GB", "500 ml", "2.4 GHz")
+  if (/\b(?:mah|gb|tb|mb|kb|ml|litres?|ltr|grams?|kg|mg|cm|mm|m|meters?|inches?|inch|w|watts?|v|volts?|hz|khz|ghz|fps|rpm|dpi|count|pcs|pieces?|pack|pk)\b/i.test(str)) {
+    return null;
+  }
+  // 3. Fallback for raw numeric fields (e.g. from JSON-LD or API attributes where no currency is rendered)
+  const rawNumMatch = str.match(/^\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s*$/);
+  if (rawNumMatch && rawNumMatch[1]) {
+    const cleaned = rawNumMatch[1].replace(/,/g, '');
+    const parsed = parseFloat(cleaned);
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 10000000) return Math.round(parsed);
+  }
+  return null;
 }
 
 // First parseable price among ALL matches of the given selectors, in order — scoped to `root`
@@ -1909,13 +1924,14 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       const cashDrop = previousTrackedPrice - verifiedDealPrice;
       const thresholdCheck = meetsCategoryThreshold(category, subcategory, historyDiscount, cashDrop, country);
 
-      if (thresholdCheck.qualifies && historyDiscount <= 80) {
+      const isRatioAnomaly = previousTrackedPrice > (verifiedDealPrice * 10);
+      if (thresholdCheck.qualifies && historyDiscount <= 80 && !isRatioAnomaly) {
         discountPercentage = historyDiscount;
         genuinePriceDrop = previousTrackedPrice;
         priceSource = 'price_history';
         console.log(`[Price Tracker] 📉 AUTHENTIC PRICE DROP for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}).`);
-      } else if (historyDiscount > 80) {
-        console.warn(`[Price Tracker] ⚠️ Extreme price change (>80%) detected for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice}. Marked for anomaly review. Skipping deal promotion.`);
+      } else if (historyDiscount > 80 || isRatioAnomaly) {
+        console.warn(`[Price Tracker] ⚠️ Extreme price change (>80% or >10x ratio) detected for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice}. Marked for anomaly review. Skipping deal promotion.`);
       } else {
         console.log(`[Price Tracker] ℹ️ Sub-threshold price change for ${cleanUrl}: ${previousTrackedPrice} -> ${verifiedDealPrice} (${thresholdCheck.reason}). Skipping deal promotion.`);
       }
@@ -2203,7 +2219,34 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       return null;
     }
 
-    let deal = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, country, merchant }] });
+    let deal = null;
+    if (productId) {
+      deal = await Deal.findOne({
+        productId,
+        country: country || 'IN',
+        isExpired: { $ne: true }
+      });
+    }
+    if (!deal) {
+      deal = await Deal.findOne({
+        dealUrl: cleanUrl,
+        country: country || 'IN',
+        isExpired: { $ne: true }
+      });
+    }
+    if (!deal) {
+      deal = await Deal.findOne({
+        $or: [
+          { productId, country: country || 'IN' },
+          { dealUrl: cleanUrl }
+        ]
+      }).sort({ createdAt: -1 });
+      if (deal && deal.isExpired) {
+        deal.isExpired = false;
+        deal.expiredAt = null;
+        deal.expiryReason = null;
+      }
+    }
 
     if (deal) {
       const isSameSource = deal.sourceChannelId === sourceChannelId && deal.sourceMessageId === sourceMessageId;
@@ -2253,10 +2296,33 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         (authenticPrev && authenticPrev > verifiedDealPrice)
       );
       deal.isVerified = true;
+      deal.isExpired = false;
+      deal.expiredAt = null;
+      deal.expiryReason = null;
       deal.createdAt = now;
       deal.updatedAt = now;
 
       await deal.save();
+
+      // Retire any other active deal documents for this product
+      if (productId) {
+        await Deal.updateMany(
+          {
+            productId,
+            country: country || 'IN',
+            _id: { $ne: deal._id },
+            isExpired: { $ne: true }
+          },
+          {
+            $set: {
+              isExpired: true,
+              expiredAt: now,
+              expiryReason: 'superseded_by_newer_deal'
+            }
+          }
+        ).catch(() => {});
+      }
+
       console.log(`[Verifier] Successfully updated and bumped existing deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%, Engine: ${deal.sourceEngine})`);
 
       // Real-time evaluation of user price drop alerts
@@ -2316,6 +2382,26 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         updatedAt: now
       });
       await deal.save();
+
+      // Retire any other active deal documents for this product
+      if (productId) {
+        await Deal.updateMany(
+          {
+            productId,
+            country: country || 'IN',
+            _id: { $ne: deal._id },
+            isExpired: { $ne: true }
+          },
+          {
+            $set: {
+              isExpired: true,
+              expiredAt: now,
+              expiryReason: 'superseded_by_newer_deal'
+            }
+          }
+        ).catch(() => {});
+      }
+
       console.log(`[Verifier] Successfully saved new deal: "${actualTitle}" (Price: ₹${verifiedDealPrice}, MRP: ₹${effectiveMRP || canonicalMRP || 'N/A'}, Discount: ${discountPercentage}%, Engine: ${calculatedSourceEngine})`);
 
       // Real-time evaluation of user price drop alerts
@@ -2334,7 +2420,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   } catch (dealSaveErr) {
     if (dealSaveErr.code === 11000) {
       console.warn(`[Verifier Warning] Duplicate key collision (E11000) while saving deal for ${cleanUrl}. Fetching existing deal instead.`);
-      const existing = await Deal.findOne({ $or: [{ dealUrl: cleanUrl }, { productId, country, merchant }, { sourceChannelId, sourceMessageId }] });
+      const existing = await Deal.findOne({
+        $or: [
+          { productId, country: country || 'IN', isExpired: false },
+          { dealUrl: cleanUrl, isExpired: false },
+          { sourceChannelId, sourceMessageId }
+        ]
+      });
+      if (existing) {
+        existing.dealPrice = verifiedDealPrice;
+        existing.updatedAt = now;
+        await existing.save().catch(() => {});
+      }
       return existing;
     }
     console.error(`[Verifier Error] Failed to save/update deal for ${cleanUrl}:`, dealSaveErr.message);

@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
-import { getDb } from './mongodb';
-import { computePriceStats } from './priceAnalytics';
-import { isUsableImageUrl } from './affiliate';
+import { getDb } from './mongodb.js';
+import { computePriceStats } from './priceAnalytics.js';
+import { isUsableImageUrl } from './affiliate.js';
 
 /**
  * Normalizes a MongoDB document for Next.js JSON serialization
@@ -691,6 +691,7 @@ export async function directFetchProducts({
   merchant = 'all',
   country = 'in',
   sort = 'recently_checked',
+  q = '',
 } = {}) {
   try {
     const db = await getDb();
@@ -712,6 +713,22 @@ export async function directFetchProducts({
       andConditions.push({ $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] });
     } else if (cCode !== 'ALL') {
       andConditions.push({ country: cCode });
+    }
+
+    if (q && q.trim().length > 0) {
+      const searchTokens = q.trim().split(/\s+/).filter(Boolean);
+      const tokenConditions = searchTokens.map((token) => {
+        const regex = new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        return {
+          $or: [
+            { title: regex },
+            { brand: regex },
+            { productId: regex },
+            { merchant: regex },
+          ],
+        };
+      });
+      andConditions.push(...tokenConditions);
     }
 
     if (merchant && merchant !== 'all') {

@@ -282,11 +282,18 @@ export async function syncAmazonDeals(options = {}) {
 
         if (qualifiesAsDeal) {
           let existingDeal = await Deal.findOne({
-            $or: [
-              { productId: asin },
-              { dealUrl: cleanUrl }
-            ]
+            productId: asin,
+            country: 'IN',
+            isExpired: { $ne: true }
           });
+          if (!existingDeal) {
+            existingDeal = await Deal.findOne({
+              $or: [
+                { productId: asin, country: 'IN' },
+                { dealUrl: cleanUrl, country: 'IN' }
+              ]
+            }).sort({ createdAt: -1 });
+          }
 
           if (existingDeal) {
             existingDeal.dealPrice = dealPrice;
@@ -302,6 +309,10 @@ export async function syncAmazonDeals(options = {}) {
             existingDeal.lastVerifiedAt = now;
             if (lightningDealEndsAt) existingDeal.lightningDealEndsAt = lightningDealEndsAt;
             await existingDeal.save();
+            await Deal.updateMany(
+              { productId: asin, country: 'IN', _id: { $ne: existingDeal._id }, isExpired: { $ne: true } },
+              { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_amazon_crawler' } }
+            ).catch(() => {});
             stats.dealsUpdated++;
           } else {
             const newDeal = new Deal({
@@ -335,6 +346,10 @@ export async function syncAmazonDeals(options = {}) {
               updatedAt: now
             });
             await newDeal.save();
+            await Deal.updateMany(
+              { productId: asin, country: 'IN', _id: { $ne: newDeal._id }, isExpired: { $ne: true } },
+              { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_amazon_crawler' } }
+            ).catch(() => {});
             stats.dealsCreated++;
           }
         } else {

@@ -100,6 +100,16 @@ export function meetsCategoryThreshold(category, subcategory, dropPercent, cashD
     return { qualifies: false, reason: 'No price reduction', threshold: null };
   }
 
+  // Upper sanity guardrail: Reject extreme drops (>= 85%) that indicate a scraper anomaly or price error
+  if (dropPercent >= 85) {
+    return {
+      qualifies: false,
+      reason: `Rejected: extreme drop of ${dropPercent}% (>= 85%) indicates a scraper anomaly or pricing glitch.`,
+      threshold: null,
+      isAnomaly: true
+    };
+  }
+
   const subKey = (category && subcategory) ? `${category}:${subcategory}`.toLowerCase() : null;
   const catKey = category ? category.toLowerCase() : null;
 

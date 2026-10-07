@@ -15,11 +15,26 @@ import { findD2CStoreByUrl } from '../config/d2cStores.js';
  */
 function parsePriceText(raw) {
   if (!raw) return null;
-  const cleaned = String(raw).replace(/[^\d.]/g, '').replace(/\.$/, '');
-  if (!cleaned) return null;
-  const parsed = parseFloat(cleaned);
-  if (isNaN(parsed) || parsed <= 0 || parsed > 10000000) return null;
-  return Math.round(parsed);
+  const str = String(raw).trim();
+  // 1. Look for currency-prefixed price first (₹1,299, Rs. 499, $19.99)
+  const currencyMatch = str.match(/(?:₹|rs\.?|\$|inr)\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/i);
+  if (currencyMatch && currencyMatch[1]) {
+    const cleaned = currencyMatch[1].replace(/,/g, '');
+    const parsed = parseFloat(cleaned);
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 10000000) return Math.round(parsed);
+  }
+  // 2. Reject if the string contains spec units (e.g. "10000 mAh", "128 GB", "500 ml", "2.4 GHz")
+  if (/\b(?:mah|gb|tb|mb|kb|ml|litres?|ltr|grams?|kg|mg|cm|mm|m|meters?|inches?|inch|w|watts?|v|volts?|hz|khz|ghz|fps|rpm|dpi|count|pcs|pieces?|pack|pk)\b/i.test(str)) {
+    return null;
+  }
+  // 3. Fallback for raw numeric fields (e.g. from JSON-LD or API attributes where no currency is rendered)
+  const rawNumMatch = str.match(/^\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s*$/);
+  if (rawNumMatch && rawNumMatch[1]) {
+    const cleaned = rawNumMatch[1].replace(/,/g, '');
+    const parsed = parseFloat(cleaned);
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 10000000) return Math.round(parsed);
+  }
+  return null;
 }
 
 // First parseable price among ALL matches — not `.first()`, whose node is often empty.
