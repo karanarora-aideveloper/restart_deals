@@ -113,12 +113,15 @@ export default function DealsFeed({ type, initialItems, initialHasMore, emptyTit
       country,
       sort: isDealsType ? 'newest' : 'recently_checked',
     });
+    if (type === 'hot') {
+      params.set('minDiscount', '25');
+    }
     try {
       const res = await fetch(`${API_BASE_URL}${endpoint}?${params}`);
       const json = await res.json();
       let list = json.data || json.deals || [];
       if (type === 'hot') {
-        list = list.filter((d) => d.discountPercentage && d.discountPercentage >= 40);
+        list = list.filter((d) => d.discountPercentage && d.discountPercentage >= 25);
       }
       // hasMore reflects what the API actually had for this page — checked before the image
       // filter below so a page that happens to be mostly imageless doesn't look like "no more

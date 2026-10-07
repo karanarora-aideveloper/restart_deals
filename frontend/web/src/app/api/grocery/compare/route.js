@@ -32,12 +32,13 @@ export async function GET(request) {
     // Resolve locality
     let locality;
     if (lat && lng) {
+      const nearestCandidate = findNearestLocality(lat, lng);
       if (localityNameParam) {
         locality = {
           id: 'exact-gps',
           name: localityNameParam,
-          city: cityParam || 'Your Location',
-          pincode: pincodeParam || '',
+          city: cityParam || nearestCandidate?.city || 'Your Location',
+          pincode: pincodeParam || nearestCandidate?.pincode || '110001',
           lat,
           lng,
           blinkitStore: 'Live Dark Store Hub',
@@ -46,16 +47,15 @@ export async function GET(request) {
           instamartEta: '12–15 mins',
         };
       } else {
-        const nearestCandidate = findNearestLocality(lat, lng);
-        if (nearestCandidate.distanceKm <= 35) {
+        if (nearestCandidate && nearestCandidate.distanceKm <= 35) {
           locality = nearestCandidate;
           localityId = locality.id;
         } else {
           locality = {
             id: 'exact-gps',
             name: cityParam || 'Doorstep Location',
-            city: cityParam || 'Your City',
-            pincode: pincodeParam || '',
+            city: cityParam || nearestCandidate?.city || 'Your City',
+            pincode: pincodeParam || nearestCandidate?.pincode || '110001',
             lat,
             lng,
             blinkitStore: 'Live Dark Store Hub',
@@ -72,7 +72,7 @@ export async function GET(request) {
       lng = locality.lng;
     }
 
-    const pincode = pincodeParam || locality.pincode || '474011';
+    const pincode = pincodeParam || locality.pincode || '110001';
     let items = [];
     let source = 'calibrated_benchmark';
     let storesEta = DEFAULT_GWALIOR_ETAS;

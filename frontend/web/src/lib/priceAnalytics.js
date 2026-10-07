@@ -92,8 +92,8 @@ export function computePriceStats(product) {
     !hasRealPriceDrop
   );
 
-  // 4. Determine Truth Verdicts
-  const isAllTimeLow = recordedPrices.length >= 2 && currentPrice <= lowestPrice * 1.01;
+  // 4. Determine Truth Verdicts (Decision #19: All-Time Low strictly requires >=30 daily checkpoints)
+  const isAllTimeLow = recordedPrices.length >= 30 && currentPrice <= lowestPrice * 1.01;
   const isBelowAverage = averagePrice > 0 && currentPrice <= averagePrice * 0.94;
   const isAboveAverage = averagePrice > 0 && currentPrice >= averagePrice * 1.08;
 

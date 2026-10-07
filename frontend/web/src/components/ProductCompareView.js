@@ -73,7 +73,7 @@ export default function ProductCompareView({ initialProducts = [] }) {
 
           {/* Universal Link Paste Box */}
           <div className="mt-6 w-full">
-            <CompareUrlInput />
+            <CompareUrlInput onProductResolved={addToCompare} />
           </div>
 
           <div className="my-5 flex items-center gap-3 w-full">
@@ -108,7 +108,7 @@ export default function ProductCompareView({ initialProducts = [] }) {
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Universal Paste Bar */}
       <div className="mb-4">
-        <CompareUrlInput />
+        <CompareUrlInput onProductResolved={addToCompare} />
       </div>
 
       {/* Top Toolbar */}

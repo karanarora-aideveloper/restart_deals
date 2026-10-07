@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import ProductCompareView from '@/components/ProductCompareView';
 import { API_BASE_URL, SITE_URL } from '@/lib/config';
+import { directFetchProductById } from '@/lib/dbFallback';
 
 export const metadata = {
   title: 'Compare Electronics, Mobiles & TVs Side-by-Side | ShoppersDeals',
@@ -25,12 +26,15 @@ async function fetchProductsByIds(idString) {
       const res = await fetch(`${API_BASE_URL}/api/products/${id}`, {
         next: { revalidate: 60 },
       });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.success ? (data.data || data.product) : (data.product || data);
+      if (res.ok) {
+        const data = await res.json();
+        const prod = data.success ? (data.data || data.product) : (data.product || data);
+        if (prod) return prod;
+      }
     } catch {
-      return null;
+      // Fall through to direct DB fallback
     }
+    return await directFetchProductById(id).catch(() => null);
   });
 
   const results = await Promise.all(promises);

@@ -313,7 +313,7 @@ async function handleDeepLinkAlert(chatId, rawProductId, username, firstName) {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '🛍️ View On Store', url: product.cleanUrl || 'https://shoppersdeals.in' },
+            { text: '🛍️ View On Store', url: buildAffiliateUrl(product.cleanUrl, 'IN', product.merchant) || 'https://shoppersdeals.in' },
             { text: '🔔 View All Alerts', callback_data: 'my_alerts' }
           ]
         ]

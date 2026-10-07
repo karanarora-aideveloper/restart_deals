@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/config';
 
-export default function CompareUrlInput({ className = '' }) {
+export default function CompareUrlInput({ className = '', onProductResolved = null }) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,8 +35,13 @@ export default function CompareUrlInput({ className = '' }) {
 
       const data = await res.json();
       if (data.success && data.product && (data.product._id || data.product.productId)) {
-        const prodId = data.product._id || data.product.productId;
-        router.push(`/product/${prodId}`);
+        if (onProductResolved) {
+          onProductResolved(data.product);
+          setUrl('');
+        } else {
+          const prodId = data.product._id || data.product.productId;
+          router.push(`/product/${prodId}`);
+        }
       } else {
         setError(data.error || 'Could not resolve product. Please check the URL.');
       }
