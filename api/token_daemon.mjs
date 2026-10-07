@@ -40,8 +40,8 @@ loadEnvFile('../admin/.env.local');
 loadEnvFile('../backend/.env');
 loadEnvFile('./.env');
 
-const MIN_ACTIVE_TOKENS = parseInt(process.env.MIN_ACTIVE_TOKENS, 10) || 5;
-const TARGET_POOL_SIZE = parseInt(process.env.TARGET_POOL_SIZE, 10) || 8;
+const MIN_ACTIVE_TOKENS = parseInt(process.env.MIN_ACTIVE_TOKENS, 10) || 6;
+const TARGET_POOL_SIZE = parseInt(process.env.TARGET_POOL_SIZE, 10) || 10;
 const MAX_BATCH_PER_RUN = 4;
 const CHECK_INTERVAL_MS = (parseInt(process.env.CHECK_INTERVAL_MINUTES, 10) || 3) * 60 * 1000;
 

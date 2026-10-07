@@ -2,8 +2,8 @@ import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import { runBatchAutomation, getAutomationStatus } from '../scripts/scrapingAntAutomation.js';
 import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 
-const MIN_ACTIVE_TOKENS = 5;
-const TARGET_POOL_SIZE = 8;
+const MIN_ACTIVE_TOKENS = 6;
+const TARGET_POOL_SIZE = 10;
 const MAX_BATCH_SIZE = 4;
 
 let isReplenishing = false;

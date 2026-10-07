@@ -134,18 +134,30 @@ export async function executeScrapingAntJob(url, source = 'other') {
   for (let attempt = 1; attempt <= MAX_FAILOVER_ATTEMPTS; attempt++) {
     const now = new Date();
 
-    // Atomically claim the least-recently-used active token that is not in cooldown or already excluded in this job.
+    // Atomically claim the least-recently-used active token that is not in cooldown,
+    // not currently leased by another parallel request, and not already excluded in this job.
     const leased = await ScrapingAntToken.findOneAndUpdate(
       {
         status: 'active',
         token: { $nin: Array.from(excludedTokens) },
-        $or: [
-          { cooldownUntil: { $exists: false } },
-          { cooldownUntil: null },
-          { cooldownUntil: { $lte: now } }
+        $and: [
+          {
+            $or: [
+              { cooldownUntil: { $exists: false } },
+              { cooldownUntil: null },
+              { cooldownUntil: { $lte: now } }
+            ]
+          },
+          {
+            $or: [
+              { leasedUntil: { $exists: false } },
+              { leasedUntil: null },
+              { leasedUntil: { $lte: now } }
+            ]
+          }
         ]
       },
-      { $set: { lastUsedAt: now } },
+      { $set: { lastUsedAt: now, leasedUntil: new Date(Date.now() + 25000) } },
       { sort: { lastUsedAt: 1 }, new: true }
     ).lean();
 
@@ -174,7 +186,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
         const extracted = extractBasicMetadata(html);
 
         if (isValidHtmlResult(url, html, extracted)) {
-          await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 } }).catch(() => {});
+          await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 }, $set: { leasedUntil: null } }).catch(() => {});
           await recordScrapingLog({
             url,
             source,
@@ -370,7 +382,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
     // 200 OK: Successful Scrape!
     if (response.ok) {
       const html = await response.text();
-      await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 } }).catch(() => {});
+      await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 }, $set: { leasedUntil: null } }).catch(() => {});
 
       const extracted = extractBasicMetadata(html);
       await recordScrapingLog({

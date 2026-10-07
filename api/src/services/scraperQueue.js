@@ -160,6 +160,24 @@ class DistributedScraperQueue {
       this.initQueue();
     }
 
+    // Zero-downtime resilience: If no standalone BullMQ worker process is currently
+    // listening to Redis (e.g. local environment or during worker rollout), execute directly
+    // through the ScrapingAnt token lease manager so scraping never stalls or times out.
+    try {
+      const activeWorkers = await this.getActiveWorkerCount().catch(() => 0);
+      if (activeWorkers === 0) {
+        console.log(`[Scraper Queue] No active BullMQ workers found on Redis for ${url.slice(0, 45)}. Executing via direct ScrapingAnt token lease...`);
+        const { executeScrapingAntJob } = await import('./scraperWorker.js');
+        const result = await executeScrapingAntJob(url, source);
+        if (result?.htmlGzip) {
+          return zlib.gunzipSync(Buffer.from(result.htmlGzip, 'base64')).toString('utf-8');
+        }
+        return null;
+      }
+    } catch (fallbackErr) {
+      console.warn('[Scraper Queue] Direct lease fallback check error:', fallbackErr.message);
+    }
+
     try {
       // Add job with BullMQ priority (lower number = higher priority)
       const job = await withTimeout(
@@ -170,13 +188,7 @@ class DistributedScraperQueue {
 
       // Poll Redis directly for job completion — avoids pub/sub (QueueEvents) reliability
       // issues on Valkey/Render where completion events are never received.
-      // Must exceed the worker's worst case. A single BullMQ attempt can itself take up to
-      // ~188s pathologically (90s render + 409 rotate + a second 90s render + 8s grace).
-      // With attempts: 3 + exponential backoff (5s, 10s — see defaultJobOptions below) now
-      // retrying transient failures, the full worst case across all attempts is higher than
-      // one attempt alone — sized with headroom for that without being reckless (this is
-      // also the ceiling an interactive "re-check price" click can block on).
-      const TIMEOUT = 300000;
+      const TIMEOUT = options.timeout || (priority === PRIORITY.INTERACTIVE ? 30000 : 90000);
       const POLL_INTERVAL = 1000;
       const deadline = Date.now() + TIMEOUT;
 

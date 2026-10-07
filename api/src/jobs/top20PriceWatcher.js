@@ -55,14 +55,14 @@ export async function syncTop20Batch(batchSize = 5) {
       $and: [
         {
           $or: [
-            { lastStoreSyncAt: { $lt: twelveHoursAgo } },
-            { lastStoreSyncAt: null },
-            { lastStoreSyncAt: { $exists: false } }
+            { lastChecked: { $lt: twelveHoursAgo } },
+            { lastChecked: null },
+            { lastChecked: { $exists: false } }
           ]
         }
       ]
     })
-      .sort({ lastStoreSyncAt: 1 })
+      .sort({ lastChecked: 1 })
       .limit(batchSize);
 
     if (productsToSync.length === 0) {
