@@ -7,6 +7,7 @@ import { apiCache } from '../utils/cache.js';
 import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
+import { classifyProduct } from '../utils/categoryClassifier.js';
 
 let isWatcherRunning = false;
 
@@ -153,6 +154,13 @@ export async function syncTop20Batch(batchSize = 5) {
           if (scraped.brand) product.brand = scraped.brand;
           if (scraped.images && scraped.images.length > 0) product.images = scraped.images;
           if (scraped.rating) product.rating = scraped.rating;
+
+          const effectiveTitle = product.title || scraped.title || '';
+          const classified = classifyProduct(effectiveTitle, product.merchant, product.category);
+          if (classified && (!product.subcategory || product.category === 'home' || product.category === 'general')) {
+            product.category = classified.category;
+            product.subcategory = classified.subcategory;
+          }
 
           product.hasPriceHistory = Boolean(product.priceHistory && product.priceHistory.length >= 2);
           product.lastStoreSyncAt = now;

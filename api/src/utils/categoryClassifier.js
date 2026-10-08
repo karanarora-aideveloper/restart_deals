@@ -180,13 +180,13 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   if (/\b(shampoo|conditioner|hair\s*oil|hair\s*serum|hair\s*mask|rosemary\s*water|keratin)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'haircare' };
   }
-  if (/\b(face\s*wash|cleanser|face\s*serum|face\s*cream|moisturi[sz]er|sunscreen|toner|sheet\s*mask|micellar\s*water)\b/i.test(combined)) {
+  if (/\b(face\s*wash|cleanser|face\s*serum|face\s*cream|moisturi[sz]er|sunscreen|toner|sheet\s*mask|micellar\s*water|brightening\s*(?:serum|cream|gel|lotion)|niacinamide|salicylic|hyaluronic|retinol|vitamin\s*c|cetaphil|cerave|minimalist|derma\s*co|dot\s*&\s*key|aqualogica|plum\s*goodness|biotique|mamaearth)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'skincare' };
   }
   if (/\b(lipstick|lip\s*gloss|lip\s*balm|lip\s*tint|foundation|concealer|compact\s*powder|kajal|mascara|eyeliner|eyeshadow|blush|makeup)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'makeup' };
   }
-  if (/\b(perfume|deodorant|\bdeo\b|fragrance|parfum|cologne|eau\s*de|body\s*spray|body\s*mist|axe\b|wild\s*stone|fogg|denver|bellavita)\b/i.test(combined)) {
+  if (/\b(perfume|deodorant|\bdeo\b|fragrance|parfum|cologne|eau\s*de|body\s*spray|body\s*mist|roll-?ons?|antiperspirants?|underarm|axe\b|wild\s*stone|fogg|denver|bellavita)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'fragrance' };
   }
   if (/\b(body\s*wash|body\s*lotion|soap|shower\s*gel|scrub|hand\s*wash|cleansing\s*pads?\s*for\s*face)\b/i.test(combined)) {
@@ -307,7 +307,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
 
   // 15. HOME & KITCHEN
   if (
-    /\b(cookware|pan|kadai|tawa|pressure\s*cooker|dinner\s*set|water\s*bottle|flask|insulated\s*bottle|lunch\s*box|knife\s*set|bbq|grill|barbecue|chopper|peeler|milton|cello|napkin\s*rings?)\b/i.test(combined)
+    /\b(cookware|pan|kadai|kadhai|tawa|pressure\s*cooker|dinner\s*set|water\s*bottle|flask|thermosteel|insulated\s*bottle|lunch\s*box|knife\s*set|bbq|grill|barbecue|chopper|peeler|milton|cello|napkin\s*rings?|gas\s*stove|induction\s*cooktop|mixing\s*bowl|kitchen\s*rack|spice\s*box|oil\s*dispenser|water\s*dispenser|ro\s*purifier|water\s*purifier)\b/i.test(combined)
   ) {
     return { category: 'home', subcategory: 'kitchen-dining' };
   }

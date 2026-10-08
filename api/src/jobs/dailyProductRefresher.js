@@ -7,6 +7,7 @@ import { apiCache } from '../utils/cache.js';
 import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
+import { classifyProduct } from '../utils/categoryClassifier.js';
 
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 
@@ -158,6 +159,13 @@ async function processSingleProduct(product, stats, todayStr) {
         product.imageUrl = scraped.imageUrl || scraped.images[0];
       }
       if (scraped.rating) product.rating = scraped.rating;
+
+      const effectiveTitle = product.title || scraped.title || '';
+      const classified = classifyProduct(effectiveTitle, product.merchant, product.category);
+      if (classified && (!product.subcategory || product.category === 'home' || product.category === 'general')) {
+        product.category = classified.category;
+        product.subcategory = classified.subcategory;
+      }
 
       product.isAvailable = true;
       product.lastStoreSyncAt = now;
