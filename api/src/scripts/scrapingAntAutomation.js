@@ -22,6 +22,7 @@ import {
   extractRecaptchaSitekey, solveRecaptchaV2, injectRecaptchaResponse,
   extractTurnstileSitekey, isTurnstileAlreadySolved, solveTurnstile, injectTurnstileResponse,
 } from './captchaSolver.js';
+import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1221,42 +1222,57 @@ async function verifyAndExtractToken(context, verificationUrl) {
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
     await randomDelay(2000, 4000);
 
-    // Try label-proximity first (works on an established account — confirmed
-    // live). A brand-new, zero-usage account may render the dashboard
-    // differently (e.g. an onboarding/"generate your key" state instead of
-    // an existing masked token) — confirmed live 2026-08-19 this path can
-    // return false there. Fall back to clicking every eye/reveal-looking
-    // icon on the page and rescanning after each, rather than giving up.
+    // METHOD 1: Direct authenticated API query via active session cookies
+    try {
+      const apiToken = await page.evaluate(async () => {
+        try {
+          const res = await fetch('/external/api_token', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            return data?.token || data?.data?.token || (typeof data === 'string' ? data : null);
+          }
+        } catch {}
+        return null;
+      });
+      if (apiToken && /^[a-f0-9]{32}$/i.test(apiToken)) {
+        console.log(`[Token] ✓ Token obtained directly from /external/api_token API: ${apiToken}`);
+        await page.close();
+        return apiToken;
+      }
+    } catch (apiErr) {
+      console.warn(`[Token] Direct API fetch warning: ${apiErr.message}`);
+    }
+
+    // METHOD 2: Specifically click the eye/reveal button on CredentialField
+    // (STRICT: never click buttons with text "Regenerate" or class "profile-page__btn")
     const revealAttempt = await page.evaluate(() => {
-      const tryLabelProximity = () => {
-        const labelTexts = ['API token', 'API Key', 'Your API key', 'API key'];
-        const label = Array.from(document.querySelectorAll('*')).find(el =>
-          el.children.length === 0 && labelTexts.includes(el.textContent.trim())
-        );
-        if (!label) return false;
-        let container = label.parentElement;
-        for (let i = 0; i < 4 && container; i++) {
-          const clickable = container.querySelector('button, [role="button"], svg');
-          if (clickable) { clickable.click(); return true; }
-          container = container.parentElement;
+      const tryEyeToggle = () => {
+        const eyeBtn = document.querySelector('button[aria-label="Show"], button[title="Show"], .credential-field__icon-btn');
+        if (eyeBtn && !eyeBtn.closest('.profile-page__regen')) {
+          eyeBtn.click();
+          return true;
         }
         return false;
       };
-      if (tryLabelProximity()) return { method: 'label-proximity' };
+      if (tryEyeToggle()) return { method: 'credential-eye-toggle' };
 
-      // Fallback: click every svg/button that looks like a reveal toggle
-      // (icon-only buttons are usually small — under ~40px — and eye-icon
-      // classes commonly mention "eye"; try those first, then all icon
-      // buttons as a last resort).
-      const candidates = Array.from(document.querySelectorAll('button svg, [role="button"] svg, button i, svg'))
-        .map(el => el.closest('button, [role="button"]') || el)
-        .filter(Boolean);
-      const eyeish = candidates.filter(el => /eye/i.test(el.outerHTML));
-      const tried = (eyeish.length ? eyeish : candidates).slice(0, 15);
-      for (const el of tried) {
-        try { el.click(); } catch { /* ignore */ }
+      // Secondary proximity: find API token label container and click only safe eye buttons
+      const labelTexts = ['API token', 'API Key', 'Your API key', 'API key'];
+      const label = Array.from(document.querySelectorAll('*')).find(el =>
+        el.children.length === 0 && labelTexts.includes(el.textContent.trim())
+      );
+      if (label) {
+        let container = label.parentElement;
+        for (let i = 0; i < 3 && container; i++) {
+          const eye = container.querySelector('button[aria-label="Show"], svg, i');
+          if (eye && !eye.closest('.profile-page__regen') && !eye.closest('button')?.textContent.includes('Regenerate')) {
+            (eye.closest('button') || eye).click();
+            return { method: 'safe-proximity-toggle' };
+          }
+          container = container.parentElement;
+        }
       }
-      return { method: 'broad-click', attempted: tried.length };
+      return { method: 'none' };
     }).catch(() => ({ method: 'error' }));
     console.log(`[Token] Dashboard reveal attempt:`, JSON.stringify(revealAttempt));
     await randomDelay(1000, 2000);

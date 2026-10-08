@@ -215,7 +215,25 @@ export async function executeScrapingAntJob(url, source = 'other') {
         });
         checkScrapingAntUsage(token).then(async (usage) => {
           if (!usage.valid) {
-            await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+            if (usage.statusCode === 401 || usage.statusCode === 404 || (usage.error && usage.error.includes('wrong'))) {
+              console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... confirmed dead/revoked (${usage.error}). Deleting from DB.`);
+              await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+            } else {
+              console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... temporary check error (${usage.error}). Applying 60s cooldown.`);
+              await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000), leasedUntil: null } }).catch(() => {});
+            }
+          } else if (usage.remainedCredits > 0) {
+            console.log(`[ScraperWorker] Token ${token.slice(0, 8)}... still has ${usage.remainedCredits} credits. Applying 30s cooldown.`);
+            await ScrapingAntToken.updateOne(
+              { token },
+              {
+                status: 'active',
+                remainedCredits: usage.remainedCredits,
+                cooldownUntil: new Date(Date.now() + 30_000),
+                leasedUntil: null,
+                lastCheckedAt: new Date(),
+              }
+            ).catch(() => {});
           } else {
             await ScrapingAntToken.updateOne(
               { token },
@@ -358,8 +376,25 @@ export async function executeScrapingAntJob(url, source = 'other') {
 
       checkScrapingAntUsage(token).then(async (usage) => {
         if (!usage.valid) {
-          console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... is dead/invalid (${usage.error}). Deleting from DB.`);
-          await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+          if (usage.statusCode === 401 || usage.statusCode === 404 || (usage.error && usage.error.includes('wrong'))) {
+            console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... confirmed dead/revoked (${usage.error}). Deleting from DB.`);
+            await ScrapingAntToken.deleteOne({ token }).catch(() => {});
+          } else {
+            console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... temporary check error (${usage.error}). Applying 60s cooldown.`);
+            await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000), leasedUntil: null } }).catch(() => {});
+          }
+        } else if (usage.remainedCredits > 0) {
+          console.log(`[ScraperWorker] Token ${token.slice(0, 8)}... still has ${usage.remainedCredits} credits. Applying 30s cooldown.`);
+          await ScrapingAntToken.updateOne(
+            { token },
+            {
+              status: 'active',
+              remainedCredits: usage.remainedCredits,
+              cooldownUntil: new Date(Date.now() + 30_000),
+              leasedUntil: null,
+              lastCheckedAt: new Date(),
+            }
+          ).catch(() => {});
         } else {
           console.log(`[ScraperWorker] Token ${token.slice(0, 8)}... exhausted (0 credits). Parking until renewal date: ${usage.renewalDate?.toISOString() || '30 days'}`);
           await ScrapingAntToken.updateOne(

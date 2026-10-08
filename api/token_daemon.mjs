@@ -126,6 +126,26 @@ async function checkRenewals() {
 async function saveToken(email, token, createdAt) {
   console.log(`[Daemon Save] Cycle produced token for ${email}: ${token.slice(0, 8)}...`);
 
+  // Pre-flight live validation against ScrapingAnt /v2/usage API
+  let liveCredits = 10000;
+  let planName = 'Free';
+  let planTotalCredits = 10000;
+  let renewalDate = null;
+  try {
+    const usage = await checkScrapingAntUsage(token);
+    if (!usage.valid) {
+      console.error(`[Daemon Save] ⚠️ Token ${token.slice(0, 8)}... failed live verification (${usage.error}). Refusing to insert.`);
+      return;
+    }
+    liveCredits = usage.remainedCredits ?? 10000;
+    planName = usage.planName || 'Free';
+    planTotalCredits = usage.planTotalCredits || 10000;
+    renewalDate = usage.renewalDate || null;
+    console.log(`[Daemon Save] ✓ Pre-flight verified: ${liveCredits}/${planTotalCredits} credits valid (${planName}).`);
+  } catch (verifyErr) {
+    console.warn(`[Daemon Save] Pre-flight check warning (${verifyErr.message}), proceeding with standard defaults.`);
+  }
+
   // Direct MongoDB Atlas write
   try {
     const existing = await ScrapingAntToken.findOne({ token });
@@ -134,8 +154,10 @@ async function saveToken(email, token, createdAt) {
       existing.email = email || existing.email;
       existing.lastUsedAt = new Date();
       existing.cooldownUntil = null;
-      existing.remainedCredits = 10000;
-      existing.planTotalCredits = 10000;
+      existing.remainedCredits = liveCredits;
+      existing.planTotalCredits = planTotalCredits;
+      existing.planName = planName;
+      if (renewalDate) existing.renewalDate = renewalDate;
       await existing.save();
       console.log(`[Daemon DB] ✓ Reactivated existing token ${token.slice(0, 8)}...`);
     } else {
@@ -146,10 +168,12 @@ async function saveToken(email, token, createdAt) {
         usageCount: 0,
         cooldownUntil: null,
         lastUsedAt: new Date(),
-        remainedCredits: 10000,
-        planTotalCredits: 10000,
+        remainedCredits: liveCredits,
+        planTotalCredits: planTotalCredits,
+        planName: planName,
+        renewalDate: renewalDate
       });
-      console.log(`[Daemon DB] ✓ Inserted fresh token ${token.slice(0, 8)}... with 10,000 credits.`);
+      console.log(`[Daemon DB] ✓ Inserted fresh verified token ${token.slice(0, 8)}... with ${liveCredits} credits.`);
     }
   } catch (dbErr) {
     console.error('[Daemon DB Error]:', dbErr.message);
