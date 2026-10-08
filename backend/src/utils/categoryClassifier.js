@@ -39,7 +39,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   if (/\b(diapers?|napp(?:y|ies)|baby\s*wipes?|swim\s*diaper|mamy\s*poko|huggies|pampers)\b/i.test(combined)) {
     return { category: 'baby-kids', subcategory: 'diapers-wipes' };
   }
-  if (/\b(stroller|pram|baby\s*carrier|baby\s*walker|tricycle|trike|car\s*seat\s*for\s*baby|baby\s*cot|baby\s*cradle|baby\s*swing)\b/i.test(combined)) {
+  if (/\b(stroller|pram|baby\s*carrier|baby\s*walker|tricycle|trike|convertible\s*car\s*seat|car\s*seat|baby\s*cot|baby\s*cradle|baby\s*swing|crib|bassinet|high\s*chair)\b/i.test(combined)) {
     return { category: 'baby-kids', subcategory: 'baby-gear' };
   }
   if (/\b(feeding\s*bottle|sipper|nursing\s*cover|breast\s*pump|teether|baby\s*pacifier|baby\s*food\s*feeder)\b/i.test(combined)) {
@@ -91,6 +91,9 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     !/\b(candle|bottle|filter\s*cartridge|replacement\s*filter)\b/i.test(combined)
   ) {
     return { category: 'appliances', subcategory: 'water-purifiers' };
+  }
+  if (/\b(air\s*purifier|dehumidifier|humidifier)\b/i.test(combined) && !/\b(filter\s*replacement|replacement\s*filter)\b/i.test(combined)) {
+    return { category: 'appliances', subcategory: 'air-purifiers' };
   }
   if (/\b(geyser|water\s*heater|instant\s*geyser|storage\s*water\s*heater)\b/i.test(combined) && !/\b(pipe|element|rod)\b/i.test(combined)) {
     return { category: 'appliances', subcategory: 'geysers' };
@@ -225,11 +228,11 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   if (/\b(almonds?|badam|cashews?|kaju|walnuts?|akhrot|dates?|khajur|makhana|raisins?|kishmish|pistachios?|pista|dry\s*fruits?)\b/i.test(combined)) {
     return { category: 'grocery', subcategory: 'dry-fruits' };
   }
-  if (/\b(healthy\s*binge|gift\s*hamper|gift\s*box.*(?:snack|chocolate|sweet)|chocolate|cookies?|biscuits?|namkeen|chips|wafers?|snacks?)\b/i.test(combined)) {
+  if (/\b(healthy\s*binge|gift\s*hamper|gift\s*box.*(?:snack|chocolate|sweet)|chocolate|cookies?|biscuits?|namkeen|chips|wafers?|snacks?|gum\b|xylitol|chewing\s*gum|bubble\s*gum|mints?|vegetable\s*juice|fruit\s*juice|\bjuice\b|cold\s*drink|soft\s*drink)\b/i.test(combined)) {
     return { category: 'grocery', subcategory: 'snacks-beverages' };
   }
   if (
-    /\b(cooking\s*oil|mustard\s*oil|olive\s*oil|ghee|masala|turmeric|spices?|atta|flour|rice|basmati|dal|salt|sugar|honey|syrup)\b/i.test(combined) &&
+    /\b(cooking\s*oil|mustard\s*oil|olive\s*oil|sesame\s*oil|sunflower\s*oil|groundnut\s*oil|coconut\s*oil|cold\s*pressed.*oil|refined\s*oil|ghee|masala|turmeric|spices?|atta|flour|rice|basmati|dal|salt|sugar|honey|syrup|chia\s*seeds?|flax\s*seeds?)\b/i.test(combined) &&
     !/\b(diya|batti|candle|pooja|lamp)\b/i.test(combined)
   ) {
     return { category: 'grocery', subcategory: 'cooking-staples' };
@@ -243,13 +246,13 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'auto', subcategory: 'helmets-riding' };
   }
   if (
-    /\b(dash\s*cam|dashboard\s*camera|car\s*charger|tire\s*inflator|tyre\s*inflator|car\s*vacuum|wiper\s*blade|car\s*led|seat\s*belt\s*cover|steering\s*wheel\s*lock|jump\s*starter|obd2|car\s*reverse|car\s*door\s*guard)\b/i.test(combined)
+    /\b(dash\s*cam|dashboard\s*camera|car\s*charger|tire\s*inflator|tyre\s*inflator|car\s*vacuum|wiper\s*blade|car\s*led|seat\s*belt\s*cover|steering\s*wheel\s*lock|jump\s*starter|obd2|car\s*reverse|car\s*door\s*guard|brake\s*(?:kit|pad|pads|rotor|rotors|disc)|driving\s*light|led\s*pods?|off\s*road\s*light|car\s*mats?|car\s*seat\s*cover|car\s*perfume|car\s*freshener|spark\s*plug)\b/i.test(combined)
   ) {
     return { category: 'auto', subcategory: 'car-accessories' };
   }
 
   // 13. BOOKS & CRAFTS
-  if (/\b(books?|novels?|paperback|hardcover|bible|story\s*book|manga|comic|dungeons\s*&\s*dragons|board\s*book)\b/i.test(combined) && !/\b(shelf|rack|stand|case)\b/i.test(combined)) {
+  if (/\b(books?|novels?|paperback|hardcover|bible|story\s*book|manga|comic|dungeons\s*&\s*dragons|board\s*book|boxed\s*set|quartet|trilogy|chronicles?)\b/i.test(combined) && !/\b(shelf|rack|stand|case)\b/i.test(combined)) {
     return { category: 'books-stationery', subcategory: 'books' };
   }
   if (/\b(stationery|notebooks?|journals?|pens?|gel\s*pen|ball\s*pen|pencils?|highlighters?|desk\s*organizer|sticky\s*notes?)\b/i.test(combined)) {
@@ -264,7 +267,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   const isMale = /\b(mens?|mans?|males?|gents|boys?|polo|boxer|boxers|brief|briefs|vest|vests)\b/i.test(combined);
 
   if (
-    /\b(shoes?|sneakers?|sandals?|slippers?|flip\s*flops?|crocs|boots?|loafers?|heels?|flats?|wedges?|jutis?)\b/i.test(combined) &&
+    /\b(shoes?|sneakers?|sandals?|slippers?|flip\s*flops?|crocs|boots?|loafers?|heels?|flats?|wedges?|jutis?|pumps?|sling\s*pumps?|slingback)\b/i.test(combined) &&
     !/\b(rack|stand|deodorizer|horn|washing\s*machine)\b/i.test(combined)
   ) {
     return isFemale
@@ -272,8 +275,8 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
       : { category: 'men-fashion', subcategory: 'footwear' };
   }
   if (
-    /\b(chronograph|analog\s*watch|digital\s*watch|wrist\s*watch|fastrack.*watch|titan.*watch|fossil.*watch|casio.*watch|timex.*watch)\b/i.test(combined) &&
-    !/\b(smart|strap|band)\b/i.test(combined)
+    /\b(chronograph|analog\s*watch|digital\s*watch|wrist\s*watch|quartz\s*watch|fastrack.*watch|titan.*watch|fossil.*watch|casio.*watch|timex.*watch)\b/i.test(combined) &&
+    !/\b(smartwatch|smart\s*watch|fitness\s*band|smart\s*band|smart\s*ring)\b/i.test(combined)
   ) {
     return isFemale
       ? { category: 'women-fashion', subcategory: 'women-watches' }
@@ -287,7 +290,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
       ? { category: 'women-fashion', subcategory: 'women-ethnic' }
       : { category: 'men-fashion', subcategory: 'men-topwear' };
   }
-  if (/\b(innerwear|lingerie|sleepwear|nightwear|nighty|night\s*suit|boxers?|briefs?|vests?)\b/i.test(combined)) {
+  if (/\b(innerwear|lingerie|sleepwear|nightwear|nighty|night\s*suit|boxers?|briefs?|vests?|shapewear|bodysuit|thong|thermals?|thermal\s*(?:wear|set|top|bottom))\b/i.test(combined)) {
     return isFemale
       ? { category: 'women-fashion', subcategory: 'women-innerwear' }
       : { category: 'men-fashion', subcategory: 'innerwear' };
@@ -321,7 +324,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'home', subcategory: 'storage' };
   }
   if (
-    /\b(drill|screwdriver|wrench|pliers|laser\s*level|tool\s*kit|soldering|hardware|brass\s*plumbing|sharkbite|wire\s*connectors?|reacher\s*grabber|grade\s*rod|hard\s*hat|electrical\s*wire|copper\s*wire|cables?\s*fr\s*pvc|sqmm\b|pvc\s*insulated\s*cable)\b/i.test(combined)
+    /\b(welding\s*machine|air\s*compressor|pressure\s*washer|power\s*tool|drill|screwdriver|wrench|pliers|laser\s*level|tool\s*kit|soldering|hardware|brass\s*plumbing|sharkbite|wire\s*connectors?|reacher\s*grabber|grade\s*rod|hard\s*hat|electrical\s*wire|copper\s*wire|cables?\s*fr\s*pvc|sqmm\b|pvc\s*insulated\s*cable|cabinet\s*knobs?|cabinet\s*handles?|drawer\s*pulls?|glue\s*gun)\b/i.test(combined)
   ) {
     return { category: 'home', subcategory: 'tools' };
   }
@@ -330,7 +333,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   ) {
     return { category: 'home', subcategory: 'cleaning' };
   }
-  if (/\b(live\s*plant|tulsi|medicinal\s*plant|seeds?|gardening|hose\s*nozzle|watering\s*wand|flower\s*pot|planters?|kneeler)\b/i.test(combined)) {
+  if (/\b(live\s*plant|tulsi|medicinal\s*plant|flower\s*seeds?|vegetable\s*seeds?|gardening|hose\s*nozzle|watering\s*wand|flower\s*pot|planters?|kneeler)\b/i.test(combined)) {
     return { category: 'home', subcategory: 'garden' };
   }
   if (
