@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
+    "test": "node scripts/test_classifier.js",
     "worker:scraper": "node src/services/scraperWorker.js",
     "keep-warm": "node src/scripts/keepWorkersWarm.js",
     "postinstall": "playwright install chromium chromium-headless-shell || true"
