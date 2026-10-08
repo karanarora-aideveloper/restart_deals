@@ -252,7 +252,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   }
 
   // 13. BOOKS & CRAFTS
-  if (/\b(books?|novels?|paperback|hardcover|bible|story\s*book|manga|comic|dungeons\s*&\s*dragons|board\s*book|boxed\s*set|quartet|trilogy|chronicles?)\b/i.test(combined) && !/\b(shelf|rack|stand|case)\b/i.test(combined)) {
+  if (/\b(books?|novels?|paperback|hardcover|bible|story\s*book|manga|comic|dungeons\s*&\s*dragons|board\s*book|boxed\s*set|quartet|trilogy|chronicles?|memoirs?|biograph(?:y|ies)|autobiograph(?:y|ies)|adventure\s*of\s*survival)\b/i.test(combined) && !/\b(shelf|rack|stand|case)\b/i.test(combined)) {
     return { category: 'books-stationery', subcategory: 'books' };
   }
   if (/\b(stationery|notebooks?|journals?|pens?|gel\s*pen|ball\s*pen|pencils?|highlighters?|desk\s*organizer|sticky\s*notes?)\b/i.test(combined)) {

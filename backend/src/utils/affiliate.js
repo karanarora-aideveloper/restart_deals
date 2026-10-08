@@ -3,7 +3,7 @@
  */
 
 const AMAZON_IN_TAG = process.env.AMAZON_IN_AFFILIATE_TAG || 'shoppersdea03-21';
-const AMAZON_US_TAG = process.env.AMAZON_US_AFFILIATE_TAG || '';
+const AMAZON_US_TAG = process.env.AMAZON_US_AFFILIATE_TAG || 'shoppersdeals-20';
 const FLIPKART_AFFID = process.env.FLIPKART_AFFILIATE_TAG || '';
 const CUELINKS_PUB_ID = process.env.CUELINKS_PUB_ID || '325472';
 const CUELINKS_API_KEY = process.env.CUELINKS_API_KEY || process.env.CUELINKS_V3_API_KEY || '';

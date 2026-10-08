@@ -268,7 +268,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
         continue;
       } else if (fastRes.status === 429) {
         console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit on fast tier.`);
-        await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }).catch(() => {});
+        await ScrapingAntToken.updateOne({ token }, { $set: { cooldownUntil: new Date(Date.now() + 60_000), leasedUntil: null } }).catch(() => {});
         await recordScrapingLog({
           url,
           source,
@@ -346,7 +346,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
       console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... hit 429 rate limit. Setting 60s cooldown and rotating to next token (attempt ${attempt}/${MAX_FAILOVER_ATTEMPTS})...`);
       await ScrapingAntToken.updateOne(
         { token },
-        { $set: { cooldownUntil: new Date(Date.now() + 60_000) } }
+        { $set: { cooldownUntil: new Date(Date.now() + 60_000), leasedUntil: null } }
       ).catch(() => {});
       await recordScrapingLog({
         url,
@@ -406,7 +406,8 @@ export async function executeScrapingAntJob(url, source = 'other') {
               planTotalCredits: usage.planTotalCredits,
               renewalDate: usage.renewalDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
               lastCheckedAt: new Date(),
-              exhaustedAt: new Date()
+              exhaustedAt: new Date(),
+              leasedUntil: null,
             }
           ).catch(() => {});
         }
@@ -424,6 +425,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
     // 423 Anti-scraping protection
     if (response.status === 423) {
       console.warn(`[ScraperWorker] ScrapingAnt 423 (Anti-scraping protection) on ${url.slice(0, 45)} with token ${token.slice(0, 8)}...`);
+      await ScrapingAntToken.updateOne({ token }, { $set: { leasedUntil: null } }).catch(() => {});
       await recordScrapingLog({
         url,
         source,
