@@ -20,8 +20,10 @@ export function formatTelegramMessage(deal, channelUsername) {
   const ratingLine = deal.rating ? `⭐ Rating: <b>${deal.rating}/5</b>\n` : '';
   const couponLine = deal.coupon?.label ? `🎟️ <b>${deal.coupon.label}</b>\n` : '';
   
-  // Format monetized affiliate link
-  const affiliateBuyUrl = buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
+  // Format monetized affiliate link through universal cloaker with native app deep-linking
+  const affiliateBuyUrl = deal._id
+    ? `https://www.shoppersdeals.in/r/${deal._id}?src=tg`
+    : buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
   const merchantName = (deal.merchant || 'Store').charAt(0).toUpperCase() + (deal.merchant || 'Store').slice(1);
 
   // Link to website product/deal page for price history charts & alerts

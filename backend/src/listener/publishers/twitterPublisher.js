@@ -7,7 +7,9 @@ export function formatTweetMessage(deal) {
   const country = deal.country || 'IN';
   const priceStr = formatPriceCurrency(deal.dealPrice, country) || '';
   const discountStr = deal.discountPercentage ? `(${deal.discountPercentage}% OFF)` : '';
-  const link = buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
+  const link = deal._id
+    ? `https://www.shoppersdeals.in/r/${deal._id}?src=x`
+    : buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
   const webLink = getWebsiteDealUrl(deal);
 
   const couponStr = deal.coupon?.label ? `\n🎟️ ${deal.coupon.label}` : '';

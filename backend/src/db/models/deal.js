@@ -196,6 +196,7 @@ dealSchema.index({ productId: 1, merchant: 1 });
 dealSchema.index({ productId: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, country: 1, createdAt: -1 });
 dealSchema.index({ category: 1, isExpired: 1, createdAt: -1 });
+dealSchema.index({ merchant: 1, isExpired: 1, createdAt: -1 });
 dealSchema.index({ isExpired: 1, discountPercentage: -1, createdAt: -1 });
 dealSchema.index(
   { productId: 1, country: 1 },

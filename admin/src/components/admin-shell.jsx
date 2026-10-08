@@ -226,6 +226,16 @@ export default function AdminShell({ children, title }) {
             <div className="stat-badge">
               Products DB: <span className="highlight">{statusData.totalProducts || 0}</span>
             </div>
+            {statusData.storage && (
+              <div className="stat-badge" title={`MongoDB Atlas Quota: ${statusData.storage.dataSizeMB}MB used / ${statusData.storage.quotaLimitMB}MB limit`}>
+                DB Headroom: <span className="highlight" style={{ color: statusData.storage.isHealthy ? '#10b981' : '#ef4444' }}>{statusData.storage.freeQuotaMB} MB</span>
+              </div>
+            )}
+            {statusData.tokens && (
+              <div className="stat-badge" title={`${statusData.tokens.active} active proxy tokens in pool`}>
+                Tokens: <span className="highlight" style={{ color: statusData.tokens.active >= 5 ? '#10b981' : '#f59e0b' }}>{statusData.tokens.active} Active</span>
+              </div>
+            )}
             <div className="stat-badge">
               Total Users: <span className="highlight">{statusData.totalUsers || 0}</span>
             </div>

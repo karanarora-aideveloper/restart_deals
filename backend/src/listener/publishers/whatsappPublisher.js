@@ -16,7 +16,9 @@ export function formatWhatsAppMessage(deal) {
   // Extra coupon the shopper applies on the merchant page, on top of the deal price
   const couponLine = deal.coupon?.label ? `\n🎟️ *${deal.coupon.label}*` : '';
   
-  const affiliateBuyUrl = buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
+  const affiliateBuyUrl = deal._id
+    ? `https://www.shoppersdeals.in/r/${deal._id}?src=wa`
+    : buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
   const webDealUrl = getWebsiteDealUrl(deal);
   const merchantName = (deal.merchant || 'Store').charAt(0).toUpperCase() + (deal.merchant || 'Store').slice(1);
 

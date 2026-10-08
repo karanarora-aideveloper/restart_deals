@@ -1,5 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import { runStorageCompaction } from '../jobs/storageCompactor.js';
 
 const router = express.Router();
 
@@ -170,6 +171,51 @@ router.get('/all-merchants', async (req, res) => {
       error: 'Failed to fetch merchant stats',
       message: error.message,
     });
+  }
+});
+
+// GET /api/monitoring/storage
+// Live MongoDB Atlas Free Tier Quota (<512MB limit) telemetry & stats
+router.get('/storage', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) return res.status(503).json({ error: 'Database not connected' });
+
+    const stats = await db.stats();
+    const dataSizeMB = Number((stats.dataSize / 1024 / 1024).toFixed(2));
+    const storageSizeMB = Number((stats.storageSize / 1024 / 1024).toFixed(2));
+    const freeQuotaMB = Number((512 - dataSizeMB).toFixed(2));
+    const quotaUsedPercent = Number(((dataSizeMB / 512) * 100).toFixed(1));
+
+    const collections = ['deals', 'products', 'scraping_logs', 'deal_channel_events', 'verified_links', 'scraping_ant_tokens'];
+    const collectionCounts = {};
+    for (const c of collections) {
+      collectionCounts[c] = await db.collection(c).countDocuments().catch(() => 0);
+    }
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      quotaLimitMB: 512,
+      dataSizeMB,
+      storageSizeMB,
+      freeQuotaMB,
+      quotaUsedPercent,
+      isHealthy: dataSizeMB < 400, // Alert if >400MB
+      collections: collectionCounts
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch storage stats', message: error.message });
+  }
+});
+
+// POST /api/monitoring/compact-storage
+// Manually trigger storage compaction and pruning job
+router.post('/compact-storage', async (req, res) => {
+  try {
+    const result = await runStorageCompaction();
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to compact storage', message: error.message });
   }
 });
 

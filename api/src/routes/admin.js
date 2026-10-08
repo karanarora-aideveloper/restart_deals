@@ -130,6 +130,21 @@ router.get('/status', async (req, res) => {
       productsByCategory[item._id] = item.count;
     });
 
+    let storageStats = null;
+    try {
+      const dbStats = await mongoose.connection.db.stats();
+      const dataSizeMB = Number((dbStats.dataSize / 1024 / 1024).toFixed(2));
+      const storageSizeMB = Number((dbStats.storageSize / 1024 / 1024).toFixed(2));
+      storageStats = {
+        dataSizeMB,
+        storageSizeMB,
+        freeQuotaMB: Number((512 - dataSizeMB).toFixed(2)),
+        quotaLimitMB: 512,
+        quotaUsedPercent: Number(((dataSizeMB / 512) * 100).toFixed(1)),
+        isHealthy: dataSizeMB < 400
+      };
+    } catch (_) {}
+
     res.json({
       status: mongoose.connection.readyState === 1 ? 'Online' : 'Offline',
       queueLength: queueStatus.queueLength || 0,
@@ -162,6 +177,7 @@ router.get('/status', async (req, res) => {
         active: activeTokens,
         exhausted: exhaustedTokens,
       },
+      storage: storageStats,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
