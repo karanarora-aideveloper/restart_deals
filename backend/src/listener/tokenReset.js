@@ -35,9 +35,12 @@ export async function checkAndResetTokens() {
       tokenRecord.lastCheckedAt = new Date();
 
       if (!usage.valid) {
-        // If ScrapingAnt reports invalid token, purge it from DB
-        console.warn(`[Token Scheduler] Token ${truncated}... is invalid or dead (${usage.error}). Deleting from DB.`);
-        await ScrapingAntToken.deleteOne({ _id: tokenRecord._id });
+        if (usage.statusCode === 401 || usage.statusCode === 404 || (usage.error && usage.error.includes('wrong'))) {
+          console.warn(`[Token Scheduler] Token ${truncated}... is confirmed dead/revoked (${usage.error}). Deleting from DB.`);
+          await ScrapingAntToken.deleteOne({ _id: tokenRecord._id });
+        } else {
+          console.warn(`[Token Scheduler] Token ${truncated}... temporary check error (${usage.error}). Retaining in DB.`);
+        }
         continue;
       }
 
