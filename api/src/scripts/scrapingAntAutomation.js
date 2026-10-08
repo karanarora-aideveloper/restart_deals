@@ -1212,10 +1212,14 @@ async function verifyAndExtractToken(context, verificationUrl) {
     // coordinates — a coordinate-based click here landed on the wrong
     // element and logged out an unrelated session during testing), then
     // re-scan.
-    console.log('[Token] Token not found on verification page, trying dashboard...');
-    await page.goto('https://app.scrapingant.com/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
-    await randomDelay(3000, 5000);
+    console.log('[Token] Token not found on verification page, ensuring dashboard is ready...');
+    if (!page.url().includes('/dashboard')) {
+      await page.goto('https://app.scrapingant.com/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {});
+    }
+    // Wait for the Vue app to actually mount and render the API token label
+    await page.locator("text=/API token|API Key|Your API key/i").first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+    await randomDelay(2000, 4000);
 
     // Try label-proximity first (works on an established account — confirmed
     // live). A brand-new, zero-usage account may render the dashboard
