@@ -42,13 +42,28 @@ export async function runStorageCompaction() {
       return { deletedCount: 0 };
     });
 
-    // 2. Purge stale verified_links older than 7 days
+    // 2. Purge stale verified_links older than 3 days or missing lastChecked
     const vlRes = await db.collection('verified_links').deleteMany({
-      lastChecked: { $lt: sevenDaysAgo },
+      $or: [
+        { lastChecked: { $lt: threeDaysAgo } },
+        { lastChecked: null },
+        { lastChecked: { $exists: false } },
+      ],
     }).catch(err => {
       console.warn('[StorageCompactor] VerifiedLink prune error:', err.message);
       return { deletedCount: 0 };
     });
+
+    // 2b. Strip bulky unused fields (aboutThisItem, technicalSpecifications) from remaining verified_links
+    await db.collection('verified_links').updateMany(
+      { $or: [{ aboutThisItem: { $exists: true } }, { technicalSpecifications: { $exists: true } }] },
+      { $unset: { aboutThisItem: '', technicalSpecifications: '' } }
+    ).catch(() => {});
+
+    // 2c. Purge stale deal_channel_events older than 3 days
+    await db.collection('deal_channel_events').deleteMany({
+      createdAt: { $lt: threeDaysAgo },
+    }).catch(() => {});
 
     // 3. Compact products with priceHistory > 60 items
     const cursor = Product.find(

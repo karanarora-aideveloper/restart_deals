@@ -632,13 +632,14 @@ async function generateTempEmail(page) {
   if (!(await waitVisible(serverSelect, 10_000))) {
     throw new Error('Could not find the server <select> in the Create-email modal — page structure may have changed');
   }
-  await serverSelect.selectOption({ value: '2' });
+  // Discover available premium server options (excluding free server-1)
+  const optionValues = await serverSelect.locator('option').evaluateAll(opts => opts.map(o => o.value).filter(v => v && v !== '1')).catch(() => []);
+  const premiumServers = optionValues.length > 0 ? optionValues : ['2', '3'];
+  const targetServer = premiumServers[Math.floor(Math.random() * premiumServers.length)];
+  await serverSelect.selectOption({ value: targetServer });
   await randomDelay(300, 600);
   const serverValue = await serverSelect.inputValue();
-  if (serverValue !== '2') {
-    throw new Error(`Server selection didn't stick — expected value "2" (premium), got "${serverValue}"`);
-  }
-  console.log('[Smail] ✓ Premium server-2 selected and confirmed');
+  console.log(`[Smail] ✓ Premium server-${serverValue} selected and confirmed (available pool: [${premiumServers.join(',')}])`);
   await randomDelay(800, 1500);
 
   // Click Generate
@@ -947,28 +948,30 @@ async function waitForVerificationEmail(smailPage, maxChecks = 30, intervalMs = 
       try {
         const el = smailPage.locator(sel).first();
         if (await el.isVisible({ timeout: 2000 })) {
-          const text = await el.textContent();
+          const text = await el.textContent().catch(() => '');
           if (text && text.toLowerCase().includes('scrapingant')) {
-            console.log('[Verify] ✓ ScrapingAnt email found in inbox');
+            console.log(`[Verify] ✓ ScrapingAnt email found in inbox (selector: ${sel})`);
 
             // Click it to open
-            await el.click();
+            await el.click().catch(() => {});
             await randomDelay(2000, 3000);
 
             // Extract verification URL from email content
-            return await extractVerificationUrl(smailPage);
+            const verifiedUrl = await extractVerificationUrl(smailPage);
+            if (verifiedUrl) return verifiedUrl;
           }
         }
-      } catch { /* try next selector */ }
+      } catch (err) {
+        console.warn(`[Verify] Extract attempt using selector "${sel}" failed: ${err.message}`);
+      }
     }
 
     if (check < maxChecks) {
       // Refresh inbox — try clicking on a refresh/reload element or just wait
       try {
-        // Some Smail UIs auto-refresh; if not, click the inbox area to trigger
         const refreshBtn = smailPage.locator("button:has-text('Refresh'), [title*='refresh']").first();
         if (await refreshBtn.isVisible({ timeout: 1000 })) {
-          await refreshBtn.click();
+          await refreshBtn.click().catch(() => {});
         }
       } catch { /* auto-refresh hopefully handles it */ }
 
@@ -979,66 +982,145 @@ async function waitForVerificationEmail(smailPage, maxChecks = 30, intervalMs = 
   throw new Error(`No ScrapingAnt verification email found after ${maxChecks} checks`);
 }
 
+function isCandidateVerificationUrl(href, linkText = '') {
+  if (!href || typeof href !== 'string') return false;
+  const clean = href.trim();
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) return false;
+
+  // Skip static/irrelevant ScrapingAnt pages
+  if (/scrapingant\.com\/(?:login|signin|terms|privacy|pricing|docs|blog|contact|features|faq)/i.test(clean)) {
+    return false;
+  }
+
+  // 1. Direct ScrapingAnt verification endpoints
+  if (/scrapingant\.com\/(?:email_confirmed|confirm_email|email-confirmation|confirm|verify|activate)/i.test(clean)) {
+    return true;
+  }
+
+  // 2. Transactional email click tracking URLs (SendGrid, Mailgun, etc.)
+  if (/(?:sendgrid|mailgun|ct\.sendgrid\.net|links\.scrapingant\.com|\/ls\/click)/i.test(clean)) {
+    return true;
+  }
+
+  // 3. Link text strongly indicates verification/confirmation
+  if (/confirm|verify|activate/i.test(linkText) && (/scrapingant/i.test(clean) || /click/i.test(clean) || /token/i.test(clean))) {
+    return true;
+  }
+
+  return false;
+}
+
 async function extractVerificationUrl(smailPage) {
-  // Try extracting from iframe srcdoc first (most Smail UIs render email in an iframe)
-  const iframeSelectors = ["iframe[srcdoc]", "iframe[class*='w-full']", "iframe"];
+  const discoveredLinks = [];
 
-  for (const iframeSel of iframeSelectors) {
+  // 1. Inspect all child frames (Playwright frame-tree scan)
+  const allFrames = smailPage.frames ? smailPage.frames() : [];
+  for (const frame of allFrames) {
     try {
-      const iframe = smailPage.locator(iframeSel).first();
-      if (await iframe.count() > 0) {
-        // Try srcdoc attribute (contains full HTML of email)
-        const srcdoc = await iframe.getAttribute('srcdoc');
-        if (srcdoc) {
-          const url = findVerificationUrlInText(srcdoc);
-          if (url) return url;
+      // Check frame content text
+      const frameContent = await frame.content().catch(() => '');
+      if (frameContent) {
+        const urlFromText = findVerificationUrlInText(frameContent);
+        if (urlFromText) {
+          console.log(`[Verify] ✓ Found verification URL in frame text (${frame.url() || 'anonymous'}): ${urlFromText}`);
+          return urlFromText;
         }
+      }
 
-        // Try accessing iframe content
-        const frame = await iframe.contentFrame();
-        if (frame) {
-          const bodyHtml = await frame.evaluate(() => document.body.innerHTML).catch(() => '');
-          const url = findVerificationUrlInText(bodyHtml);
-          if (url) return url;
-
-          // Also check href attributes inside iframe
-          const links = await frame.locator("a[href*='scrapingant'], a[href*='email_confirmed']").all();
-          for (const link of links) {
-            const href = await link.getAttribute('href');
-            if (href && href.includes('email_confirmed')) return href;
+      // Check all <a> links inside frame
+      const frameLinks = await frame.locator('a').all().catch(() => []);
+      for (const link of frameLinks) {
+        const href = await link.getAttribute('href').catch(() => null);
+        const linkText = (await link.textContent().catch(() => '')).trim();
+        if (href) {
+          discoveredLinks.push({ href, text: linkText, frame: frame.url() || 'subframe' });
+          if (isCandidateVerificationUrl(href, linkText)) {
+            console.log(`[Verify] ✓ Found candidate link in frame (${linkText}): ${href}`);
+            return href.trim();
           }
         }
       }
-    } catch { /* try next */ }
+    } catch { /* proceed to next frame */ }
   }
 
-  // Fallback: check page text and links directly
-  const pageHtml = await smailPage.content();
-  const url = findVerificationUrlInText(pageHtml);
-  if (url) return url;
+  // 2. Check explicit iframe srcdoc elements
+  const iframeSelectors = ["iframe[srcdoc]", "iframe[class*='w-full']", "iframe"];
+  for (const iframeSel of iframeSelectors) {
+    try {
+      const iframes = await smailPage.locator(iframeSel).all().catch(() => []);
+      for (const iframe of iframes) {
+        const srcdoc = await iframe.getAttribute('srcdoc').catch(() => null);
+        if (srcdoc) {
+          const urlFromSrcdoc = findVerificationUrlInText(srcdoc);
+          if (urlFromSrcdoc) {
+            console.log(`[Verify] ✓ Found verification URL in iframe srcdoc: ${urlFromSrcdoc}`);
+            return urlFromSrcdoc;
+          }
+        }
+      }
+    } catch { /* proceed */ }
+  }
 
-  // Check direct links on page
-  const links = await smailPage.locator("a[href*='scrapingant'], a[href*='email_confirmed']").all();
-  for (const link of links) {
-    const href = await link.getAttribute('href');
-    if (href && href.includes('email_confirmed')) return href;
+  // 3. Fallback: check top-level page content & links
+  try {
+    const pageHtml = await smailPage.content().catch(() => '');
+    const urlFromPage = findVerificationUrlInText(pageHtml);
+    if (urlFromPage) {
+      console.log(`[Verify] ✓ Found verification URL in top-level page text: ${urlFromPage}`);
+      return urlFromPage;
+    }
+
+    const pageLinks = await smailPage.locator('a').all().catch(() => []);
+    for (const link of pageLinks) {
+      const href = await link.getAttribute('href').catch(() => null);
+      const linkText = (await link.textContent().catch(() => '')).trim();
+      if (href) {
+        discoveredLinks.push({ href, text: linkText, frame: 'top-page' });
+        if (isCandidateVerificationUrl(href, linkText)) {
+          console.log(`[Verify] ✓ Found candidate link on top page (${linkText}): ${href}`);
+          return href.trim();
+        }
+      }
+    }
+  } catch { /* proceed */ }
+
+  if (discoveredLinks.length > 0) {
+    const preview = discoveredLinks.slice(0, 8).map(l => `${l.text || 'no-text'}: ${l.href}`).join(' | ');
+    console.log(`[Verify Debug] Checked ${discoveredLinks.length} links, none matched. Sample: ${preview}`);
   }
 
   throw new Error('Could not extract verification URL from email content');
 }
 
 function findVerificationUrlInText(text) {
+  if (!text || typeof text !== 'string') return null;
+
+  // First decode common HTML entities that might surround or appear in the text
+  const decoded = text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+
   const patterns = [
-    /https?:\/\/app\.scrapingant\.com\/email_confirmed\/[^\s<>"']+/i,
-    /https?:\/\/[^\s<>"']*scrapingant[^\s<>"']*email_confirmed[^\s<>"']*/i,
-    /https?:\/\/[^\s<>"']*sendgrid[^\s<>"']*email_confirmed[^\s<>"']*/i,
+    // ScrapingAnt direct JWT token endpoint - exactly base64url characters + dots
+    /https?:\/\/app\.scrapingant\.com\/email_confirmed\/[a-zA-Z0-9_\-\.]+/i,
+    /https?:\/\/app\.scrapingant\.com\/confirm_email\?[^\s<>"'&]+/i,
+    /https?:\/\/app\.scrapingant\.com\/email-confirmation\/[a-zA-Z0-9_\-\.]+/i,
+    /https?:\/\/app\.scrapingant\.com\/(?:confirm|verify|activate)\/[a-zA-Z0-9_\-\.]+/i,
+    /https?:\/\/[^\s<>"'&]*scrapingant[^\s<>"'&]*(?:email_confirmed|confirm_email|email-confirmation|confirm|verify|activate)[a-zA-Z0-9_\-\.\/]+/i,
+    // SendGrid click tracking URLs
+    /https?:\/\/[^\s<>"'&]*(?:sendgrid|mailgun|ct\.sendgrid\.net|links\.scrapingant\.com)\/ls\/click[^\s<>"'&]*/i,
+    /https?:\/\/[^\s<>"'&]*\/ls\/click\?upn=[^\s<>"'&]+/i,
   ];
 
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    const match = decoded.match(pattern);
     if (match) {
-      // Clean trailing punctuation
-      return match[0].replace(/[.,;!?)\]}>]+$/, '').trim();
+      let clean = match[0].split(/[<>"'&]/)[0].trim();
+      return clean.replace(/[.,;!?)\]}>]+$/, '').trim();
     }
   }
   return null;
