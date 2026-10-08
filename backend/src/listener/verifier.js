@@ -1559,12 +1559,17 @@ export async function deriveCategory(channelCategory, categoryHint, titleText) {
     }
   }
 
-  // If text mentions electronics or computing terms, fallback to electronics:accessories rather than home:decor
+  // If text mentions electronics or computing terms, fallback to electronics:accessories
   if (/\b(electronics|tech|gadget|android|ios|apple|samsung|oneplus|xiaomi|redmi|realme|boat|noise)\b/i.test(combined)) {
     return { category: 'electronics', subcategory: 'accessories' };
   }
 
-  return { category: 'home', subcategory: 'decor' };
+  // Safe default fallback: never dump unknown products into home:decor
+  if (channelCategory && channelCategory !== 'auto' && validCategories.includes(channelCategory)) {
+    return { category: channelCategory, subcategory: '' };
+  }
+
+  return { category: 'electronics', subcategory: 'accessories' };
 }
 
 /**
@@ -1824,10 +1829,24 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // 8. Category/Subcategory — channel default first, then the scraped category hint (Amazon
-  // breadcrumb / Flipkart JSON-LD category) matched against Master labels or CATEGORY_KEYWORDS,
-  // 'general' last. No message-text parsing involved (see deriveCategory()'s docblock for why).
-  const { category, subcategory } = await deriveCategory(channelCategory, scrapedData.categoryHint, scrapedData.title);
+  // Authentic Title Resolution: prioritize authentic store-scraped PDP title over Telegram message copy
+  const now = new Date();
+  const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+  const isNewProduct = !existingProduct;
+  const isMetadataStale = existingProduct && (
+    !existingProduct.metadataUpdatedAt ||
+    (now.getTime() - new Date(existingProduct.metadataUpdatedAt).getTime() > ONE_MONTH_MS)
+  );
+
+  const validScrapedTitle = !isGenericOrJunkTitle(scrapedData?.title) ? scrapedData?.title : null;
+  const validDetailsTitle = !isGenericOrJunkTitle(productDetails?.title) ? productDetails?.title : null;
+  const validExistingTitle = (!isNewProduct && !isMetadataStale && !isGenericOrJunkTitle(existingProduct?.title)) ? existingProduct.title : null;
+  const messageTitle = extractTitleFromMessage(messageText);
+
+  const actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || `${merchant} Deal (${productId})`;
+
+  // 8. Category/Subcategory — channel default first, then the scraped category hint and authentic actualTitle
+  const { category, subcategory } = await deriveCategory(channelCategory, scrapedData.categoryHint, actualTitle);
   console.log(`[Verifier] Category: "${category}"${subcategory ? ` / "${subcategory}"` : ''} (channel="${channelCategory}"${scrapedData.categoryHint ? `, hint="${scrapedData.categoryHint.slice(0, 60)}"` : ''}).`);
 
   // Handle Images (Live scrape image -> Existing DB image -> Telegram message photo fallback)
@@ -1883,14 +1902,6 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       dealFallbackImageUrl = getTelegramPhotoUrl ? await getTelegramPhotoUrl().catch(() => null) : null;
     }
   }
-
-  const now = new Date();
-  const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
-  const isNewProduct = !existingProduct;
-  const isMetadataStale = existingProduct && (
-    !existingProduct.metadataUpdatedAt ||
-    (now.getTime() - new Date(existingProduct.metadataUpdatedAt).getTime() > ONE_MONTH_MS)
-  );
 
   // 1. MRP Resolution & Patching
   // User Rule: We will not update the MRP every time, but patch it if currently null/empty.
@@ -1995,15 +2006,6 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   if (!isFullyVerified) {
     console.log(`[Verifier Info] Incomplete or non-deal product for ${cleanUrl} — priceVerified: ${isPriceVerified}, image: ${hasImage}, price: ₹${verifiedDealPrice || 'N/A'}, discount: ${discountPercentage}%. Saved to products catalog for price tracking. Skipping Deal broadcast.`);
   }
-
-  // Title Resolution: Always prioritize authentic store-scraped PDP title over Telegram message copy
-  let actualTitle;
-  const validScrapedTitle = !isGenericOrJunkTitle(scrapedData?.title) ? scrapedData?.title : null;
-  const validDetailsTitle = !isGenericOrJunkTitle(productDetails?.title) ? productDetails?.title : null;
-  const validExistingTitle = (!isNewProduct && !isMetadataStale && !isGenericOrJunkTitle(existingProduct.title)) ? existingProduct.title : null;
-  const messageTitle = extractTitleFromMessage(messageText);
-
-  actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || `${merchant} Deal (${productId})`;
 
   // Static Metadata Resolution (30-day lifecycle)
   let productBrand = null;

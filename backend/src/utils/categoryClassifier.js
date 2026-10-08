@@ -13,7 +13,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   // 1. PETS (high priority so dog treats, cat purée, pet leashes don't land in grocery/toys)
   if (
     /\b(dog|cat|puppy|kitten|pets?)\b/i.test(combined) &&
-    /\b(treats?|chew|food|litter|kibble|leash|collar|dog rope|toy for dog|cat toy|churu|pur[eé]e|dematting|detangler|pet grooming|aquarium|fish food|bird food)\b/i.test(combined)
+    /\b(treats?|chew|food|litter|kibble|leash|collar|dog rope|toy for dog|cat toy|churu|pur[eé]e|dematting|detangler|pet grooming|aquarium|fish food|bird food|pee\s*pads?|training\s*pads?|potty|dog\s*bed|cat\s*tree|scratching\s*post)\b/i.test(combined)
   ) {
     return { category: 'pets', subcategory: 'pet-supplies' };
   }
@@ -46,7 +46,8 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'baby-kids', subcategory: 'feeding-nursing' };
   }
   if (
-    /\b(baby\s*toy|kids?\s*toy|infant\s*toy|toddler\s*toy|lego|barbie|nerf|board\s*game|building\s*blocks?|rattle|action\s*figure|soft\s*toy|teddy\s*bear)\b/i.test(combined) ||
+    /\b(baby\s*toy|kids?\s*toy|infant\s*toy|toddler\s*toy|lego|barbie|nerf|board\s*game|building\s*blocks?|rattle|action\s*figure|soft\s*toy|teddy\s*bear|pretend\s*play|kitchen\s*set\s*for\s*kids|toys?\s*kitchen\s*set)\b/i.test(combined) ||
+    (/\btoys?\b/i.test(combined) && /\b(kids?|girls?|boys?|children)\b/i.test(combined) && !/\b(sex|adult)\b/i.test(combined)) ||
     (/\b(jigsaw\s*puzzle|puzzle\s*cube)\b/i.test(combined) && !/\bfor adults\b/i.test(combined))
   ) {
     return { category: 'baby-kids', subcategory: 'toys-games' };
@@ -54,8 +55,8 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
 
   // 5. TRAVEL - LUGGAGE & BAGS
   if (
-    /\b(trolley\s*bags?|suitcases?|luggage|spinner\s*wheels?|cabin\s*(?:luggage|bag|size)|hard\s*case\s*(?:trolley|luggage)|duffle\s*bags?|duffel\s*bags?|travel\s*duffle|samsonite|american\s*tourister|safari|vip|kamiliant|aristocrat|mokobara|skybags)\b/i.test(combined) &&
-    !/\b(scale|strap|tag|cover|cable|lock|organizer)\b/i.test(combined)
+    /\b(trolley\s*bags?|suitcases?|luggage|spinner\s*wheels?|cabin\s*(?:luggage|bag|size)|check-in\s*(?:luggage|suitcase)|hard\s*case\s*(?:trolley|luggage)|hard\s*trolley|duffle\s*bags?|duffel\s*bags?|travel\s*duffle|samsonite|american\s*tourister|safari|vip|kamiliant|aristocrat|mokobara|skybags)\b/i.test(combined) &&
+    !/\b(?:luggage|suitcase)\s+(?:scale|strap|tag|cover|cable|lock|organizer)\b/i.test(combined)
   ) {
     return { category: 'travel', subcategory: 'luggage' };
   }
@@ -135,7 +136,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   // Audio: Earbuds, TWS, headphones, neckbands, speakers
   if (
     /\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth\s*speaker|\bspeaker\b|soundbar|airpods)\b/i.test(combined) &&
-    !/\b(case|cover|ear\s*tips|stand)\b/i.test(combined)
+    !/\b(case|cover|ear\s*tips|stand|power\s*banks?|powerbank)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'audio' };
   }
@@ -150,8 +151,10 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
 
   // Smart TVs & Displays
   if (
-    /\b(\b4k\s*tv\b|\bsmart\s*tv\b|\boled\s*tv\b|\bqled\s*tv\b|television|projector|\bmonitor\b)\b/i.test(combined) &&
-    !/\b(mount|stand|cover|remote)\b/i.test(combined)
+    (/\b(television|projectors?|\bmonitors?\b)\b/i.test(combined) ||
+     /\b(?:4k|ultra\s*hd|smart|oled|qled|mini\s*led|full\s*hd|hd\s*ready|android|google|fire|webos|led)\s*(?:[\w\s-]{0,25})\s*tv\b/i.test(combined) ||
+     /\b\d{2,3}\s*(?:inch|inches|cm|cms)\b[^\n]{0,50}\btv\b/i.test(combined)) &&
+    !/\b(mount|stand|wall\s*bracket|remote|cover|tuner|antenna|tv\s*stick|fire\s*tv\s*stick)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'tv' };
   }
@@ -318,9 +321,14 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'home', subcategory: 'storage' };
   }
   if (
-    /\b(drill|screwdriver|wrench|pliers|laser\s*level|tool\s*kit|soldering|hardware|brass\s*plumbing|sharkbite|wire\s*connectors?|reacher\s*grabber|grade\s*rod|hard\s*hat)\b/i.test(combined)
+    /\b(drill|screwdriver|wrench|pliers|laser\s*level|tool\s*kit|soldering|hardware|brass\s*plumbing|sharkbite|wire\s*connectors?|reacher\s*grabber|grade\s*rod|hard\s*hat|electrical\s*wire|copper\s*wire|cables?\s*fr\s*pvc|sqmm\b|pvc\s*insulated\s*cable)\b/i.test(combined)
   ) {
     return { category: 'home', subcategory: 'tools' };
+  }
+  if (
+    /\b(mosquito\s*(?:repellent|killer|zapper|racket|vaporiser|refill)|bug\s*zapper|fly\s*traps?|goodknight|all\s*out|mortein|odomos|detergent|dishwash|floor\s*cleaner|harpic|colin|lizol|spin\s*mop|wiper|broom|dustbin|garbage\s*bags?)\b/i.test(combined)
+  ) {
+    return { category: 'home', subcategory: 'cleaning' };
   }
   if (/\b(live\s*plant|tulsi|medicinal\s*plant|seeds?|gardening|hose\s*nozzle|watering\s*wand|flower\s*pot|planters?|kneeler)\b/i.test(combined)) {
     return { category: 'home', subcategory: 'garden' };
