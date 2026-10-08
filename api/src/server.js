@@ -28,6 +28,7 @@ import { startTokenReplenisherScheduler } from './services/tokenReplenisher.js';
 import { initD2CCatalogSync } from './jobs/d2cCatalogSync.js';
 import { initAmazonDealsCrawlerCron } from './jobs/amazonDealsCrawler.js';
 import { initCatalogPriceHistoryCron } from './jobs/catalogPriceHistoryBackfill.js';
+import { startStorageCompactorScheduler } from './jobs/storageCompactor.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { requireAdminAuth } from './middleware/adminAuth.js';
@@ -147,6 +148,7 @@ export function startServer() {
       initD2CCatalogSync();
       initAmazonDealsCrawlerCron();
       initCatalogPriceHistoryCron();
+      startStorageCompactorScheduler();
       resolve(server);
     });
   });

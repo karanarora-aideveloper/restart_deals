@@ -18,7 +18,10 @@ export const MERCHANTS = [
   { id: 'amazon', label: '🛒 Amazon', color: '#FFB800', logo: require('../../assets/amazon.webp'), logoScale: 0.8, colors: ['#FFB800', '#B45309'] },
   { id: 'flipkart', label: '🛍️ Flipkart', color: '#2563eb', logo: require('../../assets/flipkart.webp'), colors: ['#2563eb', '#1e3a8a'] },
   { id: 'myntra', label: '👗 Myntra', color: '#FF6B00', logo: require('../../assets/myntra.webp'), colors: ['#FF6B00', '#9a3412'] },
+  { id: 'nykaa', label: '💄 Nykaa', color: '#ec4899', icon: 'sparkles', colors: ['#ec4899', '#be185d'] },
+  { id: 'ajio', label: '🕶️ Ajio', color: '#0f172a', icon: 'shirt', colors: ['#0f172a', '#334155'] },
   { id: 'meesho', label: '🎁 Meesho', color: '#9333ea', icon: 'gift', colors: ['#9333ea', '#6b21a8'] },
+  { id: 'croma', label: '⚡ Croma', color: '#00b5b5', icon: 'flash', colors: ['#00b5b5', '#0f766e'] },
 ];
 
 export default function FilterBar({
@@ -94,9 +97,13 @@ export default function FilterBar({
               key={mer.id}
               style={[
                 styles.pill,
-                isActive && { backgroundColor: mer.color, borderColor: mer.color },
+                isActive && (
+                  mer.logo
+                    ? { borderColor: mer.color, borderWidth: 2, backgroundColor: '#ffffff' }
+                    : { backgroundColor: mer.color, borderColor: mer.color }
+                ),
               ]}
-              onPress={() => setMerchantFilter(mer.id)}
+              onPress={() => setMerchantFilter(isActive && mer.id !== 'all' ? 'all' : mer.id)}
             >
               {mer.logo ? (
                 <Image

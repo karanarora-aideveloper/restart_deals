@@ -100,7 +100,7 @@ async function recordScrapingLog(data) {
       url: data.url,
       domain: new URL(data.url).hostname || '',
       merchant: detectMerchant(data.url),
-      source: data.source || 'other',
+      source: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'shoppers_deals_engine', 'catalog_top20', 'test'].includes(data.source) ? data.source : (data.source?.startsWith('test') ? 'test' : 'other'),
       mode: 'scrapingant_proxy',
       tokenUsed: data.tokenUsed ? `${data.tokenUsed.slice(0, 6)}••••${data.tokenUsed.slice(-4)}` : null,
       status: data.status || 'success',
@@ -157,7 +157,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
           }
         ]
       },
-      { $set: { lastUsedAt: now, leasedUntil: new Date(Date.now() + 25000) } },
+      { $set: { lastUsedAt: now, leasedUntil: new Date(Date.now() + 60000) } },
       { sort: { lastUsedAt: 1 }, new: true }
     ).lean();
 
@@ -275,11 +275,18 @@ export async function executeScrapingAntJob(url, source = 'other') {
     let durationMs = 0;
     const attemptStartTime = Date.now();
 
+    // Extend lease for the full headless timeout window so no other worker grabs this token mid-flight
+    await ScrapingAntToken.updateOne(
+      { token },
+      { $set: { leasedUntil: new Date(Date.now() + SCRAPE_TIMEOUT_MS) } }
+    ).catch(() => {});
+
     try {
       response = await fetch(apiUrl, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
       durationMs = Date.now() - attemptStartTime;
     } catch (fetchErr) {
       durationMs = Date.now() - attemptStartTime;
+      await ScrapingAntToken.updateOne({ token }, { $set: { leasedUntil: null } }).catch(() => {});
       console.warn(`[ScraperWorker Timeout/Error] Attempt ${attempt} on ${url.slice(0, 45)} with token ${token.slice(0, 8)}...: ${fetchErr.message}`);
       await recordScrapingLog({
         url,
@@ -429,6 +436,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
       errorMessage: `ScrapingAnt HTTP ${response.status}`,
     });
     lastError = new Error(`ScrapingAnt HTTP ${response.status}`);
+    await ScrapingAntToken.updateOne({ token }, { $set: { leasedUntil: null } }).catch(() => {});
     continue;
   }
 

@@ -50,6 +50,9 @@ export default function ProductCard({
     if (isFlipkart) return { label: '🛍️ Flipkart', color: '#FFB800', logo: require('../../assets/flipkart.webp') };
     if (isMyntra) return { label: '👗 Myntra', color: '#e11d48', logo: require('../../assets/myntra.webp') };
     if (isMeesho) return { label: '🎁 Meesho', color: '#7c3aed' };
+    if (merchantString.includes('nykaa')) return { label: '💄 Nykaa', color: '#ec4899' };
+    if (merchantString.includes('ajio')) return { label: '🕶️ Ajio', color: '#0f172a' };
+    if (merchantString.includes('croma')) return { label: '⚡ Croma', color: '#00b5b5' };
     return { label: '🏷️ ' + (product.merchant || 'Store').toUpperCase(), color: '#666' };
   };
 

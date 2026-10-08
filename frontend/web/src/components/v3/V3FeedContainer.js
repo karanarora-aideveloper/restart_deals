@@ -171,6 +171,16 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
     }
   }, []);
 
+  const updateUrlParams = (cat, store) => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (cat && cat !== 'all') url.searchParams.set('category', cat);
+    else url.searchParams.delete('category');
+    if (store && store !== 'all') url.searchParams.set('merchant', store);
+    else url.searchParams.delete('merchant');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  };
+
   const handleEngineChange = (engineId) => {
     setActiveEngine(engineId);
     fetchFilteredDeals(activeCategory, activeStore, minDiscount, engineId, 1, false);
@@ -178,12 +188,14 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
 
   const handleCategoryChange = (catId) => {
     setActiveCategory(catId);
+    updateUrlParams(catId, activeStore);
     fetchFilteredDeals(catId, activeStore, minDiscount, activeEngine, 1, false);
   };
 
   const handleStoreChange = (storeId) => {
     const nextStore = (activeStore === storeId && storeId !== 'all') ? 'all' : storeId;
     setActiveStore(nextStore);
+    updateUrlParams(activeCategory, nextStore);
     fetchFilteredDeals(activeCategory, nextStore, minDiscount, activeEngine, 1, false);
   };
 
@@ -336,6 +348,7 @@ export default function V3FeedContainer({ initialDeals = [], initialHasMore = fa
               setSelectedStoreGroup('all');
               setMinDiscount(0);
               setActiveEngine('all');
+              updateUrlParams('all', 'all');
               fetchFilteredDeals('all', 'all', 0, 'all', 1, false);
             }}
             className="text-xs font-bold text-indigo-600 hover:underline"

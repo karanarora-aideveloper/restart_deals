@@ -85,7 +85,10 @@ export default function DealCard({
     if (isAmazon) return { label: '🛒 Amazon', btnColor: '#FFB800', textColor: '#7a5200', logo: require('../../assets/amazon.webp'), logoScale: 0.8 };
     if (isFlipkart) return { label: '🛍️ Flipkart', btnColor: '#FFB800', textColor: '#7a5200', logo: require('../../assets/flipkart.webp') };
     if (isMyntra) return { label: '👗 Myntra', btnColor: '#e11d48', textColor: '#ffffff', logo: require('../../assets/myntra.webp') };
-    if (isMeesho) return { label: '🎁 Meesho', btnColor: '#7c3aed', textColor: '#ffffff' };
+    if (isMeesho || m === 'meesho') return { label: '🎁 Meesho', btnColor: '#7c3aed', textColor: '#ffffff' };
+    if (m === 'nykaa' || urlString.includes('nykaa')) return { label: '💄 Nykaa', btnColor: '#ec4899', textColor: '#ffffff' };
+    if (m === 'ajio' || urlString.includes('ajio')) return { label: '🕶️ Ajio', btnColor: '#0f172a', textColor: '#ffffff' };
+    if (m === 'croma' || urlString.includes('croma')) return { label: '⚡ Croma', btnColor: '#00b5b5', textColor: '#ffffff' };
     return { label: '🏷️ Deal', btnColor: '#FF6B00', textColor: '#ffffff' };
   };
 

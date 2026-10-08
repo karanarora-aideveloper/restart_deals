@@ -2280,13 +2280,19 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       }
       deal.rating = productRating;
       deal.reviews = productReviews;
-      deal.originalPrice = effectiveMRP || canonicalMRP || verifiedDealPrice;
+      const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null) || null;
+      if (authenticPrev != null) deal.previousPrice = authenticPrev;
+      deal.originalPrice = (effectiveMRP && effectiveMRP > verifiedDealPrice)
+        ? effectiveMRP
+        : (canonicalMRP && canonicalMRP > verifiedDealPrice)
+          ? canonicalMRP
+          : authenticPrev;
       deal.dealPrice = verifiedDealPrice;
-      deal.discountPercentage = discountPercentage;
+      deal.discountPercentage = discountPercentage > 0 
+        ? discountPercentage 
+        : Math.max(1, Math.round(((deal.originalPrice - verifiedDealPrice) / deal.originalPrice) * 100));
       deal.coupon = dealCoupon;
       deal.priceSource = priceSource;
-      const authenticPrev = genuinePriceDrop || productRecord?.previousPrice || previousTrackedPrice || null;
-      if (authenticPrev != null) deal.previousPrice = authenticPrev;
       deal.category = category;
       deal.subcategory = subcategory;
       deal.sourceEngine = classifySourceEngine(sourceChannelId, sourceChannelName);
@@ -2363,10 +2369,16 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         dealUrl: cleanUrl,
         productId,
         merchant,
-        originalPrice: effectiveMRP || canonicalMRP || verifiedDealPrice,
+        originalPrice: (effectiveMRP && effectiveMRP > verifiedDealPrice)
+          ? effectiveMRP
+          : (canonicalMRP && canonicalMRP > verifiedDealPrice)
+            ? canonicalMRP
+            : authenticPrev,
         dealPrice: verifiedDealPrice,
         previousPrice: authenticPrev,
-        discountPercentage: discountPercentage,
+        discountPercentage: discountPercentage > 0
+          ? discountPercentage
+          : Math.max(1, Math.round((((effectiveMRP || canonicalMRP || authenticPrev) - verifiedDealPrice) / (effectiveMRP || canonicalMRP || authenticPrev)) * 100)),
         coupon: dealCoupon,
         priceSource,
         category,

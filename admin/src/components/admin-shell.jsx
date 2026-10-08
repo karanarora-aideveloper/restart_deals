@@ -127,6 +127,7 @@ export default function AdminShell({ children, title }) {
     { href: '/network', label: 'Channel Network', icon: 'hub' },
     { href: '/notifications', label: 'Notifications', icon: 'notifications' },
     { href: '/x-bot', label: 'X Bot (USA)', icon: 'smart_toy' },
+    { href: '/settings/tokens', label: 'ScrapingAnt Tokens', icon: 'vpn_key' },
     { href: '/scraping', label: 'Scrape Frequency', icon: 'query_stats' },
     { href: '/logs', label: 'Live Logs', icon: 'terminal' },
     { href: '/settings', label: 'Settings', icon: 'settings' },

@@ -51,6 +51,8 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const TWOCAPTCHA_API_KEY = process.env.TWOCAPTCHA_API_KEY || '00f69cd4eefad8d5ccfe712289733973';
 
 const isRunOnce = process.argv.includes('--once');
+const isHeaded = process.argv.includes('--headed') || process.env.HEADED === 'true';
+const isHeadless = !isHeaded;
 let isRunningCycle = false;
 let isShuttingDown = false;
 
@@ -202,7 +204,7 @@ async function runCheckCycle() {
     await runBatchAutomation({
       count: tokensNeeded,
       captchaApiKey: TWOCAPTCHA_API_KEY,
-      headless: false, // Visible headed browser runs 100% reliably on Mac
+      headless: isHeadless,
       delayBetween: 15_000,
       saveToken,
     });
@@ -226,6 +228,7 @@ async function main() {
   console.log(`• Target Pool: Restores pool to ${TARGET_POOL_SIZE} tokens`);
   console.log(`• Cadence: Evaluates every ${CHECK_INTERVAL_MS / 60000} minute(s)`);
   console.log(`• Mode: ${isRunOnce ? 'Single-run (--once)' : 'Perpetual background loop'}`);
+  console.log(`• Browser UI: ${isHeadless ? '100% Headless (Completely invisible in background)' : 'Visible (Headed browser)'}`);
   console.log(`• Target DB: MongoDB Atlas (${MONGODB_URI ? 'Connected' : 'Missing URI'})`);
   console.log(`══════════════════════════════════════════════════════════════════════\n`);
 

@@ -21,7 +21,10 @@ const MERCHANTS = [
   { id: 'flipkart', label: 'Flipkart', color: '#2563eb', logo: '/flipkart.webp' },
   { id: 'shopsy', label: 'Shopsy', color: '#9333ea', logo: '/shopsy.webp' },
   { id: 'myntra', label: 'Myntra', color: '#FF6B00', logo: '/myntra.webp' },
+  { id: 'nykaa', label: 'Nykaa', color: '#ec4899', icon: '💄' },
+  { id: 'ajio', label: 'Ajio', color: '#0f172a', icon: '🕶️' },
   { id: 'meesho', label: 'Meesho', color: '#9333ea', logo: '/meesho.webp' },
+  { id: 'croma', label: 'Croma', color: '#00b5b5', icon: '⚡' },
 ];
 
 /**
@@ -51,10 +54,10 @@ export default function FilterBar({ category = 'all', merchant = 'all' }) {
             <button
               key={cat.id}
               type="button"
-              onClick={() => setParam('category', cat.id)}
+              onClick={() => setParam('category', isActive && cat.id !== 'all' ? 'all' : cat.id)}
               style={isActive ? { backgroundColor: cat.color, borderColor: cat.color } : undefined}
-              className={`shrink-0 rounded-full border-[1.5px] px-4 py-2 text-[11.5px] font-bold uppercase tracking-wide ${
-                isActive ? 'text-white' : 'border-[#e8e8e8] bg-white text-[#555]'
+              className={`shrink-0 rounded-full border-[1.5px] px-4 py-2 text-[11.5px] font-bold uppercase tracking-wide transition-all ${
+                isActive ? 'text-white shadow-xs' : 'border-[#e8e8e8] bg-white text-[#555] hover:border-slate-400'
               }`}
             >
               {cat.label}
@@ -70,17 +73,29 @@ export default function FilterBar({ category = 'all', merchant = 'all' }) {
             <button
               key={mer.id}
               type="button"
-              onClick={() => setParam('merchant', mer.id)}
-              style={isActive ? { backgroundColor: mer.color, borderColor: mer.color } : undefined}
-              className={`flex shrink-0 items-center rounded-full border-[1.5px] px-4 py-2 ${
-                isActive ? 'text-white' : 'border-[#e8e8e8] bg-white text-[#555]'
+              onClick={() => setParam('merchant', isActive && mer.id !== 'all' ? 'all' : mer.id)}
+              style={
+                isActive
+                  ? mer.logo
+                    ? { borderColor: mer.color, backgroundColor: '#ffffff', borderWidth: '2px' }
+                    : { backgroundColor: mer.color, borderColor: mer.color }
+                  : undefined
+              }
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] px-4 py-2 transition-all ${
+                isActive
+                  ? mer.logo
+                    ? 'shadow-xs ring-2 ring-slate-200'
+                    : 'text-white shadow-xs'
+                  : 'border-[#e8e8e8] bg-white text-[#555] hover:border-slate-400'
               }`}
             >
               {mer.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={mer.logo} alt={mer.label} className="h-4 w-[45px] object-contain" />
               ) : (
-                <span className="text-[11.5px] font-bold uppercase tracking-wide">{mer.label}</span>
+                <span className={`text-[11.5px] font-bold uppercase tracking-wide ${isActive ? 'text-white' : ''}`}>
+                  {mer.icon ? `${mer.icon} ` : ''}{mer.label}
+                </span>
               )}
             </button>
           );

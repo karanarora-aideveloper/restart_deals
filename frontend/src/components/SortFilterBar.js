@@ -245,7 +245,10 @@ export default function SortFilterBar({
                       key={mer.id}
                       style={styles.sortRow}
                       activeOpacity={0.7}
-                      onPress={() => { onSelectMerchant(mer.id); setStoreModalOpen(false); }}
+                      onPress={() => {
+                        onSelectMerchant(isActive && mer.id !== 'all' ? 'all' : mer.id);
+                        setStoreModalOpen(false);
+                      }}
                     >
                       {mer.logo ? (
                         <Image
