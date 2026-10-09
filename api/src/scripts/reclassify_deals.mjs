@@ -35,11 +35,34 @@ export function extractTitleFromUrlSlug(url) {
   return null;
 }
 
-const JUNK_TITLE_REGEX = /^(apply\s*\d+%|unknown\s*product|exclusive\s*deal|bbd\s*exclusive|loot\b|\d+\s*loot|time:\s*\d+|deal\s*time|steal\s*deal)/i;
+/**
+ * Extracts a clean title from the original Telegram message text if available.
+ */
+export function extractTitleFromOriginalText(originalText) {
+  if (!originalText) return null;
+  const lines = originalText.split('\n').map(l => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    let clean = line
+      .replace(/^[\p{Emoji}\s•\-–—]+/gu, '')
+      .replace(/^(loot|deal|steal\s*deal|super\s*loot)\s*:\s*/i, '')
+      .trim();
+    clean = clean.replace(/(\s*[—–-]\s*₹\s*[\d,]+|\s+at\s+₹?\s*[\d,]+).*$/i, '').trim();
+    if (
+      clean.length >= 8 &&
+      clean.split(/\s+/).length >= 2 &&
+      !/^(apply|click|buy\s*now|deal\s*time|grab\s*fast|\d+\s*ml\s*at|\d+%\s*off)/i.test(clean)
+    ) {
+      return clean.slice(0, 140);
+    }
+  }
+  return null;
+}
+
+const JUNK_TITLE_REGEX = /^(apply\s*\d+%|unknown\s*product|exclusive\s*deal|bbd\s*exclusive|loot\b|\d+\s*loot|time:\s*\d+|deal\s*time|steal\s*deal|(?:amazon|flipkart)\s*(?:item|deal)\s*\()/i;
 
 /**
  * Automated Taxonomy & Deal Hygiene Engine
- * Evaluates active deals, repairs generic message captions via URL slugs,
+ * Evaluates active deals, repairs generic message captions via URL slugs or original text,
  * reclassifies categories into canonical taxonomy, and expires irrecoverable junk.
  */
 export async function runTaxonomyHygiene({ silent = false } = {}) {
@@ -56,15 +79,18 @@ export async function runTaxonomyHygiene({ silent = false } = {}) {
     let currentTitle = deal.title || '';
     let titleWasRecovered = false;
 
-    // 1. Check for Telegram caption noise as title
+    // 1. Check for Telegram caption noise or placeholder as title
     if (JUNK_TITLE_REGEX.test(currentTitle.trim())) {
       const slugTitle = extractTitleFromUrlSlug(deal.dealUrl);
-      if (slugTitle) {
-        currentTitle = slugTitle;
+      const textTitle = extractTitleFromOriginalText(deal.originalText);
+      const recoveredTitle = slugTitle || textTitle;
+
+      if (recoveredTitle) {
+        currentTitle = recoveredTitle;
         titleWasRecovered = true;
         recoveredSlugsCount++;
-      } else if (/^(unknown\s*product|apply\s*\d+%)/i.test(currentTitle.trim())) {
-        // Irrecoverable junk without valid title or slug — expire so it doesn't pollute user feed
+      } else if (/^(unknown\s*product|apply\s*\d+%|(?:amazon|flipkart)\s*(?:item|deal)\s*\()/i.test(currentTitle.trim())) {
+        // Irrecoverable junk without valid title, slug, or clean message — expire so it doesn't pollute user feed
         await Deal.updateOne(
           { _id: deal._id },
           { $set: { isExpired: true, expiredAt: new Date() } }
