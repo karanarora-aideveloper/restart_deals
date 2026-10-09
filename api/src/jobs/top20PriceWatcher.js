@@ -8,6 +8,7 @@ import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
+import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 
 let isWatcherRunning = false;
 
@@ -28,6 +29,12 @@ export async function syncTop20Batch(batchSize = 5) {
   if (isWatcherRunning) {
     console.log('[Top20 Watcher] Previous cycle still in flight. Skipping tick.');
     return { skipped: true, reason: 'in_progress' };
+  }
+
+  // Pre-flight check: ensure active ScrapingAnt proxy tokens exist before polling Top-20 products
+  const activeTokens = await ScrapingAntToken.countDocuments({ status: 'active' }).catch(() => 0);
+  if (activeTokens === 0) {
+    return { skipped: true, reason: 'no_active_tokens' };
   }
 
   isWatcherRunning = true;

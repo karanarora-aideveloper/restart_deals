@@ -10,6 +10,7 @@ import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
+import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 
 /**
  * Multi-Store Search URL Builder
@@ -499,7 +500,16 @@ export function parseNykaaBestsellerItems(html, categoryInfo, topN = 20) {
     const cleanMrp = cleanPriceVal(mrpText);
     const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
 
-    const imageUrl = scope.find('img[src*="adn-image"], img[src*="nykaa"], img').first().attr('src');
+    const imgEl = scope.find('img[src*="adn-image"], img[src*="nykaa"], img').first();
+    let imageUrl = imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || imgEl.attr('src');
+    if (imageUrl && (imageUrl.startsWith('data:') || imageUrl.length < 10)) imageUrl = null;
+    if (!imageUrl) {
+      const srcset = imgEl.attr('srcset');
+      if (srcset) {
+        const parts = srcset.split(',').map(s => s.trim().split(' ')[0]);
+        if (parts.length > 0 && parts[0].startsWith('http')) imageUrl = parts[0];
+      }
+    }
     const ratingText = scope.find('[class*="css-v3h0e"], [class*="rating"]').first().text().trim();
     const ratingNum = parseFloat(ratingText);
     const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.3;
@@ -920,6 +930,14 @@ export async function runCategoryBestsellerCrawl(options = {}) {
     console.log('[Shoppers Deals Engine] A crawl is already in progress. Skipping this trigger.');
     return { skipped: true, reason: 'already_running' };
   }
+
+  // Pre-flight check: ensure active ScrapingAnt proxy tokens exist before starting category crawl
+  const activeTokens = await ScrapingAntToken.countDocuments({ status: 'active' }).catch(() => 0);
+  if (activeTokens === 0) {
+    console.log('[Shoppers Deals Engine] ⏸️ 0 active ScrapingAnt tokens. Skipping crawl tick to preserve queue health.');
+    return { skipped: true, reason: 'no_active_tokens' };
+  }
+
   isCrawling = true;
   const startedAt = Date.now();
 

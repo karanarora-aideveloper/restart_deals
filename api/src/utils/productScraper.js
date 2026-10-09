@@ -381,11 +381,70 @@ export function parseProductHtml(html, targetUrl) {
       const src = $(el).attr('content');
       if (src && !images.includes(src)) images.push(src);
     });
-    const priceMeta = $('meta[property="product:price:amount"]').attr('content') || $('[itemprop="price"]').attr('content');
-    if (priceMeta) {
-      const parsed = parseFloat(priceMeta);
-      if (!isNaN(parsed)) price = Math.round(parsed);
+
+    // 1. JSON-LD Extraction for Price, MRP & Rating
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const text = $(el).contents().text();
+        const parsed = JSON.parse(text);
+        const productObj = Array.isArray(parsed) ? parsed.find(p => p['@type'] === 'Product') : (parsed?.['@type'] === 'Product' ? parsed : null);
+        if (productObj) {
+          if (!title && productObj.name) title = productObj.name.trim();
+          if (productObj.image) {
+            const ldImgs = Array.isArray(productObj.image) ? productObj.image : [productObj.image];
+            ldImgs.forEach(img => { if (img && !images.includes(img)) images.push(img); });
+          }
+          if (productObj.aggregateRating?.ratingValue && rating === null) {
+            const r = parseFloat(productObj.aggregateRating.ratingValue);
+            if (!isNaN(r)) rating = r;
+          }
+          const offers = Array.isArray(productObj.offers) ? productObj.offers[0] : productObj.offers;
+          if (offers) {
+            if (offers.price && price === null) {
+              const p = parseFloat(offers.price);
+              if (!isNaN(p)) price = Math.round(p);
+            }
+            if (offers.priceSpecification?.maxPrice && originalPrice === null) {
+              const mp = parseFloat(offers.priceSpecification.maxPrice);
+              if (!isNaN(mp)) originalPrice = Math.round(mp);
+            } else if (offers.highPrice && originalPrice === null) {
+              const hp = parseFloat(offers.highPrice);
+              if (!isNaN(hp)) originalPrice = Math.round(hp);
+            }
+          }
+        }
+      } catch (e) {}
+    });
+
+    // 2. Meta tags fallback
+    if (price === null) {
+      const priceMeta = $('meta[property="product:price:amount"]').attr('content') || $('[itemprop="price"]').attr('content');
+      if (priceMeta) {
+        const parsed = parseFloat(priceMeta);
+        if (!isNaN(parsed)) price = Math.round(parsed);
+      }
     }
+    if (originalPrice === null) {
+      const mrpMeta = $('meta[property="product:original_price:amount"], meta[name="mrp"]').attr('content');
+      if (mrpMeta) {
+        const parsed = parseFloat(mrpMeta);
+        if (!isNaN(parsed)) originalPrice = Math.round(parsed);
+      }
+    }
+
+    // 3. DOM fallback for MRP strikethrough
+    if (originalPrice === null && price !== null) {
+      $('[class*="mrp"], [class*="strike"], [class*="discount"], [data-testid="mrp"]').each((_, el) => {
+        if (originalPrice !== null) return;
+        const txt = $(el).text();
+        const match = txt.match(/₹?\s*([\d,]+)/);
+        if (match) {
+          const val = Math.round(parseFloat(match[1].replace(/,/g, '')));
+          if (val > price) originalPrice = val;
+        }
+      });
+    }
+
     category = 'beauty';
 
   } else if (hostname.includes('shopsy.in')) {

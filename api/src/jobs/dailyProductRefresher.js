@@ -10,6 +10,7 @@ import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 
 let isRefreshing = false;
 let lastCycleStats = {
@@ -298,6 +299,12 @@ export async function refreshStaleProductBatch(batchSize = null) {
   if (isRefreshing) {
     console.log('[Daily Refresher] Previous refresh cycle is still in flight. Skipping this tick.');
     return { skipped: true, reason: 'in_progress' };
+  }
+
+  // Pre-flight check: ensure active ScrapingAnt proxy tokens exist before polling catalog products
+  const activeTokens = await ScrapingAntToken.countDocuments({ status: 'active' }).catch(() => 0);
+  if (activeTokens === 0) {
+    return { skipped: true, reason: 'no_active_tokens' };
   }
 
   isRefreshing = true;
