@@ -146,6 +146,54 @@ export async function directFetchDealById(id) {
 }
 
 /**
+ * Decision 20: Multi-Store Out-of-Stock Failover
+ * Finds an alternative in-stock merchant product for an expired or OOS deal
+ */
+export async function directFindAlternativeInStockStore(target) {
+  if (!target) return null;
+  try {
+    const db = await getDb();
+    const productsColl = db.collection('products');
+    const targetMerchant = (target.merchant || '').toLowerCase();
+    const targetCountry = (target.country || 'IN').toUpperCase();
+
+    // 1. Direct cross-store match by identical productId on different merchant
+    if (target.productId) {
+      const match = await productsColl.findOne({
+        productId: target.productId,
+        merchant: { $ne: targetMerchant },
+        country: targetCountry,
+        isAvailable: { $ne: false },
+        cleanUrl: { $exists: true, $ne: null }
+      });
+      if (match) return serializeDoc(match);
+    }
+
+    // 2. Title & Model Match: match first 3-4 significant title tokens
+    if (target.title) {
+      const cleanTitle = target.title.replace(/[^\w\s]/g, ' ').trim();
+      const words = cleanTitle.split(/\s+/).filter(w => w.length >= 3 && !/^(the|and|with|for|men|women)$/i.test(w)).slice(0, 4);
+      if (words.length >= 2) {
+        const regexPattern = words.map(w => `(?=.*${w})`).join('');
+        const regex = new RegExp(regexPattern, 'i');
+        const match = await productsColl.findOne({
+          title: regex,
+          merchant: { $ne: targetMerchant },
+          country: targetCountry,
+          isAvailable: { $ne: false },
+          cleanUrl: { $exists: true, $ne: null }
+        });
+        if (match) return serializeDoc(match);
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Direct MongoDB fallback to resolve matching Product _id from a deal's productId + merchant
  */
 export async function directFindMatchingProductId(productId, merchant) {

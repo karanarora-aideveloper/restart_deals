@@ -28,6 +28,10 @@ export function buildStoreSearchUrl(store = 'amazon', keywords = '') {
       return `https://www.myntra.com/${encodeURIComponent(keywords.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))}?sort=popularity`;
     case 'meesho':
       return `https://www.meesho.com/search?q=${enc}`;
+    case 'ajio':
+      return `https://www.ajio.com/search/?text=${enc}`;
+    case 'croma':
+      return `https://www.croma.com/searchB?q=${enc}%3Arelevance`;
     case 'amazon':
     default:
       return `https://www.amazon.in/s?k=${enc}&s=exact-aware-popularity-rank`;
@@ -172,12 +176,39 @@ export const DEFAULT_MEESHO_SEEDS = [
   { category: 'home', subcategory: 'decor', keywords: 'curtains for door window home decoration' },
 ];
 
+export const DEFAULT_AJIO_SEEDS = [
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts shirts' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans trousers' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men sneakers shoes' },
+  { category: 'men-fashion', subcategory: 'watches', keywords: 'men watches' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women dresses tops' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurtas kurtis' },
+  { category: 'women-fashion', subcategory: 'footwear', keywords: 'women sandals heels' },
+  { category: 'women-fashion', subcategory: 'handbags', keywords: 'women handbags totes' },
+  { category: 'men-fashion', subcategory: 'kids', keywords: 'kids wear' },
+  { category: 'home', subcategory: 'decor', keywords: 'cushion covers bedsheets curtains' },
+];
+
+export const DEFAULT_CROMA_SEEDS = [
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'laptops' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'bluetooth earphones headphones soundbar' },
+  { category: 'electronics', subcategory: 'wearables', keywords: 'smartwatches' },
+  { category: 'electronics', subcategory: 'tv', keywords: 'smart tv 4k' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'air fryer microwave mixer grinder' },
+  { category: 'appliances', subcategory: 'large-appliances', keywords: 'washing machine refrigerator air conditioner' },
+  { category: 'personal-care', subcategory: 'grooming', keywords: 'trimmer hair dryer straightener' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'power bank mobile charger cable' },
+];
+
 export const DEFAULT_SEEDS_BY_STORE = {
   amazon: DEFAULT_AMAZON_SEEDS,
   flipkart: DEFAULT_FLIPKART_SEEDS,
   nykaa: DEFAULT_NYKAA_SEEDS,
   myntra: DEFAULT_MYNTRA_SEEDS,
   meesho: DEFAULT_MEESHO_SEEDS,
+  ajio: DEFAULT_AJIO_SEEDS,
+  croma: DEFAULT_CROMA_SEEDS,
 };
 
 /** Helper to clean raw price strings into safe numbers */
@@ -750,6 +781,182 @@ export function parseMeeshoBestsellerItems(html, categoryInfo, topN = 20) {
 }
 
 /**
+ * Parses an Ajio search/listing page and extracts topN items.
+ */
+export function parseAjioBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  // 1. Try window.__PRELOADED_STATE__ script first
+  let ajioProducts = null;
+  $('script').each((_, el) => {
+    if (ajioProducts) return;
+    const txt = $(el).contents().text();
+    const idx = txt.indexOf('__PRELOADED_STATE__');
+    if (idx !== -1) {
+      try {
+        const eqIdx = txt.indexOf('=', idx);
+        if (eqIdx !== -1) {
+          let jsonStr = txt.slice(eqIdx + 1).trim();
+          if (jsonStr.endsWith(';')) jsonStr = jsonStr.slice(0, -1).trim();
+          const parsed = JSON.parse(jsonStr);
+          const grid = parsed.grid?.entities || parsed.search?.products || parsed.gridData?.products;
+          if (Array.isArray(grid) && grid.length > 0) {
+            ajioProducts = grid;
+          }
+        }
+      } catch {}
+    }
+  });
+
+  if (Array.isArray(ajioProducts) && ajioProducts.length > 0) {
+    for (const p of ajioProducts) {
+      if (items.length >= topN) break;
+      const pid = String(p.code || p.fnlColorVariantData?.outfitCode || p.id || '');
+      if (!pid || seenIds.has(pid)) continue;
+      const price = cleanPriceVal(p.price?.value || p.discountedPrice || p.price);
+      if (!price) continue;
+      const originalPrice = cleanPriceVal(p.wasPriceData?.value || p.mrp || p.originalPrice) || price;
+      const title = `${p.brandName || ''} ${p.name || ''}`.trim() || p.name || '';
+      if (!title) continue;
+
+      const imgUrl = p.images?.[0]?.url || p.fnlColorVariantData?.galleryImages?.[0]?.url || null;
+
+      seenIds.add(pid);
+      items.push({
+        productId: pid,
+        merchant: 'ajio',
+        cleanUrl: p.url ? (p.url.startsWith('http') ? p.url : `https://www.ajio.com${p.url}`) : `https://www.ajio.com/p/${pid}`,
+        title: title.slice(0, 200),
+        price,
+        originalPrice,
+        imageUrl: imgUrl,
+        images: imgUrl ? [imgUrl] : [],
+        rating: 4.2,
+        category: categoryInfo.category || 'men-fashion',
+        subcategory: categoryInfo.subcategory || 'men-topwear',
+        isActive: true,
+        country: 'IN',
+      });
+    }
+    if (items.length > 0) return items;
+  }
+
+  // 2. DOM fallback
+  $('a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+    const $a = $(el);
+    const href = $a.attr('href') || '';
+    const idMatch = href.match(/\/p\/([a-z0-9_]+)/i);
+    if (!idMatch) return;
+    const pid = idMatch[1];
+    if (seenIds.has(pid)) return;
+
+    const card = $a.closest('.item, div[aria-label*="product"], div.rilrtl-products-list__item, div[class*="product"]');
+    const scope = card.length ? card : $a;
+
+    const brand = scope.find('div.brand, .brand').first().text().trim();
+    const name = scope.find('div.name, .name, [class*="prod-name"]').first().text().trim();
+    let title = brand && name ? `${brand} ${name}` : (name || brand || scope.find('img').first().attr('alt'));
+    if (!title || title.length < 3) return;
+
+    const priceText = scope.find('span.price, .price, [class*="prod-sp"]').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = scope.find('span.orginal-price, [class*="prod-cp"], .orginal-price').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imgEl = scope.find('img');
+    let imageUrl = imgEl.attr('src') || imgEl.attr('data-src') || null;
+    if (imageUrl && (imageUrl.startsWith('data:') || imageUrl.length < 10)) imageUrl = null;
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'ajio',
+      cleanUrl: `https://www.ajio.com${href.split('?')[0]}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating: 4.2,
+      category: categoryInfo.category || 'men-fashion',
+      subcategory: categoryInfo.subcategory || 'men-topwear',
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Parses a Croma search/listing page and extracts topN items.
+ */
+export function parseCromaBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  $('li.product-item, div.cp-product, div[data-testid="product-card"], a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+    const $el = $(el);
+    const $a = $el.is('a[href*="/p/"]') ? $el : $el.find('a[href*="/p/"]').first();
+    const href = $a.attr('href') || '';
+    const pidMatch = href.match(/\/p\/(\d+)/i) || href.match(/\/p\/([a-z0-9]+)/i);
+    if (!pidMatch) return;
+    const pid = pidMatch[1];
+    if (seenIds.has(pid)) return;
+
+    const scope = $el;
+    const title = scope.find('h3.product-title, .product-title a, h3, [class*="productTitle"]').first().text().trim() ||
+                  scope.find('img').first().attr('alt');
+    if (!title || title.length < 3) return;
+
+    const priceText = scope.find('span.amount, [data-testid="new-price"], .new-price, [class*="amount"]').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = scope.find('span.old-price, [data-testid="old-price"], .old-price, [class*="mrp"]').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imgEl = scope.find('img[src*="croma"], img').first();
+    let imageUrl = imgEl.attr('src') || imgEl.attr('data-src') || null;
+    if (imageUrl && (imageUrl.startsWith('data:') || imageUrl.length < 10)) imageUrl = null;
+
+    const ratingText = scope.find('[class*="rating"], [data-testid="rating"]').first().text().trim();
+    const ratingNum = parseFloat(ratingText);
+    const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.2;
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'croma',
+      cleanUrl: href.startsWith('http') ? href.split('?')[0] : `https://www.croma.com${href.split('?')[0]}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating,
+      category: categoryInfo.category || 'electronics',
+      subcategory: categoryInfo.subcategory || 'mobiles',
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
  * Universal Store Listing Parser Dispatcher
  */
 export function parseStoreListingItems(html, seed, topN = 20) {
@@ -763,6 +970,10 @@ export function parseStoreListingItems(html, seed, topN = 20) {
       return parseMyntraBestsellerItems(html, seed, topN);
     case 'meesho':
       return parseMeeshoBestsellerItems(html, seed, topN);
+    case 'ajio':
+      return parseAjioBestsellerItems(html, seed, topN);
+    case 'croma':
+      return parseCromaBestsellerItems(html, seed, topN);
     case 'amazon':
     default:
       return parseAmazonBestsellerItems(html, seed, topN);

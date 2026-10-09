@@ -12,6 +12,7 @@ import { emitSavedChanged } from '@/lib/useSavedCount';
 import { trackRecentlyViewed } from '@/components/RecentlyViewed';
 import { computePriceStats } from '@/lib/priceAnalytics';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
+import PriceAlertModal from '@/components/PriceAlertModal';
 
 /**
  * Myntra-style grid card — real <article>/<h3>/<a> markup (not RN View/Text) so crawlers see
@@ -21,6 +22,7 @@ import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 export default function DealCard({ deal, savedDeals = [], onSavedChange, onImageUnavailable }) {
   const [imgError, setImgError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const { user, token } = useAuth();
   const { isInCompare, toggleCompare } = useCompare();
 
@@ -344,18 +346,51 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
           </a>
         )}
 
-        {/* View Price History — surfaces our core differentiator, keeps users on ShoppersDeals */}
-        <Link
-          href={cardHref}
-          className="mt-1.5 flex items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-1.5 text-[11px] font-bold text-[#4f46e5] hover:bg-[#f0f0ff] transition-colors"
-          onClick={() => logEvent('view_history', { item_id: dealId, item_name: deal.title })}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          View Price History
-        </Link>
+        {/* Action Row: Price History & 1-Click Price Drop Alert */}
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+          <Link
+            href={cardHref}
+            className="flex items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-1.5 text-[10.5px] font-bold text-[#4f46e5] hover:bg-[#f0f0ff] transition-colors"
+            onClick={() => logEvent('view_history', { item_id: dealId, item_name: deal.title })}
+            title="View price history chart and statistics"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            Price History
+          </Link>
+          <button
+            type="button"
+            className="flex items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50/70 py-1.5 text-[10.5px] font-bold text-amber-800 hover:bg-amber-100 transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsAlertOpen(true);
+            }}
+            title="Set a price drop alert for this item"
+          >
+            <span className="text-[11px]">🔔</span>
+            Set Alert
+          </button>
+        </div>
       </div>
+
+      {isAlertOpen && (
+        <PriceAlertModal
+          product={{
+            _id: deal.productId || deal._id,
+            productId: deal.productId || deal._id,
+            title: deal.title,
+            price: deal.dealPrice,
+            originalPrice: deal.originalPrice,
+            merchant: deal.merchant,
+            imageUrl: deal.imageUrl,
+            category: deal.category,
+          }}
+          isOpen={isAlertOpen}
+          onClose={() => setIsAlertOpen(false)}
+        />
+      )}
     </article>
   );
 }

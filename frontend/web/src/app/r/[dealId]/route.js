@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAffiliateUrl } from '@/lib/affiliate';
-import { directFetchDealById, directFetchProductById } from '@/lib/dbFallback';
+import { directFetchDealById, directFetchProductById, directFindAlternativeInStockStore } from '@/lib/dbFallback';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://shoppersdeals-api-production.up.railway.app').replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.shoppersdeals.in').replace(/\/+$/, '');
 const CUELINKS_PUB_ID = process.env.NEXT_PUBLIC_CUELINKS_PUB_ID || '325472';
 
 /**
@@ -60,8 +60,19 @@ export async function GET(request, { params }) {
     }
 
     if (target) {
-      const targetUrl = target?.dealUrl || target?.cleanUrl || target?.url;
+      let targetUrl = target?.dealUrl || target?.cleanUrl || target?.url;
       const country = target?.country || 'IN';
+      let failoverStore = null;
+
+      // Decision 20: Multi-Store Out-of-Stock Failover
+      const isDeadOrOOS = target.isExpired || target.isAvailable === false || target.isOutOfStock;
+      if (isDeadOrOOS) {
+        failoverStore = await directFindAlternativeInStockStore(target).catch(() => null);
+        if (failoverStore?.cleanUrl) {
+          targetUrl = failoverStore.cleanUrl;
+          console.log(`[Redirect Failover] Deal ${dealId} (${target.merchant}) is out of stock. Switched to ${failoverStore.merchant}: ${targetUrl}`);
+        }
+      }
 
       if (targetUrl) {
         // Build affiliate URL with specific subid attribution
@@ -119,8 +130,12 @@ export async function GET(request, { params }) {
 </head>
 <body>
   <div class="loader"></div>
-  <p style="font-size: 18px; font-weight: 600; margin: 0 0 8px;">Opening Store App...</p>
-  <p style="font-size: 13px; color: #94a3b8; margin: 0 0 16px;">Redirecting you to the best verified price...</p>
+  <p style="font-size: 18px; font-weight: 600; margin: 0 0 8px;">
+    ${failoverStore ? `⚡ Switched to In-Stock Price on ${failoverStore.merchant?.toUpperCase()}!` : 'Opening Store App...'}
+  </p>
+  <p style="font-size: 13px; color: #94a3b8; margin: 0 0 16px;">
+    ${failoverStore ? `Original deal on ${(target?.merchant || 'store').toUpperCase()} is out of stock. Automatically routed to verified stock!` : 'Redirecting you to the best verified price...'}
+  </p>
   <a class="btn" href="${redirectUrl}">Click here if not redirected</a>
   <script>
     (function() {
