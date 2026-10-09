@@ -2,6 +2,7 @@ import PriceAlert from '../db/models/priceAlert.js';
 import PushToken from '../db/models/pushToken.js';
 import { defaultRedis } from './redis.js';
 import { broadcastPriceDropPush } from './webPushNotifier.js';
+import { buildAffiliateUrl } from './affiliate.js';
 
 function formatPriceCurrency(price, country = 'IN') {
   if (price == null || isNaN(price)) return '';
@@ -139,14 +140,24 @@ export async function evaluateAndTriggerPriceAlerts({
   }
 }
 
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 async function sendDirectTelegramAlert({ chatId, title, livePrice, targetPrice, dealUrl, merchant = 'amazon' }) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || !chatId) return false;
 
   const priceStr = `₹${Math.round(livePrice).toLocaleString('en-IN')}`;
   const targetStr = targetPrice ? `₹${Math.round(targetPrice).toLocaleString('en-IN')}` : '';
+  const monetizedUrl = buildAffiliateUrl(dealUrl, 'IN', merchant) || dealUrl;
+  const safeTitle = escapeHtml(title);
+
   const text = `🚨 <b>PRICE DROP ALERT!</b> 📉\n\n` +
-    `<b>${title}</b>\n\n` +
+    `<b>${safeTitle}</b>\n\n` +
     `💰 <b>Dropped to: ${priceStr}!</b>\n` +
     (targetStr ? `🎯 Your Target: ${targetStr}\n` : '') +
     `🏪 Store: <b>${merchant.toUpperCase()}</b>\n\n` +
@@ -158,7 +169,7 @@ async function sendDirectTelegramAlert({ chatId, title, livePrice, targetPrice, 
     text,
     reply_markup: {
       inline_keyboard: [
-        [{ text: `🛒 BUY NOW AT ${priceStr}`, url: dealUrl }],
+        [{ text: `🛒 BUY NOW AT ${priceStr}`, url: monetizedUrl }],
         [{ text: `🌐 View on ShoppersDeals`, url: 'https://www.shoppersdeals.in' }]
       ]
     }

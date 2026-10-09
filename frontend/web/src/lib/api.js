@@ -14,6 +14,7 @@ import {
   directFetchProducts,
   directFetchSitemapProducts,
   directFetchSitemapDeals,
+  directFetchSitemapSummary,
 } from './dbFallback';
 
 // Server-side data fetching helpers, used from Server Components / route handlers.
@@ -209,7 +210,11 @@ export async function fetchProducts({
       raw = raw.filter((p) => !p.category || p.category === category || p.category === 'all');
     }
     const finalItems = aggregateSeriesFeed(raw.filter((p) => isUsableImageUrl(p.imageUrl)));
-    return { items: finalItems, hasMore: page < res.nbPages };
+    if (finalItems.length > 0) {
+      return { items: finalItems, hasMore: page < res.nbPages };
+    }
+    // If Algolia returned 0 hits (e.g. index delay, service limit, or blocked key),
+    // seamlessly fall through to direct database search below.
   }
 
   const params = new URLSearchParams({
@@ -357,13 +362,7 @@ export async function fetchSitemapSummary() {
   if (json?.success) {
     return json;
   }
-  // Safe default fallback: 2 IN chunks, 2 US chunks
-  return {
-    success: true,
-    chunkSize: 5000,
-    inChunks: 2,
-    usChunks: 2,
-  };
+  return await directFetchSitemapSummary();
 }
 
 export async function fetchSitemapProducts({ country = 'IN', page = 1, limit = 5000 } = {}) {

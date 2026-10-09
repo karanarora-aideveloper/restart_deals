@@ -13,10 +13,34 @@ function isUsableImageUrl(url) {
 function getMerchant(urlOrMerchant) {
   const s = (urlOrMerchant || '').toLowerCase();
   if (s.includes('amazon') || s.includes('amzn')) return 'amazon';
+  if (s.includes('shopsy')) return 'shopsy';
   if (s.includes('flipkart') || s.includes('fkrt') || s.includes('fktr')) return 'flipkart';
   if (s.includes('myntra')) return 'myntra';
   if (s.includes('meesho')) return 'meesho';
-  return s || 'other';
+  if (s.includes('nykaa')) return 'nykaa';
+  if (s.includes('ajio')) return 'ajio';
+  if (s.includes('croma')) return 'croma';
+  if (s.includes('plum')) return 'plum';
+  if (s.includes('mamaearth')) return 'mamaearth';
+  if (s.includes('dermaco') || s.includes('derma co')) return 'thedermaco';
+  if (s.includes('minimalist')) return 'minimalist';
+  if (s.includes('boat')) return 'boat';
+  if (s.includes('noise')) return 'noise';
+  if (s.includes('boult')) return 'boult';
+  if (s.includes('portronics')) return 'portronics';
+  if (s.includes('snitch')) return 'snitch';
+  if (s.includes('xyxx')) return 'xyxx';
+  if (s.includes('sugar')) return 'sugar';
+  if (s.includes('mcaffeine')) return 'mcaffeine';
+  if (s.includes('dotandkey')) return 'dotandkey';
+  if (s.includes('drsheths')) return 'drsheths';
+  if (s.includes('bblunt')) return 'bblunt';
+  if (s.includes('foxtale')) return 'foxtale';
+  if (s.includes('aqualogica')) return 'aqualogica';
+  if (s.includes('bombayshaving')) return 'bombayshaving';
+  if (s.includes('huft')) return 'huft';
+  if (!s.includes('/') && !s.includes('.')) return s;
+  return 'generic';
 }
 
 function dealToRecord(deal) {
@@ -25,7 +49,7 @@ function dealToRecord(deal) {
     type: 'deal',
     title: deal.title || '',
     description: deal.description || '',
-    merchant: getMerchant(deal.dealUrl),
+    merchant: getMerchant(deal.merchant || deal.dealUrl),
     category: deal.category || 'home',
     subcategory: deal.subcategory || 'decor',
     imageUrl: deal.imageUrl,
@@ -69,7 +93,7 @@ function productToRecord(product) {
 // a missing/null country as India (older records predate the field) rather than excluding them.
 const INDIA_QUERY = { $or: [{ country: 'IN' }, { country: { $exists: false } }, { country: null }] };
 
-async function syncDeals() {
+export async function syncDeals() {
   const deals = await Deal.find({ ...INDIA_QUERY, isExpired: { $ne: true } }).lean();
   // Same >90%-off cap as /api/deals (see api/src/routes/deals.js) — these are overwhelmingly bad
   // scrapes, not real discounts, and search must not surface them just because the REST route
@@ -84,7 +108,7 @@ async function syncDeals() {
   return records.length;
 }
 
-async function syncProducts() {
+export async function syncProducts() {
   const products = await Product.find({ ...INDIA_QUERY, isActive: true })
     .select('_id productId title brand merchant category subcategory imageUrl images cleanUrl price originalPrice previousPrice rating country lastChecked')
     .lean();

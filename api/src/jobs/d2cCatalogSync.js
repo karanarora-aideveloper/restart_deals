@@ -118,31 +118,32 @@ export async function syncAllD2CStores(options = {}) {
               existing.images = prodData.images;
             }
 
-            // Check for price drop
+            // 1. Maintain daily price history checkpoint (rolling 1-per-calendar-day compaction)
+            if (!Array.isArray(existing.priceHistory)) existing.priceHistory = [];
+            const dayIdx = existing.priceHistory.findIndex(e => e.date === todayStr);
+            if (dayIdx >= 0) {
+              if (prodData.price <= existing.priceHistory[dayIdx].price) {
+                existing.priceHistory[dayIdx].price = prodData.price;
+                existing.priceHistory[dayIdx].timestamp = now;
+              }
+            } else {
+              existing.priceHistory.push({
+                date: todayStr,
+                price: prodData.price,
+                originalPrice: prodData.originalPrice || existing.originalPrice,
+                timestamp: now
+              });
+            }
+            if (existing.priceHistory.length > 90) {
+              existing.priceHistory = existing.priceHistory.slice(-90);
+            }
+
+            // 2. Check for price movement
             if (prodData.price && prodData.price !== existing.price) {
               const priorPrice = existing.price;
               existing.previousPrice = priorPrice;
               existing.price = prodData.price;
               existing.priceUpdatedAt = now;
-
-              if (!Array.isArray(existing.priceHistory)) existing.priceHistory = [];
-              const dayIdx = existing.priceHistory.findIndex(e => e.date === todayStr);
-              if (dayIdx >= 0) {
-                if (prodData.price < existing.priceHistory[dayIdx].price) {
-                  existing.priceHistory[dayIdx].price = prodData.price;
-                  existing.priceHistory[dayIdx].timestamp = now;
-                }
-              } else {
-                existing.priceHistory.push({
-                  date: todayStr,
-                  price: prodData.price,
-                  originalPrice: prodData.originalPrice || existing.originalPrice,
-                  timestamp: now
-                });
-              }
-              if (existing.priceHistory.length > 90) {
-                existing.priceHistory = existing.priceHistory.slice(-90);
-              }
 
               // Autonomous deal synthesis on genuine drop
               if (priorPrice && priorPrice > prodData.price) {

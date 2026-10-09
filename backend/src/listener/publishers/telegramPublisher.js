@@ -2,8 +2,15 @@ import Deal from '../../db/models/deal.js';
 import OutputChannel from '../../db/models/outputChannel.js';
 import { buildAffiliateUrl, getWebsiteDealUrl, formatPriceCurrency } from '../../utils/affiliate.js';
 
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export function formatTelegramMessage(deal, channelUsername) {
-  const title = deal.title || 'Special Deal';
+  const safeTitle = escapeHtml(deal.title || 'Special Deal');
   const country = deal.country || 'IN';
   const dealPriceFormatted = formatPriceCurrency(deal.dealPrice, country);
   const dealPriceStr = dealPriceFormatted || 'Special Price';
@@ -18,7 +25,7 @@ export function formatTelegramMessage(deal, channelUsername) {
   }
 
   const ratingLine = deal.rating ? `⭐ Rating: <b>${deal.rating}/5</b>\n` : '';
-  const couponLine = deal.coupon?.label ? `🎟️ <b>${deal.coupon.label}</b>\n` : '';
+  const couponLine = deal.coupon?.label ? `🎟️ <b>${escapeHtml(deal.coupon.label)}</b>\n` : '';
   
   // Format monetized affiliate link through universal cloaker with native app deep-linking
   const affiliateBuyUrl = deal._id
@@ -30,9 +37,15 @@ export function formatTelegramMessage(deal, channelUsername) {
   const webDealUrl = getWebsiteDealUrl(deal);
   
   // Invisible link for image preview at top of post
-  const imagePreviewLink = deal.imageUrl ? `<a href="${deal.imageUrl}">&#8203;</a>` : '';
+  const isValidImage = deal.imageUrl && 
+    typeof deal.imageUrl === 'string' &&
+    !deal.imageUrl.includes('localhost') && 
+    !deal.imageUrl.includes('127.0.0.1') && 
+    !deal.imageUrl.includes('placeholder') &&
+    !deal.imageUrl.includes('images-na.ssl-images-amazon.com/images/P/');
+  const imagePreviewLink = isValidImage ? `<a href="${deal.imageUrl}">&#8203;</a>` : '';
 
-  return `${imagePreviewLink}🔥 <b>${title}</b> 🔥
+  return `${imagePreviewLink}🔥 <b>${safeTitle}</b> 🔥
 
 💰 Deal Price: <b>${dealPriceStr}</b>
 ${originalPriceLine}${couponLine}${ratingLine}
