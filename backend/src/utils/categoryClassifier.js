@@ -114,7 +114,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'appliances', subcategory: 'fans-coolers' };
   }
   if (
-    /\b(mixer\s*grinder|juicer\s*mixer|induction\s*cooktop|induction\s*stove|electric\s*kettle|sandwich\s*maker|pop-up\s*toaster|hand\s*blender|food\s*processor|coffee\s*machine|espresso\s*maker)\b/i.test(combined)
+    /\b(mixer\s*grinder|juicer\s*mixer|induction\s*cooktop|induction\s*stove|electric\s*kettle|sandwich\s*maker|pop-?up\s*toaster|\btoasters?\b|hand\s*blender|food\s*processor|coffee\s*machine|espresso\s*maker)\b/i.test(combined)
   ) {
     return { category: 'appliances', subcategory: 'kitchen-appliances' };
   }
@@ -184,7 +184,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   if (/\b(shampoo|conditioner|hair\s*oil|hair\s*serum|hair\s*mask|rosemary\s*water|keratin)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'haircare' };
   }
-  if (/\b(face\s*wash|cleanser|face\s*serum|face\s*cream|moisturi[sz]er|sunscreen|toner|sheet\s*mask|micellar\s*water|brightening\s*(?:serum|cream|gel|lotion)|niacinamide|salicylic|hyaluronic|retinol|vitamin\s*c|cetaphil|cerave|minimalist|derma\s*co|dot\s*&\s*key|aqualogica|plum\s*goodness|biotique|mamaearth)\b/i.test(combined)) {
+  if (/\b(face\s*wash|cleanser|face\s*serum|face\s*cream|light\s*cream|day\s*cream|night\s*cream|cold\s*cream|skin\s*cream|moisturi[sz]er|sunscreen|toner|sheet\s*mask|micellar\s*water|brightening\s*(?:serum|cream|gel|lotion)|niacinamide|salicylic|hyaluronic|retinol|vitamin\s*c|cetaphil|cerave|minimalist|derma\s*co|dot\s*&\s*key|aqualogica|plum\s*goodness|biotique|mamaearth|ponds?|pond's|olay|garnier|lakme|vaseline|nivea|loreal|neutrogena|himalaya)\b/i.test(combined)) {
     return { category: 'beauty', subcategory: 'skincare' };
   }
   if (/\b(lipstick|lip\s*gloss|lip\s*balm|lip\s*tint|foundation|concealer|compact\s*powder|kajal|mascara|eyeliner|eyeshadow|blush|makeup)\b/i.test(combined)) {
@@ -288,7 +288,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
       ? { category: 'women-fashion', subcategory: 'women-watches' }
       : { category: 'men-fashion', subcategory: 'watches' };
   }
-  if (/\b(earrings?|necklace|jewellery|bangles?|pendants?|bracelet|anklet|nose\s*ring)\b/i.test(combined)) {
+  if (/\b(earrings?|necklace|jewellery|bangles?|pendants?|bracelet|anklet|nose\s*ring|gold\s*ring|diamond\s*ring|silver\s*ring|\brings?\b|vedhani|mangalsutra|gold\s*coin|silver\s*coin|gold\s*chain|silver\s*chain|tanishq|malabar|png\s*jewellers)\b/i.test(combined) && !/\b(smart\s*ring|napkin\s*ring)\b/i.test(combined)) {
     return { category: 'women-fashion', subcategory: 'jewellery' };
   }
   if (/\b(kurta|kurti|saree|\bsari\b|lehenga|anarkali|salwar|dupatta|sherwani)\b/i.test(combined)) {
