@@ -122,23 +122,24 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   // 8. ELECTRONICS
   // Mobiles: strictly smartphones and tablets
   if (
-    /\b(iphone\s*1[1-7]|galaxy\s*s2[0-6]|galaxy\s*m\d{2}|galaxy\s*a\d{2}|redmi\s*note|realme|oneplus\s*(?:1[0-3]|nord)|poco\s*[xmf]\d|iqoo|motorola\s*edge|smartphone|mobile\s*phone|5g\s*mobile|cell\s*phone|android\s*phone|ipad\s*(?:air|pro|mini)|\btablet\b)\b/i.test(combined) &&
-    !/\b(case|cover|glass|protector|cable|charger|stand|skin|holder|strap|adapter|screen|pouch|sleeve)\b/i.test(combined)
+    (/\b(iphone\s*1[1-7]|galaxy\s*s2[0-6]|galaxy\s*m\d{2}|galaxy\s*a\d{2}|galaxy\s*(?:tab|pad|fold|flip|z\s*fold|z\s*flip)|pixel\s*\d+|redmi\s*note|realme|oneplus\s*(?:\d+[a-z]*|nord|n\d+[a-z]*)|poco\s*[a-z]\d+|iqoo|motorola\s*edge|smartphone|mobile\s*phone|5g\s*mobile|cell\s*phone|android\s*phone|ipad\s*(?:air|pro|mini)?|\btablets?\b|\btab\s*[as]\d+|nothing\s*phone|oppo\s*[ka]\d+|boltt\s*evo)\b/i.test(combined) ||
+     /\(\d+\s*gb\s*ram\)/i.test(combined)) &&
+    !/\b(back\s*cover|phone\s*case|phone\s*cover|tempered\s*glass|glass\s*protector|screen\s*protector|screen\s*guard|lens\s*protector|charging\s*cable|phone\s*holder|phone\s*stand|skin\s*wrap|pouch\s*case)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'mobiles' };
   }
 
-  // Laptops: strictly laptops and notebooks
+  // Laptops & Computers: strictly laptops, notebooks, and all-in-one PCs
   if (
-    /\b(macbook\s*(?:air|pro)|thinkpad|ideapad|vivobook|zenbook|rog\s*strix|tuf\s*gaming|pavilion|inspiron|laptop|notebook|chromebook)\b/i.test(combined) &&
+    /\b(macbook\s*(?:air|pro)|thinkpad|ideapad|vivobook|zenbook|rog\s*strix|tuf\s*gaming|pavilion|inspiron|laptop|notebook|chromebook|all\s*in\s*one\s*pc|\baio\s*pc\b|desktop\s*pc|mac\s*mini|mac\s*studio|imac)\b/i.test(combined) &&
     !/\b(bag|sleeve|case|cover|stand|adapter|charger|cable|mouse|keyboard|mousepad|cleaner|cleaning|skin|cooling\s*pad|desk)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'laptops' };
   }
 
-  // Audio: Earbuds, TWS, headphones, neckbands, speakers
+  // Audio: Earbuds, TWS, headphones, neckbands, speakers, gaming headsets
   if (
-    /\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth\s*speaker|\bspeaker\b|soundbar|airpods)\b/i.test(combined) &&
+    /\b(earbuds?|tws\b|headphones?|earphones?|neckbands?|bluetooth\s*speaker|\bspeaker\b|soundbar|airpods|headset|gaming\s*headset|wireless\s*headset|lightspeed\s*wireless)\b/i.test(combined) &&
     !/\b(case|cover|ear\s*tips|stand|power\s*banks?|powerbank)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'audio' };
@@ -147,16 +148,16 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   // Wearables: Smartwatches, fitness trackers
   if (
     /\b(smartwatch(?:es)?|smart\s*watch|fitness\s*band|smart\s*band|smart\s*ring|apple\s*watch|galaxy\s*watch|redmi\s*watch|noise\s*watch|boat\s*(?:wave|storm|lunar|xtend)|fire-boltt)\b/i.test(combined) &&
-    !/\b(strap|case|guard|screen\s*protector|cable)\b/i.test(combined)
+    !/\b(only\s*strap|replacement\s*strap|strap\s*for\s*(?:smartwatch|boat|apple|galaxy)|watch\s*case|watch\s*cover|watch\s*screen\s*protector)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'wearables' };
   }
 
   // Smart TVs & Displays
   if (
-    (/\b(television|projectors?|\bmonitors?\b)\b/i.test(combined) ||
-     /\b(?:4k|ultra\s*hd|smart|oled|qled|mini\s*led|full\s*hd|hd\s*ready|android|google|fire|webos|led)\s*(?:[\w\s-]{0,25})\s*tv\b/i.test(combined) ||
-     /\b\d{2,3}\s*(?:inch|inches|cm|cms)\b[^\n]{0,50}\btv\b/i.test(combined)) &&
+    (/\b(television|projectors?|\bmonitors?\b|bravia)\b/i.test(combined) ||
+     /\b(?:4k|ultra\s*hd|smart|oled|qled|mini\s*led|full\s*hd|hd\s*ready|android|google|fire|webos|led)\s*(?:[\w\s-]{0,25})\s*(?:tv|led|display)\b/i.test(combined) ||
+     /\b\d{2,3}\s*(?:inch|inches|cm|cms)\b[^\n]{0,60}\b(?:tv|led|smart|google|android|4k|qled)\b/i.test(combined)) &&
     !/\b(mount|stand|wall\s*bracket|remote|cover|tuner|antenna|tv\s*stick|fire\s*tv\s*stick)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'tv' };
@@ -174,7 +175,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
 
   // Electronics Accessories: Mice, keyboards, mouse pads, USB drives, chargers, cables, power banks
   if (
-    /\b(power\s*station|portable\s*power|inverter\s*battery|solar\s*generator|mouse|keyboard|mouse\s*pad|desk\s*mat|pen\s*drive|flash\s*drive|pendrive|otg\s*(?:drive|pendrive|type-c)|ssd|hard\s*disk|power\s*bank|charger|charging\s*cable|type-c\s*cable|usb\s*cable|hdmi\s*cable|tempered\s*glass|phone\s*case|back\s*cover|laptop\s*sleeve|adapter|surge\s*protector|extension\s*cord|barcode\s*scanner|airtag\s*holder)\b/i.test(combined)
+    /\b(power\s*station|portable\s*power|inverter\s*battery|solar\s*generator|mouse|keyboard|mouse\s*pad|desk\s*mat|pen\s*drive|flash\s*drive|pendrive|otg\s*(?:drive|pendrive|type-c)|ssd|hard\s*disk|power\s*bank|charger|charging\s*adapter|fast\s*charger|wall\s*charger|charging\s*cable|type-c\s*cable|usb\s*cable|hdmi\s*cable|tempered\s*glass|phone\s*case|back\s*cover|laptop\s*sleeve|adapter|surge\s*protector|extension\s*cord|barcode\s*scanner|airtag\s*holder|lifepo4|lithium\s*iron\s*phosphate|deep\s*cycle\s*battery)\b/i.test(combined)
   ) {
     return { category: 'electronics', subcategory: 'accessories' };
   }
@@ -209,7 +210,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   if (/\b(whey(?:\s*protein)?|protein\s*powder|creatine|bcaa|mass\s*gainer|multivitamin|fish\s*oil|omega\s*3|pre-workout|isolate\s*protein)\b/i.test(combined)) {
     return { category: 'fitness', subcategory: 'nutrition' };
   }
-  if (/\b(dumbbells?|barbell|kettlebell|weight\s*plates?|gym\s*set|home\s*gym|resistance\s*bands?|pull\s*up\s*bar|hand\s*gripper|gym\s*bench)\b/i.test(combined)) {
+  if (/\b(treadmills?|motorized\s*treadmill|smartrun|smart\s*run|walking\s*pad|exercise\s*bike|spin\s*bike|air\s*bike|elliptical|rowing\s*machine|cross\s*trainer|dumbbells?|barbell|kettlebell|weight\s*plates?|gym\s*set|home\s*gym|resistance\s*bands?|pull\s*up\s*bar|hand\s*gripper|gym\s*bench)\b/i.test(combined)) {
     return { category: 'fitness', subcategory: 'gym-equipment' };
   }
   if (/\b(yoga\s*mat|yoga\s*block|yoga\s*strap)\b/i.test(combined)) {
@@ -246,6 +247,11 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
     return { category: 'auto', subcategory: 'helmets-riding' };
   }
   if (
+    /\b(hero\s*motocorp|royal\s*enfield|bajaj\s*pulsar|tvs\s*apache|honda\s*activa|bike\s*lock|bicycle\s*lock|cycle\s*lock|anti\s*theft\s*bicycle|drum\s*brake|disc\s*brake|brake\s*shoe|motorcycle|scooter|bike\s*accessories)\b/i.test(combined)
+  ) {
+    return { category: 'auto', subcategory: 'bike-accessories' };
+  }
+  if (
     /\b(dash\s*cam|dashboard\s*camera|car\s*charger|tire\s*inflator|tyre\s*inflator|car\s*vacuum|wiper\s*blade|car\s*led|seat\s*belt\s*cover|steering\s*wheel\s*lock|jump\s*starter|obd2|car\s*reverse|car\s*door\s*guard|brake\s*(?:kit|pad|pads|rotor|rotors|disc)|driving\s*light|led\s*pods?|off\s*road\s*light|car\s*mats?|car\s*seat\s*cover|car\s*perfume|car\s*freshener|spark\s*plug)\b/i.test(combined)
   ) {
     return { category: 'auto', subcategory: 'car-accessories' };
@@ -267,7 +273,7 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
   const isMale = /\b(mens?|mans?|males?|gents|boys?|polo|boxer|boxers|brief|briefs|vest|vests)\b/i.test(combined);
 
   if (
-    /\b(shoes?|sneakers?|sandals?|slippers?|flip\s*flops?|crocs|boots?|loafers?|heels?|flats?|wedges?|jutis?|pumps?|sling\s*pumps?|slingback)\b/i.test(combined) &&
+    /\b(shoes?|sneakers?|sandals?|slippers?|flip\s*flops?|crocs|boots?|loafers?|heels?|flats?|wedges?|jutis?|pumps?|sling\s*pumps?|slingback|socks?|compression\s*socks|ankle\s*socks)\b/i.test(combined) &&
     !/\b(rack|stand|deodorizer|horn|washing\s*machine)\b/i.test(combined)
   ) {
     return isFemale
@@ -310,17 +316,17 @@ export function classifyProduct(title, merchant = '', categoryHint = '') {
 
   // 15. HOME & KITCHEN
   if (
-    /\b(cookware|pan|kadai|kadhai|tawa|pressure\s*cooker|dinner\s*set|water\s*bottle|flask|thermosteel|insulated\s*bottle|lunch\s*box|knife\s*set|bbq|grill|barbecue|chopper|peeler|milton|cello|napkin\s*rings?|gas\s*stove|induction\s*cooktop|mixing\s*bowl|kitchen\s*rack|spice\s*box|oil\s*dispenser|water\s*dispenser|ro\s*purifier|water\s*purifier)\b/i.test(combined)
+    /\b(chopping\s*board|cutting\s*board|vegetable\s*cutter|hand\s*juicer|manual\s*juicer|cookware|pan|kadai|kadhai|tawa|pressure\s*cooker|dinner\s*set|water\s*bottle|flask|thermosteel|insulated\s*bottle|lunch\s*box|knife\s*set|bbq|grill|barbecue|chopper|peeler|milton|cello|napkin\s*rings?|gas\s*stove|induction\s*cooktop|mixing\s*bowl|kitchen\s*rack|spice\s*box|oil\s*dispenser|water\s*dispenser|ro\s*purifier|water\s*purifier)\b/i.test(combined)
   ) {
     return { category: 'home', subcategory: 'kitchen-dining' };
   }
-  if (/\b(sofa|dining\s*table|coffee\s*table|office\s*chair|standing\s*desk|study\s*table|wardrobe|bed\s*frame|bookshelf|furniture)\b/i.test(combined)) {
+  if (/\b(chair\s*set|plastic\s*chair|dining\s*chair|\bchairs?\b|sofa|dining\s*table|coffee\s*table|office\s*chair|standing\s*desk|study\s*table|wardrobe|bed\s*frame|bookshelf|furniture)\b/i.test(combined)) {
     return { category: 'home', subcategory: 'furniture' };
   }
   if (/\b(bedsheet|pillow\s*cover|pillows?|blanket|comforter|quilt|mattress|cushion\s*cover)\b/i.test(combined)) {
     return { category: 'home', subcategory: 'bedding' };
   }
-  if (/\b(storage\s*box|storage\s*rack|organizer|cloth\s*hangers?|shoe\s*rack|laundry\s*basket)\b/i.test(combined)) {
+  if (/\b(cloth\s*drying\s*stand|drying\s*rack|clothes\s*drying|storage\s*box|storage\s*rack|organizer|cloth\s*hangers?|shoe\s*rack|laundry\s*basket)\b/i.test(combined)) {
     return { category: 'home', subcategory: 'storage' };
   }
   if (

@@ -17,6 +17,8 @@ import mongoose from 'mongoose';
 import { runBatchAutomation, getAutomationStatus } from './src/scripts/scrapingAntAutomation.js';
 import ScrapingAntToken from './src/db/models/scrapingAntToken.js';
 import { checkScrapingAntUsage } from './src/utils/scrapingAntUsage.js';
+import { getTwoCaptchaBalance } from './src/scripts/captchaSolver.js';
+import { runTaxonomyHygiene } from './src/scripts/reclassify_deals.mjs';
 
 // Load environment variables from available .env files
 const loadEnvFile = (filePath) => {
@@ -203,13 +205,23 @@ async function runCheckCycle() {
   try {
     await connectDb();
 
-    // Step A: First check if any parked tokens renewed
+    // Step A: Run taxonomy & deal hygiene check across active deals
+    try {
+      const hygieneRes = await runTaxonomyHygiene({ silent: true });
+      if (hygieneRes.updatedDeals > 0 || hygieneRes.expiredJunk > 0) {
+        console.log(`[Daemon] 🛡️ Taxonomy Guardian: Reclassified ${hygieneRes.updatedDeals} deal(s), aligned ${hygieneRes.updatedProducts} product(s), expired ${hygieneRes.expiredJunk} junk deal(s).`);
+      }
+    } catch (hygieneErr) {
+      console.warn(`[Daemon] Taxonomy hygiene pass warning:`, hygieneErr.message);
+    }
+
+    // Step B: Check if any parked tokens renewed
     const renewed = await checkRenewals();
     if (renewed > 0) {
       console.log(`[Daemon] Reactivated ${renewed} renewed token(s) from database.`);
     }
 
-    // Step B: Query active token count in DB
+    // Step C: Query active token count in DB
     const activeCount = await ScrapingAntToken.countDocuments({ status: 'active' });
     const timestamp = new Date().toLocaleTimeString();
 
@@ -222,6 +234,15 @@ async function runCheckCycle() {
     const tokensNeeded = Math.min(TARGET_POOL_SIZE - activeCount, MAX_BATCH_PER_RUN);
     console.log(`\n======================================================================`);
     console.log(`[Daemon ${timestamp}] ⚠️ LOW TOKEN ALERT: Only ${activeCount} active token(s) (threshold: ${MIN_ACTIVE_TOKENS})`);
+
+    // Pre-flight check: verify 2Captcha balance before initiating browser automation
+    const balanceRes = await getTwoCaptchaBalance(TWOCAPTCHA_API_KEY);
+    if (!balanceRes.success || balanceRes.balance <= 0.005) {
+      console.warn(`[Daemon ${timestamp}] ⚠️ 2Captcha balance depleted ($${balanceRes.balance.toFixed(4)}). Auto-replenishment paused until account is funded.`);
+      console.log(`======================================================================\n`);
+      return;
+    }
+
     console.log(`[Daemon] Autonomously generating ${tokensNeeded} fresh token(s) to restore target pool (${TARGET_POOL_SIZE})...`);
     console.log(`======================================================================\n`);
 

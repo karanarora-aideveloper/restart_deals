@@ -336,3 +336,23 @@ export async function injectTurnstileResponse(page, token) {
 
   console.log('[2Captcha] ✓ Turnstile response injected into page');
 }
+
+/**
+ * Query 2Captcha account balance.
+ * @param {string} apiKey
+ * @returns {Promise<{ success: boolean, balance: number, error?: string }>}
+ */
+export async function getTwoCaptchaBalance(apiKey) {
+  if (!apiKey) return { success: false, balance: 0, error: 'API key is missing' };
+  try {
+    const res = await fetch(`https://2captcha.com/res.php?key=${encodeURIComponent(apiKey)}&action=getbalance&json=1`);
+    const data = await res.json();
+    if (data.status === 1) {
+      return { success: true, balance: parseFloat(data.request) };
+    }
+    return { success: false, balance: 0, error: data.request || 'Unknown error' };
+  } catch (err) {
+    return { success: false, balance: 0, error: err.message };
+  }
+}
+
