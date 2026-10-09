@@ -58,6 +58,13 @@ export function computePriceStats(product) {
       isFakeMrpDiscount: false,
       isBelowAverage: false,
       isAboveAverage: false,
+      dropProbabilityPct: 50,
+      dropProbabilityLabel: 'Moderate (50%)',
+      dropAdvice: 'Tracking started recently. Set an alert to catch the next price drop.',
+      dealAction: 'FAIR',
+      dealScore: 6.0,
+      expectedDropPrice: currentPrice || originalPrice,
+      expectedSavings: 0,
     };
   }
 
@@ -129,6 +136,48 @@ export function computePriceStats(product) {
     badgeText = '⏳ Price High';
   }
 
+  // 5. Buyhatke-Benchmark "Buy Now vs. Wait" Price Drop Probability & Deal Scoring Engine
+  let dropProbabilityPct = 50;
+  let dropProbabilityLabel = 'Moderate (50%)';
+  let dropAdvice = 'Fair everyday price. May drop during upcoming festival sales.';
+  let dealAction = 'FAIR';
+  let dealScore = 6.0;
+
+  if (isAllTimeLow || pricePositionPct <= 10) {
+    dropProbabilityPct = 12;
+    dropProbabilityLabel = 'Very Low (12%)';
+    dropAdvice = 'Great time to buy! Price is at/near all-time low with very low probability of dropping further soon.';
+    dealAction = 'BUY_NOW';
+    dealScore = isAllTimeLow ? 9.8 : 9.2;
+  } else if (hasRealPriceDrop && realPriceDropPct >= 8) {
+    dropProbabilityPct = 20;
+    dropProbabilityLabel = 'Low (20%)';
+    dropAdvice = `Genuine price drop of ${realPriceDropPct}%! Strong buying opportunity.`;
+    dealAction = 'BUY_NOW';
+    dealScore = Math.min(9.5, 8.5 + (realPriceDropPct / 20));
+  } else if (isBelowAverage || pricePositionPct <= 35) {
+    dropProbabilityPct = 28;
+    dropProbabilityLabel = 'Low (28%)';
+    dropAdvice = 'Good price! Selling below the 30-day historical average. Good time to buy.';
+    dealAction = 'BUY_NOW';
+    dealScore = 8.0;
+  } else if (isAboveAverage || pricePositionPct >= 75) {
+    dropProbabilityPct = 85;
+    dropProbabilityLabel = 'High (85%)';
+    dropAdvice = 'High chance of price drop! Currently above historical average. We recommend waiting or setting a price alert.';
+    dealAction = 'WAIT';
+    dealScore = Math.max(2.0, Math.round(((100 - pricePositionPct) / 10) * 10) / 10);
+  } else {
+    dropProbabilityPct = 52;
+    dropProbabilityLabel = 'Moderate (52%)';
+    dropAdvice = 'Fair everyday price within normal fluctuation range.';
+    dealAction = 'FAIR';
+    dealScore = Math.max(4.0, Math.min(7.0, Math.round(((100 - pricePositionPct) / 10) * 10) / 10));
+  }
+
+  const expectedDropPrice = currentPrice > lowestPrice && lowestPrice > 0 ? lowestPrice : currentPrice;
+  const expectedSavings = currentPrice > expectedDropPrice ? currentPrice - expectedDropPrice : 0;
+
   return {
     currentPrice,
     originalPrice,
@@ -153,5 +202,12 @@ export function computePriceStats(product) {
     isFakeMrpDiscount,
     isBelowAverage,
     isAboveAverage,
+    dropProbabilityPct,
+    dropProbabilityLabel,
+    dropAdvice,
+    dealAction,
+    dealScore,
+    expectedDropPrice,
+    expectedSavings,
   };
 }

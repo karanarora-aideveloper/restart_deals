@@ -12,7 +12,7 @@ export default function V3Hero() {
   const [scanError, setScanError] = useState('');
   const [currentStoreIndex, setCurrentStoreIndex] = useState(0);
 
-  const supportedStores = ['Amazon', 'Flipkart', 'Myntra', 'Nykaa', 'Ajio', 'Meesho'];
+  const supportedStores = ['Amazon', 'Flipkart', 'Myntra', 'Nykaa', 'Ajio', 'Meesho', 'Croma', 'Shopsy'];
 
   // Cycle supported store name in the magic URL tip every 2.5 seconds
   useEffect(() => {
@@ -34,7 +34,9 @@ export default function V3Hero() {
       val.includes('myntra.com') ||
       val.includes('nykaa.com') ||
       val.includes('ajio.com') ||
-      val.includes('meesho.com')
+      val.includes('meesho.com') ||
+      val.includes('croma.com') ||
+      val.includes('shopsy.in')
     );
   };
 

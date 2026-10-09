@@ -12,6 +12,7 @@ import { cacheMiddleware, apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { autoSeedZeroResultQuery } from '../jobs/bestsellerCrawler.js';
+import { fetchBuyhatkePriceHistory } from '../services/buyhatkeService.js';
 
 const router = express.Router();
 
@@ -579,6 +580,31 @@ async function handleProductDiscoveryOrSync({
     apiCache.invalidatePattern('/api/products');
   }
 
+  // On-demand 365-day price history hydration (Buyhatke Benchmark & Rule #12)
+  if (product && (!product.priceHistory || product.priceHistory.length < 5) && (!product.country || product.country === 'IN')) {
+    try {
+      const checkpoints = await Promise.race([
+        fetchBuyhatkePriceHistory(
+          product.productId,
+          product.title,
+          product.merchant,
+          product.price || livePrice,
+          product.originalPrice || liveMRP
+        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3500))
+      ]);
+      if (checkpoints && checkpoints.length >= 10) {
+        product.priceHistory = checkpoints;
+        product.hasPriceHistory = true;
+        product.lastBuyhatkeSyncAt = now;
+        await product.save();
+        console.log(`[API Product Ingest] ✓ Hydrated ${checkpoints.length} price checkpoints from Buyhatke for "${product.title}"`);
+      }
+    } catch (bhErr) {
+      // Non-blocking timeout/error
+    }
+  }
+
   if (product) {
     const productObj = product.toObject ? product.toObject() : product;
     const priceStats = computePriceStats(productObj);
@@ -769,6 +795,31 @@ router.get('/:id', cacheMiddleware(30), async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
     }
+
+    // On-demand 365-day price history hydration if product has <= 2 checkpoints (Buyhatke Benchmark)
+    if ((!product.priceHistory || product.priceHistory.length < 5) && (!product.country || product.country === 'IN')) {
+      try {
+        const checkpoints = await Promise.race([
+          fetchBuyhatkePriceHistory(
+            product.productId,
+            product.title,
+            product.merchant,
+            product.price,
+            product.originalPrice
+          ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+        ]);
+        if (checkpoints && checkpoints.length >= 10) {
+          product.priceHistory = checkpoints;
+          product.hasPriceHistory = true;
+          product.lastBuyhatkeSyncAt = new Date();
+          await product.save();
+        }
+      } catch (bhErr) {
+        // Non-blocking timeout/error
+      }
+    }
+
     let data = product.toObject ? product.toObject() : { ...product };
     if (!data.imageUrl && (!data.images || data.images.length === 0)) {
       const fallback = await Deal.findOne({ productId: data.productId, merchant: data.merchant })

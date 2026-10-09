@@ -133,7 +133,10 @@ export default function SiteHeader() {
       q.includes('fkrt.it') ||
       q.includes('myntra.com') ||
       q.includes('nykaa.com') ||
-      q.includes('ajio.com')
+      q.includes('ajio.com') ||
+      q.includes('meesho.com') ||
+      q.includes('croma.com') ||
+      q.includes('shopsy.in')
     ) {
       setIsResolvingUrl(true);
       try {

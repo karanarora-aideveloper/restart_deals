@@ -106,6 +106,60 @@
         }
       }
 
+      // 6. Croma
+      if (host.includes('croma.')) {
+        const cromaMatch = pathname.match(/\/p\/(\d+)/i) || pathname.match(/\/([a-zA-Z0-9-]+)\/p\/(\d+)/i);
+        if (cromaMatch) {
+          const code = cromaMatch[2] || cromaMatch[1];
+          return {
+            merchant: 'croma',
+            productId: code,
+            cleanUrl: `https://www.croma.com/p/${code}`,
+            storeName: 'Croma',
+            storeBadge: '⚡ Croma'
+          };
+        }
+      }
+
+      // 7. Shopsy
+      if (host.includes('shopsy.')) {
+        const pid = u.searchParams.get('pid');
+        if (pid) {
+          return {
+            merchant: 'shopsy',
+            productId: pid.trim(),
+            cleanUrl: `https://www.shopsy.in/p/item?pid=${pid.trim()}`,
+            storeName: 'Shopsy',
+            storeBadge: '🛍️ Shopsy'
+          };
+        }
+        const itmMatch = pathname.match(/\/p\/(itm[a-zA-Z0-9]+)/i);
+        if (itmMatch) {
+          return {
+            merchant: 'shopsy',
+            productId: itmMatch[1],
+            cleanUrl: `https://www.shopsy.in${pathname}`,
+            storeName: 'Shopsy',
+            storeBadge: '🛍️ Shopsy'
+          };
+        }
+      }
+
+      // 8. Meesho
+      if (host.includes('meesho.')) {
+        const meeshoMatch = pathname.match(/\/p\/([a-zA-Z0-9]+)/i);
+        if (meeshoMatch) {
+          const code = meeshoMatch[1];
+          return {
+            merchant: 'meesho',
+            productId: code,
+            cleanUrl: `https://www.meesho.com/p/${code}`,
+            storeName: 'Meesho',
+            storeBadge: '📦 Meesho'
+          };
+        }
+      }
+
       return null;
     } catch (e) {
       return null;
@@ -427,6 +481,51 @@
         if (mrpEl) mrp = parsePriceText(mrpEl.innerText || mrpEl.textContent);
 
         const imgEl = document.querySelector('img.preview-image') || document.querySelector('meta[property="og:image"]');
+        if (imgEl) imageUrl = imgEl.getAttribute('src') || imgEl.getAttribute('content') || '';
+      } else if (parsed.merchant === 'croma') {
+        const titleEl = document.querySelector('h1.pd-title') || document.querySelector('h1');
+        title = titleEl ? (titleEl.innerText || titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+
+        const priceEl = document.querySelector('span.amount[data-testid="new-price"]') ||
+                        document.querySelector('span.amount') ||
+                        document.querySelector('span[class*="new-price"]');
+        if (priceEl) currentPrice = parsePriceText(priceEl.innerText || priceEl.textContent);
+
+        const mrpEl = document.querySelector('span.amount[data-testid="old-price"]') ||
+                      document.querySelector('span[class*="old-price"]') ||
+                      document.querySelector('span[class*="mrp"]');
+        if (mrpEl) mrp = parsePriceText(mrpEl.innerText || mrpEl.textContent);
+
+        const imgEl = document.querySelector('img.product-img') ||
+                      document.querySelector('img[class*="product-image"]') ||
+                      document.querySelector('meta[property="og:image"]');
+        if (imgEl) imageUrl = imgEl.getAttribute('src') || imgEl.getAttribute('content') || '';
+      } else if (parsed.merchant === 'shopsy') {
+        const titleEl = document.querySelector('h1') || document.querySelector('span.B_NuCI');
+        title = titleEl ? (titleEl.innerText || titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+
+        const priceEl = document.querySelector('div.Nx9bqj') || document.querySelector('div._30jeq3');
+        if (priceEl) currentPrice = parsePriceText(priceEl.innerText || priceEl.textContent);
+
+        const mrpEl = document.querySelector('div.yRaY8j') || document.querySelector('div._3I9_wc');
+        if (mrpEl) mrp = parsePriceText(mrpEl.innerText || mrpEl.textContent);
+
+        const imgEl = document.querySelector('img.DByuf4') || document.querySelector('meta[property="og:image"]');
+        if (imgEl) imageUrl = imgEl.getAttribute('src') || imgEl.getAttribute('content') || '';
+      } else if (parsed.merchant === 'meesho') {
+        const titleEl = document.querySelector('h1') || document.querySelector('span.sc-eDvSVe') || document.querySelector('h4');
+        title = titleEl ? (titleEl.innerText || titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+
+        const priceEl = document.querySelector('h4[class*="Price"]') ||
+                        document.querySelector('span[class*="Price"]') ||
+                        document.querySelector('h4');
+        if (priceEl) currentPrice = parsePriceText(priceEl.innerText || priceEl.textContent);
+
+        const mrpEl = document.querySelector('p[class*="mrp"]') ||
+                      document.querySelector('span[class*="mrp"]');
+        if (mrpEl) mrp = parsePriceText(mrpEl.innerText || mrpEl.textContent);
+
+        const imgEl = document.querySelector('img[class*="ProductImage"]') || document.querySelector('meta[property="og:image"]');
         if (imgEl) imageUrl = imgEl.getAttribute('src') || imgEl.getAttribute('content') || '';
       }
 

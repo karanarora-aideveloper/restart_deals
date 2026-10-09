@@ -3,7 +3,7 @@
   "name": "ShoppersDeals: Price History & Tracker",
   "short_name": "ShoppersDeals",
   "version": "1.0.0",
-  "description": "Authentic price history graphs, lowest price tracker & price drop alerts for Amazon, Flipkart, Myntra, Nykaa & Ajio.",
+  "description": "Authentic price history graphs, lowest price tracker & price drop alerts for Amazon, Flipkart, Myntra, Nykaa, Ajio, Croma, Shopsy & Meesho.",
   "homepage_url": "https://shoppersdeals.in",
   "icons": {
     "16": "icons/icon-16.png",
@@ -38,6 +38,9 @@
     "*://*.myntra.com/*",
     "*://*.nykaa.com/*",
     "*://*.ajio.com/*",
+    "*://*.croma.com/*",
+    "*://*.shopsy.in/*",
+    "*://*.meesho.com/*",
     "https://api.shoppersdeals.in/*"
   ],
   "content_scripts": [
@@ -48,7 +51,10 @@
         "*://*.flipkart.com/*",
         "*://*.myntra.com/*",
         "*://*.nykaa.com/*",
-        "*://*.ajio.com/*"
+        "*://*.ajio.com/*",
+        "*://*.croma.com/*",
+        "*://*.shopsy.in/*",
+        "*://*.meesho.com/*"
       ],
       "js": [
         "utils/parser.js",

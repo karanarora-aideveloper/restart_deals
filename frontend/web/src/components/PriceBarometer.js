@@ -26,6 +26,15 @@ export default function PriceBarometer({ product, priceStats }) {
   const isAllTimeLow = priceStats?.isAllTimeLow || (lowestPrice > 0 && currentPrice <= lowestPrice * 1.01 && (priceStats?.totalPricePoints || 0) >= 2);
   const isFakeMrpDiscount = priceStats?.isFakeMrpDiscount;
 
+  // Buyhatke Predictive Engine Metrics
+  const dropProbabilityPct = typeof priceStats?.dropProbabilityPct === 'number' ? priceStats.dropProbabilityPct : 50;
+  const dropProbabilityLabel = priceStats?.dropProbabilityLabel || 'Moderate (50%)';
+  const dropAdvice = priceStats?.dropAdvice || 'Fair everyday price within normal fluctuation range.';
+  const dealAction = priceStats?.dealAction || 'FAIR';
+  const dealScore = typeof priceStats?.dealScore === 'number' ? priceStats.dealScore : 6.0;
+  const expectedDropPrice = Number(priceStats?.expectedDropPrice) || (lowestPrice > 0 ? lowestPrice : currentPrice);
+  const expectedSavings = Number(priceStats?.expectedSavings) || (currentPrice > expectedDropPrice ? currentPrice - expectedDropPrice : 0);
+
   // Calculate position % on barometer (clamped 0 to 100)
   let positionPct = 50;
   if (highestPrice > lowestPrice) {
@@ -145,6 +154,87 @@ export default function PriceBarometer({ product, priceStats }) {
             </span>
           </div>
         )}
+      </div>
+
+      {/* Buyhatke Benchmark: "Buy Now vs. Wait" Price Drop Probability & Deal Score */}
+      <div className="mt-3.5 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-blue-50/60 p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100/80 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600 text-[11px] text-white font-black shadow-2xs">
+              🎯
+            </span>
+            <div>
+              <span className="text-xs font-black tracking-tight text-indigo-950">
+                Buy Now vs. Wait Engine
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-extrabold uppercase text-gray-500">Deal Score</span>
+            <span className="inline-flex items-center rounded-lg bg-indigo-600 px-2 py-0.5 text-xs font-black text-white shadow-2xs">
+              ⭐ {dealScore.toFixed(1)} / 10
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          {/* Probability & Verdict */}
+          <div className="rounded-lg bg-white/90 p-2.5 border border-indigo-50/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-gray-600">Chance of Price Drop:</span>
+              <span className={`text-[11px] font-black ${
+                dropProbabilityPct <= 25 ? 'text-emerald-700' :
+                dropProbabilityPct <= 60 ? 'text-blue-700' : 'text-rose-700'
+              }`}>
+                {dropProbabilityLabel}
+              </span>
+            </div>
+            {/* Probability Progress Bar */}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  dropProbabilityPct <= 25 ? 'bg-emerald-500' :
+                  dropProbabilityPct <= 60 ? 'bg-blue-500' : 'bg-rose-500'
+                }`}
+                style={{ width: `${dropProbabilityPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] font-medium leading-tight text-gray-600">
+              {dropAdvice}
+            </p>
+          </div>
+
+          {/* Expected Drop Target / Buy Recommendation */}
+          <div className="rounded-lg bg-white/90 p-2.5 border border-indigo-50/80 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-600">Expected Drop Price:</span>
+                <span className="text-[11px] font-black text-gray-900">
+                  {formatInr(expectedDropPrice, country)}
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] text-gray-500 leading-tight">
+                {expectedSavings > 0
+                  ? `Potential savings if you wait: ${formatInr(expectedSavings, country)}`
+                  : 'Already at lowest tracked price. Great time to buy!'}
+              </p>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between pt-1 border-t border-gray-100">
+              <span className="text-[10px] font-bold uppercase text-gray-500">Action:</span>
+              <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-black ${
+                dealAction === 'BUY_NOW'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : dealAction === 'WAIT'
+                  ? 'bg-rose-100 text-rose-800'
+                  : 'bg-blue-100 text-blue-800'
+              }`}>
+                {dealAction === 'BUY_NOW' ? '⚡ Buy Now' : dealAction === 'WAIT' ? '⏳ Wait for Sale' : '⚖️ Fair Price'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

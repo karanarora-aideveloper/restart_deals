@@ -70,7 +70,10 @@ export default function HeroSearch() {
       text.includes('fkrt.it') ||
       text.includes('myntra.com') ||
       text.includes('nykaa.com') ||
-      text.includes('ajio.com')
+      text.includes('ajio.com') ||
+      text.includes('meesho.com') ||
+      text.includes('croma.com') ||
+      text.includes('shopsy.in')
     );
   };
 
