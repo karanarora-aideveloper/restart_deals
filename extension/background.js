@@ -38,7 +38,7 @@ async function pruneExpiredCache() {
 // Tab change listener to clear badge if navigating away from product
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'loading' && tab?.url) {
-    const isStore = /amazon\.in|flipkart\.com|myntra\.com|nykaa\.com|ajio\.com/i.test(tab.url);
+    const isStore = /amazon\.|flipkart\.|myntra\.|nykaa\.|ajio\.|croma\.|shopsy\.|meesho\./i.test(tab.url);
     if (!isStore) {
       await chrome.action.setBadgeText({ tabId, text: '' });
     }
@@ -61,6 +61,38 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Runtime message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'WISHLIST_IMPORTED') {
+    (async () => {
+      try {
+        const tabId = sender.tab?.id;
+        if (tabId) {
+          await chrome.action.setBadgeText({ tabId, text: `+${message.count || 1}` });
+          await chrome.action.setBadgeBackgroundColor({ tabId, color: '#10b981' });
+        }
+        sendResponse({ success: true });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === 'COUPONS_FOUND') {
+    (async () => {
+      try {
+        const tabId = sender.tab?.id;
+        if (tabId && message.count > 0) {
+          await chrome.action.setBadgeText({ tabId, text: String(message.count) });
+          await chrome.action.setBadgeBackgroundColor({ tabId, color: '#7c3aed' });
+        }
+        sendResponse({ success: true });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
   if (message.type === 'PRODUCT_DETECTED') {
     (async () => {
       try {

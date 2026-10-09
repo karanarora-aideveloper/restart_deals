@@ -144,9 +144,10 @@ router.get('/', optionalAuth, async (req, res) => {
     const email = req.query.email ? req.query.email.trim().toLowerCase() : null;
     const phone = req.query.phone ? req.query.phone.replace(/[^0-9+]/g, '') : null;
     const telegramChatId = req.query.telegramChatId ? String(req.query.telegramChatId) : null;
+    const extensionUserId = req.query.extensionUserId ? String(req.query.extensionUserId).trim() : null;
 
-    if (!userId && !email && !phone && !telegramChatId) {
-      return res.status(400).json({ success: false, error: 'Authentication token, email, phone, or telegramChatId is required' });
+    if (!userId && !email && !phone && !telegramChatId && !extensionUserId) {
+      return res.status(400).json({ success: false, error: 'Authentication token, email, phone, telegramChatId, or extensionUserId is required' });
     }
 
     const filter = {
@@ -156,6 +157,7 @@ router.get('/', optionalAuth, async (req, res) => {
         ...(email ? [{ email }] : []),
         ...(phone ? [{ phone }] : []),
         ...(telegramChatId ? [{ telegramChatId }] : []),
+        ...(extensionUserId ? [{ extensionUserId }] : []),
       ],
     };
 

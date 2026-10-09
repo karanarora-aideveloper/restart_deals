@@ -13,7 +13,7 @@
       <img src="../icons/icon-32.png" class="brand-logo" alt="ShoppersDeals" width="22" height="22">
       <div class="brand-text">
         <span class="brand-title">ShoppersDeals</span>
-        <span class="brand-subtitle">Smart Price Tracker</span>
+        <span class="brand-subtitle">Smart Shopping Assistant</span>
       </div>
     </div>
     <a href="https://shoppersdeals.in" target="_blank" rel="noopener noreferrer" class="web-link" title="Open ShoppersDeals Website">
@@ -21,21 +21,29 @@
     </a>
   </header>
 
-  <!-- URL Search / Lookup Bar -->
-  <div class="search-section">
-    <form id="lookup-form" class="search-form">
-      <input type="text" id="lookup-input" class="search-input" placeholder="Paste Amazon or Flipkart link..." autocomplete="off" />
-      <button type="submit" class="search-btn" title="Inspect Price History">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-      </button>
-    </form>
-  </div>
+  <!-- Navigation Tabs -->
+  <nav class="main-nav-tabs">
+    <button class="nav-tab active" data-tab="tracker">📈 Tracker</button>
+    <button class="nav-tab" data-tab="deals">🔥 Drops</button>
+    <button class="nav-tab" data-tab="grocery">🛒 Grocery</button>
+    <button class="nav-tab" data-tab="wishlist">🔔 Tracked <span id="tracked-count-badge" class="tab-badge">0</span></button>
+  </nav>
 
-  <!-- Main Content Area -->
-  <main class="content-area">
+  <!-- TAB 1: TRACKER -->
+  <div id="pane-tracker" class="tab-pane active">
+    <!-- URL Search / Lookup Bar -->
+    <div class="search-section">
+      <form id="lookup-form" class="search-form">
+        <input type="text" id="lookup-input" class="search-input" placeholder="Paste Amazon, Flipkart, Myntra URL..." autocomplete="off" />
+        <button type="submit" class="search-btn" title="Inspect Price History">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </form>
+    </div>
+
     <!-- Active Tab Detected Product Section -->
     <div id="active-product-card" class="product-card" style="display: none;">
       <div class="product-badge-row">
@@ -101,8 +109,10 @@
       <h4 class="state-title">Instant Price Verification</h4>
       <p class="state-desc">Open any product page on Amazon, Flipkart, Myntra, or Nykaa to see complete price graphs, or paste a link above.</p>
     </div>
+  </div>
 
-    <!-- Trending Deals Header -->
+  <!-- TAB 2: LIVE DROPS -->
+  <div id="pane-deals" class="tab-pane">
     <div class="section-divider">
       <div class="deals-heading-wrap">
         <span class="deals-live-dot"></span>
@@ -134,7 +144,52 @@
     <div id="deals-list" class="deals-list">
       <!-- Deal cards dynamically injected here -->
     </div>
-  </main>
+  </div>
+
+  <!-- TAB 3: QUICK COMMERCE GROCERY COMPARE -->
+  <div id="pane-grocery" class="tab-pane">
+    <div class="grocery-search-section">
+      <form id="grocery-form" class="search-form">
+        <input type="text" id="grocery-input" class="search-input" placeholder="Search milk, atta, butter, eggs, bread..." autocomplete="off" />
+        <button type="submit" class="search-btn" title="Compare Prices">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </form>
+    </div>
+    <div class="grocery-quick-pills">
+      <button class="quick-pill" data-q="Milk">🥛 Milk</button>
+      <button class="quick-pill" data-q="Amul Butter">🧈 Butter</button>
+      <button class="quick-pill" data-q="Atta 5kg">🌾 Atta</button>
+      <button class="quick-pill" data-q="Eggs">🥚 Eggs</button>
+      <button class="quick-pill" data-q="Bread">🍞 Bread</button>
+    </div>
+    <div id="grocery-results" class="grocery-results-area">
+      <!-- Injected comparison -->
+    </div>
+  </div>
+
+  <!-- TAB 4: TRACKED WISHLIST & ALERTS -->
+  <div id="pane-wishlist" class="tab-pane">
+    <div class="wishlist-header-bar">
+      <div>
+        <div class="wishlist-heading">🔔 Tracked Wishlist & Alerts</div>
+        <div class="wishlist-sub">Auto-notified when prices drop to target</div>
+      </div>
+      <button id="refresh-tracked-btn" class="icon-refresh-btn" title="Refresh Tracked Items">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+    </div>
+    <div id="tracked-list" class="tracked-list-area">
+      <!-- Injected tracked cards -->
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="footer">

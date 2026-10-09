@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — ShoppersDeals: Price History & Tracker
 
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-09
 
 ## Store Listing
 
@@ -8,30 +8,34 @@
 ShoppersDeals: Price History & Tracker
 
 **Short Description** [REQUIRED]
-Authentic price history graphs, lowest price tracker & price drop alerts for Amazon, Flipkart, Myntra, Nykaa & Ajio.
+Price history graphs, lowest price tracker, 1-click wishlist import, auto-coupons & quick grocery compare for 8+ Indian stores.
 
 **Detailed Description** [REQUIRED]
-ShoppersDeals helps you shop smarter in India by revealing authentic price history graphs and alerting you when prices drop to genuine all-time lows.
+ShoppersDeals helps you shop smarter in India by revealing authentic price history graphs, alerting you when prices drop to genuine all-time lows, auto-applying verified checkout coupons, and finding dark-store grocery deals.
 
 KEY FEATURES:
 
-• Interactive Price History Graphs: View genuine historical price checkpoints across Amazon India, Flipkart, Myntra, Nykaa, and Ajio right on the product page.
-• Deal Verdict & Fake Drop Protection: Instantly identify whether a "sale" price is a genuine bargain or an inflated MRP trick.
+• Interactive Price History Graphs: View genuine 365-day historical price checkpoints across Amazon India, Flipkart, Myntra, Nykaa, Ajio, Croma, Shopsy, and Meesho right on the product page.
+• 'Buy Now vs. Wait' Drop Probability Engine: Predictive intelligence calculating whether you should buy immediately or wait for an upcoming drop, featuring All-Time Low (ATL) and price inflated warnings.
+• 1-Click Wishlist Importer: Open your Amazon or Flipkart wishlist and track all your saved items with one click. Automatically arms price drop alerts so you never miss a bargain.
+• Auto-Coupon Finder & Runner: Automatically surfaces verified promo codes at checkout and cart pages for Amazon, Flipkart, Myntra, Nykaa, and Ajio, auto-filling and copying the highest-discount code with one tap.
+• Quick Commerce Grocery Compare: Compare instant delivery prices across Blinkit, Zepto, and Instamart side-by-side to always pick the cheapest dark store.
 • Cross-Store Price Comparison: See if the identical product is currently available cheaper on alternative stores before you buy.
-• One-Click Price Drop Alerts: Set your desired target price and receive instant, free notifications via the ShoppersDeals Telegram Bot or email.
+• One-Click Price Drop Alerts: Set your desired target price and receive instant, free notifications via the ShoppersDeals Telegram Bot (@ShoppersDealsAlertBot), email, or push.
 • Zero-Noise Feed: Browse verified, high-discount price drops curated in real time by our automated verification network.
 
 HOW TO USE:
 
-1. Browse any product page on Amazon.in, Flipkart.com, Myntra.com, Nykaa.com, or Ajio.com.
+1. Browse any product page on Amazon.in, Flipkart.com, Myntra.com, Nykaa.com, Ajio.com, Croma.com, Shopsy.in, or Meesho.com.
 2. The ShoppersDeals floating badge automatically displays the lowest tracked price.
 3. Click the badge to expand the full price history graph, statistical breakdown, and cross-store comparison.
-4. Set a price drop alert to get notified the second the price drops.
-5. Click the extension icon in your toolbar anytime to search price history or discover trending verified deals.
+4. On Wishlist pages, click "Track All" to bulk-monitor your saved items.
+5. On Cart / Checkout pages, click the coupon pill to review and auto-apply verified promo codes.
+6. Click the extension icon in your toolbar anytime to search price history, compare grocery items, or discover trending verified deals.
 
 PRIVACY & PERMISSIONS:
 
-Unlike legacy extensions that demand access to all websites you visit, ShoppersDeals operates with strict, minimal host permissions limited exclusively to the specific shopping platforms it supports (Amazon India, Flipkart, Myntra, Nykaa, Ajio). Your browsing on any other website remains completely untouched and private. We never collect personal identification data, payment information, or search history.
+Unlike legacy extensions that demand access to all websites you visit, ShoppersDeals operates with strict, minimal host permissions limited exclusively to the specific shopping platforms it supports (Amazon India, Flipkart, Myntra, Nykaa, Ajio, Croma, Shopsy, Meesho). Your browsing on any other website remains completely untouched and private. We never collect personal identification data, payment information, or search history.
 
 SUPPORT & COMMUNITY:
 
@@ -60,7 +64,7 @@ English
 | Extension Icon 48 | 48×48 PNG | ✅ Ready | `icons/icon-48.png` |
 | Screenshot 1 [REQUIRED] | 1280×800 | ⬜ Pending | In-page price history graph on Amazon India |
 | Screenshot 2 [RECOMMENDED] | 1280×800 | ⬜ Pending | Cross-store comparison on Flipkart |
-| Screenshot 3 [RECOMMENDED] | 1280×800 | ⬜ Pending | Extension popup with trending deals & link search |
+| Screenshot 3 [RECOMMENDED] | 1280×800 | ⬜ Pending | Extension popup with trending drops, grocery compare & wishlist |
 | Small Promo Tile [RECOMMENDED] | 440×280 | ⬜ Pending | Brand card with "Never Overpay Again" |
 | Marquee Promo Tile | 1400×560 | ⬜ Pending | Feature banner |
 
@@ -74,11 +78,15 @@ English
 | `alarms` | permissions | Used to run periodic background housekeeping to clear stale local cache checkpoints. |
 | `tabs` | permissions | Used to detect if the currently active browser tab is viewing a supported e-commerce product URL to display relevant price history in the popup. |
 | `scripting` | permissions | Used by the extension popup to extract live product titles and current prices directly from the active tab. |
-| `*://*.amazon.in/*` | host_permissions | Allows the content script to detect Amazon India product detail pages and display the price history widget. |
-| `*://*.flipkart.com/*` | host_permissions | Allows the content script to detect Flipkart product detail pages and display the price history widget. |
-| `*://*.myntra.com/*` | host_permissions | Allows the content script to detect Myntra product detail pages and display the price history widget. |
-| `*://*.nykaa.com/*` | host_permissions | Allows the content script to detect Nykaa product detail pages and display the price history widget. |
-| `*://*.ajio.com/*` | host_permissions | Allows the content script to detect Ajio product detail pages and display the price history widget. |
+| `*://*.amazon.in/*` | host_permissions | Allows the content script to detect Amazon India product detail pages, wishlists, and checkout pages to display the price tracker, wishlist importer, and coupon runner. |
+| `*://*.amazon.com/*` | host_permissions | Allows the content script to detect Amazon US product pages for international currency tracking. |
+| `*://*.flipkart.com/*` | host_permissions | Allows the content script to detect Flipkart product pages, wishlists, and checkout pages to display price graphs and coupon tools. |
+| `*://*.myntra.com/*` | host_permissions | Allows the content script to detect Myntra product detail pages and wishlists to track fashion pricing. |
+| `*://*.nykaa.com/*` | host_permissions | Allows the content script to detect Nykaa beauty product pages and cart pages. |
+| `*://*.ajio.com/*` | host_permissions | Allows the content script to detect Ajio product detail and checkout pages. |
+| `*://*.croma.com/*` | host_permissions | Allows the content script to detect Croma electronics product pages for price tracking. |
+| `*://*.shopsy.in/*` | host_permissions | Allows the content script to detect Shopsy budget product listings and verify real discounts. |
+| `*://*.meesho.com/*` | host_permissions | Allows the content script to detect Meesho marketplace product pages and track authentic pricing. |
 | `https://api.shoppersdeals.in/*` | host_permissions | Connects to the ShoppersDeals API backend to fetch verified price history records, cross-store pricing, and submit price drop alerts. |
 
 ---
@@ -111,4 +119,5 @@ English
 
 | Version | Date | Summary |
 |---|---|---|
+| 1.1.0 | 2026-10-09 | Major Feature Expansion: Added 1-Click Wishlist Importer for Amazon/Flipkart/Myntra, Auto-Coupon Finder & Runner for checkout pages, Quick Commerce Dark-Store Price Compare (Blinkit vs Zepto vs Instamart), 'Buy Now vs. Wait' Drop Probability Barometer, and expanded store support to Croma, Shopsy & Meesho. |
 | 1.0.0 | 2026-10-01 | Initial release: Manifest V3 extension featuring in-page price history graph, floating price pill, cross-store comparison, Telegram price drop alert integration, and popup deals explorer. |

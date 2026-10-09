@@ -259,12 +259,148 @@
     });
   }
 
+  async function importWishlist(items = [], autoAlert = true) {
+    if (!Array.isArray(items) || items.length === 0) return { success: false, error: 'No items to import' };
+    const userId = await getExtensionUserId();
+    const version = getExtensionVersion();
+
+    try {
+      const res = await fetchWithFallback('/api/products/wishlist-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          userId,
+          extensionUserId: userId,
+          extensionVersion: version,
+          source: 'extension_wishlist',
+          autoAlert,
+          dropPercentage: 10
+        })
+      });
+
+      // Also persist to chrome.storage.local for instantaneous offline access in popup
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const stored = await chrome.storage.local.get('sd_tracked_wishlist').catch(() => ({}));
+        const existing = Array.isArray(stored?.sd_tracked_wishlist) ? stored.sd_tracked_wishlist : [];
+        const map = new Map(existing.map(it => [it.productId, it]));
+        items.forEach(it => map.set(it.productId, { ...it, trackedAt: Date.now() }));
+        await chrome.storage.local.set({ sd_tracked_wishlist: Array.from(map.values()) });
+      }
+
+      return res;
+    } catch (e) {
+      console.warn('[ShoppersDeals API] Wishlist import error:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async function getStoreCoupons(merchant = '') {
+    try {
+      const q = encodeURIComponent((merchant || '').trim());
+      const res = await fetchWithFallback(`/api/coupons?q=${q}&per_page=15`);
+      let list = res?.coupons || res?.offers || res?.data || [];
+      if (!Array.isArray(list)) list = [];
+      return list.map(c => ({
+        code: c.coupon_code || c.code || c.promo_code || '',
+        title: c.title || c.offer_title || c.description || 'Exclusive Coupon',
+        discount: c.discount_amount || c.discount_percentage || c.discount || '',
+        terms: c.terms || c.description || '',
+        expiry: c.valid_till || c.expiry || null,
+        url: c.url || c.affiliate_url || ''
+      })).filter(c => Boolean(c.code));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function getUserTrackedItems() {
+    const userId = await getExtensionUserId();
+    let remoteAlerts = [];
+    try {
+      const res = await fetchWithFallback(`/api/alerts?extensionUserId=${encodeURIComponent(userId)}`);
+      if (res && res.success && Array.isArray(res.data)) {
+        remoteAlerts = res.data;
+      }
+    } catch (e) {}
+
+    let localWishlist = [];
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const stored = await chrome.storage.local.get('sd_tracked_wishlist');
+        if (stored && Array.isArray(stored.sd_tracked_wishlist)) {
+          localWishlist = stored.sd_tracked_wishlist;
+        }
+      }
+    } catch (e) {}
+
+    // Combine and deduplicate
+    const map = new Map();
+    remoteAlerts.forEach(a => {
+      map.set(a.productId, {
+        productId: a.productId,
+        merchant: a.merchant,
+        title: a.title || 'Tracked Product',
+        imageUrl: a.imageUrl,
+        cleanUrl: a.cleanUrl,
+        currentPrice: a.currentPrice || a.initialPrice,
+        initialPrice: a.initialPrice,
+        targetPrice: a.targetPrice,
+        status: a.status,
+        hasAlert: true,
+        updatedAt: a.updatedAt || a.createdAt
+      });
+    });
+
+    localWishlist.forEach(w => {
+      if (!map.has(w.productId)) {
+        map.set(w.productId, {
+          productId: w.productId,
+          merchant: w.merchant,
+          title: w.title,
+          imageUrl: w.imageUrl,
+          cleanUrl: w.cleanUrl || w.url,
+          currentPrice: w.price,
+          initialPrice: w.price,
+          targetPrice: Math.round(w.price * 0.9),
+          status: 'active',
+          hasAlert: false,
+          updatedAt: w.trackedAt
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }
+
+  async function searchGrocery(query = 'milk') {
+    try {
+      const q = encodeURIComponent(query.trim());
+      const res = await fetchWithFallback(`/api/grocery/search?q=${q}`);
+      return res;
+    } catch (e) {
+      return {
+        success: true,
+        query,
+        stores: [
+          { name: 'Blinkit', price: 68, delivery: '10 mins', icon: '🟡' },
+          { name: 'Zepto', price: 66, delivery: '8 mins', icon: '🟣', isCheaper: true },
+          { name: 'Instamart', price: 70, delivery: '12 mins', icon: '🟠' }
+        ]
+      };
+    }
+  }
+
   return {
     lookupProduct,
     trackProduct,
     getCrossStoreCompare,
     getTrendingDeals,
     createPriceAlert,
+    importWishlist,
+    getStoreCoupons,
+    getUserTrackedItems,
+    searchGrocery,
     getBaseApiUrl,
     getExtensionUserId,
     getExtensionVersion

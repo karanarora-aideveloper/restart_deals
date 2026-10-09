@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
+import PriceAlert from '../db/models/priceAlert.js';
 import { computePriceStats } from '../utils/priceAnalytics.js';
 import { resolveRedirect, parseProductUrl } from '../utils/urlParser.js';
 import { scrapeProductUrl } from '../utils/productScraper.js';
@@ -722,6 +723,113 @@ router.post('/track', async (req, res) => {
   } catch (err) {
     console.error('[API Error] POST /api/products/track failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to track product' });
+  }
+});
+
+/**
+ * POST /api/products/wishlist-import
+ * Batch imports wishlist items from Amazon, Flipkart, Myntra, etc.
+ * Body: { items: [...], userId, extensionUserId, autoAlert: true, dropPercentage: 10 }
+ */
+router.post('/wishlist-import', async (req, res) => {
+  try {
+    const {
+      items = [],
+      userId,
+      extensionUserId,
+      source = 'extension_wishlist',
+      autoAlert = true,
+      dropPercentage = 10,
+    } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'items array is required and must not be empty' });
+    }
+
+    const effectiveUserId = extensionUserId || userId || 'ext_usr_anonymous';
+    const cleanItems = items.slice(0, 50); // limit to 50 items per batch to protect memory
+    const results = [];
+    let alertsCreated = 0;
+
+    // Process in batches of 5 to avoid overwhelming MongoDB Atlas
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < cleanItems.length; i += CHUNK_SIZE) {
+      const chunk = cleanItems.slice(i, i + CHUNK_SIZE);
+      const chunkPromises = chunk.map(async (item) => {
+        try {
+          const itemUrl = item.url || item.cleanUrl;
+          if (!itemUrl) return { success: false, error: 'missing url' };
+
+          const resolved = await resolveRedirect(itemUrl.trim());
+          const parsed = parseProductUrl(resolved);
+          if (!parsed || !parsed.productId) return { success: false, error: 'unsupported url' };
+
+          const syncRes = await handleProductDiscoveryOrSync({
+            parsed,
+            title: item.title,
+            price: item.price,
+            mrp: item.mrp || item.originalPrice,
+            originalPrice: item.originalPrice || item.mrp,
+            imageUrl: item.imageUrl || item.image,
+            source,
+            userId: effectiveUserId,
+            extensionUserId: effectiveUserId,
+            sourceUrl: item.sourceUrl || itemUrl,
+          });
+
+          if (syncRes && syncRes.data && autoAlert) {
+            const product = syncRes.data;
+            const currentPrice = Number(product.price || item.price || 0);
+            if (currentPrice > 0) {
+              const targetDrop = Math.max(1, Math.round(currentPrice * (1 - (dropPercentage / 100))));
+              const existingAlert = await PriceAlert.findOne({
+                productId: product.productId,
+                $or: [
+                  { extensionUserId: effectiveUserId },
+                  ...(userId ? [{ userId }] : []),
+                ]
+              });
+              if (!existingAlert) {
+                await PriceAlert.create({
+                  productId: product.productId,
+                  merchant: product.merchant || parsed.merchant,
+                  title: product.title || item.title || '',
+                  imageUrl: product.imageUrl || item.imageUrl || '',
+                  cleanUrl: product.cleanUrl || itemUrl,
+                  targetPrice: targetDrop,
+                  initialPrice: currentPrice,
+                  userId: userId || undefined,
+                  extensionUserId: effectiveUserId,
+                  source: 'extension_wishlist',
+                  status: 'active',
+                });
+                alertsCreated++;
+              }
+            }
+          }
+
+          return { success: true, productId: parsed.productId, title: item.title, isNew: syncRes?.isNew };
+        } catch (itemErr) {
+          return { success: false, error: itemErr.message };
+        }
+      });
+
+      const chunkResults = await Promise.allSettled(chunkPromises);
+      chunkResults.forEach(r => results.push(r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message }));
+    }
+
+    const successfulCount = results.filter(r => r.success).length;
+
+    res.json({
+      success: true,
+      totalReceived: items.length,
+      importedCount: successfulCount,
+      alertsCreated,
+      items: results,
+    });
+  } catch (err) {
+    console.error('[API Error] POST /api/products/wishlist-import failed:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to import wishlist items' });
   }
 });
 

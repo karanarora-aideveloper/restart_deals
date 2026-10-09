@@ -564,9 +564,250 @@
     };
   }
 
+  function detectStore(url = '') {
+    const raw = (url || (typeof window !== 'undefined' ? window.location.href : '')).toLowerCase();
+    if (raw.includes('amazon.')) return 'amazon';
+    if (raw.includes('flipkart.')) return 'flipkart';
+    if (raw.includes('myntra.')) return 'myntra';
+    if (raw.includes('nykaa.')) return 'nykaa';
+    if (raw.includes('ajio.')) return 'ajio';
+    if (raw.includes('croma.')) return 'croma';
+    if (raw.includes('shopsy.')) return 'shopsy';
+    if (raw.includes('meesho.')) return 'meesho';
+    return 'store';
+  }
+
+  function isWishlistPage(url = '') {
+    const raw = (url || (typeof window !== 'undefined' ? window.location.href : '')).toLowerCase();
+    if (raw.includes('amazon.') && (raw.includes('/hz/wishlist') || raw.includes('/registry/wishlist') || raw.includes('/gp/registry/wishlist'))) return true;
+    if (raw.includes('flipkart.') && raw.includes('/wishlist')) return true;
+    if (raw.includes('myntra.') && raw.includes('/wishlist')) return true;
+    if (raw.includes('nykaa.') && raw.includes('/wishlist')) return true;
+    if (raw.includes('ajio.') && raw.includes('/wishlist')) return true;
+    return false;
+  }
+
+  function isCheckoutPage(url = '') {
+    const raw = (url || (typeof window !== 'undefined' ? window.location.href : '')).toLowerCase();
+    return raw.includes('/cart') ||
+           raw.includes('/checkout') ||
+           raw.includes('/gp/buy') ||
+           raw.includes('/order') ||
+           raw.includes('/viewcart') ||
+           raw.includes('/bag') ||
+           raw.includes('/payment');
+  }
+
+  function extractWishlistItems() {
+    if (typeof document === 'undefined') return [];
+    const items = [];
+    const merchant = detectStore(window.location.href);
+
+    try {
+      if (merchant === 'amazon') {
+        // Amazon Wishlist DOM selectors
+        const rows = document.querySelectorAll('li[data-itemid], li.g-item-sortable, div[id^="item_"]');
+        rows.forEach(row => {
+          try {
+            // Find ASIN
+            let asin = '';
+            const linkEl = row.querySelector('a[href*="/dp/"]');
+            if (linkEl) {
+              const m = linkEl.href.match(/\/dp\/([A-Z0-9]{10})/i);
+              if (m) asin = m[1].toUpperCase();
+            }
+            if (!asin && row.dataset && row.dataset.itemprimeinfo) {
+              try {
+                const info = JSON.parse(row.dataset.itemprimeinfo);
+                if (info.asin) asin = info.asin.toUpperCase();
+              } catch (e) {}
+            }
+            if (!asin) {
+              const delBtn = row.querySelector('[name*="deleteItem"]');
+              if (delBtn && delBtn.value) asin = delBtn.value.toUpperCase();
+            }
+            if (!asin) return;
+
+            // Title
+            const titleEl = row.querySelector('a[id*="itemName_"]') ||
+                            row.querySelector('h2 a') ||
+                            linkEl ||
+                            row.querySelector('h3');
+            const title = titleEl ? titleEl.textContent.trim().replace(/\s+/g, ' ') : '';
+            if (!title) return;
+
+            // Price
+            let price = null;
+            const priceEl = row.querySelector('.a-price .a-offscreen') ||
+                            row.querySelector('span[id*="itemPrice_"]') ||
+                            row.querySelector('.a-color-price');
+            if (priceEl) price = parsePriceText(priceEl.textContent);
+
+            // MRP
+            let mrp = null;
+            const mrpEl = row.querySelector('.a-text-price .a-offscreen');
+            if (mrpEl) mrp = parsePriceText(mrpEl.textContent);
+
+            // Image
+            let imageUrl = '';
+            const imgEl = row.querySelector('img[id*="itemImage_"]') || row.querySelector('img');
+            if (imgEl) imageUrl = imgEl.src || imgEl.getAttribute('data-src') || '';
+
+            items.push({
+              merchant: 'amazon',
+              productId: asin,
+              title,
+              price: price || 0,
+              mrp: mrp || price || 0,
+              originalPrice: mrp || price || 0,
+              imageUrl,
+              url: `https://www.amazon.in/dp/${asin}`,
+              cleanUrl: `https://www.amazon.in/dp/${asin}`,
+              sourceUrl: linkEl ? linkEl.href : `https://www.amazon.in/dp/${asin}`
+            });
+          } catch (rowErr) {}
+        });
+      } else if (merchant === 'flipkart') {
+        // Flipkart Wishlist DOM selectors
+        const rows = document.querySelectorAll('div[class*="_1AtVbE"], div[class*="wishlist"], div[class*="_2kHMtA"]');
+        rows.forEach(row => {
+          try {
+            const linkEl = row.querySelector('a[href*="pid="]');
+            if (!linkEl) return;
+            const m = linkEl.href.match(/pid=([a-zA-Z0-9]+)/i);
+            if (!m) return;
+            const pid = m[1];
+
+            const titleEl = row.querySelector('div._4rR01T') ||
+                            row.querySelector('a.s1Q9rs') ||
+                            row.querySelector('div[class*="title"]') ||
+                            linkEl;
+            const title = titleEl ? titleEl.textContent.trim().replace(/\s+/g, ' ') : '';
+            if (!title) return;
+
+            let price = null;
+            const priceEl = row.querySelector('div._30jeq3') || row.querySelector('div[class*="price"]');
+            if (priceEl) price = parsePriceText(priceEl.textContent);
+
+            let mrp = null;
+            const mrpEl = row.querySelector('div._3I9_wc') || row.querySelector('div[class*="strike"]');
+            if (mrpEl) mrp = parsePriceText(mrpEl.textContent);
+
+            let imageUrl = '';
+            const imgEl = row.querySelector('img');
+            if (imgEl) imageUrl = imgEl.src || '';
+
+            items.push({
+              merchant: 'flipkart',
+              productId: pid,
+              title,
+              price: price || 0,
+              mrp: mrp || price || 0,
+              originalPrice: mrp || price || 0,
+              imageUrl,
+              url: `https://www.flipkart.com/p/item?pid=${pid}`,
+              cleanUrl: `https://www.flipkart.com/p/item?pid=${pid}`,
+              sourceUrl: linkEl.href
+            });
+          } catch (rowErr) {}
+        });
+      } else if (merchant === 'myntra') {
+        // Myntra Wishlist DOM selectors
+        const rows = document.querySelectorAll('.itemcard-itemCard, div[class*="itemCard"]');
+        rows.forEach(row => {
+          try {
+            const linkEl = row.querySelector('a[href*="/"]');
+            const href = linkEl ? linkEl.href : '';
+            const idMatch = href.match(/\/(\d{5,12})\/buy/) || href.match(/\/(\d{5,12})/);
+            const styleId = idMatch ? idMatch[1] : '';
+            if (!styleId) return;
+
+            const titleEl = row.querySelector('.itemdetails-itemDetailsLabel') || row.querySelector('.itemdetails-boldFont');
+            const title = titleEl ? titleEl.textContent.trim() : 'Myntra Product';
+
+            let price = null;
+            const priceEl = row.querySelector('.itemdetails-boldFont');
+            if (priceEl) price = parsePriceText(priceEl.textContent);
+
+            let mrp = null;
+            const mrpEl = row.querySelector('.itemdetails-strike');
+            if (mrpEl) mrp = parsePriceText(mrpEl.textContent);
+
+            let imageUrl = '';
+            const imgEl = row.querySelector('img');
+            if (imgEl) imageUrl = imgEl.src || '';
+
+            items.push({
+              merchant: 'myntra',
+              productId: styleId,
+              title,
+              price: price || 0,
+              mrp: mrp || price || 0,
+              originalPrice: mrp || price || 0,
+              imageUrl,
+              url: `https://www.myntra.com/${styleId}/buy`,
+              cleanUrl: `https://www.myntra.com/${styleId}/buy`,
+              sourceUrl: href
+            });
+          } catch (rowErr) {}
+        });
+      }
+    } catch (err) {
+      console.warn('[ShoppersDeals Parser] Wishlist extraction note:', err);
+    }
+
+    // Deduplicate by productId
+    const seen = new Set();
+    return items.filter(it => {
+      if (seen.has(it.productId)) return false;
+      seen.add(it.productId);
+      return true;
+    });
+  }
+
+  function extractCouponInput() {
+    if (typeof document === 'undefined') return { input: null, button: null };
+    const input = document.querySelector([
+      'input[name*="coupon" i]',
+      'input[id*="coupon" i]',
+      'input[name*="promo" i]',
+      'input[id*="promo" i]',
+      'input[placeholder*="coupon" i]',
+      'input[placeholder*="promo" i]',
+      'input[placeholder*="voucher" i]',
+      'input[placeholder*="gift card" i]',
+      'input[placeholder*="discount code" i]',
+      'input[aria-label*="coupon" i]',
+      'input[aria-label*="promo" i]',
+      'input[name*="voucher" i]'
+    ].join(', '));
+
+    let button = null;
+    if (input) {
+      const container = input.closest('form') || input.parentElement || document;
+      button = container.querySelector([
+        'button[type="submit"]',
+        'button[class*="coupon" i]',
+        'button[class*="apply" i]',
+        'button[id*="apply" i]',
+        'input[type="submit"][value*="Apply" i]',
+        'input[type="button"][value*="Apply" i]',
+        'button'
+      ].join(', '));
+    }
+
+    return { input, button };
+  }
+
   return {
     parseUrl,
     parsePriceText,
-    extractLivePageDetails
+    extractLivePageDetails,
+    detectStore,
+    isWishlistPage,
+    isCheckoutPage,
+    extractWishlistItems,
+    extractCouponInput
   };
 });
+
