@@ -30,7 +30,7 @@ module.exports = {
       name: 'shoppersdeals-scraper',
       cwd: './api',
       script: 'src/worker.js',
-      instances: 5,
+      instances: 10,
       autorestart: true,
       watch: false,
       max_memory_restart: '800M',
