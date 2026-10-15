@@ -11,6 +11,9 @@ if (serviceName.includes('backend')) {
 } else if (serviceName.includes('scraper')) {
   console.log('[Railway Service Launcher] Routing to scraper worker service (api/src/services/scraperWorker.js)...');
   args = ['--prefix', 'api', 'run', 'worker:scraper'];
+} else if (serviceName.includes('web') || serviceName.includes('frontend')) {
+  console.log('[Railway Service Launcher] Routing to Next.js Web frontend (frontend/web)...');
+  args = ['--prefix', 'frontend/web', 'start'];
 } else {
   // Default to API service
   console.log('[Railway Service Launcher] Routing to REST API service (api/src/server.js)...');

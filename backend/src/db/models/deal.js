@@ -222,11 +222,11 @@ dealSchema.pre('validate', function() {
       this.discountPercentage = Math.round(((this.previousPrice - this.dealPrice) / this.previousPrice) * 100);
       this.priceSource = 'price_history';
 
-      // Anomaly guardrail: reject extreme drops (>= 85%), price ratios > 10x, or known spam titles
+      // Anomaly guardrail: reject extreme drops (>= 85%), price ratios > 10x, or known spam/placeholder titles
       if (
         this.discountPercentage >= 85 ||
         this.previousPrice > (this.dealPrice * 10) ||
-        (this.title && /Apply 500 Off Coupon|Amazon Item \(/i.test(this.title))
+        (this.title && /root\s*link|loot\s*link|master\s*link|spin\s*link|link\s*:|:\s*link|^amazon\s+item\s*\(|^amazon\s+deal\s*\(|^amazon\s+product\s+deal|^loot\s*(\d+|\:|\-|\₹)|^loot\s+fast|kurta\s*loot|^\d+\s*(sbi|using\s+sbi|pack\s+of|effectively|\+)|^apply\s+(\₹?\d+)?\s*(off\s*)?coupon|^apply\s+cpn|^lowest\s*₹\d+/i.test(this.title))
       ) {
         this.isExpired = true;
         this.isVerified = false;

@@ -1,0 +1,59 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "shoppersdeals-web",
+	"compatibility_date": "2026-10-15",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"routes": [
+		{
+			"pattern": "shoppersdeals.in/*",
+			"zone_name": "shoppersdeals.in"
+		},
+		{
+			"pattern": "www.shoppersdeals.in/*",
+			"zone_name": "shoppersdeals.in"
+		}
+	],
+	"services": [
+		{
+			// Self-reference service binding, the service name must match the worker name
+			// see https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "shoppersdeals-web"
+		}
+	],
+	"r2_buckets": [
+		// Use R2 incremental cache
+		// See https://opennext.js.org/cloudflare/caching
+		{
+			"binding": "NEXT_INC_CACHE_R2_BUCKET",
+			// Create the bucket before deploying
+			// You can change the bucket name if you want
+			// See https://developers.cloudflare.com/workers/wrangler/commands/#r2-bucket-create
+			"bucket_name": "shoppersdeals-web-opennext-cache"
+		},
+		{
+			"binding": "PUBLIC_BUCKET",
+			"bucket_name": "shoppersdeals-public"
+		}
+	],
+	"images": {
+		// Enable image optimization
+		// see https://opennext.js.org/cloudflare/howtos/image
+		"binding": "IMAGES"
+	},
+	"vars": {
+		"NEXT_PUBLIC_API_URL": "https://api.shoppersdeals.in",
+		"NEXT_PUBLIC_SITE_URL": "https://www.shoppersdeals.in",
+		"NEXT_PUBLIC_ALGOLIA_APP_ID": "2PJDY54E3H",
+		"NEXT_PUBLIC_ALGOLIA_SEARCH_KEY": "6de26203cc83434c3d70165ed58c2b83",
+		"MONGODB_URI": "mongodb+srv://arorakaran6992:FUpX6I53NEB4UhSW@cluster0.zid9f.mongodb.net/shoppers_deals?retryWrites=true&w=majority"
+	}
+}

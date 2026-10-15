@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   // Silences the "multiple lockfiles" workspace-root inference warning — this app has its own
   // package-lock.json but sits inside the frontend/ repo which has one too.
   turbopack: {
@@ -77,3 +78,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());

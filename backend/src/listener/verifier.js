@@ -680,7 +680,85 @@ export const JUNK_TITLE_PATTERNS = [
   /^crazy\s+deal/i,
   /^mega\s+sale/i,
   /^lightning\s+deal/i,
+  // Channel link & placeholder patterns
+  /\b(root|loot|master|spin|deal|store|product|main|direct|grab|buy)\s*link\b/i,
+  /link\s*:/i,
+  /:\s*link/i,
+  /^amazon\s+root\s+link/i,
+  /item\s*\(/i,
+  /deal\s*\(/i,
+  /^amazon\s+item\b/i,
+  /^amazon\s+deal\b/i,
+  /^amazon\s+product\s+deal/i,
+  /^loot\s*(\d+|\:|\-|\₹|fast)/i,
+  /kurta\s*loot/i,
+  /^\d+\s*(sbi|using\s+sbi|pack\s+of|effectively|\+)/i,
+  /^apply\s+(\₹?\d+)?\s*(off\s*)?coupon/i,
+  /^apply\s+cpn/i,
+  /^lowest\s*₹\d+/i,
+  /^\+?\s*bank\s+offer/i,
+  /^\+?\s*apply\s+coupon/i,
 ];
+
+/**
+ * Strips promotional noise, coupon prefixes, and channel loot tags from a title.
+ */
+export function cleanPromoTitle(rawTitle) {
+  if (!rawTitle || typeof rawTitle !== 'string') return '';
+  let t = rawTitle.trim();
+
+  // Strip leading loot/discount/coupon banners
+  t = t.replace(/^\[?apply\s+(?:₹?\d+%?|\d+%)?\s*(?:off)?\s*coupon\]?\s*[:|–-]?\s*/i, '');
+  t = t.replace(/^\d{1,2}%\s+off\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:big\s+)?loot(?:\s+deal|\s+offer|\s+fast)?\s*[:|–-]\s*/i, '');
+  t = t.replace(/^loot\s+for\s+needy\s*[:|–-]\s*/i, '');
+  t = t.replace(/^ac\s+loot\s*[:|–-]\s*/i, '');
+  t = t.replace(/^amazon\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:flipkart|shopsy|myntra|ajio)\s+(?:bbd|gif)?\s*loot\s*[:|–-]\s*/i, '');
+
+  // If there is a pipe separator where first half is coupon/offer, take second half
+  if (t.includes('|')) {
+    const parts = t.split('|').map(p => p.trim());
+    if (/coupon|bank|loot|discount|deal|off\b/i.test(parts[0]) && parts[1] && parts[1].length >= 8) {
+      t = parts[1];
+    }
+  }
+
+  // Strip leading punctuation/symbols
+  t = t.replace(/^[\s+–|:-]+/, '');
+
+  // Strip trailing price/loot suffixes like "at 6,119.", "₹25,749*", "at Rs.1137"
+  t = t.replace(/\s+(?:at|@)\s*(?:rs\.?|₹)?\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*₹\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*[:|–-]\s*$/i, '');
+  t = t.replace(/\s+/g, ' ').trim();
+
+  return t;
+}
+
+/**
+ * Extracts clean, human-readable product title from merchant PDP URL slug.
+ */
+export function extractTitleFromUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const parsed = new URL(url);
+    // Amazon: /Product-Name-Here/dp/ASIN
+    const amzMatch = parsed.pathname.match(/\/([^\/]+)\/dp\/[A-Z0-9]{10}/i);
+    if (amzMatch && amzMatch[1] && !/^(dp|product|gp)$/i.test(amzMatch[1])) {
+      const title = decodeURIComponent(amzMatch[1]).replace(/[-_+]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (title.length > 5 && !isGenericOrJunkTitle(title)) return title;
+    }
+    // Flipkart / Shopsy / Nykaa: /product-slug-here/p/item...
+    const slugMatch = parsed.pathname.match(/\/([a-z0-9-]+)\/p\//i);
+    if (slugMatch && slugMatch[1] && !/^(product|flipkart|p|item|itm)$/i.test(slugMatch[1])) {
+      const words = slugMatch[1].split('-').filter(Boolean);
+      const title = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      if (title.length > 5 && !isGenericOrJunkTitle(title)) return title;
+    }
+  } catch (e) {}
+  return null;
+}
 
 export function isGenericOrJunkTitle(t) {
   if (!t || typeof t !== 'string') return true;
@@ -718,6 +796,10 @@ export function extractTitleFromMessage(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   for (const line of lines) {
     if (line.startsWith('http') || line.startsWith('🛒') || line.startsWith('😱') || line.startsWith('⚡')) continue;
+    // Skip lines that are just links, coupons, or promo tags
+    if (/\b(?:root|loot|master|spin|deal|store|product|main|direct|grab|buy)?\s*link\s*[:|–-]?$/i.test(line)) continue;
+    if (/^(?:apply\s+.*coupon|apply\s+cpn|loot\s*\d+|loot\s*:|\d+\s*sbi|with\s+card|effectively)/i.test(line)) continue;
+
     let cleaned = line
       .replace(/#ad\b/gi, '')
       .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' ')
@@ -729,6 +811,9 @@ export function extractTitleFromMessage(text) {
       .replace(/\s+https?:\/\/\S+/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
+
+    cleaned = cleanPromoTitle(cleaned);
+
     if (cleaned.length > 8 && !isGenericOrJunkTitle(cleaned) && !cleaned.toLowerCase().startsWith('deal') && !cleaned.toLowerCase().startsWith('click')) {
       return cleaned.slice(0, 140);
     }
@@ -1889,12 +1974,20 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     (now.getTime() - new Date(existingProduct.metadataUpdatedAt).getTime() > ONE_MONTH_MS)
   );
 
-  const validScrapedTitle = !isGenericOrJunkTitle(scrapedData?.title) ? scrapedData?.title : null;
-  const validDetailsTitle = !isGenericOrJunkTitle(productDetails?.title) ? productDetails?.title : null;
-  const validExistingTitle = (!isNewProduct && !isMetadataStale && !isGenericOrJunkTitle(existingProduct?.title)) ? existingProduct.title : null;
+  const validScrapedTitle = !isGenericOrJunkTitle(scrapedData?.title) ? cleanPromoTitle(scrapedData.title) : null;
+  const validDetailsTitle = !isGenericOrJunkTitle(productDetails?.title) ? cleanPromoTitle(productDetails.title) : null;
+  const validExistingTitle = (!isNewProduct && !isMetadataStale && !isGenericOrJunkTitle(existingProduct?.title)) ? cleanPromoTitle(existingProduct.title) : null;
   const messageTitle = extractTitleFromMessage(messageText);
+  const urlTitle = extractTitleFromUrl(cleanUrl);
 
-  const actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || `${merchant} Deal (${productId})`;
+  const actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || urlTitle || null;
+
+  // STRICT AUTHENTIC TITLE GATE: If no authentic product title could be established, reject verification!
+  // Prevents raw placeholders ("Amazon root link", "Master Link :", "Amazon Item (...)") from polluting verified deals feed.
+  if (!actualTitle || isGenericOrJunkTitle(actualTitle)) {
+    console.warn(`[Verifier Warning] ⚠️ Rejecting deal for ${cleanUrl} due to generic/junk title: "${actualTitle || 'null'}". Cannot publish placeholder.`);
+    return null;
+  }
 
   // 8. Category/Subcategory — channel default first, then the scraped category hint and authentic actualTitle
   const { category, subcategory } = await deriveCategory(channelCategory, scrapedData.categoryHint, actualTitle);

@@ -420,6 +420,32 @@ export async function directFetchSitemapSummary() {
   }
 }
 
+export function cleanPromoTitle(rawTitle) {
+  if (!rawTitle || typeof rawTitle !== 'string') return '';
+  let t = rawTitle.trim();
+  t = t.replace(/^\[?apply\s+(?:₹?\d+%?|\d+%)?\s*(?:off)?\s*coupon\]?\s*[:|–-]?\s*/i, '');
+  t = t.replace(/^\d{1,2}%\s+off\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:big\s+)?loot(?:\s+deal|\s+offer|\s+fast)?\s*[:|–-]\s*/i, '');
+  t = t.replace(/^loot\s+for\s+needy\s*[:|–-]\s*/i, '');
+  t = t.replace(/^ac\s+loot\s*[:|–-]\s*/i, '');
+  t = t.replace(/^amazon\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:flipkart|shopsy|myntra|ajio)\s+(?:bbd|gif)?\s*loot\s*[:|–-]\s*/i, '');
+
+  if (t.includes('|')) {
+    const parts = t.split('|').map(p => p.trim());
+    if (/coupon|bank|loot|discount|deal|off\b/i.test(parts[0]) && parts[1] && parts[1].length >= 8) {
+      t = parts[1];
+    }
+  }
+
+  t = t.replace(/^[\s+–|:-]+/, '');
+  t = t.replace(/\s+(?:at|@)\s*(?:rs\.?|₹)?\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*₹\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*[:|–-]\s*$/i, '');
+  t = t.replace(/\s+/g, ' ').trim();
+  return t;
+}
+
 /**
  * Direct MongoDB fallback for fetching verified deals feed
  */
@@ -442,6 +468,11 @@ export async function directFetchDeals({
       { isVerified: true },
       { previousPrice: { $exists: true, $gt: 0 } },
       { $expr: { $gt: ['$previousPrice', '$dealPrice'] } },
+      {
+        title: {
+          $not: /root\s*link|loot\s*link|master\s*link|spin\s*link|link\s*:|:\s*link|^amazon\s+item\s*\(|^amazon\s+deal\s*\(|^amazon\s+product\s+deal|^loot\s*(\d+|\:|\-|\₹)|^loot\s+fast|kurta\s*loot|^\d+\s*(sbi|using\s+sbi|pack\s+of|effectively|\+)|^apply\s+(\₹?\d+)?\s*(off\s*)?coupon|^apply\s+cpn|^lowest\s*₹\d+/i
+        }
+      },
     ];
 
     const cCode = (country || 'in').toUpperCase();
@@ -634,6 +665,9 @@ export async function directFetchDeals({
       if (!deal.imageUrl || deal.imageUrl.includes('placeholder.png') || deal.imageUrl.includes('localhost')) {
         const alt = (deal.images || []).find((img) => img && !img.includes('placeholder.png') && !img.includes('localhost'));
         if (alt) deal.imageUrl = alt;
+      }
+      if (deal.title) {
+        deal.title = cleanPromoTitle(deal.title);
       }
       deal.sourceEngine = deal.sourceEngine || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId) ? 'engine2' : 'engine1');
       deal.hasPriceHistory = Boolean(deal.hasPriceHistory);

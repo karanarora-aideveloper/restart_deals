@@ -14,6 +14,45 @@ function formatInr(val) {
   return `₹${Math.round(Number(val)).toLocaleString('en-IN')}`;
 }
 
+export function formatDealCardTitle(rawTitle) {
+  if (!rawTitle || typeof rawTitle !== 'string') return 'Special Promotion Deal';
+  let t = rawTitle.trim();
+  // Strip promo clutter
+  t = t.replace(/^\[?apply\s+(?:₹?\d+%?|\d+%)?\s*(?:off)?\s*coupon\]?\s*[:|–-]?\s*/i, '');
+  t = t.replace(/^\d{1,2}%\s+off\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:big\s+)?loot(?:\s+deal|\s+offer|\s+fast)?\s*[:|–-]\s*/i, '');
+  t = t.replace(/^loot\s+for\s+needy\s*[:|–-]\s*/i, '');
+  t = t.replace(/^ac\s+loot\s*[:|–-]\s*/i, '');
+  t = t.replace(/^amazon\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:flipkart|shopsy|myntra|ajio)\s+(?:bbd|gif)?\s*loot\s*[:|–-]\s*/i, '');
+
+  if (t.includes('|')) {
+    const parts = t.split('|').map(p => p.trim());
+    if (/coupon|bank|loot|discount|deal|off\b/i.test(parts[0]) && parts[1] && parts[1].length >= 8) {
+      t = parts[1];
+    }
+  }
+
+  t = t.replace(/^[\s+–|:-]+/, '');
+  t = t.replace(/\s+(?:at|@)\s*(?:rs\.?|₹)?\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*₹\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*[:|–-]\s*$/i, '');
+  t = t.replace(/\s+/g, ' ').trim();
+
+  // If title was a placeholder like "Amazon root link", "Master Link :", or "Amazon Item (...)"
+  if (
+    /root\s*link|loot\s*link|master\s*link|spin\s*link|link\s*:|:\s*link/i.test(t) ||
+    /^amazon\s+item\s*\(/i.test(t) ||
+    /^amazon\s+deal\s*\(/i.test(t) ||
+    /^loot\s*(\d+|\:|\-|\₹)/i.test(t) ||
+    t.length < 5
+  ) {
+    return 'Special Promotion Deal';
+  }
+
+  return t;
+}
+
 export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onImageUnavailable }) {
   const [imgError, setImgError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -22,6 +61,7 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   const dealId = deal._id || deal.id;
   const merchant = getMerchantInfo(deal.merchant || deal.dealUrl);
   const dealCountry = (deal.country || 'IN').toUpperCase();
+  const displayTitle = formatDealCardTitle(deal.title);
 
   // Pricing Fields
   const currentPrice = Number(deal.dealPrice || 0);
@@ -142,7 +182,7 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={rawImage}
-              alt={deal.title || 'Product'}
+              alt={displayTitle}
               className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
               referrerPolicy="no-referrer"
@@ -176,8 +216,8 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
 
         {/* Title: Strict 2-line clamp with min-height */}
         <h3 className="mt-2 line-clamp-2 min-h-[32px] sm:min-h-[34px] text-xs font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
-          <Link href={cardHref} title={deal.title}>
-            {deal.title || 'Special Promotion Deal'}
+          <Link href={cardHref} title={displayTitle}>
+            {displayTitle}
           </Link>
         </h3>
 

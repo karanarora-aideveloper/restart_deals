@@ -7,6 +7,32 @@ import { classifySourceEngine } from '../utils/engineClassifier.js';
 
 const router = express.Router();
 
+function cleanPromoTitle(rawTitle) {
+  if (!rawTitle || typeof rawTitle !== 'string') return '';
+  let t = rawTitle.trim();
+  t = t.replace(/^\[?apply\s+(?:₹?\d+%?|\d+%)?\s*(?:off)?\s*coupon\]?\s*[:|–-]?\s*/i, '');
+  t = t.replace(/^\d{1,2}%\s+off\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:big\s+)?loot(?:\s+deal|\s+offer|\s+fast)?\s*[:|–-]\s*/i, '');
+  t = t.replace(/^loot\s+for\s+needy\s*[:|–-]\s*/i, '');
+  t = t.replace(/^ac\s+loot\s*[:|–-]\s*/i, '');
+  t = t.replace(/^amazon\s*[:|–-]\s*/i, '');
+  t = t.replace(/^(?:flipkart|shopsy|myntra|ajio)\s+(?:bbd|gif)?\s*loot\s*[:|–-]\s*/i, '');
+
+  if (t.includes('|')) {
+    const parts = t.split('|').map(p => p.trim());
+    if (/coupon|bank|loot|discount|deal|off\b/i.test(parts[0]) && parts[1] && parts[1].length >= 8) {
+      t = parts[1];
+    }
+  }
+
+  t = t.replace(/^[\s+–|:-]+/, '');
+  t = t.replace(/\s+(?:at|@)\s*(?:rs\.?|₹)?\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*₹\s*[\d,]+.*$/i, '');
+  t = t.replace(/\s*[:|–-]\s*$/i, '');
+  t = t.replace(/\s+/g, ' ').trim();
+  return t;
+}
+
 /**
  * GET /api/deals
  * Paginated, tokenized multi-field filtered deals from MongoDB deals collection.
@@ -25,6 +51,12 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
       andConditions.push({ isVerified: true });
       andConditions.push({ previousPrice: { $exists: true, $gt: 0 } });
       andConditions.push({ $expr: { $gt: ['$previousPrice', '$dealPrice'] } });
+      // Guardrail: Exclude any corrupted/placeholder titles from the verified deals feed
+      andConditions.push({
+        title: {
+          $not: /root\s*link|loot\s*link|master\s*link|spin\s*link|link\s*:|:\s*link|^amazon\s+item\s*\(|^amazon\s+deal\s*\(|^amazon\s+product\s+deal|^loot\s*(\d+|\:|\-|\₹)|^loot\s+fast|kurta\s*loot|^\d+\s*(sbi|using\s+sbi|pack\s+of|effectively|\+)|^apply\s+(\₹?\d+)?\s*(off\s*)?coupon|^apply\s+cpn|^lowest\s*₹\d+/i
+        }
+      });
     }
 
     if (req.query.category && req.query.category !== 'all') {
@@ -271,11 +303,14 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
     ]);
     let deals = dealsRaw;
 
-    // Auto-heal broken/placeholder images on the fly if an alternative image is present
+    // Auto-heal broken/placeholder images and clean promo noise from titles on the fly
     deals = deals.map(d => {
       if (!d.imageUrl || d.imageUrl.includes('shoppersdeals-backend') || d.imageUrl.includes('placeholder.png') || d.imageUrl.includes('localhost')) {
         const alt = (d.images || []).find(img => img && !img.includes('shoppersdeals-backend') && !img.includes('placeholder.png') && !img.includes('localhost'));
         if (alt) d.imageUrl = alt;
+      }
+      if (d.title) {
+        d.title = cleanPromoTitle(d.title);
       }
       d.sourceEngine = d.sourceEngine || classifySourceEngine(d.sourceChannelId, d.sourceChannelName);
       d.hasPriceHistory = Boolean(d.hasPriceHistory);
