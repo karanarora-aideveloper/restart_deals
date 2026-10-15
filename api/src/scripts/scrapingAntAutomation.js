@@ -635,9 +635,19 @@ async function generateTempEmail(page) {
   }
   // Discover available premium server options (excluding free server-1)
   const optionValues = await serverSelect.locator('option').evaluateAll(opts => opts.map(o => o.value).filter(v => v && v !== '1')).catch(() => []);
-  const premiumServers = optionValues.length > 0 ? optionValues : ['2', '3'];
-  const targetServer = premiumServers[Math.floor(Math.random() * premiumServers.length)];
-  await serverSelect.selectOption({ value: targetServer });
+  const premiumServers = optionValues.length > 0 ? optionValues : ['3', '4', '2'];
+  // Prefer server-3 or server-4 first since server-2 has high email collision on ScrapingAnt
+  const preferredServers = premiumServers.filter(s => s !== '2');
+  const targetServer = preferredServers.length > 0
+    ? preferredServers[Math.floor(Math.random() * preferredServers.length)]
+    : premiumServers[Math.floor(Math.random() * premiumServers.length)];
+
+  await serverSelect.evaluate((el, val) => {
+    el.value = val;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, targetServer);
+  await serverSelect.selectOption({ value: targetServer }).catch(() => {});
   await randomDelay(300, 600);
   const serverValue = await serverSelect.inputValue();
   console.log(`[Smail] ✓ Premium server-${serverValue} selected and confirmed (available pool: [${premiumServers.join(',')}])`);
@@ -1129,9 +1139,35 @@ function findVerificationUrlInText(text) {
 
 // ─── Step 4: Verify email & extract token ───────────────────────────────────
 
-async function verifyAndExtractToken(context, verificationUrl) {
+async function verifyAndExtractToken(context, verificationUrl, creds = null) {
   console.log(`[Token] Opening verification URL: ${verificationUrl}`);
   const page = await context.newPage();
+
+  const loginIfRequired = async () => {
+    const isLogin = page.url().includes('/login') || await page.locator("button:has-text('LOG IN'), button:has-text('Log in')").first().isVisible().catch(() => false);
+    if (isLogin && creds?.email && creds?.password) {
+      console.log(`[Token] Login page detected (${page.url()}), logging in with ${creds.email}...`);
+      const emailField = page.locator("input[type='text'], input[type='email'], input[name='email']").first();
+      if (await waitVisible(emailField, 10_000)) {
+        await emailField.fill(creds.email);
+        await randomDelay(300, 700);
+      }
+      const passField = page.locator("input[type='password']").first();
+      if (await waitVisible(passField, 10_000)) {
+        await passField.fill(creds.password);
+        await randomDelay(300, 700);
+      }
+      await solveAnyCaptchaOnPage(page, TWOCAPTCHA_API_KEY, 'ScrapingAnt Login').catch(() => {});
+      const loginBtn = page.locator("button:has-text('LOG IN'), button:has-text('Log in'), button[type='submit']").first();
+      if (await waitVisible(loginBtn, 5_000)) {
+        await loginBtn.click();
+        console.log('[Token] Login button clicked, waiting for dashboard navigation...');
+        await page.waitForURL(url => url.pathname.includes('/dashboard'), { timeout: 25_000 }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+        await randomDelay(2000, 4000);
+      }
+    }
+  };
 
   try {
     await page.goto(verificationUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(async () => {
@@ -1139,6 +1175,9 @@ async function verifyAndExtractToken(context, verificationUrl) {
       await page.waitForLoadState('domcontentloaded', { timeout: 15_000 });
       await randomDelay(3000, 5000);
     });
+
+    // If verification URL immediately bounces to login screen, handle it
+    await loginIfRequired();
 
     // BUG (fixed): confirming an email is very likely async on this page —
     // it loads, THEN fires an API call to actually verify the token and
@@ -1151,6 +1190,7 @@ async function verifyAndExtractToken(context, verificationUrl) {
     await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
     await randomDelay(3000, 5000);
     console.log(`[Token] Verification page settled at: ${page.url()}`);
+    await loginIfRequired();
 
     const pageText = await page.textContent('body');
 
@@ -1216,7 +1256,9 @@ async function verifyAndExtractToken(context, verificationUrl) {
     console.log('[Token] Token not found on verification page, ensuring dashboard is ready...');
     if (!page.url().includes('/dashboard')) {
       await page.goto('https://app.scrapingant.com/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
     }
+    await loginIfRequired();
     // Wait for the Vue app to actually mount and render the API token label
     await page.locator("text=/API token|API Key|Your API key/i").first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
@@ -1450,7 +1492,7 @@ export async function runSingleCycle({ captchaApiKey, headless = true, cycleNumb
     console.log(`[Verify] ✓ Verification URL: ${verificationUrl}`);
 
     // Step 4: Open verification URL and extract token
-    const token = await verifyAndExtractToken(context, verificationUrl);
+    const token = await verifyAndExtractToken(context, verificationUrl, { email, password: email });
     const createdAt = new Date().toISOString();
 
     console.log(`\n${'='.repeat(70)}`);
