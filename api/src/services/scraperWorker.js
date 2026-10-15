@@ -444,7 +444,17 @@ export async function executeScrapingAntJob(url, source = 'other') {
     // 200 OK: Successful Scrape!
     if (response.ok) {
       const html = await response.text();
-      await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 }, $set: { leasedUntil: null } }).catch(() => {});
+      await ScrapingAntToken.updateOne(
+        { token },
+        {
+          lastUsedAt: new Date(),
+          $inc: { usageCount: 1 },
+          $set: {
+            leasedUntil: null,
+            cooldownUntil: new Date(Date.now() + 3000), // 3s browser teardown buffer prevents 409 concurrency collisions
+          },
+        }
+      ).catch(() => {});
 
       const extracted = extractBasicMetadata(html);
       await recordScrapingLog({

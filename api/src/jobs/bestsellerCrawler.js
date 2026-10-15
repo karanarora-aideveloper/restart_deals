@@ -32,6 +32,12 @@ export function buildStoreSearchUrl(store = 'amazon', keywords = '') {
       return `https://www.ajio.com/search/?text=${enc}`;
     case 'croma':
       return `https://www.croma.com/searchB?q=${enc}%3Arelevance`;
+    case 'shopsy':
+      return `https://www.shopsy.in/search?q=${enc}`;
+    case 'tatacliq':
+      return `https://www.tatacliq.com/search/?searchCategory=all&text=${enc}`;
+    case 'purplle':
+      return `https://www.purplle.com/search?q=${enc}`;
     case 'amazon':
     default:
       return `https://www.amazon.in/s?k=${enc}&s=exact-aware-popularity-rank`;
@@ -44,25 +50,47 @@ export function buildAmazonSearchUrl(keywords) {
 }
 
 /**
- * Categorized Default Seeds by Merchant Store
- * - Amazon: General broad marketplace coverage (53 seeds across all categories)
- * - Flipkart: Electronics, Appliances, and High-demand lifestyle (14 seeds)
- * - Nykaa: Curated Beauty, Makeup, Skincare, Haircare, Fragrance & Grooming (12 seeds)
- * - Myntra: Fashion, Footwear, Bags, Watches & Western/Ethnic wear (12 seeds)
- * - Meesho: High-velocity budget ethnic, daily wear, bedding & home value (10 seeds)
+ * Categorized Default Seeds Across the Top 8 Indian E-Commerce Stores:
+ * - Amazon India (Electronics, Mobile, Laptops, Home, Fitness, Groceries, Luggage)
+ * - Flipkart (Mobiles 5G, Laptops, TVs, Large Appliances, Kitchen, Flipkart Assured)
+ * - Myntra (Branded Fashion, Sneakers, Western Wear, Handbags, Ethnic Sets, Luxury Perfumes)
+ * - Nykaa (Skincare Serums, Sunscreens, Foundations, Lipsticks, Haircare, Luxury Scents)
+ * - Ajio (Streetwear, Sneakerhood, Casual Tees, High-Waist Jeans, Kurta Sets, Kids)
+ * - Meesho (Hyper-Value Kurtis under 299, Sarees, Oxidised Jewellery, Daily Combos, Bedding)
+ * - Shopsy (Flipkart's Value Arm: Budget Tees, Slippers, Tops under 149, Back Covers, Trimmers)
+ * - Croma (Apple iPhone/MacBook, Samsung Galaxy, OLED TVs, Inverter ACs, Soundbars)
  */
 export const DEFAULT_AMAZON_SEEDS = [
   // electronics
   { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: '5g smartphones under 15000' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'flagship smartphones' },
   { category: 'electronics', subcategory: 'laptops', keywords: 'laptops' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'gaming laptops rtx' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'macbook air m2 m3' },
   { category: 'electronics', subcategory: 'audio', keywords: 'wireless earbuds headphones' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'noise cancelling headphones over ear' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'soundbar with subwoofer for tv' },
   { category: 'electronics', subcategory: 'tv', keywords: 'smart tv 4k' },
+  { category: 'electronics', subcategory: 'tv', keywords: 'oled qled smart tv 55 inch' },
   { category: 'electronics', subcategory: 'cameras', keywords: 'dslr mirrorless camera' },
+  { category: 'electronics', subcategory: 'cameras', keywords: 'action camera 4k vlogging' },
   { category: 'electronics', subcategory: 'wearables', keywords: 'smartwatches' },
+  { category: 'electronics', subcategory: 'wearables', keywords: 'amoled smartwatch bluetooth calling' },
   { category: 'electronics', subcategory: 'gaming', keywords: 'gaming console controller' },
+  { category: 'electronics', subcategory: 'gaming', keywords: 'mechanical gaming keyboard mouse' },
   { category: 'electronics', subcategory: 'accessories', keywords: 'mobile phone case charger cable' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'fast power bank 20000mah' },
+  // appliances
+  { category: 'appliances', subcategory: 'refrigerators', keywords: 'double door refrigerator frost free' },
+  { category: 'appliances', subcategory: 'washing-machines', keywords: 'front load washing machine fully automatic' },
+  { category: 'appliances', subcategory: 'air-conditioners', keywords: '1.5 ton 5 star inverter split ac' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'air fryer digital otg' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'mixer grinder 750 watt' },
+  { category: 'appliances', subcategory: 'water-purifiers', keywords: 'ro water purifier copper uv' },
   // men-fashion
   { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts shirts' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men polo t-shirts regular fit' },
   { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans trousers' },
   { category: 'men-fashion', subcategory: 'footwear', keywords: 'men sneakers running shoes' },
   { category: 'men-fashion', subcategory: 'kids', keywords: 'boys clothing' },
@@ -71,6 +99,7 @@ export const DEFAULT_AMAZON_SEEDS = [
   { category: 'men-fashion', subcategory: 'innerwear', keywords: 'men innerwear briefs' },
   // women-fashion
   { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurtis kurta sets' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'anarkali suit kurta set with dupatta' },
   { category: 'women-fashion', subcategory: 'women-western', keywords: 'women dresses tops jeans' },
   { category: 'women-fashion', subcategory: 'jewellery', keywords: 'women jewellery earrings necklace' },
   { category: 'women-fashion', subcategory: 'women-footwear', keywords: 'women sandals heels' },
@@ -89,43 +118,79 @@ export const DEFAULT_AMAZON_SEEDS = [
   { category: 'beauty', subcategory: 'nailcare', keywords: 'nail polish manicure kit' },
   // home
   { category: 'home', subcategory: 'kitchen', keywords: 'kitchen cookware appliances' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'cast iron kadai pan cookware' },
   { category: 'home', subcategory: 'furniture', keywords: 'sofa dining table furniture' },
+  { category: 'home', subcategory: 'furniture', keywords: 'ergonomic office chair study table' },
   { category: 'home', subcategory: 'decor', keywords: 'home decor wall art showpiece' },
   { category: 'home', subcategory: 'bedding', keywords: 'bedsheet pillow blanket' },
   { category: 'home', subcategory: 'storage', keywords: 'storage box organizer' },
   { category: 'home', subcategory: 'cleaning', keywords: 'cleaning supplies mop detergent' },
-  { category: 'home', subcategory: 'appliances-large', keywords: 'air fryer mixer grinder' },
-  { category: 'home', subcategory: 'appliances-large', keywords: 'water purifier RO UV' },
+  { category: 'home', subcategory: 'cleaning', keywords: 'robotic vacuum cleaner' },
   { category: 'home', subcategory: 'tools', keywords: 'drill screwdriver tool kit' },
   // fitness
   { category: 'fitness', subcategory: 'gym-equipment', keywords: 'dumbbell treadmill gym equipment' },
   { category: 'fitness', subcategory: 'yoga', keywords: 'yoga mat accessories' },
   { category: 'fitness', subcategory: 'sports-gear', keywords: 'cricket badminton sports gear' },
   { category: 'fitness', subcategory: 'nutrition', keywords: 'whey protein isolate supplements' },
+  { category: 'fitness', subcategory: 'nutrition', keywords: 'creatine monohydrate powder' },
   { category: 'fitness', subcategory: 'apparel', keywords: 'gym wear fitness apparel' },
   { category: 'fitness', subcategory: 'trackers', keywords: 'fitness band tracker' },
+  // travel
+  { category: 'travel', subcategory: 'luggage', keywords: 'trolley bag set luggage suitcase' },
+  { category: 'travel', subcategory: 'bags', keywords: 'cabin trolley bag 55cm' },
   // general
   { category: 'general', subcategory: 'groceries', keywords: 'grocery gourmet snacks' },
   { category: 'general', subcategory: 'baby-toys', keywords: 'kids toys baby products' },
   { category: 'general', subcategory: 'books-stationery', keywords: 'books notebooks stationery' },
   { category: 'general', subcategory: 'pet-supplies', keywords: 'dog cat pet supplies' },
-  { category: 'general', subcategory: 'office', keywords: 'office supplies organizer' },
-  { category: 'general', subcategory: 'auto', keywords: 'car bike accessories' },
-  { category: 'general', subcategory: 'musical', keywords: 'guitar keyboard musical instruments' },
+  { category: 'general', subcategory: 'auto', keywords: 'car bike accessories dash cam' },
   { category: 'general', subcategory: 'gifts', keywords: 'gift sets hampers' },
 ];
 
 export const DEFAULT_FLIPKART_SEEDS = [
+  // electronics:mobiles
   { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones 5g' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: '5g mobile phones under 15000' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'budget smartphones under 10000' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'realme smartphones 5g' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'poco smartphones 5g' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'motorola smartphones 5g' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'samsung galaxy 5g smartphones' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'apple iphone 15 14' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'tablets android ipad' },
+  // electronics:laptops
   { category: 'electronics', subcategory: 'laptops', keywords: 'laptops thin light gaming' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'gaming laptops rtx' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'hp dell lenovo laptops' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'student laptops under 25000' },
+  // electronics:audio
   { category: 'electronics', subcategory: 'audio', keywords: 'wireless earbuds bluetooth headphones' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'neckband bluetooth earphones' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'party bluetooth speaker bass' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'soundbar home theatre' },
+  // electronics:tv
   { category: 'electronics', subcategory: 'tv', keywords: 'smart tv 4k 43 55 inch' },
+  { category: 'electronics', subcategory: 'tv', keywords: 'qled oled smart tv' },
+  { category: 'electronics', subcategory: 'tv', keywords: '32 inch smart tv budget' },
+  // electronics:wearables & accessories
   { category: 'electronics', subcategory: 'wearables', keywords: 'smartwatches bluetooth calling' },
   { category: 'electronics', subcategory: 'accessories', keywords: 'fast charger power bank' },
-  { category: 'home', subcategory: 'kitchen', keywords: 'mixer grinder pressure cooker cookware' },
-  { category: 'home', subcategory: 'bedding', keywords: 'cotton double bedsheet' },
-  { category: 'home', subcategory: 'appliances-large', keywords: 'washing machine refrigerator microwave' },
-  { category: 'home', subcategory: 'appliances-large', keywords: 'water purifier ro uv' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'mobile back cover tempered glass' },
+  // appliances
+  { category: 'appliances', subcategory: 'refrigerators', keywords: 'refrigerator single door double door' },
+  { category: 'appliances', subcategory: 'refrigerators', keywords: 'frost free double door refrigerator' },
+  { category: 'appliances', subcategory: 'washing-machines', keywords: 'washing machine fully automatic front load' },
+  { category: 'appliances', subcategory: 'washing-machines', keywords: 'top load washing machine 7kg' },
+  { category: 'appliances', subcategory: 'air-conditioners', keywords: 'inverter split ac 1.5 ton 5 star' },
+  { category: 'appliances', subcategory: 'air-conditioners', keywords: 'air cooler desert cooler for home' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'mixer grinder 750 watt' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'air fryer for cooking' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'microwave oven convection' },
+  { category: 'appliances', subcategory: 'water-purifiers', keywords: 'water purifier ro uv alkaline' },
+  // personal-care & grooming
+  { category: 'personal-care', subcategory: 'grooming', keywords: 'beard trimmer for men' },
+  { category: 'personal-care', subcategory: 'grooming', keywords: 'hair straightener dryer for women' },
+  // fashion
   { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts casual shirts' },
   { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans cotton trousers' },
   { category: 'men-fashion', subcategory: 'footwear', keywords: 'men running shoes sneakers' },
@@ -134,69 +199,219 @@ export const DEFAULT_FLIPKART_SEEDS = [
 ];
 
 export const DEFAULT_NYKAA_SEEDS = [
+  // makeup
   { category: 'beauty', subcategory: 'makeup', keywords: 'fit me foundation compact primer' },
   { category: 'beauty', subcategory: 'makeup', keywords: 'matte liquid lipstick lip gloss' },
   { category: 'beauty', subcategory: 'makeup', keywords: 'kajal eyeliner mascara eyeshadow' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'blush highlighter contour palette' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'setting spray loose powder makeup fixer' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'bb cream cc cream skin tint' },
+  { category: 'beauty', subcategory: 'makeup', keywords: 'lip balm lip oil tinted' },
+  { category: 'beauty', subcategory: 'nailcare', keywords: 'nail polish gel enamel kit' },
+  // skincare
   { category: 'beauty', subcategory: 'skincare', keywords: 'face serum niacinamide vitamin c' },
   { category: 'beauty', subcategory: 'skincare', keywords: 'sunscreen spf 50 moisturizer gel' },
-  { category: 'beauty', subcategory: 'skincare', keywords: 'face wash cleanser foaming' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'face wash cleanser foaming gentle' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'salicylic acid serum for acne' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'hyaluronic acid hydrating serum' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'retinol anti aging night cream' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'face toner mist pore tightening' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'sheet mask clay face mask' },
+  { category: 'beauty', subcategory: 'skincare', keywords: 'under eye cream dark circles' },
+  // haircare
   { category: 'beauty', subcategory: 'haircare', keywords: 'keratin shampoo hair mask serum' },
+  { category: 'beauty', subcategory: 'haircare', keywords: 'anti dandruff shampoo hair conditioner' },
+  { category: 'beauty', subcategory: 'haircare', keywords: 'hair growth serum rosemary oil' },
+  { category: 'beauty', subcategory: 'haircare', keywords: 'heat protection spray hair leave in cream' },
+  // bath & body
   { category: 'beauty', subcategory: 'bath-body', keywords: 'body wash shower gel body lotion' },
+  { category: 'beauty', subcategory: 'bath-body', keywords: 'body scrub exfoliator brightening' },
+  { category: 'beauty', subcategory: 'bath-body', keywords: 'body butter deeply nourishing' },
+  // fragrance
   { category: 'beauty', subcategory: 'fragrance', keywords: 'eau de parfum perfume for women men' },
+  { category: 'beauty', subcategory: 'fragrance', keywords: 'luxury perfumes designer fragrances' },
+  { category: 'beauty', subcategory: 'fragrance', keywords: 'body mist fragrance spray long lasting' },
+  // men's grooming
   { category: 'beauty', subcategory: 'mens-grooming', keywords: 'beard oil face wash men grooming' },
+  { category: 'beauty', subcategory: 'mens-grooming', keywords: 'men hair styling wax clay pomade' },
+  { category: 'beauty', subcategory: 'mens-grooming', keywords: 'men cologne eau de toilette' },
+  // beauty appliances
   { category: 'beauty', subcategory: 'appliances', keywords: 'hair dryer hair straightener styler' },
-  { category: 'beauty', subcategory: 'nailcare', keywords: 'nail polish gel enamel kit' },
+  { category: 'beauty', subcategory: 'appliances', keywords: 'hair curling tong hot air brush' },
+  { category: 'beauty', subcategory: 'appliances', keywords: 'electric face epilator trimmer' },
 ];
 
 export const DEFAULT_MYNTRA_SEEDS = [
+  // men fashion
   { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men cotton casual shirts polo t-shirts' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men oversized graphic t-shirts' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men linen shirts formal shirts' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men hooded sweatshirts jackets' },
   { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men slim fit stretch jeans cargo trousers' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men formal trousers chinos' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men sweatpants joggers trackpants' },
   { category: 'men-fashion', subcategory: 'footwear', keywords: 'men running shoes white sneakers loafers' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men formal oxford derby leather shoes' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men sliders clogs flip flops' },
   { category: 'men-fashion', subcategory: 'bags', keywords: 'men genuine leather wallet office bag' },
+  { category: 'men-fashion', subcategory: 'bags', keywords: 'unisex laptop backpack travel bag' },
   { category: 'men-fashion', subcategory: 'watches', keywords: 'men analog chronograph watch' },
+  { category: 'men-fashion', subcategory: 'watches', keywords: 'men digital sports watch' },
   { category: 'men-fashion', subcategory: 'innerwear', keywords: 'men trunks boxers vests cotton' },
+  // women fashion
   { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'anarkali kurti kurta palazzo set' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'silk georgette sarees with blouse' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'lehenga choli ethnic party wear' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women ethnic dupattas ethnic jackets' },
   { category: 'women-fashion', subcategory: 'women-western', keywords: 'women maxi dress floral tops high waist jeans' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women jumpsuits coordinates set' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women denim jackets blazer coats' },
   { category: 'women-fashion', subcategory: 'jewellery', keywords: 'oxidised silver earrings necklace sets' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'gold plated jewellery necklace earrings' },
   { category: 'women-fashion', subcategory: 'women-footwear', keywords: 'women block heels casual flats wedges' },
+  { category: 'women-fashion', subcategory: 'women-footwear', keywords: 'women white sneakers running shoes' },
+  { category: 'women-fashion', subcategory: 'women-footwear', keywords: 'women kolhapuri ethnic juttis' },
   { category: 'women-fashion', subcategory: 'women-bags', keywords: 'women tote bag shoulder sling handbag' },
+  { category: 'women-fashion', subcategory: 'women-bags', keywords: 'women clutch party wallet' },
   { category: 'women-fashion', subcategory: 'women-watches', keywords: 'women analog rose gold watch' },
-];
-
-export const DEFAULT_MEESHO_SEEDS = [
-  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'cotton printed kurti daily wear' },
-  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'georgette designer saree ready to wear' },
-  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women nighty night dress loungewear' },
-  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'traditional oxidised jhumka earrings set' },
-  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men combo pack t-shirts regular fit' },
-  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men trackpants track pants lower' },
-  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men lightweight mesh running sports shoes' },
-  { category: 'home', subcategory: 'bedding', keywords: 'fitted elastic double bedsheet with pillow covers' },
-  { category: 'home', subcategory: 'kitchen', keywords: 'kitchen storage container set spice box organizer' },
-  { category: 'home', subcategory: 'decor', keywords: 'curtains for door window home decoration' },
+  { category: 'women-fashion', subcategory: 'women-innerwear', keywords: 'women bra panty sets loungewear' },
+  { category: 'beauty', subcategory: 'fragrance', keywords: 'men women perfumes deos body mist' },
+  { category: 'fitness', subcategory: 'apparel', keywords: 'men women gym wear activewear tights' },
 ];
 
 export const DEFAULT_AJIO_SEEDS = [
+  // men fashion
   { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts shirts' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men printed casual shirts cotton' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men polo neck t-shirts regular fit' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men oversized drop shoulder tees' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men hoodies jackets sweatshirts' },
   { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans trousers' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men cargo jogger pants' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men cotton formal trousers chinos' },
   { category: 'men-fashion', subcategory: 'footwear', keywords: 'men sneakers shoes' },
-  { category: 'men-fashion', subcategory: 'watches', keywords: 'men watches' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men high top streetwear sneakers' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men casual loafers slip on shoes' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men sports running walking shoes' },
+  { category: 'men-fashion', subcategory: 'watches', keywords: 'men watches analog smart' },
+  { category: 'men-fashion', subcategory: 'innerwear', keywords: 'men cotton briefs trunks boxers' },
+  // women fashion
   { category: 'women-fashion', subcategory: 'women-western', keywords: 'women dresses tops' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women oversized tees graphic shirts' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women high waist jeans trousers' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women co-ord sets two piece' },
   { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurtas kurtis' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurta palazzo sets with dupatta' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women printed ethnic dresses fusion' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women sarees silk georgette' },
   { category: 'women-fashion', subcategory: 'footwear', keywords: 'women sandals heels' },
+  { category: 'women-fashion', subcategory: 'footwear', keywords: 'women casual flat shoes sneakers' },
   { category: 'women-fashion', subcategory: 'handbags', keywords: 'women handbags totes' },
-  { category: 'men-fashion', subcategory: 'kids', keywords: 'kids wear' },
+  { category: 'women-fashion', subcategory: 'handbags', keywords: 'women sling bags shoulder bags' },
+  // kids & home
+  { category: 'men-fashion', subcategory: 'kids', keywords: 'kids wear boys girls clothing' },
   { category: 'home', subcategory: 'decor', keywords: 'cushion covers bedsheets curtains' },
+  { category: 'home', subcategory: 'decor', keywords: 'rugs carpets floor mats' },
+];
+
+export const DEFAULT_MEESHO_SEEDS = [
+  // women ethnic & daily
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'cotton printed kurti daily wear' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'georgette designer saree ready to wear' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'kurti pant dupatta set under 400' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'cotton daily wear sarees combo' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'chanderi silk readymade suits' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women nighty night dress loungewear' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women tops combo under 200' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women jeans jeggings stretchable' },
+  // jewellery
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'traditional oxidised jhumka earrings set' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'bridal jewellery set gold plated' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'choker necklace earrings mangtika set' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'bangles kada set for women' },
+  // men fashion
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men combo pack t-shirts regular fit' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men casual shirts check printed' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men printed round neck tshirts' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men trackpants track pants lower' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men cargo pants cotton jeans' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men cotton shorts boxer shorts combo' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men lightweight mesh running sports shoes' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men casual loafers white sneakers budget' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men daily wear slippers flip flops' },
+  // home & kitchen
+  { category: 'home', subcategory: 'bedding', keywords: 'fitted elastic double bedsheet with pillow covers' },
+  { category: 'home', subcategory: 'bedding', keywords: 'cotton single double bedsheet combo' },
+  { category: 'home', subcategory: 'bedding', keywords: 'blanket comforter duvet soft' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'kitchen storage container set spice box organizer' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'vegetable chopper hand blender cutter' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'water bottle set fridge bottles' },
+  { category: 'home', subcategory: 'decor', keywords: 'curtains for door window home decoration' },
+  { category: 'home', subcategory: 'decor', keywords: 'wall stickers 3d wallpaper decor' },
+  // baby & toys
+  { category: 'baby-kids', subcategory: 'baby-clothing', keywords: 'baby clothes combo newborn dress set' },
+  { category: 'baby-kids', subcategory: 'baby-toys', keywords: 'kids toys remote control car puzzle' },
+];
+
+export const DEFAULT_SHOPSY_SEEDS = [
+  // hyper-value fashion & daily
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men t-shirts under 199' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men casual shirts under 299' },
+  { category: 'men-fashion', subcategory: 'men-topwear', keywords: 'men oversized tshirts cotton' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men track pants lower under 250' },
+  { category: 'men-fashion', subcategory: 'men-bottomwear', keywords: 'men jeans under 399' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men slippers chappal under 149' },
+  { category: 'men-fashion', subcategory: 'footwear', keywords: 'men casual shoes sneakers under 299' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurtis under 199' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'women kurta set under 349' },
+  { category: 'women-fashion', subcategory: 'women-ethnic', keywords: 'printed sarees under 249' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women tops under 149' },
+  { category: 'women-fashion', subcategory: 'women-western', keywords: 'women night suit night dress' },
+  { category: 'women-fashion', subcategory: 'jewellery', keywords: 'earrings necklace jewellery under 99' },
+  // budget electronics & trimmers
+  { category: 'electronics', subcategory: 'accessories', keywords: 'mobile back cover cases' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'mobile charger fast charging cable' },
+  { category: 'electronics', subcategory: 'accessories', keywords: 'earphones with mic under 99' },
+  { category: 'electronics', subcategory: 'wearables', keywords: 'budget smart watch under 499' },
+  { category: 'personal-care', subcategory: 'grooming', keywords: 'rechargeable beard trimmer under 299' },
+  { category: 'personal-care', subcategory: 'grooming', keywords: 'hair straightener comb under 249' },
+  // home & kitchen budget
+  { category: 'home', subcategory: 'kitchen', keywords: 'kitchen organizers container box' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'kitchen knife peeler chopper set' },
+  { category: 'home', subcategory: 'kitchen', keywords: 'water bottle 1 litre combo' },
+  { category: 'home', subcategory: 'decor', keywords: 'wall stickers home decoration' },
+  { category: 'home', subcategory: 'decor', keywords: 'fairy led lights for bedroom' },
+  { category: 'home', subcategory: 'bedding', keywords: 'cotton double bedsheet under 199' },
 ];
 
 export const DEFAULT_CROMA_SEEDS = [
+  // mobiles & tablets
   { category: 'electronics', subcategory: 'mobiles', keywords: 'smartphones' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'apple iphone 15 16' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'samsung galaxy s24 s23 ultra' },
+  { category: 'electronics', subcategory: 'mobiles', keywords: 'oneplus 5g smartphones' },
+  // laptops & computing
   { category: 'electronics', subcategory: 'laptops', keywords: 'laptops' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'apple macbook air pro' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'gaming laptops asus lenovo hp' },
+  { category: 'electronics', subcategory: 'laptops', keywords: 'intel core i5 i7 laptops' },
+  // audio
   { category: 'electronics', subcategory: 'audio', keywords: 'bluetooth earphones headphones soundbar' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'sony noise cancelling headphones' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'jbl bluetooth portable speaker' },
+  { category: 'electronics', subcategory: 'audio', keywords: 'bose apple airpods audio' },
+  // wearables & tv
   { category: 'electronics', subcategory: 'wearables', keywords: 'smartwatches' },
+  { category: 'electronics', subcategory: 'wearables', keywords: 'apple watch samsung galaxy watch' },
   { category: 'electronics', subcategory: 'tv', keywords: 'smart tv 4k' },
-  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'air fryer microwave mixer grinder' },
+  { category: 'electronics', subcategory: 'tv', keywords: 'oled qled 55 65 inch tv' },
+  // large & kitchen appliances
   { category: 'appliances', subcategory: 'large-appliances', keywords: 'washing machine refrigerator air conditioner' },
+  { category: 'appliances', subcategory: 'large-appliances', keywords: 'inverter split ac 1.5 ton 5 star' },
+  { category: 'appliances', subcategory: 'large-appliances', keywords: 'front load washing machine 8kg' },
+  { category: 'appliances', subcategory: 'large-appliances', keywords: 'double door frost free refrigerator' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'air fryer microwave mixer grinder' },
+  { category: 'appliances', subcategory: 'kitchen-appliances', keywords: 'coffee maker espresso machine' },
   { category: 'personal-care', subcategory: 'grooming', keywords: 'trimmer hair dryer straightener' },
   { category: 'electronics', subcategory: 'accessories', keywords: 'power bank mobile charger cable' },
 ];
@@ -209,6 +424,7 @@ export const DEFAULT_SEEDS_BY_STORE = {
   meesho: DEFAULT_MEESHO_SEEDS,
   ajio: DEFAULT_AJIO_SEEDS,
   croma: DEFAULT_CROMA_SEEDS,
+  shopsy: DEFAULT_SHOPSY_SEEDS,
 };
 
 /** Helper to clean raw price strings into safe numbers */
@@ -219,38 +435,46 @@ function cleanPriceVal(val) {
 }
 
 /**
- * One-time bootstrap: populate crawler_seeds across all 5 stores if missing.
+ * Bootstrap & synchronize crawler_seeds across all 8 stores using atomic bulk upserts.
+ * Enrolls any newly added search seeds while preserving existing historical records.
  */
 export async function ensureCrawlerDefaults() {
   for (const [store, seedList] of Object.entries(DEFAULT_SEEDS_BY_STORE)) {
-    const existingStoreCount = await CrawlerSeed.countDocuments({ store });
-    if (existingStoreCount === 0) {
-      console.log(`[Shoppers Deals Engine] Bootstrapping ${seedList.length} default keyword seeds for ${store.toUpperCase()}...`);
-      const docs = seedList.map(s => ({
-        store,
-        category: s.category,
-        subcategory: s.subcategory,
-        keywords: s.keywords,
-        url: buildStoreSearchUrl(store, s.keywords),
-        topN: 20,
-        isEnabled: true,
-        frequencyHours: 24,
-      }));
-      await CrawlerSeed.insertMany(docs, { ordered: false }).catch(err => {
-        console.warn(`[Shoppers Deals Engine] Seed bootstrap for ${store} had duplicate items (harmless):`, err.message);
+    const ops = seedList.map(s => ({
+      updateOne: {
+        filter: { store, keywords: s.keywords },
+        update: {
+          $setOnInsert: {
+            store,
+            category: s.category,
+            subcategory: s.subcategory,
+            keywords: s.keywords,
+            url: buildStoreSearchUrl(store, s.keywords),
+            topN: 20,
+            isEnabled: true,
+            frequencyHours: 4,
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    if (ops.length > 0) {
+      await CrawlerSeed.bulkWrite(ops, { ordered: false }).catch(err => {
+        console.warn(`[Shoppers Deals Engine] Seed bulk upsert for ${store} notice:`, err.message);
       });
     }
   }
 
   const config = await CrawlerConfig.findOne({});
   if (!config) {
-    console.log('[Shoppers Deals Engine] No config found — creating default (every 24h, enabled).');
-    await CrawlerConfig.create({ isEnabled: true, intervalHours: 24 });
+    console.log('[Shoppers Deals Engine] No config found — creating default (every 4h, enabled).');
+    await CrawlerConfig.create({ isEnabled: true, intervalHours: 4 });
   }
 
   await CrawlerSeed.updateMany(
-    { frequencyHours: { $exists: false } },
-    { $set: { frequencyHours: (config || {}).intervalHours || 24 } }
+    { $or: [{ frequencyHours: { $exists: false } }, { frequencyHours: 24 }] },
+    { $set: { frequencyHours: (config || {}).intervalHours || 4 } }
   ).catch(() => {});
 }
 
@@ -428,6 +652,79 @@ export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
       productId: pid,
       merchant: 'flipkart',
       cleanUrl: `https://www.flipkart.com/product/p/itme?pid=${pid}`,
+      title: title.slice(0, 200),
+      price: cleanPrice,
+      originalPrice,
+      imageUrl: imageUrl || null,
+      images: imageUrl ? [imageUrl] : [],
+      rating,
+      category: refinedCat.category,
+      subcategory: refinedCat.subcategory,
+      isActive: true,
+      country: 'IN',
+    });
+  });
+
+  return items;
+}
+
+/**
+ * Parses a Shopsy (Flipkart Value Commerce) search/listing page and extracts topN items.
+ * Uses Flipkart-compatible PID, pricing, and image selectors with Shopsy canonical URLs.
+ */
+export function parseShopsyBestsellerItems(html, categoryInfo, topN = 20) {
+  if (!html) return [];
+  const $ = cheerio.load(html);
+  const items = [];
+  const seenIds = new Set();
+
+  $('div[data-id], a[href*="pid="], a[href*="/p/"]').each((_, el) => {
+    if (items.length >= topN) return false;
+
+    const $el = $(el);
+    let pid = $el.attr('data-id');
+    const href = $el.attr('href') || $el.find('a[href*="pid="]').attr('href') || $el.find('a[href*="/p/"]').attr('href');
+
+    if (!pid && href) {
+      const pidMatch = href.match(/pid=([A-Z0-9]{16})/i) || href.match(/\/p\/([a-z0-9]{16})/i);
+      if (pidMatch) pid = pidMatch[1];
+    }
+
+    if (!pid || pid.length < 6 || seenIds.has(pid)) return;
+
+    const card = $el.is('div[data-id]') ? $el : $el.closest('div[data-id], div[class*="_1AtVbE"], div[class*="cPHDOP"]');
+    const scope = card.length ? card : $el;
+
+    let title = scope.find('div.KzDlHZ, a.WKTcLC, div._4rR01T, a.IRpwTa, a._2B099V, span[class*="title"]').first().text().trim();
+    const brand = scope.find('div._2WkVRV').first().text().trim();
+    if (brand && title && !title.toLowerCase().startsWith(brand.toLowerCase())) {
+      title = `${brand} ${title}`;
+    }
+    if (!title) {
+      title = scope.find('a[title]').first().attr('title') || scope.find('img').first().attr('alt');
+    }
+    if (!title || title.length < 3) return;
+
+    const priceText = scope.find('div.Nx9bqj, div._30jeq3, div[class*="Nx9bqj"]').first().text().trim();
+    const cleanPrice = cleanPriceVal(priceText);
+    if (!cleanPrice) return;
+
+    const mrpText = scope.find('div.yRaY8j, div._3I9_R3, div[class*="yRaY8j"]').first().text().trim();
+    const cleanMrp = cleanPriceVal(mrpText);
+    const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
+
+    const imageUrl = scope.find('img.DByuf4, img._53G40d, img[src*="flixcart.com"], img[src*="rukminim"], img').first().attr('src');
+    const ratingText = scope.find('div._5OesEi span div, div._3LWZlK, div[class*="_3LWZlK"]').first().text().trim();
+    const ratingNum = parseFloat(ratingText);
+    const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.0;
+
+    const refinedCat = refineCategoryFromTitle(title, categoryInfo.category, categoryInfo.subcategory);
+
+    seenIds.add(pid);
+    items.push({
+      productId: pid,
+      merchant: 'shopsy',
+      cleanUrl: `https://www.shopsy.in/product/p/itme?pid=${pid}`,
       title: title.slice(0, 200),
       price: cleanPrice,
       originalPrice,
@@ -974,6 +1271,8 @@ export function parseStoreListingItems(html, seed, topN = 20) {
       return parseAjioBestsellerItems(html, seed, topN);
     case 'croma':
       return parseCromaBestsellerItems(html, seed, topN);
+    case 'shopsy':
+      return parseShopsyBestsellerItems(html, seed, topN);
     case 'amazon':
     default:
       return parseAmazonBestsellerItems(html, seed, topN);
@@ -1178,13 +1477,19 @@ export async function runCategoryBestsellerCrawl(options = {}) {
         ],
       };
     }
-    const seeds = await CrawlerSeed.find(filter).lean();
+    const BATCH_SIZE = (options.seedIds && options.seedIds.length > 0) ? options.seedIds.length : (options.batchSize || 3);
+    const seeds = await CrawlerSeed.find(filter)
+      .sort({ lastRunAt: 1 })
+      .limit(BATCH_SIZE)
+      .lean();
 
     if (seeds.length === 0) {
       console.log('[Shoppers Deals Engine] No seeds due right now.');
     } else {
-      console.log(`[Shoppers Deals Engine] Dispatching ${seeds.length} multi-store seed(s) concurrently...`);
-      await Promise.allSettled(seeds.map(seed => crawlOneSeed(seed, stats)));
+      console.log(`[Shoppers Deals Engine] Dispatching ${seeds.length} multi-store seed(s) with sequential pacing (batch size: ${BATCH_SIZE})...`);
+      for (const seed of seeds) {
+        await crawlOneSeed(seed, stats);
+      }
     }
   } finally {
     const durationMs = Date.now() - startedAt;
@@ -1227,33 +1532,116 @@ export async function runCategoryBestsellerCrawl(options = {}) {
   return stats;
 }
 
+let isPipelineTickRunning = false;
+
 /**
- * Starts the scheduler tick. Ticks every 5 minutes.
+ * Continuous Elastic Backpressure Pipeline Feeder (Engine 2)
+ *
+ * Dynamically balances supply and demand:
+ * - Checks live BullMQ queue depth and active worker count in Redis.
+ * - If workers are free (queue depth < activeWorkers), calculates available headroom.
+ * - Pulls oldest due search seeds from MongoDB and dispatches them at PRIORITY.BESTSELLER.
+ * - If Telegram deals arrive (Priority 2) or workers are busy, automatically backs off.
+ * - Auto-scales throughput as more workers (e.g. 5, 8, 10) are added without code changes.
+ */
+export async function tickContinuousSearchPipeline() {
+  if (isPipelineTickRunning) return;
+  isPipelineTickRunning = true;
+
+  try {
+    const config = await CrawlerConfig.findOne({});
+    if (config && config.isEnabled === false) return;
+
+    // 1. Pre-flight check: ensure active ScrapingAnt proxy tokens exist
+    const activeTokens = await ScrapingAntToken.countDocuments({ status: 'active' }).catch(() => 0);
+    if (activeTokens === 0) return;
+
+    // 2. Queue Depth & Live Worker Capacity Inspection
+    const queueStatus = await scraperQueue.getStatus();
+    const activeWorkers = Math.max(1, queueStatus.activeWorkers || 1);
+    const waitingJobs = queueStatus.counts?.waiting || 0;
+    const activeJobs = queueStatus.counts?.active || 0;
+    const currentQueueDepth = waitingJobs + activeJobs;
+
+    // 3. Elastic Backpressure Calculation
+    const freeCapacity = activeWorkers - currentQueueDepth;
+    if (freeCapacity <= 0) {
+      // Workers are fully saturated (processing Telegram drops or active seeds)
+      return;
+    }
+
+    // Smooth streaming intake limit: feed at most freeCapacity (capped at 2 seeds per tick to prevent bursts)
+    const intakeLimit = Math.min(freeCapacity, 2);
+
+    const now = new Date();
+    // Safety minimum cooldown per individual seed (45 minutes)
+    // Ensures continuous round-robin streaming across all seeds whenever scrapers have free capacity,
+    // without spamming the exact same search query in under 45 minutes.
+    const MIN_SEED_COOLDOWN_MS = 45 * 60 * 1000;
+    const cooldownCutoff = new Date(now.getTime() - MIN_SEED_COOLDOWN_MS);
+
+    const eligibleFilter = {
+      isEnabled: true,
+      $or: [
+        { lastRunAt: null },
+        { lastRunAt: { $lte: cooldownCutoff } },
+      ],
+    };
+
+    const eligibleSeeds = await CrawlerSeed.find(eligibleFilter)
+      .sort({ lastRunAt: 1 })
+      .limit(intakeLimit)
+      .lean();
+
+    if (!eligibleSeeds || eligibleSeeds.length === 0) {
+      return; // All seeds were crawled within the last 45 minutes
+    }
+
+    console.log(`[Continuous Pipeline] ⚡ Available worker slots: ${freeCapacity}/${activeWorkers} (Queue depth: ${currentQueueDepth}). Feeding ${eligibleSeeds.length} search seed(s)...`);
+
+    // Immediately mark lastRunAt = now so the next 15s tick won't double-enqueue the same seed while in flight
+    const seedIds = eligibleSeeds.map(s => s._id);
+    await CrawlerSeed.updateMany(
+      { _id: { $in: seedIds } },
+      { $set: { lastRunAt: now } }
+    ).catch(() => {});
+
+    const stats = { seedsCrawled: 0, productsEnrolled: 0, productsUpdated: 0, errors: 0 };
+    for (const seed of eligibleSeeds) {
+      crawlOneSeed(seed, stats).catch(err => {
+        console.error(`[Continuous Pipeline Error] Failed for ${seed.store} ${seed.category}/${seed.subcategory}:`, err.message);
+      });
+    }
+  } catch (err) {
+    console.error('[Continuous Pipeline Error]:', err.message);
+  } finally {
+    isPipelineTickRunning = false;
+  }
+}
+
+/**
+ * Starts the continuous elastic pipeline loop.
+ * Checks queue backpressure every 15 seconds.
  */
 export function startBestsellerCrawlerScheduler() {
-  console.log('[Shoppers Deals Engine] Initializing scheduler (checks every 5 minutes for seeds due by their own frequency)...');
+  console.log('[Continuous Pipeline] 🚀 Initializing Reactive Elastic Pipeline (15s backpressure loop)...');
 
-  cron.schedule('*/5 * * * *', async () => {
+  // Run the continuous elastic pipeline tick every 15 seconds
+  setInterval(async () => {
+    try {
+      await tickContinuousSearchPipeline();
+    } catch (err) {
+      console.error('[Continuous Pipeline Loop Error]:', err.message);
+    }
+  }, 15000);
+
+  setTimeout(async () => {
     try {
       await ensureCrawlerDefaults();
-      const config = await CrawlerConfig.findOne({});
-      if (!config || !config.isEnabled) return;
-
-      if (config.isRunning) {
-        const runningForMs = Date.now() - new Date(config.updatedAt).getTime();
-        if (runningForMs < 60 * 60 * 1000) return;
-        console.warn(`[Shoppers Deals Engine] isRunning has been stuck true for ${Math.round(runningForMs / 60000)}m — clearing lock.`);
-        await CrawlerConfig.updateOne({}, { isRunning: false });
-      }
-
-      await runCategoryBestsellerCrawl({ dueOnly: true });
+      await tickContinuousSearchPipeline();
     } catch (err) {
-      console.error('[Shoppers Deals Engine Scheduler Error]:', err.message);
+      console.error('[Continuous Pipeline Bootstrap Failed]:', err.message);
     }
-  });
-
-  setTimeout(() => {
-    ensureCrawlerDefaults().catch(err => console.error('[Shoppers Deals Engine] Default bootstrap failed:', err.message));
   }, 5000);
 }
 

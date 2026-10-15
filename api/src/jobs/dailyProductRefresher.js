@@ -223,16 +223,31 @@ async function processSingleProduct(product, stats, todayStr) {
         const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop, product.country || 'IN');
 
         if (thresholdCheck.qualifies) {
-          const currencySymbol = product.country === 'US' ? '$' : '₹';
-          const synthesizedDeal = new Deal({
-            sourceChannelId: 'catalog_engine',
-            sourceMessageId: `${product.productId}_${Date.now()}`,
-            sourceChannelName: 'ShoppersDeals Price Drop Engine',
-            originalText: `Autonomous Price Drop Detected: ${product.title} at ${currencySymbol}${livePrice}`,
-            title: product.title,
-            description: `Live price drop detected on ${product.merchant || 'Amazon'}. Price fell from ${currencySymbol}${priorTrackedPrice} to ${currencySymbol}${livePrice}.`,
-            imageUrl: product.imageUrl || (product.images && product.images[0]) || null,
-            images: product.images || (product.imageUrl ? [product.imageUrl] : []),
+          // Resolve candidate authentic image (reject placeholder, localhost, or empty)
+          const allCandidateImages = [
+            product.imageUrl,
+            ...(Array.isArray(product.images) ? product.images : [])
+          ].filter(img => 
+            img && 
+            typeof img === 'string' && 
+            !img.includes('placeholder.png') && 
+            !img.includes('/media/telegram/') && 
+            !img.includes('localhost') && 
+            !img.includes('images-na.ssl-images-amazon.com/images/P/')
+          ).map(img => img.startsWith('http://') && !img.includes('localhost') ? img.replace(/^http:\/\//i, 'https://') : img);
+
+          const validImage = allCandidateImages[0] || null;
+          if (validImage) {
+            const currencySymbol = product.country === 'US' ? '$' : '₹';
+            const synthesizedDeal = new Deal({
+              sourceChannelId: 'catalog_engine',
+              sourceMessageId: `${product.productId}_${Date.now()}`,
+              sourceChannelName: 'ShoppersDeals Price Drop Engine',
+              originalText: `Autonomous Price Drop Detected: ${product.title} at ${currencySymbol}${livePrice}`,
+              title: product.title,
+              description: `Live price drop detected on ${product.merchant || 'Amazon'}. Price fell from ${currencySymbol}${priorTrackedPrice} to ${currencySymbol}${livePrice}.`,
+              imageUrl: validImage,
+              images: allCandidateImages.length > 0 ? allCandidateImages : [validImage],
             rating: product.rating || 4.2,
             dealUrl: product.cleanUrl,
             productId: product.productId,
@@ -259,6 +274,7 @@ async function processSingleProduct(product, stats, todayStr) {
           await enqueueDealForPublishing(synthesizedDeal._id, { sourceEngine: 'catalog_refresher' });
         }
       }
+    }
 
       // 4. Evaluate User Price Alerts
       const triggeredAlerts = await evaluateAndTriggerPriceAlerts({

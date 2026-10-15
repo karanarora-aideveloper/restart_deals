@@ -2093,14 +2093,25 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
     }
   }
 
-  // Helper to verify if an image is a usable product image (not 1x1 blank GIF or broken placeholder)
+  // Helper to normalize and upgrade image URLs
+  const normalizeImageUrl = (imgUrl) => {
+    if (!imgUrl || typeof imgUrl !== 'string') return '';
+    let res = imgUrl.trim();
+    if (res.startsWith('http://') && !res.includes('localhost') && !res.includes('127.0.0.1')) {
+      res = res.replace(/^http:\/\//i, 'https://');
+    }
+    return res;
+  };
+
+  // Helper to verify if an image is a usable product image (not 1x1 blank GIF, local media 404, or broken placeholder)
   const isPermanentMerchantImage = (imgUrl) => {
     if (!imgUrl || typeof imgUrl !== 'string') return false;
     // Reject legacy Amazon media server that returns 43-byte transparent 1x1 GIFs
     if (imgUrl.includes('images-na.ssl-images-amazon.com/images/P/')) return false;
     if (imgUrl.includes('placeholder.png')) return false;
+    if (imgUrl.includes('/media/telegram/')) return false;
+    if (imgUrl.includes('localhost') || imgUrl.includes('127.0.0.1') || imgUrl.includes('shoppersdeals-backend')) return false;
     return (
-      imgUrl.includes('/media/telegram/') ||
       imgUrl.includes('amazon.') ||
       imgUrl.includes('ssl-images-amazon.com') ||
       imgUrl.includes('media-amazon.com') ||
@@ -2120,9 +2131,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const cachedImages = [
     ...(productDetails?.images || []),
     ...(existingProduct?.images || [])
-  ].filter(isPermanentMerchantImage);
+  ].map(normalizeImageUrl).filter(isPermanentMerchantImage);
 
-  const freshScrapedImages = (scrapedData.images || []).filter(isPermanentMerchantImage);
+  const freshScrapedImages = (scrapedData.images || []).map(normalizeImageUrl).filter(isPermanentMerchantImage);
 
   let dealImages = [];
   if (!isNewProduct && !isMetadataStale && cachedImages.length > 0) {
@@ -2132,17 +2143,18 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   } else if (cachedImages.length > 0) {
     dealImages = cachedImages;
   } else if (dealFallbackImageUrl && isPermanentMerchantImage(dealFallbackImageUrl)) {
-    dealImages = [dealFallbackImageUrl];
+    dealImages = [normalizeImageUrl(dealFallbackImageUrl)];
   } else {
-    dealImages = ['https://www.shoppersdeals.in/images/placeholder.png'];
+    dealImages = [];
   }
 
   dealImages = [...new Set(dealImages)];
-  const productImages = dealImages.filter(img => !img.includes('placeholder.png'));
-  const dealMainImageUrl = dealImages[0] || '';
-  const mainImageUrl = productImages[0] || dealMainImageUrl;
+  const productImages = dealImages.filter(img => isPermanentMerchantImage(img));
+  const dealMainImageUrl = productImages[0] || (dealImages[0] ? normalizeImageUrl(dealImages[0]) : '');
+  const mainImageUrl = dealMainImageUrl;
 
-  const hasImage = dealImages.length > 0;
+  // Strict Image Requirement: A deal MUST have an authentic product image to be broadcast or marked as verified
+  const hasImage = productImages.length > 0 && isPermanentMerchantImage(dealMainImageUrl);
   const hasPrice = verifiedDealPrice != null && verifiedDealPrice > 0;
   const hasQualifyingDiscount = discountPercentage > 0;
   const isFullyVerified = isPriceVerified && hasImage && hasPrice && hasQualifyingDiscount;

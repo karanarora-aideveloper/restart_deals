@@ -4,8 +4,12 @@ import path from 'path';
 import CrawlerSeed from '../db/models/crawlerSeed.js';
 import { runCategoryBestsellerCrawl } from '../jobs/bestsellerCrawler.js';
 
-dotenv.config({ path: path.resolve(process.cwd(), 'api/.env') });
-dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../backend/.env') });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/deals_db';
 

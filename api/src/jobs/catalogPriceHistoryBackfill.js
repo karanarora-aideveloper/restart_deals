@@ -136,6 +136,25 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
                     { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_backfiller' } }
                   ).catch(() => {});
                 } else {
+                  // Resolve candidate authentic image (reject placeholder, localhost, or empty)
+                  const allCandidateImages = [
+                    prod.imageUrl,
+                    ...(Array.isArray(prod.images) ? prod.images : [])
+                  ].filter(img => 
+                    img && 
+                    typeof img === 'string' && 
+                    !img.includes('placeholder.png') && 
+                    !img.includes('/media/telegram/') && 
+                    !img.includes('localhost') && 
+                    !img.includes('images-na.ssl-images-amazon.com/images/P/')
+                  ).map(img => img.startsWith('http://') && !img.includes('localhost') ? img.replace(/^http:\/\//i, 'https://') : img);
+
+                  const validImage = allCandidateImages[0] || null;
+                  if (!validImage) {
+                    // Skip synthesizing active deal if product does not yet have an authentic image
+                    continue;
+                  }
+
                   const newDeal = new Deal({
                     sourceChannelId: 'catalog_engine',
                     sourceMessageId: `catalog_${prod.productId}_${Date.now()}`,
@@ -145,8 +164,8 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
                     originalText: `Genuine Price Drop: ${prod.title} at ₹${livePrice} (Dropped from ₹${genuinePrevPrice})`,
                     title: prod.title,
                     description: `Live price drop verified against 90-day history. Dropped from ₹${genuinePrevPrice} to ₹${livePrice} (${genuineDiscountPct}% real drop).`,
-                    imageUrl: prod.imageUrl || (prod.images && prod.images[0]) || null,
-                    images: prod.images || (prod.imageUrl ? [prod.imageUrl] : []),
+                    imageUrl: validImage,
+                    images: allCandidateImages.length > 0 ? allCandidateImages : [validImage],
                     rating: prod.rating || 4.2,
                     dealUrl: prod.cleanUrl,
                     productId: prod.productId,

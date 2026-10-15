@@ -57,6 +57,14 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
           $not: /root\s*link|loot\s*link|master\s*link|spin\s*link|link\s*:|:\s*link|^amazon\s+item\s*\(|^amazon\s+deal\s*\(|^amazon\s+product\s+deal|^loot\s*(\d+|\:|\-|\₹)|^loot\s+fast|kurta\s*loot|^\d+\s*(sbi|using\s+sbi|pack\s+of|effectively|\+)|^apply\s+(\₹?\d+)?\s*(off\s*)?coupon|^apply\s+cpn|^lowest\s*₹\d+/i
         }
       });
+      // Guardrail: Exclude any deals without an authentic image from public feed
+      andConditions.push({
+        imageUrl: {
+          $exists: true,
+          $ne: '',
+          $not: /placeholder\.png|localhost|127\.0\.0\.1|images-na\.ssl-images-amazon\.com\/images\/P\//i
+        }
+      });
     }
 
     if (req.query.category && req.query.category !== 'all') {
@@ -304,11 +312,51 @@ router.get('/', cacheMiddleware(15), async (req, res) => {
     let deals = dealsRaw;
 
     // Auto-heal broken/placeholder images and clean promo noise from titles on the fly
-    deals = deals.map(d => {
-      if (!d.imageUrl || d.imageUrl.includes('shoppersdeals-backend') || d.imageUrl.includes('placeholder.png') || d.imageUrl.includes('localhost')) {
-        const alt = (d.images || []).find(img => img && !img.includes('shoppersdeals-backend') && !img.includes('placeholder.png') && !img.includes('localhost'));
-        if (alt) d.imageUrl = alt;
+    const pidsToLookup = [];
+    deals.forEach(d => {
+      // Auto-upgrade insecure http to https for merchant CDN assets
+      if (d.imageUrl && d.imageUrl.startsWith('http://') && !d.imageUrl.includes('localhost') && !d.imageUrl.includes('127.0.0.1')) {
+        d.imageUrl = d.imageUrl.replace(/^http:\/\//i, 'https://');
       }
+
+      const isBroken = !d.imageUrl || 
+        d.imageUrl.includes('shoppersdeals-backend') || 
+        d.imageUrl.includes('placeholder.png') || 
+        d.imageUrl.includes('/media/telegram/') || 
+        d.imageUrl.includes('localhost') || 
+        d.imageUrl.includes('images-na.ssl-images-amazon.com/images/P/');
+
+      if (isBroken) {
+        const alt = (d.images || []).find(img => img && !img.includes('shoppersdeals-backend') && !img.includes('placeholder.png') && !img.includes('/media/telegram/') && !img.includes('localhost') && !img.includes('images-na.ssl-images-amazon.com/images/P/'));
+        if (alt) {
+          d.imageUrl = alt.startsWith('http://') ? alt.replace(/^http:\/\//i, 'https://') : alt;
+        } else if (d.productId) {
+          pidsToLookup.push(d.productId);
+        }
+      }
+    });
+
+    if (pidsToLookup.length > 0) {
+      try {
+        const Product = (await import('../db/models/product.js')).default;
+        const prods = await Product.find({ productId: { $in: pidsToLookup } }, { productId: 1, imageUrl: 1, images: 1 }).lean();
+        const prodMap = new Map(prods.map(p => [p.productId, p]));
+
+        deals.forEach(d => {
+          if ((!d.imageUrl || d.imageUrl.includes('placeholder.png') || d.imageUrl.includes('/media/telegram/')) && d.productId && prodMap.has(d.productId)) {
+            const p = prodMap.get(d.productId);
+            const pCandidate = (p.imageUrl && !p.imageUrl.includes('placeholder.png') && !p.imageUrl.includes('/media/telegram/') && !p.imageUrl.includes('images-na.ssl-images-amazon.com/images/P/'))
+              ? p.imageUrl
+              : (p.images || []).find(img => img && !img.includes('placeholder.png') && !img.includes('/media/telegram/') && !img.includes('images-na.ssl-images-amazon.com/images/P/'));
+            if (pCandidate) {
+              d.imageUrl = pCandidate.startsWith('http://') ? pCandidate.replace(/^http:\/\//i, 'https://') : pCandidate;
+            }
+          }
+        });
+      } catch (err) {}
+    }
+
+    deals = deals.map(d => {
       if (d.title) {
         d.title = cleanPromoTitle(d.title);
       }

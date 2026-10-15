@@ -159,6 +159,7 @@ export function isUsableImageUrl(url) {
   if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?\//i.test(url)) return false;
   // Amazon legacy media server returns HTTP 200 with a 43-byte transparent 1x1 blank GIF
   if (url.includes('images-na.ssl-images-amazon.com/images/P/')) return false;
-  if (url.endsWith('/images/placeholder.png')) return false;
+  if (url.endsWith('/images/placeholder.png') || url.includes('placeholder.png')) return false;
+  if (url.includes('/media/telegram/')) return false;
   return true;
 }

@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../backend/.env') });
 
-const MIN_ACTIVE_TOKENS = 6;
-const TARGET_POOL_SIZE = 10;
+const MIN_ACTIVE_TOKENS = 8;
+const TARGET_POOL_SIZE = 12;
 const MAX_BATCH_SIZE = 4;
 
 let isReplenishing = false;

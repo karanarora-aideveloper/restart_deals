@@ -86,7 +86,10 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   const dealTime = deal.createdAt || deal.postedAt || deal.updatedAt || deal.lastVerifiedAt;
   const verifiedTime = formatRelativeTime(dealTime);
 
-  const rawImage = deal.imageUrl || (Array.isArray(deal.images) && deal.images[0]) || '';
+  let rawImage = deal.imageUrl || (Array.isArray(deal.images) && deal.images[0]) || '';
+  if (rawImage.startsWith('http://') && !rawImage.includes('localhost') && !rawImage.includes('127.0.0.1')) {
+    rawImage = rawImage.replace(/^http:\/\//i, 'https://');
+  }
   const hasValidImage = isUsableImageUrl(rawImage) && !imgError;
 
   // Flipkart-grade Smart Verdict Pill
