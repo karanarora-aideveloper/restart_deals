@@ -89,6 +89,9 @@ export default function DealCard({
     if (m === 'nykaa' || urlString.includes('nykaa')) return { label: '💄 Nykaa', btnColor: '#ec4899', textColor: '#ffffff' };
     if (m === 'ajio' || urlString.includes('ajio')) return { label: '🕶️ Ajio', btnColor: '#0f172a', textColor: '#ffffff' };
     if (m === 'croma' || urlString.includes('croma')) return { label: '⚡ Croma', btnColor: '#00b5b5', textColor: '#ffffff' };
+    if (m === 'bombayshaving' || urlString.includes('bombayshavingcompany') || urlString.includes('bombay shaving')) {
+      return { label: '🪒 Bombay Shaving Co', btnColor: '#1e3a5f', textColor: '#ffffff', logo: require('../../assets/bombayshaving-dark.webp') };
+    }
     return { label: '🏷️ Deal', btnColor: '#FF6B00', textColor: '#ffffff' };
   };
 

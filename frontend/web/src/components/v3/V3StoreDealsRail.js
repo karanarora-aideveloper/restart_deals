@@ -10,6 +10,7 @@ import {
   AjioLogo,
   MeeshoLogo,
   CromaLogo,
+  BombayShavingCompanyLogo,
   MamaearthLogo,
   BoatLogo,
 } from '@/components/BrandAndStoreLogos';
@@ -79,6 +80,14 @@ const MONITORED_STORES = [
     badge: '280+ Verified Deals',
     badgeColor: 'text-teal-800 bg-teal-50 border-teal-200',
     perk: 'Laptops, TVs & Appliances',
+  },
+  {
+    id: 'bombayshaving',
+    name: 'Bombay Shaving Co',
+    logo: <BombayShavingCompanyLogo className="h-5 w-auto object-contain" />,
+    badge: 'D2C Verified',
+    badgeColor: 'text-sky-900 bg-sky-50 border-sky-200',
+    perk: 'Men Grooming & Shaving Kits',
   },
   {
     id: 'plum',

@@ -224,6 +224,18 @@ export function LevisLogo({ className = 'h-5 w-auto' }) {
   );
 }
 
+export function BombayShavingCompanyLogo({ className = 'h-5 w-auto' }) {
+  return (
+    <img
+      src="/bombayshaving-dark.webp"
+      alt="Bombay Shaving Company"
+      className={`${className} object-contain`}
+      loading="eager"
+      decoding="async"
+    />
+  );
+}
+
 /**
  * Universal Store Logo Resolver
  */
@@ -239,6 +251,7 @@ export function renderStoreLogo(merchantName, className = 'h-4 w-auto') {
   if (m.includes('ajio')) return <AjioLogo className={className} />;
   if (m.includes('meesho')) return <MeeshoLogo className={className} />;
   if (m.includes('croma')) return <CromaLogo className={className} />;
+  if (m.includes('bombayshaving') || m.includes('bombay shaving') || m.includes('bombay')) return <BombayShavingCompanyLogo className={className} />;
   if (m.includes('mamaearth')) return <MamaearthLogo className={className} />;
   if (m.includes('boat')) return <BoatLogo className={className} />;
   if (m.includes('plum')) return <span className="text-xs font-black tracking-tight text-indigo-700">🌿 PLUM</span>;
@@ -272,6 +285,7 @@ export function renderBrandLogo(brandId, className = 'h-5 w-auto') {
   if (b.includes('maybelline')) return <MaybellineLogo className={className} />;
   if (b.includes('asus')) return <AsusLogo className={className} />;
   if (b.includes('philips')) return <PhilipsLogo className={className} />;
+  if (b.includes('bombayshaving') || b.includes('bombay shaving') || b.includes('bombay')) return <BombayShavingCompanyLogo className={className} />;
   if (b.includes('mamaearth')) return <MamaearthLogo className={className} />;
   if (b.includes('levi')) return <LevisLogo className={className} />;
   return <span className="text-xs font-bold text-slate-700">{brandId}</span>;

@@ -86,6 +86,7 @@ export function getMerchantInfo(urlOrMerchant) {
   const isPortronics = s.includes('portronics');
   const isSnitch = s.includes('snitch');
   const isXyxx = s.includes('xyxx');
+  const isBombayShaving = s.includes('bombayshaving') || s.includes('bombay shaving') || s.includes('bombay');
   const isBlinkit = s.includes('blinkit') || s.includes('grofers');
   const isInstamart = s.includes('instamart') || s.includes('swiggy');
   const isZepto = s.includes('zepto');
@@ -98,6 +99,7 @@ export function getMerchantInfo(urlOrMerchant) {
   if (isAjio) return { id: 'ajio', name: 'Ajio', label: 'Ajio', emoji: '🕶️', logo: null, btnColor: '#16a34a', textColor: '#ffffff' };
   if (isNykaa) return { id: 'nykaa', name: 'Nykaa', label: 'Nykaa', emoji: '💄', logo: null, btnColor: '#db2777', textColor: '#ffffff' };
   if (isCroma) return { id: 'croma', name: 'Croma', label: 'Croma', emoji: '⚡', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
+  if (isBombayShaving) return { id: 'bombayshaving', name: 'Bombay Shaving Company', label: 'Bombay Shaving', emoji: '🪒', logo: '/bombayshaving-dark.webp', btnColor: '#1e3a5f', textColor: '#ffffff' };
   if (isPlum) return { id: 'plum', name: 'Plum Goodness', label: 'Plum', emoji: '🌿', logo: null, btnColor: '#4f46e5', textColor: '#ffffff' };
   if (isMamaearth) return { id: 'mamaearth', name: 'Mamaearth', label: 'Mamaearth', emoji: '🌱', logo: null, btnColor: '#059669', textColor: '#ffffff' };
   if (isDermaCo) return { id: 'thedermaco', name: 'The Derma Co', label: 'The Derma Co', emoji: '🔬', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };

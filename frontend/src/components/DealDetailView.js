@@ -113,6 +113,9 @@ export default function DealDetailView({ dealId, onBack, setActiveTab }) {
     if (isFlipkart) return { label: '🛍️ Flipkart', btnColor: '#2563eb', textColor: '#ffffff', logo: require('../../assets/flipkart.webp') };
     if (isMyntra) return { label: '👗 Myntra', btnColor: '#e11d48', textColor: '#ffffff', logo: require('../../assets/myntra.webp') };
     if (isMeesho) return { label: '🎁 Meesho', btnColor: '#7c3aed', textColor: '#ffffff' };
+    if (m === 'bombayshaving' || urlString.includes('bombayshavingcompany') || urlString.includes('bombay shaving')) {
+      return { label: '🪒 Bombay Shaving Co', btnColor: '#1e3a5f', textColor: '#ffffff', logo: require('../../assets/bombayshaving-dark.webp') };
+    }
     return { label: '🏷️ Deal', btnColor: '#FF6B00', textColor: '#ffffff' };
   };
 

@@ -53,6 +53,9 @@ export default function ProductCard({
     if (merchantString.includes('nykaa')) return { label: '💄 Nykaa', color: '#ec4899' };
     if (merchantString.includes('ajio')) return { label: '🕶️ Ajio', color: '#0f172a' };
     if (merchantString.includes('croma')) return { label: '⚡ Croma', color: '#00b5b5' };
+    if (merchantString.includes('bombayshaving') || merchantString.includes('bombay shaving') || merchantString.includes('bombay')) {
+      return { label: '🪒 Bombay Shaving Co', color: '#1e3a5f', logo: require('../../assets/bombayshaving-dark.webp') };
+    }
     return { label: '🏷️ ' + (product.merchant || 'Store').toUpperCase(), color: '#666' };
   };
 

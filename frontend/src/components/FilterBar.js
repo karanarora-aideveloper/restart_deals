@@ -22,6 +22,7 @@ export const MERCHANTS = [
   { id: 'ajio', label: '🕶️ Ajio', color: '#0f172a', icon: 'shirt', colors: ['#0f172a', '#334155'] },
   { id: 'meesho', label: '🎁 Meesho', color: '#9333ea', icon: 'gift', colors: ['#9333ea', '#6b21a8'] },
   { id: 'croma', label: '⚡ Croma', color: '#00b5b5', icon: 'flash', colors: ['#00b5b5', '#0f766e'] },
+  { id: 'bombayshaving', label: '🪒 Bombay Shaving Co', color: '#1e3a5f', logo: require('../../assets/bombayshaving-dark.webp'), colors: ['#1e3a5f', '#0f172a'] },
 ];
 
 export default function FilterBar({
