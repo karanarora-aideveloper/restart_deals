@@ -224,6 +224,8 @@ router.post('/d2c/sync', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
 // Trigger Amazon Deals (amazon.in/deals) sweep on-demand
 router.post('/amazon-deals', async (req, res) => {
   try {
