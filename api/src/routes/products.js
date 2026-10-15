@@ -463,8 +463,37 @@ async function handleProductDiscoveryOrSync({
     // Apply live price from client DOM
     if (livePrice) {
       product.price = livePrice;
-      if (liveMRP && (!product.originalPrice || product.originalPrice < liveMRP)) {
-        product.originalPrice = liveMRP;
+      if (liveMRP && liveMRP >= livePrice) {
+        if (!product.originalPrice || product.originalPrice !== liveMRP) {
+          product.originalPrice = liveMRP;
+
+          // If MRP was corrected to an authentic lower price (e.g. 199 vs 400),
+          // sanitize previous price and priceHistory to not exceed authentic MRP
+          if (product.previousPrice && product.previousPrice > liveMRP) {
+            product.previousPrice = liveMRP;
+          }
+
+          if (Array.isArray(product.priceHistory)) {
+            product.priceHistory.forEach((h) => {
+              h.originalPrice = liveMRP;
+              if (h.price > liveMRP) h.price = liveMRP;
+            });
+          }
+
+          // Asynchronously align any active deals for this product
+          Deal.find({ productId: product.productId, isExpired: false }).then((deals) => {
+            for (const d of deals) {
+              d.originalPrice = liveMRP;
+              if (d.previousPrice && d.previousPrice > liveMRP) {
+                d.previousPrice = liveMRP;
+              }
+              if (d.previousPrice && d.dealPrice && d.previousPrice > d.dealPrice) {
+                d.discountPercentage = Math.round(((d.previousPrice - d.dealPrice) / d.previousPrice) * 100);
+              }
+              d.save().catch(() => {});
+            }
+          }).catch(() => {});
+        }
       }
       product.priceUpdatedAt = now;
 

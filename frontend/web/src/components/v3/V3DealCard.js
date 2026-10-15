@@ -66,7 +66,10 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
   // Pricing Fields
   const currentPrice = Number(deal.dealPrice || 0);
   const listMrp = Number(deal.originalPrice || 0);
-  const previousTrackedPrice = Number(deal.previousPrice || 0);
+  let previousTrackedPrice = Number(deal.previousPrice || 0);
+  if (listMrp > 0 && previousTrackedPrice > listMrp) {
+    previousTrackedPrice = listMrp;
+  }
 
   // 1. MRP Discount
   const hasMrp = listMrp > currentPrice;

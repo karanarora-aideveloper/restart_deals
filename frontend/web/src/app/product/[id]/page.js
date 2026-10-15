@@ -173,12 +173,15 @@ export default async function ProductDetailPage({ params }) {
   const priceStr = formatInr(product.price, productCountry) || 'N/A';
   const stats = product.priceStats || computePriceStats(product);
 
-  const hasRealPriceDrop = Boolean(product.previousPrice && product.previousPrice > (product.price || 0));
-  const realPriceDrop = hasRealPriceDrop ? product.previousPrice - product.price : 0;
-  const realPriceDropPct = hasRealPriceDrop ? Math.round((realPriceDrop / product.previousPrice) * 100) : 0;
-
   const hasMrp = Boolean(product.originalPrice && product.originalPrice > (product.price || 0));
   const mrpDiscount = hasMrp ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+
+  const safePreviousPrice = (hasMrp && product.previousPrice > product.originalPrice)
+    ? product.originalPrice
+    : product.previousPrice;
+  const hasRealPriceDrop = Boolean(safePreviousPrice && safePreviousPrice > (product.price || 0));
+  const realPriceDrop = hasRealPriceDrop ? safePreviousPrice - product.price : 0;
+  const realPriceDropPct = hasRealPriceDrop ? Math.round((realPriceDrop / safePreviousPrice) * 100) : 0;
 
   const hasImage = isUsableImageUrl(product.imageUrl);
   const priceStrForSchema = product.price ? formatInr(product.price, productCountry) : 'price tracked';
@@ -342,7 +345,7 @@ export default async function ProductDetailPage({ params }) {
                 {hasRealPriceDrop ? (
                   <>
                     <span className="text-base font-semibold text-gray-400 line-through">
-                      Was {formatInr(product.previousPrice, productCountry)}
+                      Was {formatInr(safePreviousPrice, productCountry)}
                     </span>
                     <span className="rounded-lg bg-emerald-600 px-2.5 py-0.5 text-xs font-black text-white shadow-2xs">
                       {realPriceDropPct}% TRUE DROP
@@ -499,7 +502,7 @@ export default async function ProductDetailPage({ params }) {
                 {hasRealPriceDrop ? (
                   <>
                     <span className="text-lg font-semibold text-gray-400 line-through">
-                      Was {formatInr(product.previousPrice, productCountry)}
+                      Was {formatInr(safePreviousPrice, productCountry)}
                     </span>
                     <span className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-black text-white shadow-2xs">
                       {realPriceDropPct}% TRUE DROP

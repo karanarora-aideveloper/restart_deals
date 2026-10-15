@@ -217,11 +217,15 @@ export async function syncTop20Batch(batchSize = 5) {
 
           // 4. Autonomous Deal Synthesis for Engine 2
           if (matchingDeals.length === 0 && product.title && product.cleanUrl && priorTrackedPrice != null && priorTrackedPrice > livePrice) {
-            const genuineDiscount = Math.round(((priorTrackedPrice - livePrice) / priorTrackedPrice) * 100);
-            const cashDrop = priorTrackedPrice - livePrice;
+            const effectiveMRP = canonicalMRP || product.originalPrice || null;
+            const sanitizedPrevPrice = (effectiveMRP && priorTrackedPrice > effectiveMRP)
+              ? effectiveMRP
+              : priorTrackedPrice;
+            const genuineDiscount = Math.round(((sanitizedPrevPrice - livePrice) / sanitizedPrevPrice) * 100);
+            const cashDrop = sanitizedPrevPrice - livePrice;
             const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop, product.country || 'IN');
 
-            if (thresholdCheck.qualifies) {
+            if (thresholdCheck.qualifies && sanitizedPrevPrice > livePrice) {
               const synthesizedDeal = new Deal({
                 sourceChannelId: 'catalog_top20_engine',
                 sourceMessageId: `top20_${product.productId}_${Date.now()}`,
@@ -230,16 +234,16 @@ export async function syncTop20Batch(batchSize = 5) {
                 hasPriceHistory: Boolean(product.hasPriceHistory || (product.priceHistory && product.priceHistory.length >= 2)),
                 originalText: `Autonomous Price Drop Detected on Top-20 ${product.top20Subcategory || 'Catalog'}: ${product.title} at ₹${livePrice}`,
                 title: product.title,
-                description: `Autonomous price drop detected on Top-20 product (${product.merchant || 'Amazon'}). Price fell from ₹${priorTrackedPrice} to ₹${livePrice}.`,
+                description: `Autonomous price drop detected on Top-20 product (${product.merchant || 'Amazon'}). Price fell from ₹${sanitizedPrevPrice} to ₹${livePrice}.`,
                 imageUrl: product.imageUrl || (product.images && product.images[0]) || null,
                 images: product.images || (product.imageUrl ? [product.imageUrl] : []),
                 rating: product.rating || 4.2,
                 dealUrl: product.cleanUrl,
                 productId: product.productId,
                 merchant: product.merchant || 'amazon',
-                originalPrice: canonicalMRP || null,
+                originalPrice: effectiveMRP || null,
                 dealPrice: livePrice,
-                previousPrice: priorTrackedPrice,
+                previousPrice: sanitizedPrevPrice,
                 discountPercentage: genuineDiscount,
                 priceSource: 'price_history',
                 category: product.category || 'general',

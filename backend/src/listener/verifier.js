@@ -2438,13 +2438,17 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       }
       deal.rating = productRating;
       deal.reviews = productReviews;
-      const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null) || null;
-      if (authenticPrev != null) deal.previousPrice = authenticPrev;
       deal.originalPrice = (effectiveMRP && effectiveMRP > verifiedDealPrice)
         ? effectiveMRP
         : (canonicalMRP && canonicalMRP > verifiedDealPrice)
           ? canonicalMRP
-          : authenticPrev;
+          : null;
+      const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null) || null;
+      const sanitizedPrev = (deal.originalPrice && authenticPrev && authenticPrev > deal.originalPrice)
+        ? deal.originalPrice
+        : authenticPrev;
+      if (!deal.originalPrice && sanitizedPrev) deal.originalPrice = sanitizedPrev;
+      if (sanitizedPrev != null) deal.previousPrice = sanitizedPrev;
       deal.dealPrice = verifiedDealPrice;
       deal.discountPercentage = discountPercentage > 0 
         ? discountPercentage 
@@ -2503,11 +2507,19 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       return deal;
     } else {
       const authenticPrev = genuinePriceDrop || (productRecord?.previousPrice && productRecord.previousPrice > verifiedDealPrice ? productRecord.previousPrice : null) || (previousTrackedPrice && previousTrackedPrice > verifiedDealPrice ? previousTrackedPrice : null);
+      const dealOriginalPrice = (effectiveMRP && effectiveMRP > verifiedDealPrice)
+        ? effectiveMRP
+        : (canonicalMRP && canonicalMRP > verifiedDealPrice)
+          ? canonicalMRP
+          : authenticPrev;
+      const sanitizedPreviousPrice = (dealOriginalPrice && authenticPrev && authenticPrev > dealOriginalPrice)
+        ? dealOriginalPrice
+        : authenticPrev;
       const calculatedSourceEngine = classifySourceEngine(sourceChannelId, sourceChannelName);
       const calculatedHasPriceHistory = Boolean(
         productRecord?.hasPriceHistory ||
         (productRecord?.priceHistory && productRecord.priceHistory.length >= 2) ||
-        (authenticPrev && authenticPrev > verifiedDealPrice)
+        (sanitizedPreviousPrice && sanitizedPreviousPrice > verifiedDealPrice)
       );
       deal = new Deal({
         sourceChannelId,
@@ -2527,16 +2539,12 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         dealUrl: cleanUrl,
         productId,
         merchant,
-        originalPrice: (effectiveMRP && effectiveMRP > verifiedDealPrice)
-          ? effectiveMRP
-          : (canonicalMRP && canonicalMRP > verifiedDealPrice)
-            ? canonicalMRP
-            : authenticPrev,
+        originalPrice: dealOriginalPrice,
         dealPrice: verifiedDealPrice,
-        previousPrice: authenticPrev,
+        previousPrice: sanitizedPreviousPrice,
         discountPercentage: discountPercentage > 0
           ? discountPercentage
-          : Math.max(1, Math.round((((effectiveMRP || canonicalMRP || authenticPrev) - verifiedDealPrice) / (effectiveMRP || canonicalMRP || authenticPrev)) * 100)),
+          : Math.max(1, Math.round(((dealOriginalPrice - verifiedDealPrice) / dealOriginalPrice) * 100)),
         coupon: dealCoupon,
         priceSource,
         category,

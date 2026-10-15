@@ -141,7 +141,12 @@ export function normalizeBuyhatkeIntervals(rawIntervals, currentPrice, originalP
     }
 
     // Sanity range check (₹1 to ₹10,00,000)
-    const validPrice = lastKnownPrice > 0 && lastKnownPrice < 1000000 ? lastKnownPrice : defaultPrice;
+    let validPrice = lastKnownPrice > 0 && lastKnownPrice < 1000000 ? lastKnownPrice : defaultPrice;
+
+    // Cross-variant pollution guard: historical price cannot exceed statutory MRP
+    if (defaultOriginal > 0 && validPrice > defaultOriginal) {
+      validPrice = defaultOriginal;
+    }
 
     checkpoints.push({
       date: dateStr,

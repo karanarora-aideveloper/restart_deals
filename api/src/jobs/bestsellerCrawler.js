@@ -1349,26 +1349,30 @@ async function crawlOneSeed(seed, stats) {
 
             // Autonomous deal synthesis if qualifies
             if (priorPrice && priorPrice > prodData.price) {
-              const genuineDiscount = Math.round(((priorPrice - prodData.price) / priorPrice) * 100);
-              const cashDrop = priorPrice - prodData.price;
+              const effectiveMRP = existing.originalPrice || prodData.originalPrice || null;
+              const sanitizedPrevPrice = (effectiveMRP && priorPrice > effectiveMRP)
+                ? effectiveMRP
+                : priorPrice;
+              const genuineDiscount = Math.round(((sanitizedPrevPrice - prodData.price) / sanitizedPrevPrice) * 100);
+              const cashDrop = sanitizedPrevPrice - prodData.price;
               const thresholdCheck = meetsCategoryThreshold(existing.category, existing.subcategory, genuineDiscount, cashDrop, 'IN');
-              if (thresholdCheck.qualifies) {
+              if (thresholdCheck.qualifies && sanitizedPrevPrice > prodData.price) {
                 const deal = new Deal({
                   sourceChannelId: 'shoppers_deals_engine',
                   sourceMessageId: `sde_${prodData.productId}_${Date.now()}`,
                   sourceChannelName: 'Shoppers Deals Engine Discovery',
                   originalText: `Autonomous Price Drop Detected on ${existing.merchant.toUpperCase()} ${existing.subcategory}: ${existing.title} at ₹${prodData.price}`,
                   title: existing.title,
-                  description: `Autonomous price drop detected via Shoppers Deals Engine (${existing.merchant}). Price dropped from ₹${priorPrice} to ₹${prodData.price}.`,
+                  description: `Autonomous price drop detected via Shoppers Deals Engine (${existing.merchant}). Price dropped from ₹${sanitizedPrevPrice} to ₹${prodData.price}.`,
                   imageUrl: existing.imageUrl || (existing.images && existing.images[0]) || null,
                   images: existing.images || (existing.imageUrl ? [existing.imageUrl] : []),
                   rating: existing.rating || 4.2,
                   dealUrl: existing.cleanUrl,
                   productId: existing.productId,
                   merchant: existing.merchant,
-                  originalPrice: existing.originalPrice || prodData.originalPrice,
+                  originalPrice: effectiveMRP || null,
                   dealPrice: prodData.price,
-                  previousPrice: priorPrice,
+                  previousPrice: sanitizedPrevPrice,
                   discountPercentage: genuineDiscount,
                   priceSource: 'price_history',
                   category: existing.category || 'general',

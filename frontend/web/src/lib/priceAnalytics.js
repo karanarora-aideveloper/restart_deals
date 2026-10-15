@@ -17,13 +17,17 @@ export function computePriceStats(product) {
 
   const currentPrice = Number(product.price ?? product.dealPrice) || 0;
   const originalPrice = Number(product.originalPrice) || 0; // Statutory List Price / MRP
-  const previousPrice = Number(product.previousPrice) || 0; // Authentic previous selling price
+  let previousPrice = Number(product.previousPrice) || 0; // Authentic previous selling price
+  if (originalPrice > 0 && previousPrice > originalPrice) {
+    previousPrice = originalPrice;
+  }
   const history = Array.isArray(product.priceHistory) ? product.priceHistory : [];
 
-  // Collect all recorded prices in history
+  // Collect all recorded prices in history (clamped to originalPrice if MRP is known to eliminate cross-variant pollution)
   const recordedPrices = history
     .map((h) => Number(h.price))
-    .filter((p) => typeof p === 'number' && !isNaN(p) && p > 0);
+    .filter((p) => typeof p === 'number' && !isNaN(p) && p > 0)
+    .map((p) => (originalPrice > 0 && p > originalPrice ? originalPrice : p));
 
   if (currentPrice > 0 && !recordedPrices.includes(currentPrice)) {
     recordedPrices.push(currentPrice);

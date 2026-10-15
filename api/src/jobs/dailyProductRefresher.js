@@ -218,11 +218,15 @@ async function processSingleProduct(product, stats, todayStr) {
 
       // 3b. Autonomous Deal Synthesis for Catalog Products without prior deal
       if (matchingDeals.length === 0 && product.title && product.cleanUrl && priorTrackedPrice != null && priorTrackedPrice > livePrice) {
-        const genuineDiscount = Math.round(((priorTrackedPrice - livePrice) / priorTrackedPrice) * 100);
-        const cashDrop = priorTrackedPrice - livePrice;
+        const effectiveMRP = canonicalMRP || product.originalPrice || null;
+        const sanitizedPrevPrice = (effectiveMRP && priorTrackedPrice > effectiveMRP)
+          ? effectiveMRP
+          : priorTrackedPrice;
+        const genuineDiscount = Math.round(((sanitizedPrevPrice - livePrice) / sanitizedPrevPrice) * 100);
+        const cashDrop = sanitizedPrevPrice - livePrice;
         const thresholdCheck = meetsCategoryThreshold(product.category, product.subcategory, genuineDiscount, cashDrop, product.country || 'IN');
 
-        if (thresholdCheck.qualifies) {
+        if (thresholdCheck.qualifies && sanitizedPrevPrice > livePrice) {
           // Resolve candidate authentic image (reject placeholder, localhost, or empty)
           const allCandidateImages = [
             product.imageUrl,
@@ -245,16 +249,16 @@ async function processSingleProduct(product, stats, todayStr) {
               sourceChannelName: 'ShoppersDeals Price Drop Engine',
               originalText: `Autonomous Price Drop Detected: ${product.title} at ${currencySymbol}${livePrice}`,
               title: product.title,
-              description: `Live price drop detected on ${product.merchant || 'Amazon'}. Price fell from ${currencySymbol}${priorTrackedPrice} to ${currencySymbol}${livePrice}.`,
+              description: `Live price drop detected on ${product.merchant || 'Amazon'}. Price fell from ${currencySymbol}${sanitizedPrevPrice} to ${currencySymbol}${livePrice}.`,
               imageUrl: validImage,
               images: allCandidateImages.length > 0 ? allCandidateImages : [validImage],
             rating: product.rating || 4.2,
             dealUrl: product.cleanUrl,
             productId: product.productId,
             merchant: product.merchant || 'amazon',
-            originalPrice: canonicalMRP || null,
+            originalPrice: effectiveMRP || null,
             dealPrice: livePrice,
-            previousPrice: priorTrackedPrice,
+            previousPrice: sanitizedPrevPrice,
             discountPercentage: genuineDiscount,
             priceSource: 'price_history',
             category: product.category || 'general',

@@ -96,6 +96,14 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
               genuineDiscountPct = Math.round((genuineCashDrop / priceStats.averagePrice) * 100);
             }
 
+            // MRP Ceiling Invariant: previous selling price can never exceed statutory MRP
+            const effectiveMRP = prod.originalPrice || null;
+            if (effectiveMRP && genuinePrevPrice && genuinePrevPrice > effectiveMRP) {
+              genuinePrevPrice = effectiveMRP;
+              genuineCashDrop = Math.max(0, genuinePrevPrice - livePrice);
+              genuineDiscountPct = Math.round((genuineCashDrop / genuinePrevPrice) * 100);
+            }
+
             if (genuineDiscountPct >= 5 && genuinePrevPrice > livePrice) {
               const thresholdCheck = meetsCategoryThreshold(
                 prod.category || 'general',

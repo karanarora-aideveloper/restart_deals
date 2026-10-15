@@ -211,6 +211,16 @@ dealSchema.index(
 );
 
 dealSchema.pre('validate', function() {
+  // MRP statutory ceiling invariant: selling/previous prices can never exceed statutory MRP
+  if (this.originalPrice && this.originalPrice > 0) {
+    if (this.previousPrice && this.previousPrice > this.originalPrice) {
+      this.previousPrice = this.originalPrice;
+    }
+    if (this.dealPrice && this.dealPrice > this.originalPrice) {
+      this.dealPrice = this.originalPrice;
+    }
+  }
+
   if (this.isVerified && !this.isExpired) {
     if (!this.previousPrice || this.previousPrice <= this.dealPrice) {
       this.isExpired = true;

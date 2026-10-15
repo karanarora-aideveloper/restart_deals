@@ -50,13 +50,18 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
   const stats = deal.priceStats || computePriceStats(deal);
   
   // Authentic price drop: strictly against previously recorded real selling price
-  const hasRealPriceDrop = Boolean(deal.previousPrice && deal.previousPrice > (deal.dealPrice || 0));
-  const realPriceDrop = hasRealPriceDrop ? deal.previousPrice - deal.dealPrice : 0;
-  const realPriceDropPct = hasRealPriceDrop ? Math.round((realPriceDrop / deal.previousPrice) * 100) : 0;
+  const dealOriginalPrice = Number(deal.originalPrice || 0);
+  let safePreviousPrice = Number(deal.previousPrice || 0);
+  if (dealOriginalPrice > 0 && safePreviousPrice > dealOriginalPrice) {
+    safePreviousPrice = dealOriginalPrice;
+  }
+  const hasRealPriceDrop = Boolean(safePreviousPrice && safePreviousPrice > (deal.dealPrice || 0));
+  const realPriceDrop = hasRealPriceDrop ? safePreviousPrice - deal.dealPrice : 0;
+  const realPriceDropPct = hasRealPriceDrop ? Math.round((realPriceDrop / safePreviousPrice) * 100) : 0;
 
   // Statutory printed MRP discount (kept completely separate from real price drop)
-  const hasMrp = Boolean(deal.originalPrice && deal.originalPrice > (deal.dealPrice || 0));
-  const mrpDiscount = hasMrp ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100) : 0;
+  const hasMrp = Boolean(dealOriginalPrice && dealOriginalPrice > (deal.dealPrice || 0));
+  const mrpDiscount = hasMrp ? Math.round(((dealOriginalPrice - deal.dealPrice) / dealOriginalPrice) * 100) : 0;
 
   const saved = isDealSaved(dealId, savedDeals);
   const couponLabel = deal.coupon?.label || null;
