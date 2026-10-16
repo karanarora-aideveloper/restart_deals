@@ -23,6 +23,7 @@ import {
   extractTurnstileSitekey, isTurnstileAlreadySolved, solveTurnstile, injectTurnstileResponse,
 } from './captchaSolver.js';
 import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
+import { defaultRedis } from '../utils/redis.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1550,39 +1551,66 @@ export function getAutomationStatus() {
 
 let pendingCode = null; // { email, resolve, reject }
 
-export function submitOtpCode(code) {
-  if (!pendingCode || !code || !code.trim()) return false;
+export async function submitOtpCode(code) {
+  if (!code || !String(code).trim()) return false;
+  const trimmed = String(code).trim();
+  if (defaultRedis) {
+    await defaultRedis.set('sonjj:otp:code', trimmed, 'EX', 120).catch(() => {});
+    await defaultRedis.publish('sonjj:otp:channel', trimmed).catch(() => {});
+  }
+  if (!pendingCode) return true;
   const { resolve } = pendingCode;
   pendingCode = null;
   automationState.awaitingCode = false;
   automationState.awaitingCodeEmail = null;
   automationState.awaitingCodeSince = null;
-  resolve(code.trim());
+  resolve(trimmed);
   return true;
 }
 
 function waitForOtpCode(email, timeoutMs = 5 * 60 * 1000) {
-  console.log(`[Sonjj] ⏳ Waiting for verification code sent to ${email} (submit via admin panel, ${timeoutMs / 1000}s timeout)...`);
+  console.log(`[Sonjj] ⏳ Waiting for verification code sent to ${email} (submit via admin panel, redis, or chat, ${timeoutMs / 1000}s timeout)...`);
   automationState.awaitingCode = true;
   automationState.awaitingCodeEmail = email;
   automationState.awaitingCodeSince = new Date().toISOString();
 
   return new Promise((resolve, reject) => {
+    let pollTimer = null;
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (pollTimer) clearInterval(pollTimer);
+      pendingCode = null;
+      automationState.awaitingCode = false;
+      automationState.awaitingCodeEmail = null;
+      automationState.awaitingCodeSince = null;
+    };
+
     const timer = setTimeout(() => {
-      if (pendingCode?.reject === reject) {
-        pendingCode = null;
-        automationState.awaitingCode = false;
-        automationState.awaitingCodeEmail = null;
-        automationState.awaitingCodeSince = null;
-        reject(new Error(`Timed out after ${timeoutMs / 1000}s waiting for verification code`));
-      }
+      cleanup();
+      reject(new Error(`Timed out after ${timeoutMs / 1000}s waiting for verification code`));
     }, timeoutMs);
 
     pendingCode = {
       email,
-      resolve: (code) => { clearTimeout(timer); resolve(code); },
-      reject: (err) => { clearTimeout(timer); reject(err); },
+      resolve: (code) => { cleanup(); resolve(code); },
+      reject: (err) => { cleanup(); reject(err); },
     };
+
+    if (defaultRedis) {
+      pollTimer = setInterval(async () => {
+        try {
+          const redisCode = await defaultRedis.get('sonjj:otp:code');
+          if (redisCode && redisCode.trim()) {
+            console.log('[Sonjj] ✓ Verification code picked up from Redis:', redisCode.trim());
+            await defaultRedis.del('sonjj:otp:code').catch(() => {});
+            if (pendingCode) {
+              pendingCode.resolve(redisCode.trim());
+            }
+          }
+        } catch (e) {}
+      }, 1000);
+    }
   });
 }
 

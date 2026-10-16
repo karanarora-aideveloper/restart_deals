@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
 import { runBatchAutomation, getAutomationStatus } from '../scripts/scrapingAntAutomation.js';
 import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
+import { defaultRedis } from '../utils/redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,14 @@ export async function checkAndReplenishTokens({
     if (isReplenishing || currentStatus?.running) {
       console.log(`[TokenReplenisher] Replenishment already in progress (${currentStatus?.completedCount || 0}/${currentStatus?.requestedCount || 0} completed). Skipping duplicate trigger.`);
       return { needed: true, inProgress: true, activeCount };
+    }
+
+    if (defaultRedis) {
+      const lockAcquired = await defaultRedis.set('lock:token-replenishment', String(process.pid), 'EX', 600, 'NX');
+      if (!lockAcquired) {
+        console.log('[TokenReplenisher] Distributed replenishment lock already held by another process. Skipping duplicate trigger.');
+        return { needed: true, inProgress: true, activeCount };
+      }
     }
 
     const captchaApiKey = process.env.TWOCAPTCHA_API_KEY;
@@ -90,8 +99,11 @@ export async function checkAndReplenishTokens({
       console.log(`[TokenReplenisher] ✓ Autonomous batch replenishment completed successfully.`);
     }).catch((err) => {
       console.error('[TokenReplenisher] ✕ Batch automation error:', err.message);
-    }).finally(() => {
+    }).finally(async () => {
       isReplenishing = false;
+      if (defaultRedis) {
+        await defaultRedis.del('lock:token-replenishment').catch(() => {});
+      }
     });
 
     return {
@@ -103,6 +115,9 @@ export async function checkAndReplenishTokens({
   } catch (err) {
     console.error('[TokenReplenisher Error] checkAndReplenishTokens failed:', err.message);
     isReplenishing = false;
+    if (defaultRedis) {
+      await defaultRedis.del('lock:token-replenishment').catch(() => {});
+    }
     return { error: err.message };
   }
 }
