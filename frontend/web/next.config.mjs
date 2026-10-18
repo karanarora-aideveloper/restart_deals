@@ -68,10 +68,14 @@ const nextConfig = {
     ];
   },
   async rewrites() {
+    const rawApi = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = (typeof rawApi === 'string' && (rawApi.startsWith('http://') || rawApi.startsWith('https://')))
+      ? rawApi
+      : 'https://api.shoppersdeals.in';
     return [
       {
         source: '/media/telegram/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://api.shoppersdeals.in'}/media/telegram/:path*`,
+        destination: `${apiUrl}/media/telegram/:path*`,
       },
     ];
   },

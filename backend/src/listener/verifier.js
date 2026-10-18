@@ -11,6 +11,7 @@ import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 import { findD2CStoreByUrl, D2C_STORES } from '../config/d2cStores.js';
 import { classifySourceEngine } from '../utils/engineClassifier.js';
+import { extractBankOffersAndCoupons } from '../utils/bankOffersExtractor.js';
 
 const D2C_DOMAINS = D2C_STORES.flatMap(s => s.domains);
 const D2C_MERCHANTS = D2C_STORES.map(s => s.merchant);
@@ -884,23 +885,63 @@ export async function scrapeProductDetails(targetUrl) {
       brand = $('#bylineInfo').text().replace(/\s+/g, ' ').replace(/^Brand:\s*/i, '').replace(/^Visit the\s*/i, '').replace(/\s*Store$/i, '').trim() || null;
 
       // 1. Amazon main and dynamic high-res product images
-      $('#landingImage, #imgTagWrapperId img, #main-image').each((_, el) => {
+      function cleanAmazonMaster(url) {
+        if (!url || typeof url !== 'string') return '';
+        let res = url.trim();
+        if (res.startsWith('http://')) res = res.replace(/^http:\/\//i, 'https://');
+        if (
+          res.includes('favicon') ||
+          res.includes('transparent-pixel') ||
+          res.includes('sprite') ||
+          res.includes('pixel.gif') ||
+          res.includes('play-button') ||
+          res.includes('G/01/x-locale')
+        ) {
+          return '';
+        }
+        return res.replace(/\._[A-Za-z0-9,._-]+(?=\.[a-zA-Z0-9]+)/, '');
+      }
+
+      const seenImageBases = new Set();
+      function addImage(url) {
+        const clean = cleanAmazonMaster(url);
+        if (clean && !seenImageBases.has(clean)) {
+          seenImageBases.add(clean);
+          images.push(clean);
+        }
+      }
+
+      // Dynamic main showcase image and high-res pairs
+      $('#landingImage, #imgTagWrapperId img, #main-image, [data-a-dynamic-image]').each((_, el) => {
         const dyn = $(el).attr('data-a-dynamic-image');
         if (dyn) {
           try {
             const parsed = JSON.parse(dyn);
             for (const k of Object.keys(parsed)) {
-              if (k && !images.includes(k)) images.push(k);
+              addImage(k);
             }
           } catch (e) {}
         }
-        const src = $(el).attr('data-old-hires') || $(el).attr('src');
-        if (src && !images.includes(src)) images.push(src);
+        addImage($(el).attr('data-old-hires'));
+        addImage($(el).attr('src'));
       });
 
+      // Alternate angles from thumbnail strip (#altImages, #imageBlock)
+      $('#altImages img, #imageBlock img, .imageThumbnail img').each((_, el) => {
+        addImage($(el).attr('data-old-hires'));
+        addImage($(el).attr('src'));
+      });
+
+      // Embedded JSON state (colorImages.initial and imageGalleryData)
+      const pageHtml = $.html();
+      const hiResMatches = pageHtml.matchAll(/["'](?:hiRes|large)["']\s*:\s*["'](https:\/\/[^"']+\.(?:jpg|jpeg|png|webp))["']/gi);
+      for (const m of hiResMatches) {
+        addImage(m[1]);
+      }
+
+      // OpenGraph image fallback
       $('meta[property="og:image"]').each((_, el) => {
-        const src = $(el).attr('content');
-        if (src && !images.includes(src)) images.push(src);
+        addImage($(el).attr('content'));
       });
 
       // Amazon 'About this item' (Feature Bullets)
@@ -1081,11 +1122,11 @@ export async function scrapeProductDetails(targetUrl) {
       if (fkLd.price !== null) {
         price = fkLd.price;
       } else {
-        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d', '.hl05eU ._30jeq3']);
+        price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '.hZ3P6w', '.DeU9vF', 'div[class*="hZ3P6w"]', 'div[class*="Nx9bqj"]', '._16Jk6d', '.hl05eU ._30jeq3']);
       }
       if (price !== null) originalPrice = extractFlipkartMRP($, price);
       if (originalPrice === null) {
-        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N'], null, true);
+        originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '.kRYCnD', '.gxR4EY', 'div[class*="kRYCnD"]', 'div[class*="yRaY8j"]', '._3auQ3N'], null, true);
       }
 
       // Flipkart Brand
@@ -1466,6 +1507,17 @@ export async function scrapeProductDetails(targetUrl) {
       });
     }
 
+    let merchant = 'general';
+    if (hostname.includes('amazon.')) merchant = 'amazon';
+    else if (hostname.includes('flipkart.com')) merchant = 'flipkart';
+    else if (hostname.includes('shopsy.in')) merchant = 'shopsy';
+    else if (hostname.includes('croma.com')) merchant = 'croma';
+    else if (hostname.includes('myntra.com')) merchant = 'myntra';
+    else if (hostname.includes('nykaa.com')) merchant = 'nykaa';
+    else if (hostname.includes('meesho.com')) merchant = 'meesho';
+
+    const { bankOffers, coupon, couponObj } = extractBankOffersAndCoupons($, merchant, price);
+
     return {
       title,
       brand,
@@ -1478,7 +1530,10 @@ export async function scrapeProductDetails(targetUrl) {
       technicalSpecifications,
       aiSummary,
       categoryHint,
-      couponRawText
+      couponRawText,
+      bankOffers,
+      coupon,
+      couponObj,
     };
   } catch (err) {
     console.error(`[Scraper Error] Scraping failed for ${targetUrl}:`, err.message);
@@ -1495,7 +1550,10 @@ export async function scrapeProductDetails(targetUrl) {
       technicalSpecifications: {},
       aiSummary: null,
       categoryHint: null,
-      couponRawText: null
+      couponRawText: null,
+      bankOffers: [],
+      coupon: null,
+      couponObj: null,
     };
   }
 }
@@ -2136,7 +2194,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const freshScrapedImages = (scrapedData.images || []).map(normalizeImageUrl).filter(isPermanentMerchantImage);
 
   let dealImages = [];
-  if (!isNewProduct && !isMetadataStale && cachedImages.length > 0) {
+  if (freshScrapedImages.length > cachedImages.length && freshScrapedImages.length > 1) {
+    dealImages = freshScrapedImages;
+  } else if (!isNewProduct && !isMetadataStale && cachedImages.length > 0) {
     dealImages = cachedImages;
   } else if (freshScrapedImages.length > 0) {
     dealImages = freshScrapedImages;
@@ -2200,9 +2260,11 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   }
 
   const dealDescription = `${actualTitle} available on ${merchant} at a discounted price.`;
-  const dealCoupon = merchant === 'amazon' ? parseAmazonCoupon(scrapedData.couponRawText) : null;
+  const dealCoupon = merchant === 'amazon' 
+    ? (parseAmazonCoupon(scrapedData.couponRawText) || scrapedData.couponObj) 
+    : (scrapedData.couponObj || null);
   if (dealCoupon) {
-    console.log(`[Verifier] Amazon coupon detected for ${cleanUrl}: ${dealCoupon.label} (raw: "${(scrapedData.couponRawText || '').slice(0, 100)}")`);
+    console.log(`[Verifier] Coupon detected for ${cleanUrl}: ${dealCoupon.label} (raw: "${(scrapedData.couponRawText || scrapedData.coupon || '').slice(0, 100)}")`);
   }
 
   let productRecord = existingProduct || null;
@@ -2229,6 +2291,9 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         metadataUpdatedAt: now,
         rating: productRating,
         reviews: productReviews,
+        bankOffers: scrapedData.bankOffers || [],
+        coupon: scrapedData.coupon || (dealCoupon ? dealCoupon.label : null),
+        lastPdpSyncAt: wasStoreSynced ? now : null,
         price: effectivePrice,
         previousPrice: null,
         priceSource,
@@ -2331,9 +2396,21 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
       // lastStoreSyncAt is ONLY updated when we actually fetched from the merchant page this run.
       if (wasStoreSynced) {
         productRecord.lastStoreSyncAt = now;
+        productRecord.lastPdpSyncAt = now;
+        if (scrapedData.bankOffers && scrapedData.bankOffers.length > 0) {
+          productRecord.bankOffers = scrapedData.bankOffers;
+        }
+        if (scrapedData.coupon) {
+          productRecord.coupon = scrapedData.coupon;
+        }
+        if (productImages.length > 1 && (!productRecord.images || productRecord.images.length <= 1)) {
+          productRecord.images = productImages;
+          productRecord.imageUrl = mainImageUrl;
+        }
       }
       productRecord.lastChecked = now;
       productRecord.updatedAt = now;
+
     }
 
     await productRecord.save();
@@ -2454,6 +2531,13 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
         ? discountPercentage 
         : Math.max(1, Math.round(((deal.originalPrice - verifiedDealPrice) / deal.originalPrice) * 100));
       deal.coupon = dealCoupon;
+      if (scrapedData.bankOffers && scrapedData.bankOffers.length > 0) {
+        deal.bankOffers = scrapedData.bankOffers;
+        const lowestEffective = scrapedData.bankOffers.reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity);
+        if (lowestEffective !== Infinity && lowestEffective < verifiedDealPrice) {
+          deal.bankOfferPrice = lowestEffective;
+        }
+      }
       deal.priceSource = priceSource;
       deal.category = category;
       deal.subcategory = subcategory;
@@ -2546,6 +2630,10 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
           ? discountPercentage
           : Math.max(1, Math.round(((dealOriginalPrice - verifiedDealPrice) / dealOriginalPrice) * 100)),
         coupon: dealCoupon,
+        bankOffers: scrapedData.bankOffers || [],
+        bankOfferPrice: (scrapedData.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity) !== Infinity
+          ? (scrapedData.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity)
+          : null,
         priceSource,
         category,
         subcategory,

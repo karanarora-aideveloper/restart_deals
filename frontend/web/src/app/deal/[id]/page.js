@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import { fetchDealById, fetchProductById, findMatchingProductId } from '@/lib/api';
-import { getMerchantInfo, formatRelativeTime, formatInr, isUsableImageUrl } from '@/lib/affiliate';
+import { getMerchantInfo, formatRelativeTime, formatInr, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { categoryLabel, subcategoryLabel } from '@/lib/taxonomy';
 import { SITE_URL } from '@/lib/config';
 import DealDetailActions from '@/components/DealDetailActions';
@@ -154,7 +154,14 @@ export default async function DealDetailPage({ params }) {
           <div className="flex h-[300px] items-center justify-center border-b border-[#f3f4f6] bg-white p-6">
             {isUsableImageUrl(deal.imageUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={deal.imageUrl} alt={deal.title || 'Deal image'} className="h-full w-full object-contain" />
+              <img
+                src={getOptimizedImageUrl(deal.imageUrl, 'hd')}
+                srcSet={getImageSrcSet(deal.imageUrl)}
+                sizes="(max-width: 768px) 100vw, 800px"
+                alt={deal.title || 'Deal image'}
+                className="h-full w-full object-contain"
+                decoding="async"
+              />
             ) : (
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5"><path d="M6 7h12l1 13H5L6 7Z" /><path d="M9 7a3 3 0 0 1 6 0" /></svg>
             )}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isUsableImageUrl } from '@/lib/affiliate';
+import { isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 export default function ProductGallery({ product, latestDeal, merchant }) {
@@ -25,7 +25,9 @@ export default function ProductGallery({ product, latestDeal, merchant }) {
     return () => window.removeEventListener('sd:variant-selected', handleVariantChanged);
   }, []);
 
-  const activeImage = customVariantImage || images[selectedIndex] || product?.imageUrl;
+  const rawActiveImage = customVariantImage || images[selectedIndex] || product?.imageUrl;
+  const activeImageHd = getOptimizedImageUrl(rawActiveImage, 'hd');
+  const activeImageSrcSet = getImageSrcSet(rawActiveImage);
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -44,18 +46,26 @@ export default function ProductGallery({ product, latestDeal, merchant }) {
           </div>
         )}
 
-        {/* Store Icon Pill with Logo */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-xs backdrop-blur-md">
-          {renderStoreLogo(product?.merchant || merchant?.id, 'h-4 w-auto object-contain')}
+        {/* Store Icon Pill with Logo & HD Badge */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <span className="hidden sm:inline-flex items-center rounded-full bg-slate-900/75 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md">
+            HD 1500p
+          </span>
+          <div className="flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-xs backdrop-blur-md">
+            {renderStoreLogo(product?.merchant || merchant?.id, 'h-4 w-auto object-contain')}
+          </div>
         </div>
 
         {/* Hero Image */}
-        {isUsableImageUrl(activeImage) ? (
+        {isUsableImageUrl(rawActiveImage) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={activeImage}
+            src={activeImageHd}
+            srcSet={activeImageSrcSet}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
             alt={product?.title || 'Product image'}
             className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+            decoding="async"
           />
         ) : (
           <div className="flex flex-col items-center justify-center text-gray-400">
@@ -75,15 +85,23 @@ export default function ProductGallery({ product, latestDeal, merchant }) {
             <button
               key={idx}
               type="button"
-              onClick={() => setSelectedIndex(idx)}
+              onClick={() => {
+                setSelectedIndex(idx);
+                setCustomVariantImage(null);
+              }}
               className={`relative h-18 w-18 shrink-0 overflow-hidden rounded-2xl border-2 bg-white p-1.5 transition-all ${
-                selectedIndex === idx
+                selectedIndex === idx && !customVariantImage
                   ? 'border-brand shadow-sm ring-2 ring-brand/20'
                   : 'border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100'
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-contain" />
+              <img
+                src={getOptimizedImageUrl(img, 'card')}
+                alt={`Thumbnail ${idx + 1}`}
+                className="h-full w-full object-contain"
+                loading="lazy"
+              />
             </button>
           ))}
         </div>

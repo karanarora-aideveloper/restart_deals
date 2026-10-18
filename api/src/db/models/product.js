@@ -272,6 +272,15 @@ const productSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  lastPdpSyncAt: {
+    type: Date,
+    default: null,
+    index: true
+  },
+  coupon: {
+    type: String,
+    default: null
+  },
   lastChecked: {
     type: Date,
     default: Date.now

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useCompare } from '@/lib/useCompare';
-import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, formatInr, isUsableImageUrl } from '@/lib/affiliate';
+import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, formatInr, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { categoryLabel, subcategoryLabel } from '@/lib/taxonomy';
 import { logEvent } from '@/lib/analytics';
 import { saveDealItem, isDealSaved } from '@/lib/savedDeals';
@@ -98,7 +98,9 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
         {isUsableImageUrl(deal.imageUrl) && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={deal.imageUrl}
+            src={getOptimizedImageUrl(deal.imageUrl, 'card')}
+            srcSet={getImageSrcSet(deal.imageUrl)}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
             alt={deal.title || 'Product image'}
             onError={() => {
               setImgError(true);
@@ -113,6 +115,7 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
             }}
             className="sd-grid-image absolute inset-0 m-auto h-[84%] w-[84%] object-contain"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] rounded-xl">

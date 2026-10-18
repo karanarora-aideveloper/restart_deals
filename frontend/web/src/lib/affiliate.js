@@ -165,3 +165,141 @@ export function isUsableImageUrl(url) {
   if (url.includes('/media/telegram/')) return false;
   return true;
 }
+
+/**
+ * Transforms merchant CDN image URLs to appropriate device resolutions.
+ *
+ * Size tiers:
+ * - 'thumb': Small thumbnail (~200px - 320px) for lists, alerts, miniature previews.
+ * - 'card': High-definition card image (~600px - 800px) crisp on 2x/3x Retina screens.
+ * - 'hd': Ultra-HD showcase (~1200px - 1500px) for desktop hero PDP views.
+ * - 'master': Uncompressed original master image from store CDN.
+ *
+ * Supported CDNs:
+ * 1. Amazon (m.media-amazon.com, images-na.ssl-images-amazon.com, images-eu.ssl-images-amazon.com)
+ * 2. Flipkart / Shopsy (rukminim1.flixcart.com, rukminim2.flixcart.com, flixcart.com)
+ * 3. Myntra (assets.myntassets.com)
+ * 4. Nykaa (images-static.nykaa.com)
+ * 5. Ajio (assets.ajio.com)
+ */
+export function getOptimizedImageUrl(url, size = 'card') {
+  if (!url || typeof url !== 'string') return url;
+
+  // 1. Amazon CDN
+  // Formats: https://m.media-amazon.com/images/I/71xyzabc._AC_UL320_.jpg
+  //          https://m.media-amazon.com/images/I/71xyzabc.jpg
+  if (url.includes('media-amazon.com') || url.includes('ssl-images-amazon.com')) {
+    if (url.includes('/images/I/')) {
+      const master = url.replace(/\._[A-Za-z0-9,._-]+(?=\.[a-zA-Z0-9]+)/, '');
+      if (size === 'master') return master;
+
+      const mod = size === 'thumb'
+        ? '._AC_UL320_.'
+        : size === 'hd'
+        ? '._AC_SL1500_.'
+        : '._AC_SL800_.';
+
+      return master.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, (match, ext, query) => {
+        return mod + ext + (query || '');
+      });
+    }
+    return url;
+  }
+
+  // 2. Flipkart & Shopsy (rukminim.flixcart.com)
+  // Formats: https://rukminim2.flixcart.com/image/312/312/xif0q/.../image.jpeg?q=70
+  if (url.includes('flixcart.com') || url.includes('rukminim')) {
+    if (url.includes('/image/')) {
+      let targetDim = '832/832';
+      let targetQ = 'q=80';
+      if (size === 'thumb') {
+        targetDim = '312/312';
+        targetQ = 'q=70';
+      } else if (size === 'hd' || size === 'master') {
+        targetDim = '1664/1664';
+        targetQ = 'q=90';
+      }
+      return url
+        .replace(/\/image\/\d+\/\d+\//, `/image/${targetDim}/`)
+        .replace(/q=\d+/, targetQ);
+    }
+    return url;
+  }
+
+  // 3. Myntra (assets.myntassets.com)
+  // Formats: https://assets.myntassets.com/dpr_1.5,q_60,w_400,c_limit,fl_progressive/assets/images/...
+  if (url.includes('assets.myntassets.com')) {
+    let targetW = 'w_640,q_75';
+    if (size === 'thumb') targetW = 'w_320,q_60';
+    else if (size === 'hd' || size === 'master') targetW = 'w_1080,q_85';
+
+    if (/w_\d+/.test(url)) {
+      return url.replace(/w_\d+(?:,q_\d+)?/, targetW);
+    }
+    return url;
+  }
+
+  // 4. Nykaa (images-static.nykaa.com)
+  // Formats: https://images-static.nykaa.com/media/catalog/product/tr:w-276,h-276,cm-pad_resize/...
+  if (url.includes('nykaa.com') && url.includes('tr:')) {
+    let targetNykaa = 'tr:w-600,h-600';
+    if (size === 'thumb') targetNykaa = 'tr:w-300,h-300';
+    else if (size === 'hd' || size === 'master') targetNykaa = 'tr:w-1200,h-1200';
+
+    return url.replace(/tr:w-\d+,h-\d+/, targetNykaa);
+  }
+
+  // 5. Ajio (assets.ajio.com)
+  // Formats: .../473Wx593H/...
+  if (url.includes('assets.ajio.com') && /\d+Wx\d+H/.test(url)) {
+    let targetAjio = '768Wx960H';
+    if (size === 'thumb') targetAjio = '384Wx480H';
+    else if (size === 'hd' || size === 'master') targetAjio = '1024Wx1280H';
+
+    return url.replace(/\d+Wx\d+H/, targetAjio);
+  }
+
+  return url;
+}
+
+/**
+ * Returns a responsive srcSet string for standard HTML <img> or Next.js images.
+ */
+export function getImageSrcSet(url) {
+  if (!url || typeof url !== 'string') return undefined;
+
+  // Amazon
+  if ((url.includes('media-amazon.com') || url.includes('ssl-images-amazon.com')) && url.includes('/images/I/')) {
+    const thumb = getOptimizedImageUrl(url, 'thumb');
+    const card = getOptimizedImageUrl(url, 'card');
+    const hd = getOptimizedImageUrl(url, 'hd');
+    return `${thumb} 320w, ${card} 800w, ${hd} 1500w`;
+  }
+
+  // Flipkart / Shopsy
+  if ((url.includes('flixcart.com') || url.includes('rukminim')) && url.includes('/image/')) {
+    const thumb = getOptimizedImageUrl(url, 'thumb');
+    const card = getOptimizedImageUrl(url, 'card');
+    const hd = getOptimizedImageUrl(url, 'hd');
+    return `${thumb} 312w, ${card} 832w, ${hd} 1664w`;
+  }
+
+  // Myntra
+  if (url.includes('assets.myntassets.com') && /w_\d+/.test(url)) {
+    const thumb = getOptimizedImageUrl(url, 'thumb');
+    const card = getOptimizedImageUrl(url, 'card');
+    const hd = getOptimizedImageUrl(url, 'hd');
+    return `${thumb} 320w, ${card} 640w, ${hd} 1080w`;
+  }
+
+  // Nykaa
+  if (url.includes('nykaa.com') && url.includes('tr:')) {
+    const thumb = getOptimizedImageUrl(url, 'thumb');
+    const card = getOptimizedImageUrl(url, 'card');
+    const hd = getOptimizedImageUrl(url, 'hd');
+    return `${thumb} 300w, ${card} 600w, ${hd} 1200w`;
+  }
+
+  return undefined;
+}
+

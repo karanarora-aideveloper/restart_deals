@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, isUsableImageUrl } from '@/lib/affiliate';
+import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { logEvent } from '@/lib/analytics';
 import { isDealSaved, saveDealItem } from '@/lib/savedDeals';
 import { useAuth } from '@/components/AuthProvider';
@@ -196,10 +196,13 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
           {hasValidImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={rawImage}
+              src={getOptimizedImageUrl(rawImage, 'card')}
+              srcSet={getImageSrcSet(rawImage)}
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
               alt={displayTitle}
               className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
               onError={() => {
                 setImgError(true);

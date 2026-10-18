@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { extractVariant } from './variantExtractor.js';
 import { findD2CStoreByUrl } from '../config/d2cStores.js';
+import { extractBankOffersAndCoupons } from './bankOffersExtractor.js';
 
 /**
  * Parse HTML and extract structured product details across all supported merchants.
@@ -221,15 +222,64 @@ export function parseProductHtml(html, targetUrl) {
       title = title.replace(/^Amazon\.[a-z.]+\s*:\s*/i, '').trim();
     }
 
-    // Amazon Images
-    $('meta[property="og:image"]').each((_, el) => {
-      const src = $(el).attr('content');
-      if (src && !images.includes(src) && !src.includes('favicon')) images.push(src);
+    // Amazon Images — extract all high-res master gallery images and alternate angles
+    function cleanAmazonMaster(url) {
+      if (!url || typeof url !== 'string') return '';
+      let res = url.trim();
+      if (res.startsWith('http://')) res = res.replace(/^http:\/\//i, 'https://');
+      if (
+        res.includes('favicon') ||
+        res.includes('transparent-pixel') ||
+        res.includes('sprite') ||
+        res.includes('pixel.gif') ||
+        res.includes('play-button') ||
+        res.includes('G/01/x-locale')
+      ) {
+        return '';
+      }
+      return res.replace(/\._[A-Za-z0-9,._-]+(?=\.[a-zA-Z0-9]+)/, '');
+    }
+
+    const seenImageBases = new Set();
+    function addImage(url) {
+      const clean = cleanAmazonMaster(url);
+      if (clean && !seenImageBases.has(clean)) {
+        seenImageBases.add(clean);
+        images.push(clean);
+      }
+    }
+
+    // 1. Dynamic main showcase image and high-res pairs
+    $('#landingImage, #imgTagWrapperId img, #main-image, [data-a-dynamic-image]').each((_, el) => {
+      const dyn = $(el).attr('data-a-dynamic-image');
+      if (dyn) {
+        try {
+          const parsed = JSON.parse(dyn);
+          for (const k of Object.keys(parsed)) {
+            addImage(k);
+          }
+        } catch (e) {}
+      }
+      addImage($(el).attr('data-old-hires'));
+      addImage($(el).attr('src'));
     });
 
-    $('#landingImage, #imgTagWrapperId img, #main-image').each((_, el) => {
-      const src = $(el).attr('src') || $(el).attr('data-old-hires');
-      if (src && !images.includes(src)) images.push(src);
+    // 2. Alternate angles from thumbnail strip (#altImages, #imageBlock)
+    $('#altImages img, #imageBlock img, .imageThumbnail img').each((_, el) => {
+      addImage($(el).attr('data-old-hires'));
+      addImage($(el).attr('src'));
+    });
+
+    // 3. Embedded JSON state (colorImages.initial and imageGalleryData)
+    const pageHtml = $.html();
+    const hiResMatches = pageHtml.matchAll(/["'](?:hiRes|large)["']\s*:\s*["'](https:\/\/[^"']+\.(?:jpg|jpeg|png|webp))["']/gi);
+    for (const m of hiResMatches) {
+      addImage(m[1]);
+    }
+
+    // 4. OpenGraph image fallback
+    $('meta[property="og:image"]').each((_, el) => {
+      addImage($(el).attr('content'));
     });
 
     // Amazon Rating
@@ -300,30 +350,26 @@ export function parseProductHtml(html, targetUrl) {
     // Flipkart Title
     title = $('.B_NuCI').first().text().trim() || $('.VU-ZEz').first().text().trim() || $('meta[name="title"]').attr('content') || $('title').text().trim();
 
-    // Flipkart Images
+    // Flipkart Images — extract all gallery images from CDNs
     $('meta[property="og:image"]').each((_, el) => {
       const src = $(el).attr('content');
       if (src && !images.includes(src)) images.push(src);
     });
-    $('img[src*="/image/"]').slice(0, 3).each((_, el) => {
+    $('img[src*="/image/"], img[src*="flixcart.com"], img[src*="rukminim"]').slice(0, 6).each((_, el) => {
       const src = $(el).attr('src');
       if (src && !images.includes(src)) images.push(src);
     });
 
-    // Flipkart Price — JSON-LD first for the live price. The hashed class-name selectors
-    // below are already dead against live markup; they stay only as a last-resort fallback.
+    // Flipkart Price — JSON-LD first, then modern class names
     const fkLd = extractJsonLdPrice($);
     if (fkLd.price !== null) {
       price = fkLd.price;
     } else {
-      price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '._16Jk6d']);
+      price = findPrice($, ['._30jeq3', 'div[class*="_30jeq3"]', '.Nx9bqj', '.hZ3P6w', '.DeU9vF', 'div[class*="hZ3P6w"]', 'div[class*="Nx9bqj"]', '._16Jk6d']);
     }
-    // MRP never comes from JSON-LD on Flipkart (see extractFlipkartMRP()'s docblock — the
-    // field structurally doesn't exist there); this is the real extraction path, once `price`
-    // is known.
     if (price !== null) originalPrice = extractFlipkartMRP($, price);
     if (originalPrice === null) {
-      originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '._3auQ3N'], null, true);
+      originalPrice = findPrice($, ['._3I9_R3', 'div[class*="_3I9_R3"]', '.yRaY8j', '.kRYCnD', '.gxR4EY', 'div[class*="kRYCnD"]', 'div[class*="yRaY8j"]', '._3auQ3N'], null, true);
     }
 
     // Flipkart Rating
@@ -674,6 +720,17 @@ export function parseProductHtml(html, targetUrl) {
 
   const cleanTitle = title ? title.replace(/\s+/g, ' ').trim() : null;
 
+  let merchant = 'general';
+  if (hostname.includes('amazon.')) merchant = 'amazon';
+  else if (hostname.includes('flipkart.com')) merchant = 'flipkart';
+  else if (hostname.includes('shopsy.in')) merchant = 'shopsy';
+  else if (hostname.includes('croma.com')) merchant = 'croma';
+  else if (hostname.includes('myntra.com')) merchant = 'myntra';
+  else if (hostname.includes('nykaa.com')) merchant = 'nykaa';
+  else if (hostname.includes('meesho.com')) merchant = 'meesho';
+
+  const { bankOffers, coupon } = extractBankOffersAndCoupons($, merchant, price);
+
   return {
     title: cleanTitle,
     images,
@@ -684,6 +741,8 @@ export function parseProductHtml(html, targetUrl) {
     originalPrice,
     category,
     variant: extractVariant(cleanTitle),
+    bankOffers,
+    coupon,
   };
 }
 
