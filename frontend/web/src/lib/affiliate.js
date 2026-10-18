@@ -303,3 +303,73 @@ export function getImageSrcSet(url) {
   return undefined;
 }
 
+/**
+ * Deduplicates product images by canonical media ID across stores (Amazon, Flipkart, Myntra, Nykaa).
+ * Prevents multiple resolutions or thumbnail variants of the same photo from filling the gallery.
+ */
+export function getUniqueProductImages(images) {
+  if (!Array.isArray(images) || images.length === 0) return [];
+
+  const seen = new Set();
+  const unique = [];
+
+  for (const img of images) {
+    if (!img || typeof img !== 'string') continue;
+
+    // 1. Amazon: match unique media ID (e.g. 61OUbq2+oaL)
+    const amzMatch = img.match(/\/images\/I\/([A-Za-z0-9+_-]+)/);
+    if (amzMatch) {
+      const key = `amazon:${amzMatch[1]}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        // Normalize to standard master URL
+        unique.push(`https://m.media-amazon.com/images/I/${amzMatch[1]}.jpg`);
+      }
+      continue;
+    }
+
+    // 2. Flipkart / Shopsy: strip resolution dimensions and query params
+    if (img.includes('flixcart.com') || img.includes('rukminim')) {
+      const cleanFk = img.replace(/\/image\/\d+\/\d+\//, '/').split('?')[0];
+      const key = `flipkart:${cleanFk}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(img);
+      }
+      continue;
+    }
+
+    // 3. Myntra: strip width modifiers
+    if (img.includes('myntassets.com')) {
+      const cleanMy = img.replace(/w_\d+(?:,q_\d+)?/, '').split('?')[0];
+      const key = `myntra:${cleanMy}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(img);
+      }
+      continue;
+    }
+
+    // 4. Nykaa: strip transform parameters
+    if (img.includes('nykaa.com')) {
+      const cleanNy = img.replace(/tr:[^/]+/, '').split('?')[0];
+      const key = `nykaa:${cleanNy}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(img);
+      }
+      continue;
+    }
+
+    // Generic fallback
+    const key = img.split('?')[0];
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(img);
+    }
+  }
+
+  return unique;
+}
+
+

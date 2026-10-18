@@ -1,15 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
+import { isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet, getUniqueProductImages } from '@/lib/affiliate';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 export default function ProductGallery({ product, latestDeal, merchant }) {
-  const images = Array.isArray(product?.images) && product.images.length > 0
-    ? product.images.filter(isUsableImageUrl)
-    : isUsableImageUrl(product?.imageUrl)
-      ? [product.imageUrl]
-      : [];
+  const candidateImages = [];
+  if (isUsableImageUrl(product?.imageUrl)) {
+    candidateImages.push(product.imageUrl);
+  }
+  if (Array.isArray(product?.images)) {
+    for (const img of product.images) {
+      if (isUsableImageUrl(img)) candidateImages.push(img);
+    }
+  }
+
+  const images = getUniqueProductImages(candidateImages);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [customVariantImage, setCustomVariantImage] = useState(null);

@@ -888,7 +888,6 @@ export async function scrapeProductDetails(targetUrl) {
       function cleanAmazonMaster(url) {
         if (!url || typeof url !== 'string') return '';
         let res = url.trim();
-        if (res.startsWith('http://')) res = res.replace(/^http:\/\//i, 'https://');
         if (
           res.includes('favicon') ||
           res.includes('transparent-pixel') ||
@@ -899,6 +898,11 @@ export async function scrapeProductDetails(targetUrl) {
         ) {
           return '';
         }
+        const match = res.match(/\/images\/I\/([A-Za-z0-9+_-]+)/);
+        if (match) {
+          return `https://m.media-amazon.com/images/I/${match[1]}.jpg`;
+        }
+        if (res.startsWith('http://')) res = res.replace(/^http:\/\//i, 'https://');
         return res.replace(/\._[A-Za-z0-9,._-]+(?=\.[a-zA-Z0-9]+)/, '');
       }
 
