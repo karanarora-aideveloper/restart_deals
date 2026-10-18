@@ -153,7 +153,7 @@ export default function SitemapPage() {
               className="group rounded-xl border border-gray-100 p-4 transition-colors hover:border-brand/30 hover:bg-brand/5"
             >
               <h3 className="text-sm font-bold text-gray-900 group-hover:text-brand">{post.title}</h3>
-              <p className="mt-1 text-xs text-gray-500 line-clamp-2">{post.description || post.summary}</p>
+              <p className="mt-1 text-xs text-gray-500 line-clamp-2">{post.excerpt || post.description || post.summary}</p>
             </Link>
           ))}
         </div>

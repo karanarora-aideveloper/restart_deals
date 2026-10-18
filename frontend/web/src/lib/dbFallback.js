@@ -452,6 +452,7 @@ export function cleanPromoTitle(rawTitle) {
 export async function directFetchDeals({
   page = 1,
   limit = 40,
+  q = '',
   category = 'all',
   merchant = 'all',
   country = 'in',
@@ -474,6 +475,15 @@ export async function directFetchDeals({
         }
       },
     ];
+
+    if (q && typeof q === 'string' && q.trim()) {
+      const qTokens = q.trim().split(/\s+/).filter(Boolean);
+      andConditions.push({
+        $and: qTokens.map((tok) => ({
+          title: new RegExp(tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+        })),
+      });
+    }
 
     const cCode = (country || 'in').toUpperCase();
     if (cCode === 'IN') {

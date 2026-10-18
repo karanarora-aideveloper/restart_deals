@@ -6,6 +6,7 @@ import {
   AmazonLogo,
   FlipkartLogo,
   MyntraLogo,
+  ShopsyLogo,
   NykaaLogo,
   AjioLogo,
   MeeshoLogo,
@@ -44,7 +45,7 @@ const MONITORED_STORES = [
   {
     id: 'shopsy',
     name: 'Shopsy',
-    logo: <span className="text-sm font-black text-purple-700">🛍️ SHOPSY</span>,
+    logo: <ShopsyLogo className="h-5 sm:h-6 w-auto" />,
     badge: '180+ Budget Steals',
     badgeColor: 'text-purple-800 bg-purple-50 border-purple-200',
     perk: 'Direct Factory Pricing',
@@ -155,7 +156,7 @@ export default function V3StoreDealsRail() {
             >
               <div>
                 {/* Store Logo */}
-                <div className="flex h-10 items-center justify-center rounded-xl bg-white p-2 border border-slate-100 shadow-2xs">
+                <div className="flex h-11 items-center justify-center rounded-xl bg-white px-2 py-1.5 border border-slate-100 shadow-2xs w-full overflow-hidden">
                   {store.logo}
                 </div>
 

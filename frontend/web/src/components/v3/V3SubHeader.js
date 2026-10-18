@@ -141,7 +141,7 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
         <div className="hidden lg:flex items-center gap-3 text-xs font-semibold text-slate-500">
           <span className="flex items-center gap-1.5 text-emerald-600">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            100K+ Stores Monitored
+            30+ Stores &amp; 50,000+ Products
           </span>
           <span className="text-slate-300">|</span>
           <span className="text-indigo-600 font-bold">12H Sync Cadence</span>

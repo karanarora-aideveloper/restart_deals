@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, isUsableImageUrl } from '@/lib/affiliate';
 import { logEvent } from '@/lib/analytics';
@@ -53,10 +53,16 @@ export function formatDealCardTitle(rawTitle) {
   return t;
 }
 
-export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onImageUnavailable }) {
+export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedChange, onImageUnavailable }) {
+  const [mounted, setMounted] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [navigatingHistory, setNavigatingHistory] = useState(false);
   const { user, token } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const dealId = deal._id || deal.id;
   const merchant = getMerchantInfo(deal.merchant || deal.dealUrl);
@@ -109,11 +115,11 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
     verdictBg = 'bg-teal-50 text-teal-800 border-teal-200';
   }
 
-  // Engine Classification & Badging
+  // Engine Classification & Badging (Consumer-Friendly)
   const isEngine2 = deal.sourceEngine === 'engine2' ||
     (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId));
-  const engineBadgeText = isEngine2 ? '🤖 Engine 2' : '📡 Engine 1';
-  const engineBadgeTitle = isEngine2 ? 'Discovered by Store Watcher & Crawlers (Engine 2)' : 'Captured by Telegram Deal Radar (Engine 1)';
+  const engineBadgeText = isEngine2 ? '🤖 24/7 Watcher' : '⚡ Flash Loot';
+  const engineBadgeTitle = isEngine2 ? 'Continuously tracked 24/7 by Store Watcher' : 'Live flash drop verified from Deal Radar';
   const engineBadgeClass = isEngine2
     ? 'bg-purple-50 text-purple-700 border-purple-200/90'
     : 'bg-indigo-50 text-indigo-700 border-indigo-200/90';
@@ -134,29 +140,26 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
     logEvent('click_deal', { item_id: dealId, item_name: deal.title, merchant: merchant.name, source: 'v3_card' });
   };
 
+  const isDeferred = index >= 8;
+
   return (
-    <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
+    <article
+      style={isDeferred ? { contentVisibility: 'auto', containIntrinsicSize: 'auto 380px' } : undefined}
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+    >
       <div className="min-w-0">
-        {/* Top Header: Store Logo + Engine Badge + Verified Badge + Wishlist */}
-        <div className="flex items-center justify-between gap-1 mb-1.5 min-w-0">
-          {/* Store Logo & Engine Badge */}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex h-5 items-center shrink-0">
-              {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-3.5 max-h-3.5 w-auto object-contain')}
-            </div>
-            <span
-              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight shrink-0 border ${engineBadgeClass}`}
-              title={engineBadgeTitle}
-            >
-              {engineBadgeText}
-            </span>
+        {/* Top Header: Store Logo + Verified Badge + Wishlist */}
+        <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+          {/* Store Logo */}
+          <div className="flex h-5 items-center shrink-0">
+            {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-3.5 max-h-3.5 w-auto object-contain')}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Live Verification Badge */}
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap">
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap" suppressHydrationWarning>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span>{verifiedTime}</span>
+              <span suppressHydrationWarning>{mounted ? verifiedTime : 'Verified'}</span>
             </span>
 
             {/* Wishlist Button */}
@@ -183,7 +186,13 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
         </div>
 
         {/* Product Image Frame */}
-        <Link href={cardHref} className="relative block h-32 sm:h-36 w-full overflow-hidden rounded-lg bg-slate-50/80 p-2">
+        <Link href={cardHref} onClick={() => setNavigatingHistory(true)} className="relative block h-32 sm:h-36 w-full overflow-hidden rounded-lg bg-slate-50/80 p-2">
+          {navigatingHistory && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 backdrop-blur-2xs rounded-lg animate-in fade-in duration-150">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-1" />
+              <span className="text-[9.5px] font-black text-indigo-700 animate-pulse">Loading Chart…</span>
+            </div>
+          )}
           {hasValidImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -227,9 +236,9 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
           </Link>
         </h3>
 
-        {/* Smart Verdict Pill: Wrapped cleanly with no horizontal overflow */}
-        <div className="mt-1.5 min-w-0">
-          <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold truncate ${verdictBg}`}>
+        {/* Smart Verdict: Full Width */}
+        <div className="mt-1.5 flex items-center min-w-0">
+          <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-extrabold truncate w-full ${verdictBg}`}>
             <span className="truncate">{verdictText}</span>
           </span>
         </div>
@@ -263,28 +272,29 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
             ) : null}
           </div>
 
-          {/* Genuine Drop or Savings Callout */}
-          <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-600 min-w-0">
-            <span className="truncate font-bold">
+          {/* Genuine Drop or Savings Callout & Discovery Engine Badge */}
+          <div className="mt-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-600 min-w-0 gap-1.5 pt-1 border-t border-slate-200/60">
+            <span className="truncate font-bold text-[9.5px]">
               {hasPriceDrop ? (
                 <span className="text-emerald-700">
-                  📉 ₹{priceDropCash.toLocaleString('en-IN')} True Drop {hasMrp && listMrp > previousTrackedPrice ? `· MRP ₹${listMrp.toLocaleString('en-IN')}` : ''}
+                  📉 ₹{priceDropCash.toLocaleString('en-IN')} True Drop
                 </span>
               ) : mrpSavings > 0 ? (
                 <span className="text-slate-600">
-                  💰 Save ₹{mrpSavings.toLocaleString('en-IN')} off MRP
+                  💰 Save ₹{mrpSavings.toLocaleString('en-IN')}
                 </span>
+              ) : deal.hasPriceHistory ? (
+                <span className="text-indigo-700">📈 History Tracked</span>
               ) : (
                 'Verified Price'
               )}
             </span>
-            {deal.hasPriceHistory ? (
-              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded shrink-0 ml-1" title="Price history verified against DB/Buyhatke history">
-                📈 History Tracked
-              </span>
-            ) : (
-              <span className="text-[9px] text-slate-400 shrink-0 ml-1">⚡ Live Deal</span>
-            )}
+            <span
+              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight shrink-0 border ${engineBadgeClass}`}
+              title={engineBadgeTitle}
+            >
+              {engineBadgeText}
+            </span>
           </div>
         </div>
       </div>
@@ -306,13 +316,27 @@ export default function V3DealCard({ deal, savedDeals = [], onSavedChange, onIma
 
         <Link
           href={cardHref}
-          className="flex shrink-0 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white p-2 text-[11px] font-extrabold text-slate-700 transition-colors hover:border-indigo-300 hover:text-indigo-600 shadow-2xs"
+          onClick={() => setNavigatingHistory(true)}
+          className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl border p-2 text-[11px] font-extrabold transition-all shadow-2xs ${
+            navigatingHistory
+              ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-inner'
+              : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:text-indigo-600'
+          }`}
           title="View 90-day price history graph"
         >
-          <svg className="h-3.5 w-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <span className="hidden md:inline text-[10px]">Graph</span>
+          {navigatingHistory ? (
+            <>
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent shrink-0" />
+              <span className="text-[10px] animate-pulse">Loading…</span>
+            </>
+          ) : (
+            <>
+              <svg className="h-3.5 w-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              <span className="hidden md:inline text-[10px]">Graph</span>
+            </>
+          )}
         </Link>
       </div>
     </article>

@@ -6,6 +6,7 @@ import { SITE_URL } from '@/lib/config';
 import DealDetailActions from '@/components/DealDetailActions';
 import { computePriceStats } from '@/lib/priceAnalytics';
 import PriceBarometer from '@/components/PriceBarometer';
+import { StoreLogo } from '@/components/BrandAndStoreLogos';
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -161,13 +162,10 @@ export default async function DealDetailPage({ params }) {
 
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
-              {merchant.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={merchant.logo} alt={merchant.label} className="h-[18px] object-contain" />
-              ) : (
-                <span className="rounded-xl bg-[#f3f4f6] px-3 py-1.5 text-sm font-bold text-[#4b5563]">{merchant.emoji} {merchant.label}</span>
-              )}
-              <span className="text-[13px] text-[#6b7280]">{formatRelativeTime(deal.createdAt)}</span>
+              <span className="inline-flex items-center rounded-lg border border-gray-200/80 bg-white px-2.5 py-1 shadow-2xs">
+                <StoreLogo merchant={deal.merchant || merchant.id} className="h-4.5 max-h-[20px] w-auto object-contain" />
+              </span>
+              <span className="text-[13px] text-[#6b7280]" suppressHydrationWarning>{formatRelativeTime(deal.createdAt)}</span>
             </div>
 
             {deal.category && (

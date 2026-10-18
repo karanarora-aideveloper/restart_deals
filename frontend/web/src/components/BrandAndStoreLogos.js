@@ -8,87 +8,145 @@ import React from 'react';
  */
 
 export function AmazonLogo({ className = 'h-5 w-auto' }) {
-  const [hasError, setHasError] = React.useState(false);
-
-  if (hasError) {
-    return (
-      <svg className={className} viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <text x="2" y="20" fontFamily="sans-serif" fontSize="18" fontWeight="900" fill="#111827">amazon</text>
-        <path d="M5 23c20 6 50 6 65-3" stroke="#FF9900" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M68 18l3 2.5-3 2.5" fill="#FF9900" />
-      </svg>
-    );
-  }
-
   return (
     <img
-      src="/amazon.webp"
+      src="/amazon@2x.webp"
       alt="Amazon"
-      className={className}
+      className={`${className} object-contain shrink-0`}
       loading="eager"
       decoding="async"
-      onError={() => setHasError(true)}
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('amazon.png')) {
+          e.currentTarget.src = '/amazon.png';
+        }
+      }}
     />
   );
 }
 
 export function FlipkartLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 110 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Flipkart 'F' shopping bag */}
-      <rect x="2" y="2" width="28" height="28" rx="7" fill="#2874F0"/>
-      <path d="M12 9h11v3.2h-6.8v3.1h5.8v3.1h-5.8v5.8H12V9z" fill="#FFE500"/>
-      <path d="M19 18.4l3.5 4.8h-3.8l-2.4-3.5v3.5h-1.5v-4.8h4.2z" fill="#FFE500" opacity="0.9"/>
-      {/* Wordmark */}
-      <text x="35" y="22" fontFamily="sans-serif" fontSize="17" fontStyle="italic" fontWeight="900" fill="#2874F0">Flipkart</text>
-    </svg>
+    <img
+      src="/flipkart@2x.webp"
+      alt="Flipkart"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('flipkart.png')) {
+          e.currentTarget.src = '/flipkart.png';
+        }
+      }}
+    />
+  );
+}
+
+export function ShopsyLogo({ className = 'h-5 w-auto', showText = true }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className} shrink-0 leading-none align-middle`}>
+      <img
+        src="/shopsy@2x.webp"
+        alt="Shopsy"
+        className="h-full w-auto object-contain rounded-md shrink-0"
+        loading="eager"
+        decoding="async"
+        onError={(e) => {
+          if (!e.currentTarget.src.includes('shopsy.png')) {
+            e.currentTarget.src = '/shopsy.png';
+          }
+        }}
+      />
+      {showText && (
+        <span className="font-sans text-[0.95em] font-black tracking-tight text-[#503ceb] lowercase select-none">
+          shopsy
+        </span>
+      )}
+    </span>
   );
 }
 
 export function MyntraLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Myntra Colorful Geometric M */}
-      <path d="M3 18.5L9.5 8l6.5 10.5h-4.2L9.5 14.8l-2.3 3.7H3z" fill="#FF3F6C"/>
-      <path d="M9.5 18.5L16 8l6.5 10.5h-4.2L16 14.8l-2.3 3.7H9.5z" fill="#F26A10"/>
-      <text x="26" y="19" fontFamily="sans-serif" fontSize="16" fontWeight="900" fill="#282C3F" letterSpacing="0.5">Myntra</text>
-    </svg>
+    <img
+      src="/myntra@2x.webp"
+      alt="Myntra"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('myntra.png')) {
+          e.currentTarget.src = '/myntra.png';
+        }
+      }}
+    />
   );
 }
 
 export function NykaaLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 95 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="2" y="20" fontFamily="sans-serif" fontSize="20" fontStyle="italic" fontWeight="900" fill="#FC2779" letterSpacing="0.8">NYKAA</text>
-      <circle cx="88" cy="10" r="3" fill="#FC2779" />
-    </svg>
+    <img
+      src="/nykaa@2x.webp"
+      alt="Nykaa"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('nykaa.png')) {
+          e.currentTarget.src = '/nykaa.png';
+        }
+      }}
+    />
   );
 }
 
 export function AjioLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 70 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="1" y="18" fontFamily="sans-serif" fontSize="18" fontWeight="900" fill="#2C4152" letterSpacing="2.5">AJIO</text>
-    </svg>
+    <img
+      src="/ajio@2x.webp"
+      alt="Ajio"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('ajio.png')) {
+          e.currentTarget.src = '/ajio.png';
+        }
+      }}
+    />
   );
 }
 
 export function MeeshoLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 100 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="4" width="20" height="20" rx="6" fill="#9B287B"/>
-      <path d="M6 18V10l3.5 4 3.5-4v8h-2v-4.5l-1.5 1.8-1.5-1.8V18H6z" fill="#FFFFFF"/>
-      <text x="27" y="19" fontFamily="sans-serif" fontSize="16" fontWeight="900" fill="#9B287B">meesho</text>
-    </svg>
+    <img
+      src="/meesho@2x.webp"
+      alt="Meesho"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('meesho.png')) {
+          e.currentTarget.src = '/meesho.png';
+        }
+      }}
+    />
   );
 }
 
 export function CromaLogo({ className = 'h-5 w-auto' }) {
   return (
-    <svg className={className} viewBox="0 0 90 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="10" cy="14" r="7" fill="#00E9BF" />
-      <text x="22" y="19" fontFamily="sans-serif" fontSize="16" fontWeight="900" fill="#121212">croma</text>
-    </svg>
+    <img
+      src="/croma@2x.webp"
+      alt="Croma"
+      className={`${className} object-contain shrink-0`}
+      loading="eager"
+      decoding="async"
+      onError={(e) => {
+        if (!e.currentTarget.src.includes('croma.png')) {
+          e.currentTarget.src = '/croma.png';
+        }
+      }}
+    />
   );
 }
 
@@ -244,7 +302,7 @@ export function renderStoreLogo(merchantName, className = 'h-4 w-auto') {
   if (m.includes('blinkit') || m.includes('grofers')) return <BlinkitLogo className={className} />;
   if (m.includes('instamart') || m.includes('swiggy')) return <InstamartLogo className={className} />;
   if (m.includes('amazon')) return <AmazonLogo className={className} />;
-  if (m.includes('shopsy')) return <span className="text-xs font-black tracking-tight text-purple-700">🛍️ SHOPSY</span>;
+  if (m.includes('shopsy')) return <ShopsyLogo className={className} />;
   if (m.includes('flipkart')) return <FlipkartLogo className={className} />;
   if (m.includes('myntra')) return <MyntraLogo className={className} />;
   if (m.includes('nykaa')) return <NykaaLogo className={className} />;
@@ -289,4 +347,18 @@ export function renderBrandLogo(brandId, className = 'h-5 w-auto') {
   if (b.includes('mamaearth')) return <MamaearthLogo className={className} />;
   if (b.includes('levi')) return <LevisLogo className={className} />;
   return <span className="text-xs font-bold text-slate-700">{brandId}</span>;
+}
+
+/**
+ * Universal Store Logo Component (Server & Client Component compatible)
+ */
+export function StoreLogo({ merchant, className = 'h-4 w-auto' }) {
+  return renderStoreLogo(merchant, className);
+}
+
+/**
+ * Universal Brand Logo Component (Server & Client Component compatible)
+ */
+export function BrandLogo({ brand, className = 'h-5 w-auto' }) {
+  return renderBrandLogo(brand, className);
 }

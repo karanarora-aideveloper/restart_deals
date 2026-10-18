@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatInr, getAffiliateUrl } from '@/lib/affiliate';
 import { API_BASE_URL } from '@/lib/config';
+import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
 export default function StoreComparison({ product }) {
   const [stores, setStores] = useState([]);
@@ -120,8 +121,8 @@ export default function StoreComparison({ product }) {
                 >
                   {/* Left: Merchant Info & Variant Badge */}
                   <div className="flex items-center gap-3.5">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-xs border border-gray-200">
-                      {s.logo}
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-xs border border-gray-200">
+                      {renderStoreLogo(s.id || s.name, 'h-5 w-auto object-contain')}
                     </span>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -237,8 +238,8 @@ export default function StoreComparison({ product }) {
                     <span className="text-xs font-black text-brand">
                       {formatInr(sim.price, product?.country)}
                     </span>
-                    <span className="rounded bg-gray-200/80 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-700">
-                      {sim.merchant}
+                    <span className="inline-flex items-center rounded-md border border-gray-200/80 bg-white px-2 py-0.5 shadow-2xs">
+                      {renderStoreLogo(sim.merchant, 'h-3.5 max-h-3.5 w-auto object-contain')}
                     </span>
                   </div>
                 </div>

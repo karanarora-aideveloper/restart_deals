@@ -20,20 +20,17 @@ import PriceAlertModal from '@/components/PriceAlertModal';
  * open-in-new-tab instead of a JS-only onPress handler.
  */
 export default function DealCard({ deal, savedDeals = [], onSavedChange, onImageUnavailable }) {
+  const [mounted, setMounted] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [navigatingHistory, setNavigatingHistory] = useState(false);
   const { user, token } = useAuth();
   const { isInCompare, toggleCompare } = useCompare();
 
-  // formatRelativeTime("Xm ago") is the one genuinely non-deterministic value here — it's a
-  // function of Date.now() at render time, which differs between the SSR pass and the browser's
-  // hydration pass by however long the response took to arrive. React 19 (correctly) treats that
-  // as a hydration error, not just a warning. suppressHydrationWarning below is the React-
-  // documented pattern for exactly this case; the tick state re-renders it every 30s afterwards
-  // so it keeps counting up instead of freezing at whatever the server happened to compute.
   const [, tick] = useState(0);
   useEffect(() => {
+    setMounted(true);
     const id = setInterval(() => tick((t) => t + 1), 30000);
     return () => clearInterval(id);
   }, []);
@@ -90,8 +87,14 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
   };
 
   return (
-    <article className="sd-grid-card flex flex-col overflow-hidden rounded-2xl border border-[#efefef] bg-white shadow-2xs">
-      <Link href={cardHref} className="relative block aspect-square w-full bg-[#fafafa] p-3" onClick={() => logEvent('select_item', { item_id: dealId, item_list_name: 'deals' })}>
+    <article className="sd-grid-card flex flex-col overflow-hidden rounded-2xl border border-[#efefef] bg-white shadow-2xs relative">
+      <Link href={cardHref} className="relative block aspect-square w-full bg-[#fafafa] p-3" onClick={() => { setNavigatingHistory(true); logEvent('select_item', { item_id: dealId, item_list_name: 'deals' }); }}>
+        {navigatingHistory && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 backdrop-blur-2xs rounded-t-2xl animate-in fade-in duration-150">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-1.5" />
+            <span className="text-[10px] font-bold text-indigo-700 animate-pulse">Loading Chart…</span>
+          </div>
+        )}
         {isUsableImageUrl(deal.imageUrl) && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -113,12 +116,9 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-gradient-to-b from-[#f8fafc] to-[#f1f5f9] rounded-xl">
-            {merchant.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={merchant.logo} alt={merchant.label} className="mb-2 h-6 w-auto object-contain opacity-80" />
-            ) : (
-              <span className="mb-1 text-2xl">{merchant.emoji || '🛍️'}</span>
-            )}
+            <span className="mb-2 flex items-center justify-center opacity-85">
+              {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-6 w-auto object-contain')}
+            </span>
             <span className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">
               {merchant.label} Verified
             </span>
@@ -190,19 +190,9 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
       </Link>
 
       <div className="flex flex-1 flex-col p-[13px]">
-        <div className="mb-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 shrink-0">
+        <div className="mb-1.5 flex items-center justify-between gap-1.5 min-w-0">
+          <div className="flex items-center shrink-0">
             {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 w-auto object-contain')}
-            <span
-              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight border ${
-                deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId))
-                  ? 'bg-purple-50 text-purple-700 border-purple-200'
-                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-              }`}
-              title={deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? 'Discovered by Store Watcher & Crawlers (Engine 2)' : 'Captured by Telegram Deal Radar (Engine 1)'}
-            >
-              {deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? '🤖 Engine 2' : '📡 Engine 1'}
-            </span>
           </div>
           {isPossiblyExpired ? (
             <span className="flex items-center gap-1 rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]" suppressHydrationWarning>
@@ -218,7 +208,7 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              {dealTime}
+              {mounted ? dealTime : 'Recently'}
             </span>
           )}
         </div>
@@ -241,6 +231,16 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
 
         {/* Truth Badges */}
         <div className="flex flex-wrap items-center gap-1 mb-1.5">
+          <span
+            className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight border ${
+              deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId))
+                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+            }`}
+            title={deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? 'Discovered by Store Watcher & Crawlers (Engine 2)' : 'Captured by Telegram Deal Radar (Engine 1)'}
+          >
+            {deal.sourceEngine === 'engine2' || (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId)) ? '🤖 Engine 2' : '📡 Engine 1'}
+          </span>
           {deal.hasPriceHistory && (
             <span className="inline-flex w-fit items-center gap-1 rounded-md bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 text-[9.5px] font-extrabold text-indigo-700" title="Historical price history verified">
               📈 Price History Verified
@@ -355,14 +355,30 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
         <div className="mt-1.5 grid grid-cols-2 gap-1.5">
           <Link
             href={cardHref}
-            className="flex items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-1.5 text-[10.5px] font-bold text-[#4f46e5] hover:bg-[#f0f0ff] transition-colors"
-            onClick={() => logEvent('view_history', { item_id: dealId, item_name: deal.title })}
+            className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[10.5px] font-bold transition-all shadow-2xs ${
+              navigatingHistory
+                ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-inner'
+                : 'border-[#e2e8f0] bg-[#f8fafc] text-[#4f46e5] hover:bg-[#f0f0ff]'
+            }`}
+            onClick={() => {
+              setNavigatingHistory(true);
+              logEvent('view_history', { item_id: dealId, item_name: deal.title });
+            }}
             title="View price history chart and statistics"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            Price History
+            {navigatingHistory ? (
+              <>
+                <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent shrink-0" />
+                <span className="animate-pulse">Loading Chart…</span>
+              </>
+            ) : (
+              <>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span>Price History</span>
+              </>
+            )}
           </Link>
           <button
             type="button"
@@ -391,6 +407,7 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
             merchant: deal.merchant,
             imageUrl: deal.imageUrl,
             category: deal.category,
+            country: dealCountry,
           }}
           isOpen={isAlertOpen}
           onClose={() => setIsAlertOpen(false)}

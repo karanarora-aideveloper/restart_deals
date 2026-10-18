@@ -441,8 +441,13 @@ export default async function BlogPostPage({ params }) {
   const author = post.author || { name: 'ShoppersDeals Team', role: 'Deals & Tech Desk' };
   const shareUrl = `${SITE_URL}/blog/${slug}`;
   const shareText = post.title;
-  const related = [...blogsData]
-    .filter((b) => b.slug !== slug)
+  const sameCategory = post.category
+    ? blogsData.filter((b) => b.slug !== slug && b.category === post.category)
+    : [];
+  const otherCategory = blogsData.filter(
+    (b) => b.slug !== slug && (!post.category || b.category !== post.category)
+  );
+  const related = [...sameCategory, ...otherCategory]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 3);
 
@@ -467,11 +472,39 @@ export default async function BlogPostPage({ params }) {
     <div className="flex flex-col items-center bg-[#f8fafc] pb-20">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
 
-      <div className="hidden w-full max-w-[1200px] px-4 sm:px-6 py-5 md:block">
-        <Link href="/blog" className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-500 hover:text-brand transition-colors">
-          ← Back to Guides & Reviews
-        </Link>
-      </div>
+      <nav className="hidden w-full max-w-[1200px] px-4 sm:px-6 py-4 md:block text-xs" aria-label="Breadcrumb">
+        <ol className="flex items-center gap-1.5 text-slate-500">
+          <li><Link href="/" className="hover:text-brand">Home</Link></li>
+          <li>/</li>
+          <li><Link href="/blog" className="hover:text-brand">Buying Guides</Link></li>
+          {post.category && (
+            <>
+              <li>/</li>
+              <li>
+                <Link
+                  href={`/blog?category=${post.category}`}
+                  className="font-semibold text-slate-700 hover:text-brand capitalize"
+                >
+                  {post.category.replace('-', ' ')}
+                </Link>
+              </li>
+            </>
+          )}
+          {post.detailCategory && (
+            <>
+              <li>/</li>
+              <li>
+                <Link
+                  href={`/blog?category=${post.category}&detail=${post.detailCategory}`}
+                  className="text-slate-600 hover:text-brand capitalize"
+                >
+                  {post.detailCategory.replace('-', ' ')}
+                </Link>
+              </li>
+            </>
+          )}
+        </ol>
+      </nav>
 
       <article className="w-full max-w-[1200px] overflow-hidden bg-white md:rounded-3xl md:border md:border-slate-200/80 md:shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
         {/* Hero Header */}
@@ -495,6 +528,31 @@ export default async function BlogPostPage({ params }) {
 
         {/* Content Container */}
         <div className="px-4 py-6 sm:px-8 sm:py-8 md:px-12 md:py-10">
+          {/* Category & Niche Badges */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {post.category && (
+              <Link
+                href={`/blog?category=${post.category}`}
+                className="rounded-full bg-orange-500/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-orange-600 hover:bg-orange-500/20 transition-colors"
+              >
+                {post.category.replace('-', ' ')}
+              </Link>
+            )}
+            {post.detailCategory && (
+              <Link
+                href={`/blog?category=${post.category}&detail=${post.detailCategory}`}
+                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors capitalize"
+              >
+                {post.detailCategory.replace('-', ' ')}
+              </Link>
+            )}
+            {post.niche && (
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                {post.niche}
+              </span>
+            )}
+          </div>
+
           <h1 className="mb-4 font-heading text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight text-ink">
             {post.title}
           </h1>

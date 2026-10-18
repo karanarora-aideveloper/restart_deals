@@ -254,7 +254,7 @@ export default function CategoriesClient() {
       <div className="mb-8 rounded-3xl border border-[#cbd5e1] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] p-6 sm:p-10 text-white shadow-xl">
         <div className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#fbbf24] backdrop-blur-xs">
-            <span>✨</span> Explore 100,000+ Verified Deals
+            <span>✨</span> Explore 50,000+ Tracked Products
           </span>
           <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
             Shop By Categories &amp; Curated Collections

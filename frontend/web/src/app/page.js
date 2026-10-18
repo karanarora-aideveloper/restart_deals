@@ -99,6 +99,8 @@ export default async function HomePage({ searchParams }) {
   const category = sp?.category || 'all';
   const merchant = sp?.merchant || 'all';
   const country = sp?.country || 'in';
+  const sort = sp?.sort || 'newest';
+  const minDiscount = sp?.minDiscount ? parseInt(sp.minDiscount, 10) : 0;
 
   // Fetch verified authentic price drops (every deal in DB has already passed category-wise dual threshold)
   const { items: rawDeals, hasMore } = await fetchDeals({
@@ -106,7 +108,8 @@ export default async function HomePage({ searchParams }) {
     category,
     merchant,
     country: (country || 'in').toLowerCase(),
-    sort: 'newest',
+    sort,
+    minDiscount,
   });
 
   // Resolve matching product IDs for canonical 90-day price history charts
@@ -118,12 +121,14 @@ export default async function HomePage({ searchParams }) {
     })
   );
 
-  // Guarantee strict newest-first sorting by authentic deal publication timestamp
-  deals.sort((a, b) => {
-    const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
-    const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
-    return timeB - timeA;
-  });
+  // Guarantee strict newest-first sorting only if sort is newest, otherwise preserve API sort (discount, price)
+  if (sort === 'newest') {
+    deals.sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
+      const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }
 
   return (
     <>
@@ -161,6 +166,8 @@ export default async function HomePage({ searchParams }) {
             category={category}
             merchant={merchant}
             country={country || 'in'}
+            initialSort={sort}
+            initialMinDiscount={minDiscount}
           />
         </div>
 
@@ -181,7 +188,7 @@ export default async function HomePage({ searchParams }) {
         {/* 11. Extension & Mobile App Conversion Banner */}
         <V3ExtensionSection />
 
-        {/* 12. Over 100K+ Stores Monitored 24/7 Grid */}
+        {/* 12. 30+ Leading Indian Stores Monitored 24/7 Grid */}
         <V3StoresSection />
 
         {/* 13. FAQ Accordion & Knowledge Base */}

@@ -1,0 +1,309 @@
+[
+  {
+    "category": "laptops-pc",
+    "detailCategory": "laptops",
+    "blogs": [
+      {
+        "title": "Best Student Laptops Under ₹35,000 in India: 16GB RAM, SSD & Battery Life (2026)",
+        "slug": "best-student-laptops-under-35000-india-2026",
+        "niche": "Student Budget Laptops",
+        "budgetTier": 35000,
+        "priceRange": { "min": 28990, "max": 34990 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Budget Computing & Hardware Testing" },
+        "imageUrl": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Looking for a reliable student laptop under ₹35,000 for coding, online exams, and assignments? We tested boot times, keyboard flex, and battery life across HP, Lenovo, and Acer.",
+        "headers": ["Laptop Model", "Processor", "RAM & SSD", "Display", "Battery Life", "Deal Price"],
+        "rows": [
+          ["Lenovo IdeaPad 1", "Ryzen 3 7320U", "8GB LPDDR5 + 512GB SSD", "15.6″ FHD Anti-Glare", "6.5 Hours", "₹31,990 on Amazon"],
+          ["HP 15s (Budget Edition)", "Intel Core i3 1215U", "8GB DDR4 + 512GB SSD", "15.6″ Micro-Edge FHD", "6.0 Hours", "₹34,490 on Flipkart"],
+          ["Acer Aspire 3", "Ryzen 3 7320U", "8GB LPDDR5 + 512GB NVMe", "15.6″ ComfyView FHD", "7.0 Hours", "₹29,990 on Amazon"],
+          ["Asus Vivobook 15", "Intel Celeron / Core i3", "8GB RAM + 512GB SSD", "15.6″ NanoEdge FHD", "5.5 Hours", "₹32,990 on Flipkart"]
+        ]
+      },
+      {
+        "title": "Best Laptops Under ₹40,000 with 16GB RAM & SSD in India (2026 Edition)",
+        "slug": "best-laptops-under-40000-16gb-ram-india-2026",
+        "niche": "Multitasking Laptops Under ₹40K",
+        "budgetTier": 40000,
+        "priceRange": { "min": 35990, "max": 39990 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Performance Benchmarking" },
+        "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "8GB RAM is no longer enough for Windows 11 and multiple Chrome tabs. We rounded up the best laptops offering full 16GB RAM under ₹40,000 for silky-smooth multitasking.",
+        "headers": ["Model", "Processor", "RAM & Storage", "Display & Weight", "Live Deal Price"],
+        "rows": [
+          ["Acer Aspire Lite", "AMD Ryzen 5 5500U", "16GB DDR4 + 512GB SSD", "15.6″ FHD (1.59 kg)", "₹36,990 on Amazon"],
+          ["Lenovo V15 G4", "Ryzen 5 7520U", "16GB LPDDR5 + 512GB SSD", "15.6″ Anti-Glare (1.65 kg)", "₹38,990 on Amazon"],
+          ["HP 250 G9 Business", "Intel Core i3 12th Gen", "16GB RAM + 512GB NVMe", "15.6″ Slim Bezel", "₹37,490 on Flipkart"]
+        ]
+      },
+      {
+        "title": "Best Laptops Under ₹60,000 in India for College, Coding & Casual Gaming (2026)",
+        "slug": "best-laptops-under-60000-coding-college-india-2026",
+        "niche": "Mid-Range Performance Laptops",
+        "budgetTier": 60000,
+        "priceRange": { "min": 49990, "max": 59990 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Processor & Battery Optimization" },
+        "imageUrl": "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Compiling code in VS Code, editing 1080p video, and light Valorant gaming. We benchmarked Intel Core i5 13th Gen, Ryzen 5 7000 series, and Iris Xe / Radeon graphics under ₹60,000.",
+        "headers": ["Model", "CPU / Processor", "RAM & SSD", "Graphics", "Battery & Portability", "Price"],
+        "rows": [
+          ["Asus Vivobook S15 OLED", "Intel Core i5 12500H", "16GB DDR4 + 512GB SSD", "Intel Iris Xe", "2.8K 120Hz OLED (1.8 kg)", "₹58,990 on Amazon"],
+          ["Lenovo IdeaPad Slim 3", "Intel Core i5 13420H", "16GB LPDDR5 + 512GB SSD", "Intel UHD", "15.6″ FHD (1.62 kg, 65W)", "₹54,990 on Flipkart"],
+          ["Acer Swift Go 14", "Intel Core i5 1335U", "16GB LPDDR5 + 512GB SSD", "Intel Iris Xe", "14″ OLED 90Hz (1.25 kg)", "₹59,990 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Gaming Laptops Under ₹60,000 with Dedicated RTX Graphics in India (2026)",
+        "slug": "best-gaming-laptops-under-60000-rtx-graphics-india-2026",
+        "niche": "Budget Dedicated Gaming",
+        "budgetTier": 60000,
+        "priceRange": { "min": 52990, "max": 59990 },
+        "author": { "name": "ShoppersDeals Gaming Desk", "role": "GPU TGP & Thermal Stress Testing" },
+        "imageUrl": "https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Don't settle for integrated graphics. We tested laptops equipped with real Nvidia GeForce RTX 2050 and RTX 3050 GPUs under ₹60,000 running GTA V, Cyberpunk, and Forza Horizon 5.",
+        "headers": ["Gaming Laptop", "GPU & TGP", "Processor", "Display Refresh", "Thermals & Fan Noise", "Deal Price"],
+        "rows": [
+          ["Lenovo LOQ 15", "Nvidia RTX 2050 (70W TGP)", "Intel Core i5 12450HX", "15.6″ 144Hz FHD G-Sync", "Dual Fan Hyperchamber", "₹54,990 on Amazon"],
+          ["HP Victus Gaming 15", "Nvidia RTX 3050 (4GB GDDR6)", "AMD Ryzen 5 5600H", "15.6″ 144Hz IPS", "Omen Tempest Cooling", "₹58,990 on Flipkart"],
+          ["Acer Nitro V 15", "Nvidia RTX 3050 (6GB 75W)", "Intel Core i5 13420H", "15.6″ 144Hz 3ms", "Dual Fan Quad Exhaust", "₹59,990 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Gaming Laptops Under ₹80,000 with RTX 4050 & High Refresh Displays in India (2026)",
+        "slug": "best-gaming-laptops-under-80000-rtx-4050-india-2026",
+        "niche": "Mid-Range Gaming (Under ₹80,000)",
+        "budgetTier": 80000,
+        "priceRange": { "min": 69990, "max": 79990 },
+        "author": { "name": "ShoppersDeals Gaming Desk", "role": "GPU DLSS 3 & Ray Tracing Benchmarks" },
+        "imageUrl": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "RTX 4050 with DLSS 3 frame generation transforms mid-range gaming laptops into powerhouse machines. We evaluated Acer Predator, Lenovo LOQ, and Asus TUF for thermals and 100W+ TGP performance.",
+        "headers": ["Model", "GPU / TGP", "CPU", "RAM & SSD", "Display Spec", "Sale Price"],
+        "rows": [
+          ["Lenovo LOQ 15IRX9", "Nvidia RTX 4050 (105W TGP)", "Intel Core i5 13450HX", "16GB DDR5 + 512GB Gen4", "15.6″ 144Hz 100% sRGB", "₹76,990 on Amazon"],
+          ["Asus TUF Gaming A15", "Nvidia RTX 4050 (140W Max TGP)", "AMD Ryzen 7 7735HS", "16GB DDR5 + 512GB NVMe", "15.6″ 144Hz Adaptive Sync", "₹78,990 on Flipkart"],
+          ["Acer Nitro V 15", "Nvidia RTX 4050 (75W TGP)", "Intel Core i7 13620H", "16GB DDR5 + 512GB SSD", "15.6″ 144Hz IPS", "₹74,990 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Thin & Light Ultrabooks Under ₹70,000 with 12+ Hour Battery Life in India (2026)",
+        "slug": "best-thin-light-ultrabooks-under-70000-battery-india-2026",
+        "niche": "Ultrabooks & All-Day Battery",
+        "budgetTier": 70000,
+        "priceRange": { "min": 59990, "max": 69990 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Ultrabook Ergonomics & Battery Tests" },
+        "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Carrying your laptop to cafes, client meetings, and flights without bringing a heavy power brick. We tested laptops weighing under 1.4 kg with real-world 12+ hour battery longevity.",
+        "headers": ["Ultrabook", "Weight (kg)", "Tested Battery Life", "Processor", "Display Resolution", "Price"],
+        "rows": [
+          ["MacBook Air M2 (Base)", "1.24 kg", "15.5 Hours", "Apple M2 (8-Core CPU/GPU)", "13.6″ Liquid Retina (500 nits)", "₹69,990 on Amazon"],
+          ["Asus Zenbook 14 OLED", "1.28 kg", "12.0 Hours", "Intel Core Ultra 5 / i5", "14″ 2.8K 90Hz OLED", "₹68,990 on Flipkart"],
+          ["Lenovo Yoga Slim 6", "1.35 kg", "11.5 Hours", "Intel Core i5 13500H", "14″ 2.2K IPS Anti-Glare", "₹64,990 on Amazon"]
+        ]
+      },
+      {
+        "title": "MacBook Air M2 vs M3 in India: Which One Delivers the Best Value in 2026?",
+        "slug": "macbook-air-m2-vs-m3-india-buying-guide-2026",
+        "niche": "Apple MacBooks",
+        "budgetTier": 100000,
+        "priceRange": { "min": 69990, "max": 99900 },
+        "author": { "name": "ShoppersDeals Apple Lab", "role": "macOS Architecture & Silicon Testing" },
+        "imageUrl": "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "MacBook Air M2 has crashed to ₹69,990 during festive sales, while the M3 model commands ₹99,900. Does ray tracing, dual external display support, and Wi-Fi 6E justify the ₹30,000 price gap for Indian developers?",
+        "headers": ["Spec / Feature", "MacBook Air M2 (13″)", "MacBook Air M3 (13″)", "Verdict for Indian Buyers"],
+        "rows": [
+          ["Festive Deal Price", "₹69,990 on Amazon", "₹94,990 on Amazon / Apple", "₹25,000 to ₹30,000 Price Difference"],
+          ["Silicon & GPU", "Apple M2 (3nm base)", "Apple M3 (Hardware Ray Tracing)", "M3 is 15-20% faster in 3D rendering"],
+          ["External Displays", "1 External Monitor Only", "Up to 2 External Monitors (Lid Closed)", "Crucial for multi-monitor desktop setups"],
+          ["SSD Base Speed", "Single NAND (1500 MB/s)", "Dual NAND (3000 MB/s)", "M3 has 2x faster base SSD speeds"],
+          ["Wi-Fi Generation", "Wi-Fi 6", "Wi-Fi 6E", "M3 is slightly better for Gigabit fiber"]
+        ]
+      },
+      {
+        "title": "Best 27-Inch 4K Monitors for Programmers & Designers in India (2026 Edition)",
+        "slug": "best-27-inch-4k-monitors-programming-design-india-2026",
+        "niche": "4K Productivity Monitors",
+        "budgetTier": 35000,
+        "priceRange": { "min": 21990, "max": 34990 },
+        "author": { "name": "ShoppersDeals Display Desk", "role": "Color Accuracy & Text Clarity Tests" },
+        "imageUrl": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Crisp code text without pixelation, 99% sRGB color fidelity for Photoshop, and single USB-C cable charging for your laptop. Here are the top 27-inch 4K monitors tested for Indian developers.",
+        "headers": ["Monitor Model", "Panel & Resolution", "Color Gamut", "USB-C Laptop Charging?", "Stand Adjustments", "Deal Price"],
+        "rows": [
+          ["LG 27UP850N-W", "27″ 4K UHD IPS (3840×2160)", "DCI-P3 95% / HDR400", "Yes (90W USB-C Power)", "Height, Pivot, Tilt", "₹28,990 on Amazon"],
+          ["BenQ PD2705U Designer", "27″ 4K Calman Verified IPS", "100% sRGB / Rec.709", "Yes (65W USB-C + KVM)", "Ergonomic Pivot Stand", "₹34,990 on Amazon"],
+          ["Dell S2722QC 4K Hub", "27″ 4K UHD IPS Anti-Glare", "99% sRGB (350 nits)", "Yes (65W USB-C)", "Height & Swivel", "₹31,990 on Flipkart"],
+          ["ViewSonic VG2756-4K", "27″ 4K SuperClear IPS", "100% sRGB", "Yes (90W USB-C + Ethernet)", "Full Ergonomic", "₹27,990 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best 144Hz & 165Hz Budget Gaming Monitors Under ₹12,000 in India (2026)",
+        "slug": "best-144hz-165hz-gaming-monitors-under-12000-india-2026",
+        "niche": "High Refresh Gaming Displays",
+        "budgetTier": 12000,
+        "priceRange": { "min": 8990, "max": 11990 },
+        "author": { "name": "ShoppersDeals Gaming Desk", "role": "Pixel Response & Motion Blur" },
+        "imageUrl": "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Smooth CS:GO and Valorant gameplay without motion ghosting. We tested 24-inch and 27-inch high refresh IPS panels under ₹12,000 for input lag, G-Sync compatibility, and viewing angles.",
+        "headers": ["Monitor", "Size & Resolution", "Refresh Rate & Response", "Panel Type", "FreeSync / G-Sync", "Lowest Price"],
+        "rows": [
+          ["Acer Nitro VG240YS", "23.8″ FHD (1920×1080)", "165Hz (0.5ms Response)", "Fast IPS (99% sRGB)", "AMD FreeSync Premium", "₹9,290 on Amazon"],
+          ["LG UltraGear 24GN65R", "24″ FHD Gaming IPS", "144Hz (1ms MBR)", "IPS Panel (HDR10)", "Nvidia G-Sync Compatible", "₹10,490 on Amazon"],
+          ["MSI G2412V Esports", "24″ FHD Wide Gamut", "170Hz Rapid IPS", "IPS (110% sRGB)", "Adaptive Sync", "₹9,990 on Flipkart"],
+          ["ViewSonic Omni VX2428", "24″ FHD Bezel-Less", "180Hz (0.5ms MPRT)", "Fast IPS Panel", "VESA ClearMR Certified", "₹9,490 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Mechanical Keyboards Under ₹3,000 in India: Hot-Swappable Switches & RGB (2026)",
+        "slug": "best-mechanical-keyboards-under-3000-india-2026",
+        "niche": "Mechanical Keyboards",
+        "budgetTier": 3000,
+        "priceRange": { "min": 1999, "max": 2999 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Switch Latency & Keystroke Acoustics" },
+        "imageUrl": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Say goodbye to mushy membrane keys. We tested tactile Brown, clicky Blue, and silent Red mechanical switches under ₹3,000 for durability, hot-swap PCB sockets, and customizable RGB lighting.",
+        "headers": ["Keyboard Model", "Switch Types Available", "Hot-Swappable PCB?", "Layout / Form Factor", "Backlighting", "Price"],
+        "rows": [
+          ["Cosmic Byte CB-GK-34", "Outemu Red / Blue", "Yes (3-Pin Hot-Swap)", "Compact 68-Key (65%)", "Per-Key RGB (18 Modes)", "₹2,199 on Amazon"],
+          ["Redragon K552 Kumara", "Outemu Red / Blue Dustproof", "Yes (Hot-Swappable)", "Tenkeyless (87-Key TKL)", "Solid Rainbow / RGB", "₹2,490 on Amazon"],
+          ["EvoFox Katana Pro", "Outemu Brown / Red", "Yes (Modular Hot-Swap)", "Full Size 104-Key", "True RGB + Media Roller", "₹2,799 on Flipkart"],
+          ["Ant Esports MK1000", "Outemu Blue Clicky", "No (Soldered)", "Compact TKL", "Multi-Color LED", "₹1,899 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Ergonomic Vertical Wireless Mice for Wrist Pain & Carpal Tunnel in India (2026)",
+        "slug": "best-ergonomic-vertical-wireless-mice-india-2026",
+        "niche": "Ergonomic Peripherals",
+        "budgetTier": 8000,
+        "priceRange": { "min": 1499, "max": 7999 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Ergonomics & Repetitive Strain Testing" },
+        "imageUrl": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Working 8 to 10 hours a day on a standard flat mouse causes unnatural forearm twisting and wrist pain. We tested vertical 57-degree handshake mice across Logitech, Anker, and Portronics.",
+        "headers": ["Ergonomic Mouse", "Angle / Grip Form", "Connectivity", "Battery / Charging", "DPI Adjustments", "Deal Price"],
+        "rows": [
+          ["Logitech Lift Vertical", "57° Handshake Angle", "Bluetooth + Logi Bolt", "1 AA Battery (2 Years)", "4000 DPI SmartWheel", "₹5,495 on Amazon"],
+          ["Portronics Toad One Vertical", "54° Natural Ergonomic", "2.4GHz + BT Dual Mode", "Type-C Rechargeable", "Up to 3200 DPI", "₹1,299 on Amazon"],
+          ["Anker 2.4G Wireless Vertical", "Neutral Wrist Stance", "2.4GHz USB Dongle", "2 AAA Batteries", "1600 DPI Optical", "₹2,499 on Flipkart"],
+          ["Logitech MX Master 3S", "Sculpted Palm Grip (Ergo)", "Bluetooth + Quiet Clicks", "USB-C Quick Charge", "8000 DPI Any-Surface", "₹8,995 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best External Portable SSDs (1TB & 2TB) for MacBooks & Windows in India (2026)",
+        "slug": "best-external-portable-ssds-macbook-windows-india-2026",
+        "niche": "External Fast Storage",
+        "budgetTier": 15000,
+        "priceRange": { "min": 6999, "max": 14999 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "NVMe Read/Write & Thermal Throttling" },
+        "imageUrl": "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Transfer 50GB of 4K video files in under 60 seconds. We benchmarked sustained NVMe read/write transfer speeds, drop resistance, and thermal throttling across SanDisk, Samsung, and Crucial.",
+        "headers": ["Portable SSD", "Advertised Speed", "Sustained Write Speed", "Drop & Water Rating", "1TB Price", "2TB Price"],
+        "rows": [
+          ["Samsung T7 Shield", "Up to 1050 MB/s", "950 MB/s Steady", "IP65 Water/Dust + 3m Drop", "₹8,499", "₹14,999 on Amazon"],
+          ["SanDisk Extreme Portable (V2)", "Up to 1050 MB/s", "880 MB/s Steady", "IP65 Rated Carabiner Loop", "₹8,999", "₹15,499 on Flipkart"],
+          ["Crucial X9 Pro", "Up to 1050 MB/s", "920 MB/s Steady", "IP55 Water + Anodized Aluminum", "₹7,999", "₹13,999 on Amazon"],
+          ["Kingston XS1000 Ultra Mini", "Up to 1050 MB/s", "850 MB/s Steady", "Pocket Sized (29 grams)", "₹6,999", "₹12,499 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Wi-Fi 6 & Mesh Routers for High-Speed Fiber Internet in India (2026)",
+        "slug": "best-wifi-6-mesh-routers-fiber-internet-india-2026",
+        "niche": "Home Networking & Wi-Fi 6",
+        "budgetTier": 8000,
+        "priceRange": { "min": 2499, "max": 7999 },
+        "author": { "name": "ShoppersDeals Network Desk", "role": "Wi-Fi Throughput & Wall Penetration" },
+        "imageUrl": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Eliminate dead zones across 2BHK and 3BHK Indian homes with thick concrete walls. We tested OFDMA multi-device concurrency and Gigabit speed delivery across TP-Link, Netgear, and Mercusys.",
+        "headers": ["Router Model", "Wi-Fi Standard", "Speed Bandwidth", "Antennas & Range", "Gigabit LAN Ports", "Price"],
+        "rows": [
+          ["TP-Link Archer AX12", "Wi-Fi 6 (802.11ax)", "AX1500 (1201 + 300 Mbps)", "4 High-Gain Antennas (2BHK)", "3× Gigabit Ports", "₹2,699 on Amazon"],
+          ["TP-Link Archer AX53", "Wi-Fi 6 Dual Band", "AX3000 (2402 + 574 Mbps)", "4× External + Beamforming", "4× Gigabit + HomeShield", "₹4,499 on Amazon"],
+          ["Mercusys Halo H80X (2-Pack)", "Wi-Fi 6 Whole Home Mesh", "AX3000 Seamless Roaming", "Covers up to 5000 sq ft", "3× Gigabit Ports per unit", "₹7,999 on Flipkart"],
+          ["D-Link R15 Eagle Pro AI", "Wi-Fi 6 AI Smart Mesh", "AX1500 Dual Band", "4 Antennas + AI Traffic Optimizer", "4× Gigabit LAN", "₹2,499 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Multi-Port 65W & 100W GaN Fast Chargers for Laptops & Phones in India (2026)",
+        "slug": "best-gan-chargers-65w-100w-laptops-india-2026",
+        "niche": "GaN Fast Chargers",
+        "budgetTier": 4000,
+        "priceRange": { "min": 1799, "max": 3999 },
+        "author": { "name": "ShoppersDeals Hardware Desk", "role": "Power Delivery & Thermal Efficiency" },
+        "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Replace 4 bulky chargers with a single palm-sized Gallium Nitride (GaN) brick that charges your MacBook, iPhone, and Android device concurrently at peak speeds without overheating.",
+        "headers": ["GaN Charger", "Peak Wattage", "Ports Configuration", "Protocol Support", "Thermal Safety", "Price"],
+        "rows": [
+          ["Cuktech 65W GaN Charger", "65W Max Output", "2× USB-C + 1× USB-A", "PD 3.0, PPS, QC 4+", "Sub-50°C GaN Silicon", "₹1,899 on Amazon"],
+          ["Spigen ArcStation 65W GaN", "65W Dual Output", "2× USB-C (Intelligent Split)", "Power Delivery 3.0 PPS", "Intelligent Safety Protection", "₹2,299 on Amazon"],
+          ["Stuffcool Major 65W GaN", "65W Super Compact", "1× USB-C + 1× USB-A", "Samsung 45W PPS + 65W PD", "BIS Certified Made in India", "₹1,999 on Flipkart"],
+          ["Amkette Power Pro 100W GaN", "100W High Power", "3× USB-C + 1× USB-A", "Dual Laptop 65W+30W Split", "Advanced Heat Dissipation", "₹3,499 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best 20,000mAh Power Banks with 65W Laptop PD Fast Charging in India (2026)",
+        "slug": "best-20000mah-65w-laptop-power-banks-india-2026",
+        "niche": "High-Power Laptop Power Banks",
+        "budgetTier": 5000,
+        "priceRange": { "min": 2499, "max": 4999 },
+        "author": { "name": "ShoppersDeals Hardware Desk", "role": "Battery Cell Health & Fast Charging Protocols" },
+        "imageUrl": "https://images.unsplash.com/photo-1609592424368-ffac33682855?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Need to charge your Dell XPS, MacBook Air, or ThinkPad on the go during flights and train journeys? We tested high-output 65W and 100W PD battery banks for true capacity and flight safety approvals.",
+        "headers": ["Power Bank Model", "Capacity", "Max PD Output", "Flight Approved?", "Charges MacBook Air?", "Price"],
+        "rows": [
+          ["Cuktech 20,000mAh 65W PB200N", "20,000 mAh (74Wh)", "65W USB-C Two-Way Fast", "Yes (Under 100Wh Cabin Rule)", "Yes (Full Speed 65W)", "₹2,799 on Amazon"],
+          ["Mi 50W HyperCharge 20000mAh", "20,000 mAh (74Wh)", "50W Super Fast Charging", "Yes (Certified Safe for Flights)", "Yes (Moderate Speed 45W)", "₹2,999 on Amazon"],
+          ["Stuffcool Mega 20000mAh 65W", "20,000 mAh (74Wh)", "65W Type-C Input & Output", "Yes (BIS Certified)", "Yes (Full Laptop Support)", "₹3,499 on Flipkart"],
+          ["Ambrane 20000mAh PowerLit XL", "20,000 mAh (74Wh)", "65W Fast PD Delivery", "Yes (Domestic Flights OK)", "Yes (Type-C Laptops)", "₹2,499 on Amazon"]
+        ]
+      },
+      {
+        "title": "Best Ergonomic Office Chairs Under ₹10,000 in India: Mesh vs Cushion Spine Support (2026)",
+        "slug": "best-ergonomic-office-chairs-under-10000-india-2026",
+        "niche": "Work-From-Home Ergonomics",
+        "budgetTier": 10000,
+        "priceRange": { "min": 5999, "max": 9999 },
+        "author": { "name": "ShoppersDeals WFH Desk", "role": "Lumbar Mechanics & Posture Analysis" },
+        "imageUrl": "https://images.unsplash.com/photo-1580481077195-731da89f3044?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Lower back pain after 4 hours of sitting? We tested breathable Korean mesh backs, adjustable 2D lumbar supports, Class-4 gas lifts, and multi-lock tilt mechanisms across Green Soul, Featherlite, and Wakefit.",
+        "headers": ["Ergonomic Chair", "Backrest Material", "Lumbar Adjustment", "Armrests", "Gas Lift Quality", "Deal Price"],
+        "rows": [
+          ["Green Soul Jupiter Superb", "High-Density Breathable Mesh", "2D Height & Depth Adjustable", "2D Padded Armrests", "Class 4 BIFMA Certified", "₹8,499 on Amazon"],
+          ["Wakefit Elevate Ergonomic", "Korean Breathable Mesh", "1D Height Adjustable Lumbar", "Fixed Curved Armrests", "Heavy Duty Class 4", "₹6,299 on Wakefit / Amazon"],
+          ["Featherlite 'Amaze' Medium Back", "Ergonomic Contour Mesh", "Integrated Dynamic Lumbar", "Adjustable PU Armrests", "Class 4 Commercial Grade", "₹9,499 on Featherlite / Amazon"],
+          ["Cellbell C104 High Back", "Breathable Mesh + Cushion Headrest", "Fixed Ergonomic Spine Curve", "Padded Armrests", "Class 3 Gas Lift", "₹5,499 on Flipkart"]
+        ]
+      },
+      {
+        "title": "Best Motorized Height-Adjustable Standing Desks in India: Dual Motor vs Single Motor (2026)",
+        "slug": "best-motorized-standing-desks-india-dual-single-motor-2026",
+        "niche": "Standing Desks & Active Workspaces",
+        "budgetTier": 25000,
+        "priceRange": { "min": 14999, "max": 24999 },
+        "author": { "name": "ShoppersDeals WFH Desk", "role": "Motor Torque & Frame Stability" },
+        "imageUrl": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Switching between sitting and standing burns up to 200 extra calories a day and relieves spinal disc pressure. We evaluated motor lifting capacity, wobble at maximum 120cm height, and memory presets across Jin Office, Flow, and Green Soul.",
+        "headers": ["Standing Desk", "Motor Configuration", "Weight Load Capacity", "Height Adjustment Range", "Memory Presets", "Sale Price"],
+        "rows": [
+          ["Jin Office Pro Motorized", "Dual High-Torque Motors", "Up to 100 kg Load", "70cm to 120cm (Ultra Smooth)", "4 Digital Memory Keys", "₹21,999 on Amazon"],
+          ["Flow Ergonomics Single Motor", "Single Heavy-Duty Motor", "Up to 70 kg Load", "72cm to 118cm (Quiet <50dB)", "3 Digital Presets", "₹14,999 on Amazon"],
+          ["Green Soul Sit-Stand Desk", "Dual Motor Synchronized", "Up to 80 kg Load", "71cm to 119cm", "4 Memory Presets + Anti-Collision", "₹18,999 on Flipkart"]
+        ]
+      },
+      {
+        "title": "Best USB-C Hubs & Docking Stations for MacBook & Windows Laptops in India (2026)",
+        "slug": "best-usb-c-hubs-docking-stations-macbook-windows-india-2026",
+        "niche": "Laptop Connectivity & Hubs",
+        "budgetTier": 4000,
+        "priceRange": { "min": 1499, "max": 3999 },
+        "author": { "name": "ShoppersDeals PC Lab", "role": "Data Bandwidth & HDMI 4K Output Tests" },
+        "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&q=80&w=1200",
+        "excerpt": "Modern ultrabooks only come with 2 USB-C ports. We tested 7-in-1 and 9-in-1 hubs for true 4K@60Hz HDMI output, 100W Power Delivery pass-through, and SD card transfer speeds.",
+        "headers": ["USB-C Hub", "Total Ports", "HDMI Video Output", "PD Pass-Through Charging", "Ethernet & SD Slots", "Price"],
+        "rows": [
+          ["Anker 7-in-1 USB-C Hub", "7 Ports (USB 3.0, SD, HDMI)", "4K @ 30Hz / 60Hz", "100W PD Pass-Through", "SD & MicroSD Card Reader", "₹2,799 on Amazon"],
+          ["Satechi Slim Aluminum Hub", "6 Ports High Precision", "4K @ 60Hz Ultra Smooth", "60W Fast Charging", "USB 3.0 + MicroSD", "₹3,999 on Amazon"],
+          ["Portronics Mport 7 Plus", "7-in-1 Multiport Adapter", "4K HDMI Output", "100W Type-C PD Port", "Fast SD/TF + 3x USB 3.0", "₹1,499 on Flipkart"],
+          ["UGREEN Revodok 107", "7 Ports Heavy Aluminum", "4K @ 60Hz HDR", "100W Fast Pass-Through", "5Gbps USB Ports", "₹2,199 on Amazon"]
+        ]
+      }
+    ]
+  }
+]

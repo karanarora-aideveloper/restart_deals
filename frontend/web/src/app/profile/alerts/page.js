@@ -910,7 +910,7 @@ export default function ProfileAlertsPage() {
                             <Link href={productHref} className="line-clamp-2 text-xs font-black text-slate-900 hover:text-indigo-600 transition">
                               {alert.title}
                             </Link>
-                            <p className="mt-1 text-[10px] font-semibold text-slate-400">
+                            <p className="mt-1 text-[10px] font-semibold text-slate-400" suppressHydrationWarning>
                               Added {formatRelativeTime(alert.createdAt)}
                             </p>
                           </div>

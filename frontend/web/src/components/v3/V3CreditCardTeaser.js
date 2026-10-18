@@ -68,7 +68,7 @@ export default function V3CreditCardTeaser() {
               Top E-Commerce Credit Cards &amp; Bank Offers
             </h3>
             <span className="hidden md:inline rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold">
-              Instant 5% to 10% Discounts
+              Save Extra With Eligible Cards
             </span>
           </div>
 

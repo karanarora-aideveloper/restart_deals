@@ -21,10 +21,10 @@ const MERCHANTS = [
   { id: 'flipkart', label: 'Flipkart', color: '#2563eb', logo: '/flipkart.webp' },
   { id: 'shopsy', label: 'Shopsy', color: '#9333ea', logo: '/shopsy.webp' },
   { id: 'myntra', label: 'Myntra', color: '#FF6B00', logo: '/myntra.webp' },
-  { id: 'nykaa', label: 'Nykaa', color: '#ec4899', icon: '💄' },
-  { id: 'ajio', label: 'Ajio', color: '#0f172a', icon: '🕶️' },
+  { id: 'nykaa', label: 'Nykaa', color: '#ec4899', logo: '/nykaa.webp' },
+  { id: 'ajio', label: 'Ajio', color: '#0f172a', logo: '/ajio.webp' },
   { id: 'meesho', label: 'Meesho', color: '#9333ea', logo: '/meesho.webp' },
-  { id: 'croma', label: 'Croma', color: '#00b5b5', icon: '⚡' },
+  { id: 'croma', label: 'Croma', color: '#00b5b5', logo: '/croma.webp' },
 ];
 
 /**

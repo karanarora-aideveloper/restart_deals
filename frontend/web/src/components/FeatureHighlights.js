@@ -49,7 +49,7 @@ export default function FeatureHighlights() {
           <span>⚡</span> Superior Shopping Intelligence
         </span>
         <h2 className="mt-2 text-2xl font-black tracking-tight text-[#0f172a] sm:text-3xl">
-          Why Over 100,000+ Shoppers Trust ShoppersDeals
+          Why Smart Shoppers Trust ShoppersDeals
         </h2>
         <p className="mt-1.5 text-xs text-[#64748b] sm:text-sm">
           Everything you need to make confident, money-saving purchasing decisions.

@@ -4,6 +4,7 @@ import { fetchTopProductsForSubcategory } from '@/lib/api';
 import { getMerchantInfo, formatInr, isUsableImageUrl, getAffiliateUrl } from '@/lib/affiliate';
 import { SITE_URL } from '@/lib/config';
 import { resolveBestCategory, TOP_CURATED_BEST_SLUGS } from '@/lib/bestCategories';
+import { StoreLogo } from '@/components/BrandAndStoreLogos';
 
 export const revalidate = 300; // 5-minute ISR cache
 
@@ -258,12 +259,7 @@ export default async function BestCategoryPage({ params }) {
                         {rankLabel}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-600">
-                        {merchant.logo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={merchant.logo} alt={merchant.label} className="h-4 w-auto object-contain" />
-                        ) : (
-                          <span>{merchant.emoji} {merchant.label}</span>
-                        )}
+                        <StoreLogo merchant={prod.merchant || merchant.id} className="h-4 w-auto object-contain" />
                       </span>
                     </div>
 

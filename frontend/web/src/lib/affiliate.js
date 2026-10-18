@@ -96,9 +96,9 @@ export function getMerchantInfo(urlOrMerchant) {
   if (isFlipkart) return { id: 'flipkart', name: 'Flipkart', label: 'Flipkart', emoji: '🛍️', logo: '/flipkart.webp', btnColor: '#2874F0', textColor: '#ffffff' };
   if (isMyntra) return { id: 'myntra', name: 'Myntra', label: 'Myntra', emoji: '👗', logo: '/myntra.webp', btnColor: '#e11d48', textColor: '#ffffff' };
   if (isMeesho) return { id: 'meesho', name: 'Meesho', label: 'Meesho', emoji: '🎁', logo: '/meesho.webp', btnColor: '#7c3aed', textColor: '#ffffff' };
-  if (isAjio) return { id: 'ajio', name: 'Ajio', label: 'Ajio', emoji: '🕶️', logo: null, btnColor: '#16a34a', textColor: '#ffffff' };
-  if (isNykaa) return { id: 'nykaa', name: 'Nykaa', label: 'Nykaa', emoji: '💄', logo: null, btnColor: '#db2777', textColor: '#ffffff' };
-  if (isCroma) return { id: 'croma', name: 'Croma', label: 'Croma', emoji: '⚡', logo: null, btnColor: '#0284c7', textColor: '#ffffff' };
+  if (isAjio) return { id: 'ajio', name: 'Ajio', label: 'Ajio', emoji: '🕶️', logo: '/ajio.webp', btnColor: '#16a34a', textColor: '#ffffff' };
+  if (isNykaa) return { id: 'nykaa', name: 'Nykaa', label: 'Nykaa', emoji: '💄', logo: '/nykaa.webp', btnColor: '#db2777', textColor: '#ffffff' };
+  if (isCroma) return { id: 'croma', name: 'Croma', label: 'Croma', emoji: '⚡', logo: '/croma.webp', btnColor: '#0284c7', textColor: '#ffffff' };
   if (isBombayShaving) return { id: 'bombayshaving', name: 'Bombay Shaving Company', label: 'Bombay Shaving', emoji: '🪒', logo: '/bombayshaving-dark.webp', btnColor: '#1e3a5f', textColor: '#ffffff' };
   if (isPlum) return { id: 'plum', name: 'Plum Goodness', label: 'Plum', emoji: '🌿', logo: null, btnColor: '#4f46e5', textColor: '#ffffff' };
   if (isMamaearth) return { id: 'mamaearth', name: 'Mamaearth', label: 'Mamaearth', emoji: '🌱', logo: null, btnColor: '#059669', textColor: '#ffffff' };

@@ -14,6 +14,7 @@ import ProductAIVerdictCard from '@/components/ProductAIVerdictCard';
 import ProductCouponsOffers from '@/components/ProductCouponsOffers';
 import PriceBarometer from '@/components/PriceBarometer';
 import VariantSelector from '@/components/VariantSelector';
+import { StoreLogo } from '@/components/BrandAndStoreLogos';
 import { computePriceStats } from '@/lib/priceAnalytics';
 
 // Strips Amazon-style SEO noise from product titles for human-facing display.
@@ -319,16 +320,9 @@ export default async function ProductDetailPage({ params }) {
                   >
                     {categoryLabel(product.category) || 'Deals'}
                   </Link>
-                  {merchant.logo ? (
-                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 shadow-2xs">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={merchant.logo} alt={merchant.label} className="h-4 w-auto object-contain" />
-                    </span>
-                  ) : (
-                    <span className="rounded-md bg-orange-50 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand">
-                      {merchant.emoji} {merchant.label}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 shadow-2xs">
+                    <StoreLogo merchant={product.merchant || merchant.id} className="h-4 max-h-4 w-auto object-contain" />
+                  </span>
                 </div>
               </div>
 
@@ -423,12 +417,9 @@ export default async function ProductDetailPage({ params }) {
                   <span className="mt-0.5 text-emerald-600">✓</span>
                   <div className="flex items-center gap-2">
                     <strong className="text-gray-900">Tracked Merchant:</strong>
-                    {merchant.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={merchant.logo} alt={merchant.label} className="h-4 w-auto object-contain" />
-                    ) : (
-                      <span>{merchant.label}</span>
-                    )}
+                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-0.5 shadow-2xs">
+                      <StoreLogo merchant={product.merchant || merchant.id} className="h-3.5 max-h-3.5 w-auto object-contain" />
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -476,16 +467,9 @@ export default async function ProductDetailPage({ params }) {
                   >
                     {categoryLabel(product.category) || 'Deals'}
                   </Link>
-                  {merchant.logo ? (
-                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 shadow-2xs">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={merchant.logo} alt={merchant.label} className="h-4 w-auto object-contain" />
-                    </span>
-                  ) : (
-                    <span className="rounded-md bg-orange-50 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand">
-                      {merchant.emoji} {merchant.label}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 shadow-2xs">
+                    <StoreLogo merchant={product.merchant || merchant.id} className="h-4 max-h-4 w-auto object-contain" />
+                  </span>
                 </div>
               </div>
 

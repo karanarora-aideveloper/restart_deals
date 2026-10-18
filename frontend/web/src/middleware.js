@@ -34,7 +34,11 @@ const KNOWN_ROUTES = new Set([
 ]);
 
 const STORE_DOMAINS = [
-  'amazon.',
+  'amazon.in',
+  'amazon.com',
+  'amazon.co.uk',
+  'amazon.de',
+  'amazon.ca',
   'flipkart.com',
   'myntra.com',
   'nykaa.com',
@@ -56,6 +60,11 @@ export function middleware(request) {
   // Clean leading slashes
   const cleanPath = pathname.replace(/^\/+/, '');
   if (!cleanPath) return NextResponse.next();
+
+  // If request is for a static asset, bypass middleware completely
+  if (/\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|xml|json|webmanifest|woff2?|css|js)$/i.test(cleanPath)) {
+    return NextResponse.next();
+  }
 
   const firstSegment = cleanPath.split('/')[0].toLowerCase();
 
@@ -98,6 +107,6 @@ export const config = {
     /*
      * Match all request paths except static files & images
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|categories|carousel|images|stores|sw.js).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|categories|carousel|images|stores|sw.js|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|xml|json|webmanifest)$).*)',
   ],
 };

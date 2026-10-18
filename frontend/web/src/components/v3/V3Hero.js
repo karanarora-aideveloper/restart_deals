@@ -100,7 +100,7 @@ export default function V3Hero() {
 
         {/* Primary Headline */}
         <p className="mt-2 text-xl sm:text-2xl md:text-[28px] font-black leading-snug text-[#312F80] tracking-tight">
-          Compare prices &amp; track drops across 1 Lakh+ stores
+          Compare prices &amp; track drops across 50,000+ products in 30+ stores
         </p>
 
         {/* Sub-Headline */}
@@ -148,31 +148,37 @@ export default function V3Hero() {
             <p className="mt-2 text-xs font-semibold text-amber-700">{scanError}</p>
           )}
 
-          {/* Trust Metrics with Dashed Dividers */}
+          {/* Trust Metrics with Dashed Dividers - Real Empirical Data */}
           <div className="hidden md:flex items-center gap-2 mt-4 text-[#008357]">
             <div className="flex-1 border-t border-dashed border-slate-300" />
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-[#008357]" />
-              <strong className="font-black text-slate-900">8M+</strong> Active Users
+              <strong className="font-black text-slate-900">50,000+</strong> Tracked Products
             </span>
             <div className="flex-1 border-t border-dashed border-slate-300" />
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-[#008357]" />
-              <strong className="font-black text-slate-900">₹10K CR</strong> Cash Saved
+              <strong className="font-black text-slate-900">30+</strong> Monitored Stores
             </span>
             <div className="flex-1 border-t border-dashed border-slate-300" />
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-[#008357]" />
-              <strong className="font-black text-slate-900">100K+</strong> Trusted Stores
+              <strong className="font-black text-slate-900">1,800+</strong> Live Drops
+            </span>
+            <div className="flex-1 border-t border-dashed border-slate-300" />
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#008357]" />
+              <strong className="font-black text-slate-900">90-Day</strong> Price History
             </span>
             <div className="flex-1 border-t border-dashed border-slate-300" />
           </div>
 
-          {/* Mobile Trust Metrics */}
+          {/* Mobile Trust Metrics - Real Empirical Data */}
           <div className="flex md:hidden items-center justify-center gap-3 mt-3 text-[10px] font-semibold text-[#008357]">
-            <span>✓ <strong className="text-slate-900">8M+</strong> Users</span>
-            <span>✓ <strong className="text-slate-900">₹10K CR</strong> Saved</span>
-            <span>✓ <strong className="text-slate-900">100K+</strong> Stores</span>
+            <span>✓ <strong className="text-slate-900">50K+</strong> Products</span>
+            <span>✓ <strong className="text-slate-900">30+</strong> Stores</span>
+            <span>✓ <strong className="text-slate-900">1,800+</strong> Drops</span>
+            <span>✓ <strong className="text-slate-900">90-Day</strong> History</span>
           </div>
 
           {/* Magic URL Prefix Trick Banner with clean fluid wrap */}

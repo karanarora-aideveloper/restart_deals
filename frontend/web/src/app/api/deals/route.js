@@ -14,10 +14,12 @@ export async function GET(request) {
     const minDiscount = parseInt(searchParams.get('minDiscount') || '0', 10);
     const sourceEngine = searchParams.get('sourceEngine') || 'all';
     const sort = searchParams.get('sort') || 'newest';
+    const q = searchParams.get('q') || '';
 
     const deals = await directFetchDeals({
       page,
       limit,
+      q,
       category,
       merchant,
       country,
