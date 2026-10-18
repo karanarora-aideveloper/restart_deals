@@ -156,14 +156,14 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Live Crawl / Verification Freshness Badge */}
+            {/* Live Verification Badge */}
             <span
-              className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold whitespace-nowrap transition-colors ${freshness.badgeClass}`}
-              title={freshness.tooltip}
+              className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap"
+              title="Verified by ShoppersDeals Engine"
               suppressHydrationWarning
             >
-              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
-              <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked'}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>Verified</span>
             </span>
 
             {/* Wishlist Button */}
@@ -296,12 +296,27 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
                 'Verified Price'
               )}
             </span>
-            <span
-              className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight shrink-0 border ${engineBadgeClass}`}
-              title={engineBadgeTitle}
-            >
-              {engineBadgeText}
-            </span>
+            <div className="flex flex-col items-end shrink-0">
+              <span
+                className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight border ${engineBadgeClass}`}
+                title={engineBadgeTitle}
+              >
+                {engineBadgeText}
+              </span>
+              <span
+                className={`text-[8px] font-bold mt-0.5 tracking-tight flex items-center gap-1 ${
+                  freshness.status === 'fresh' ? 'text-emerald-700' :
+                  freshness.status === 'stale' ? 'text-rose-600' :
+                  freshness.status === 'aging' ? 'text-amber-700' :
+                  'text-slate-500'
+                }`}
+                title={freshness.tooltip}
+                suppressHydrationWarning
+              >
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
+                <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked'}</span>
+              </span>
+            </div>
           </div>
 
           {freshness.isStale && (
