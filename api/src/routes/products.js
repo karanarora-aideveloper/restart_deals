@@ -928,6 +928,17 @@ router.get('/:id', cacheMiddleware(30), async (req, res) => {
         product = await Product.findOne({ productId: req.params.id });
       }
     }
+
+    // Fallback: If req.params.id was a Deal ObjectId, resolve its associated Product
+    if (!product && mongoose.Types.ObjectId.isValid(req.params.id)) {
+      const dealFallback = await Deal.findById(req.params.id).select('productId merchant').lean();
+      if (dealFallback?.productId) {
+        product = await Product.findOne({ productId: dealFallback.productId, merchant: dealFallback.merchant });
+        if (!product) {
+          product = await Product.findOne({ productId: dealFallback.productId });
+        }
+      }
+    }
     
     if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });

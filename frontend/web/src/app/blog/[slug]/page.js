@@ -468,9 +468,23 @@ export default async function BlogPostPage({ params }) {
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/blog/${slug}` },
   };
 
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+      { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: `${SITE_URL}/blog` },
+      ...(post.category
+        ? [{ '@type': 'ListItem', position: 3, name: post.category.replace(/-/g, ' '), item: `${SITE_URL}/blog?category=${post.category}` }]
+        : []),
+      { '@type': 'ListItem', position: post.category ? 4 : 3, name: post.title, item: `${SITE_URL}/blog/${slug}` },
+    ],
+  };
+
   return (
     <div className="flex flex-col items-center bg-[#f8fafc] pb-20">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
       <nav className="hidden w-full max-w-[1200px] px-4 sm:px-6 py-4 md:block text-xs" aria-label="Breadcrumb">
         <ol className="flex items-center gap-1.5 text-slate-500">

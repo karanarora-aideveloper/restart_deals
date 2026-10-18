@@ -96,7 +96,26 @@ export async function GET(request, { params }) {
     });
   }
 
-  // 2. Deals sitemap (/sitemaps/deals.xml)
+  // 2. Dedicated Blogs sitemap (/sitemaps/blogs.xml)
+  if (name === 'blogs.xml') {
+    const blogUrls = (blogsData || []).map((post) => ({
+      url: `${SITE_URL}/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date).toISOString() : now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    }));
+
+    const xml = toXmlUrlset(blogUrls);
+    return new Response(xml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
+  }
+
+  // 3. Deals sitemap (/sitemaps/deals.xml)
   if (name === 'deals.xml') {
     const deals = await fetchSitemapDeals();
     const dealUrls = deals.map((d) => ({

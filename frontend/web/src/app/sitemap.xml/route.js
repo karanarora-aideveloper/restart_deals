@@ -13,13 +13,19 @@ export async function GET() {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-  // 1. Core pages sitemap (Static, categories, best-of guides, blogs - 115 URLs)
+  // 1. Core pages sitemap (Static, categories, best-of guides - 115 URLs)
   xml += `  <sitemap>\n`;
   xml += `    <loc>${SITE_URL}/sitemaps/pages.xml</loc>\n`;
   xml += `    <lastmod>${now}</lastmod>\n`;
   xml += `  </sitemap>\n`;
 
-  // 2. Active deals sitemap
+  // 2. Dedicated Blogs sitemap (214+ comprehensive buying guides)
+  xml += `  <sitemap>\n`;
+  xml += `    <loc>${SITE_URL}/sitemaps/blogs.xml</loc>\n`;
+  xml += `    <lastmod>${now}</lastmod>\n`;
+  xml += `  </sitemap>\n`;
+
+  // 3. Active deals sitemap
   xml += `  <sitemap>\n`;
   xml += `    <loc>${SITE_URL}/sitemaps/deals.xml</loc>\n`;
   xml += `    <lastmod>${now}</lastmod>\n`;

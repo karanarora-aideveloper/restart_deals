@@ -270,7 +270,7 @@ export default async function CategoryPage({ params }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {deals.map((deal) => {
                 const dealId = deal._id || deal.id;
-                const href = deal.productId ? `/product/${dealId}` : `/deal/${dealId}`;
+                const href = deal.productId ? `/product/${deal.productId}` : `/deal/${dealId}`;
                 return (
                   <Link
                     key={dealId}

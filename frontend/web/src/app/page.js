@@ -50,6 +50,33 @@ const storeSchema = {
   address: { '@type': 'PostalAddress', addressCountry: 'IN' },
 };
 
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'ShoppersDeals',
+  url: `${SITE_URL}/`,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${SITE_URL}/products?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'ShoppersDeals',
+  url: `${SITE_URL}/`,
+  logo: `${SITE_URL}/logo.png`,
+  sameAs: [
+    'https://t.me/ShoppersDealsLive',
+    'https://twitter.com/ShoppersDealsIn',
+  ],
+};
+
 const FAQ_ITEMS = [
   {
     q: 'How does the 90-day price history tracker work?',
@@ -136,6 +163,14 @@ export default async function HomePage({ searchParams }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(storeSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
       <script
         type="application/ld+json"
