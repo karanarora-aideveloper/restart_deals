@@ -19,6 +19,61 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
       hoverBg: 'hover:bg-[#EFEFFF] hover:text-[#5855E5]',
     },
     {
+      id: 'products',
+      label: 'Price Tracker',
+      href: '/products',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      ),
+      activeBg: 'bg-[#F0FDF4] text-[#15803D]',
+      hoverBg: 'hover:bg-[#F0FDF4] hover:text-[#15803D]',
+    },
+    {
+      id: 'categories',
+      label: 'Categories',
+      href: '/categories',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      ),
+      activeBg: 'bg-[#EFF6FF] text-[#1D4ED8]',
+      hoverBg: 'hover:bg-[#EFF6FF] hover:text-[#1D4ED8]',
+    },
+    {
+      id: 'blog',
+      label: 'Buying Guides',
+      href: '/blog',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+      ),
+      activeBg: 'bg-[#FEF3C7] text-[#D97706]',
+      hoverBg: 'hover:bg-[#FEF3C7] hover:text-[#D97706]',
+    },
+    {
+      id: 'coupons',
+      label: 'Coupons',
+      href: '/coupons',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 11-6-6-9.5 9.5a2.5 2.5 0 0 0 0 3.5 2.5 2.5 0 0 0 3.5 0L19 8" />
+        </svg>
+      ),
+      activeBg: 'bg-[#FDF2F8] text-[#BE185D]',
+      hoverBg: 'hover:bg-[#FDF2F8] hover:text-[#BE185D]',
+    },
+    {
       id: 'compare',
       label: 'Compare',
       href: '/compare',

@@ -185,15 +185,19 @@ export async function generateMetadata({ params }) {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default async function CategoryPage({ params }) {
+export default async function CategoryPage({ params, searchParams }) {
   const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
   const cat = CATEGORY_META[slug];
   if (!cat) notFound();
 
+  const page = Math.max(1, parseInt(sp?.page || '1', 10));
+
   // Server-side deal fetch — filtered by this category
-  const { items: deals = [] } = await fetchDeals({
+  const { items: deals = [], hasMore = false } = await fetchDeals({
     category: cat.apiCategory,
     limit: 40,
+    page,
     sort: 'newest',
     revalidate: 300,
   });
@@ -316,6 +320,29 @@ export default async function CategoryPage({ params }) {
                 );
               })}
             </div>
+
+            {/* Pagination Controls for Crawlers and Shoppers */}
+            <nav aria-label="Category Deals Pagination" className="mt-8 flex items-center justify-center gap-3 text-xs font-bold border-t border-slate-100 pt-6">
+              {page > 1 && (
+                <Link
+                  href={`/categories/${slug}?page=${page - 1}`}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-brand hover:text-brand shadow-2xs transition-all"
+                >
+                  ← Previous Page
+                </Link>
+              )}
+              <span className="rounded-xl bg-slate-100 px-3.5 py-2 text-slate-600">
+                Page {page}
+              </span>
+              {hasMore && (
+                <Link
+                  href={`/categories/${slug}?page=${page + 1}`}
+                  className="rounded-xl border border-brand/40 bg-orange-50 px-4 py-2 text-brand hover:bg-brand hover:text-white shadow-2xs transition-all"
+                >
+                  Next Page ({page + 1}) →
+                </Link>
+              )}
+            </nav>
           </section>
         ) : (
           <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-10 text-center">
