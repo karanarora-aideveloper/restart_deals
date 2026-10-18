@@ -5,135 +5,8 @@ import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/config';
 import { trackCouponCopied, trackFilterChange } from '@/lib/analytics';
 
-// Curated top verified coupons database for immediate offline/instant rendering
-const CURATED_COUPONS = [
-  {
-    id: 'c-1',
-    merchant: 'amazon',
-    storeName: 'Amazon India',
-    logo: '🛒',
-    code: 'AMZNBANK10',
-    title: '10% Instant Discount on Bank Credit & Debit Cards',
-    description: 'Save up to ₹1,500 on electronics, smartphones, laptops, and home appliances. Minimum order ₹5,000.',
-    type: 'bank',
-    category: 'Electronics',
-    expiry: '31 Oct 2026',
-    discount: '10% OFF',
-    url: 'https://www.amazon.in?tag=shoppersdea03-21',
-  },
-  {
-    id: 'c-2',
-    merchant: 'flipkart',
-    storeName: 'Flipkart',
-    logo: '⚡',
-    code: 'BBDSPECIAL',
-    title: 'Instant 10% Off on HDFC & SBI Cards',
-    description: 'Flat 10% instant discount on smartphones, televisions, and electronics. Min purchase ₹4,999.',
-    type: 'bank',
-    category: 'Electronics',
-    expiry: '31 Oct 2026',
-    discount: '10% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.flipkart.com',
-  },
-  {
-    id: 'c-3',
-    merchant: 'myntra',
-    storeName: 'Myntra',
-    logo: '👗',
-    code: 'MYNTRA15',
-    title: 'Extra 15% Off on Select Fashion Brands',
-    description: 'Applicable on clothing, footwear, and accessories. Minimum cart value ₹1,999.',
-    type: 'coupon',
-    category: 'Fashion',
-    expiry: '31 Oct 2026',
-    discount: '15% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.myntra.com',
-  },
-  {
-    id: 'c-4',
-    merchant: 'myntra',
-    storeName: 'Myntra',
-    logo: '👗',
-    code: 'FIRSTBUY',
-    title: 'Flat ₹200 Off for New App & Web Users',
-    description: 'Special welcome discount for new shoppers on first order above ₹999.',
-    type: 'coupon',
-    category: 'Fashion',
-    expiry: 'Ongoing',
-    discount: '₹200 OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.myntra.com',
-  },
-  {
-    id: 'c-5',
-    merchant: 'nykaa',
-    storeName: 'Nykaa Beauty',
-    logo: '💄',
-    code: 'NYKBEAUTY10',
-    title: 'Extra 10% Off on Top Cosmetics & Skincare',
-    description: 'Valid on Maybelline, Lakme, L\'Oreal, Sugar, and M.A.C collections.',
-    type: 'coupon',
-    category: 'Beauty',
-    expiry: '31 Oct 2026',
-    discount: '10% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.nykaa.com',
-  },
-  {
-    id: 'c-6',
-    merchant: 'ajio',
-    storeName: 'AJIO',
-    logo: '✨',
-    code: 'TRENDS10',
-    title: 'Flat 10% Extra on AJIO Trends & Sneakers',
-    description: 'Valid on top footwear, ethnic wear, and international designer collections.',
-    type: 'coupon',
-    category: 'Fashion',
-    expiry: '31 Oct 2026',
-    discount: '10% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.ajio.com',
-  },
-  {
-    id: 'c-7',
-    merchant: 'purenutrition',
-    storeName: 'Pure Nutrition',
-    logo: '🌿',
-    code: 'PAYDAY5',
-    title: 'Pure Nutrition Payday Special Discount',
-    description: 'Massive savings on vitamins, supplements, and wellness essentials.',
-    type: 'coupon',
-    category: 'Health',
-    expiry: '31 Oct 2026',
-    discount: 'EXTRA 5% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fpurenutrition.in',
-  },
-  {
-    id: 'c-8',
-    merchant: 'kapiva',
-    storeName: 'Kapiva Ayurveda',
-    logo: '🌱',
-    code: 'PAYDAY15',
-    title: 'Pay Day Sale: Up to 30% Off + Extra 15% Off',
-    description: 'Extra 15% discount on Ayurvedic juices, Shilajit, and herbal wellness packs.',
-    type: 'coupon',
-    category: 'Health',
-    expiry: '31 Oct 2026',
-    discount: '15% OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fkapiva.in',
-  },
-  {
-    id: 'c-9',
-    merchant: 'pepperfry',
-    storeName: 'Pepperfry',
-    logo: '🛋️',
-    code: 'HBSPECIAL2K',
-    title: 'Up to 70% Off + Extra ₹2,000 Off on Furniture',
-    description: 'Valid on home decor, study tables, sofas, and ergonomic office chairs above ₹19,999.',
-    type: 'coupon',
-    category: 'Home',
-    expiry: '31 Oct 2026',
-    discount: '₹2,000 OFF',
-    url: 'https://linksredirect.com/?cid=325472&subid=web&source=api&url=https%3A%2F%2Fwww.pepperfry.com',
-  }
-];
+// Authentic active brand coupons fallback
+const CURATED_COUPONS = [];
 
 const STORE_FILTERS = [
   { id: 'all', label: 'All Stores' },
@@ -158,7 +31,7 @@ export default function CouponsHubPage() {
     async function loadLiveCoupons() {
       setIsLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cuelinks/offers?per_page=30`);
+        const res = await fetch(`${API_BASE_URL}/api/cuelinks/coupons?per_page=50`);
         const json = await res.json();
         if (!cancelled && json?.success && Array.isArray(json?.data)) {
           const apiList = json.data

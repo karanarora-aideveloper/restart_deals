@@ -1,155 +1,115 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getAffiliateUrl } from '@/lib/affiliate';
-import { API_BASE_URL } from '@/lib/config';
+import React, { useState } from 'react';
+import { getAffiliateUrl, formatInr } from '@/lib/affiliate';
 import { trackCouponCopied, trackOutboundClick } from '@/lib/analytics';
 
-// Curated active merchant coupons and promo codes fallback for instant zero-latency loading
-const KNOWN_STORE_COUPONS = {
-  amazon: [
-    {
-      code: 'AMZNBANK10',
-      title: '10% Instant Discount on Bank Cards',
-      description: 'Up to ₹1,500 instant discount on Credit & Debit Cards on minimum cart of ₹5,000.',
-      type: 'bank',
-      expiry: '31 Oct 2026',
-    },
-    {
-      code: 'COLLECTED',
-      title: 'On-Page Clip Coupon',
-      description: 'Check "Apply Coupon" box on Amazon product page for instant checkout savings.',
-      type: 'coupon',
-      expiry: 'Limited Stock',
-    }
-  ],
-  flipkart: [
-    {
-      code: 'FKRTBIGBBD',
-      title: 'BBD Special Bank Offer',
-      description: 'Instant 10% discount on HDFC & SBI Credit Cards on orders above ₹4,999.',
-      type: 'bank',
-      expiry: '31 Oct 2026',
-    },
-    {
-      code: 'SUPERCOINS',
-      title: 'Extra SuperCoin Savings',
-      description: 'Use up to 500 SuperCoins for extra flat discount on eligible electronics & fashion.',
-      type: 'coupon',
-      expiry: 'Active',
-    }
-  ],
-  myntra: [
-    {
-      code: 'MYNTRA15',
-      title: 'Extra 15% Off on Select Brands',
-      description: 'Apply on cart value above ₹1,999 for instant extra 15% savings.',
-      type: 'coupon',
-      expiry: '31 Oct 2026',
-    },
-    {
-      code: 'FIRSTBUY',
-      title: 'New User Extra ₹200 Off',
-      description: 'Valid for new Myntra shoppers on minimum purchase of ₹999.',
-      type: 'coupon',
-      expiry: 'Active',
-    }
-  ],
-  nykaa: [
-    {
-      code: 'NYKBEAUTY10',
-      title: 'Extra 10% Off on Top Cosmetics',
-      description: 'Applicable on select beauty, skincare, and fragrance collections.',
-      type: 'coupon',
-      expiry: '31 Oct 2026',
-    }
-  ],
-  ajio: [
-    {
-      code: 'TRENDS10',
-      title: 'Flat 10% Extra on AJIO Trends',
-      description: 'Valid on footwear, apparel, and premium international collections.',
-      type: 'coupon',
-      expiry: '31 Oct 2026',
-    }
-  ]
-};
-
-export default function ProductCouponsOffers({ product, merchant }) {
-  const [coupons, setCoupons] = useState([]);
+/**
+ * Authentic Bank Offers & Store Discounts Component
+ * 
+ * STRICT VISIBILITY GATE:
+ * Only renders when an authentic, verified bank discount or on-page coupon is present
+ * in the product/deal data model. Completely hides (returns null) if no real discount exists.
+ * Zero fake coupon codes. Zero synthetic fallback promos.
+ */
+export default function ProductCouponsOffers({ product, merchant, deal, className = '' }) {
   const [copiedCode, setCopiedCode] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const merchantKey = (product?.merchant || merchant?.id || 'amazon').toLowerCase().replace(/[^a-z]/g, '');
+  if (!product && !deal) return null;
 
-  useEffect(() => {
-    let cancelled = false;
+  const country = product?.country || deal?.country || 'IN';
+  const merchantName = merchant?.label || product?.merchant || deal?.merchant || 'Store';
+  const cleanMerchant = (merchant?.id || product?.merchant || deal?.merchant || 'store').toLowerCase();
+  const currentPrice = Number(product?.price) || Number(deal?.dealPrice) || 0;
+  const bestBankPrice = Number(product?.bankOfferPrice) || Number(deal?.bankOfferPrice) || 0;
 
-    async function fetchLiveOffers() {
-      setLoading(true);
-      try {
-        // Fetch live offers from backend Cuelinks endpoint
-        const res = await fetch(`${API_BASE_URL}/api/cuelinks/offers?per_page=15&q=${encodeURIComponent(merchantKey)}`);
-        const json = await res.json();
+  // 1. Gather raw scraped bank offers from product or deal
+  const rawBankOffers = Array.isArray(product?.bankOffers) && product.bankOffers.length > 0
+    ? product.bankOffers
+    : Array.isArray(deal?.bankOffers) && deal.bankOffers.length > 0
+      ? deal.bankOffers
+      : [];
 
-        if (!cancelled && json?.success && Array.isArray(json?.data) && json.data.length > 0) {
-          const matched = json.data
-            .filter((o) => {
-              const name = (o.campaign_name || '').toLowerCase();
-              return name.includes(merchantKey) || merchantKey.includes(name);
-            })
-            .map((o) => ({
-              code: o.coupon_code || 'CLAIM DEAL',
-              title: o.title || 'Store Offer',
-              description: o.description ? o.description.trim().slice(0, 140) + '...' : 'Verified merchant promotional deal.',
-              type: o.coupon_code ? 'coupon' : 'deal',
-              expiry: o.end_date ? new Date(o.end_date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Limited Time',
-              url: o.tracking_url || null,
-            }));
+  // Filter for authentic bank offers (never allow fake/dummy placeholder codes)
+  const validBankOffers = rawBankOffers
+    .filter((bo) => {
+      if (!bo) return false;
+      const desc = typeof bo === 'string' ? bo : (bo.description || bo.title || '');
+      const code = bo.code || '';
+      if (/BANKOFFER\d/i.test(code) || /AMZNBANK/i.test(code) || /FKRTBIG/i.test(code)) return false;
+      const hasBank = Boolean(bo.bank && bo.bank !== 'Bank Offer');
+      const hasDiscount = Boolean(bo.discountAmount && bo.discountAmount > 0);
+      const hasEffective = Boolean(bo.effectivePrice && bo.effectivePrice > 0);
+      const hasKeywords = /bank|card|instant discount|cashback|emi|hdfc|sbi|icici|axis|kotak|onecard/i.test(desc);
+      return (hasBank || hasKeywords) && (hasDiscount || hasEffective || desc.length >= 15);
+    })
+    .map((bo, idx) => {
+      const desc = typeof bo === 'string' ? bo : (bo.description || bo.title || '');
+      const discount = bo.discountAmount || (bo.effectivePrice && currentPrice > bo.effectivePrice ? currentPrice - bo.effectivePrice : null);
+      return {
+        id: `bank-${idx}`,
+        type: 'bank',
+        bank: bo.bank || 'Bank Instant Discount',
+        title: discount
+          ? `Save ${formatInr(discount, country)} with ${bo.bank || 'Bank Card'}`
+          : (bo.bank ? `${bo.bank} Instant Card Discount` : 'Instant Bank Card Discount'),
+        description: desc || 'Instant discount applied at checkout when paying with eligible bank credit/debit card.',
+        discountAmount: discount,
+        effectivePrice: bo.effectivePrice || (discount && currentPrice > discount ? currentPrice - discount : null),
+        code: null,
+      };
+    });
 
-          if (matched.length > 0) {
-            setCoupons(matched);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (e) {
-        // Fallback gracefully to curated coupons
-      }
+  // 2. If no itemized bank offers exist but an authentic bankOfferPrice is recorded below live price
+  if (validBankOffers.length === 0 && bestBankPrice > 0 && currentPrice > bestBankPrice) {
+    const diff = currentPrice - bestBankPrice;
+    validBankOffers.push({
+      id: 'bank-effective',
+      type: 'bank',
+      bank: 'Bank Partner Discount',
+      title: `Save ${formatInr(diff, country)} with Bank Offer`,
+      description: `Instant discount verified on checkout. Pay ${formatInr(bestBankPrice, country)} with eligible cards.`,
+      discountAmount: diff,
+      effectivePrice: bestBankPrice,
+      code: null,
+    });
+  }
 
-      if (!cancelled) {
-        // Fallback to known store coupons + on-page product bank offers
-        const base = KNOWN_STORE_COUPONS[merchantKey] || KNOWN_STORE_COUPONS.amazon;
-        const list = [...base];
+  // 3. Check for genuine on-page store coupon (scraped directly from merchant page)
+  const couponData = deal?.coupon || product?.coupon;
+  const validCoupons = [];
+  if (couponData) {
+    const label = typeof couponData === 'string' ? couponData : couponData.label;
+    const code = typeof couponData === 'object' ? couponData.code : null;
+    const isCleanCode = code && !/^(CLAIM DEAL|ACTIVE|COUPON|COLLECTED|SUPERCOINS)$/i.test(code.trim());
 
-        // If product has scraped bankOffers array, inject them
-        if (Array.isArray(product?.bankOffers) && product.bankOffers.length > 0) {
-          product.bankOffers.slice(0, 2).forEach((bo, idx) => {
-            list.unshift({
-              code: `BANKOFFER${idx + 1}`,
-              title: typeof bo === 'string' ? bo : bo.title || 'Bank Instant Discount',
-              description: 'Instant discount applied at payment gateway.',
-              type: 'bank',
-              expiry: 'Active Today',
-            });
-          });
-        }
-
-        setCoupons(list);
-        setLoading(false);
-      }
+    if (label && label.length > 3) {
+      validCoupons.push({
+        id: 'coupon-live',
+        type: 'coupon',
+        bank: null,
+        title: label,
+        description: isCleanCode
+          ? `Use coupon code "${code}" at checkout for additional savings.`
+          : 'Apply the on-page coupon checkbox before adding this item to cart on store page.',
+        code: isCleanCode ? code.trim() : null,
+        isClipCoupon: !isCleanCode,
+      });
     }
+  }
 
-    fetchLiveOffers();
-    return () => {
-      cancelled = true;
-    };
-  }, [merchantKey, product]);
+  const allOffers = [...validBankOffers, ...validCoupons];
 
-  const handleCopy = (item) => {
-    const code = typeof item === 'string' ? item : item?.code;
-    if (!code || code === 'CLAIM DEAL') return;
-    trackCouponCopied(typeof item === 'object' ? item : { code, merchant: merchantKey }, 'pdp_card');
+  // STRICT GATE: If there is no authentic bank discount or verified coupon, HIDE ENTIRELY
+  if (allOffers.length === 0) {
+    return null;
+  }
+
+  const affiliateUrl = getAffiliateUrl(product?.cleanUrl || product?.url || deal?.dealUrl || deal?.url, country);
+
+  const handleCopy = (code) => {
+    if (!code) return;
+    trackCouponCopied({ code, merchant: cleanMerchant }, 'pdp_card');
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(code).then(() => {
         setCopiedCode(code);
@@ -158,73 +118,68 @@ export default function ProductCouponsOffers({ product, merchant }) {
     }
   };
 
-  const affiliateUrl = getAffiliateUrl(product?.cleanUrl || product?.url, product?.country);
-
-  if (coupons.length === 0 && !loading) {
-    return null;
-  }
-
   return (
-    <div className="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 shadow-xs">
+    <div className={`rounded-3xl border border-blue-200/80 bg-gradient-to-br from-blue-50/40 via-white to-emerald-50/20 p-5 sm:p-6 shadow-xs ${className}`}>
       <div className="flex items-center justify-between border-b border-gray-100 pb-3.5 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-orange-100 text-sm">
-            🏷️
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-sm">
+            💳
           </span>
           <div>
             <h3 className="text-base font-extrabold text-gray-900">
-              Live Coupons &amp; Bank Offers
+              Live Bank Offers &amp; Discounts
             </h3>
-            <p className="text-[11px] font-medium text-gray-400">
-              Verified active codes for {merchant?.label || product?.merchant || 'this store'}
+            <p className="text-[11px] font-medium text-gray-500">
+              Verified card discounts available for {merchantName}
             </p>
           </div>
         </div>
 
-        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-          ✓ Verified
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Verified Active
         </span>
       </div>
 
       <div className="space-y-3">
-        {coupons.slice(0, 3).map((item, idx) => {
+        {allOffers.slice(0, 4).map((item) => {
           const isCopied = copiedCode === item.code;
-          const isCoupon = Boolean(item.code && item.code !== 'CLAIM DEAL');
+          const isBank = item.type === 'bank';
 
           return (
             <div
-              key={idx}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-gray-200/80 bg-gradient-to-r from-gray-50/70 via-white to-orange-50/20 p-3.5 transition-all hover:border-brand/40"
+              key={item.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-gray-200/90 bg-white p-3.5 transition-all hover:border-brand/40 shadow-2xs"
             >
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span
-                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
-                      item.type === 'bank'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-orange-100 text-orange-800'
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                      isBank ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
                     }`}
                   >
-                    {item.type === 'bank' ? '💳 Bank Offer' : '🏷️ Coupon Code'}
+                    {isBank ? `💳 ${item.bank}` : '🏷️ Store Coupon'}
                   </span>
-                  <span className="text-[10px] font-medium text-gray-400">
-                    Expires: {item.expiry}
-                  </span>
+                  {item.effectivePrice && (
+                    <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-700">
+                      Effective: {formatInr(item.effectivePrice, country)}
+                    </span>
+                  )}
                 </div>
 
-                <h4 className="text-xs font-black text-gray-900 truncate">
+                <h4 className="text-xs font-black text-gray-900 leading-snug">
                   {item.title}
                 </h4>
-                <p className="text-[11px] text-gray-600 line-clamp-1 mt-0.5">
+                <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2">
                   {item.description}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {isCoupon ? (
+                {item.code ? (
                   <button
                     type="button"
-                    onClick={() => handleCopy(item)}
+                    onClick={() => handleCopy(item.code)}
                     className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-black transition-all ${
                       isCopied
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700 shadow-2xs'
@@ -234,16 +189,20 @@ export default function ProductCouponsOffers({ product, merchant }) {
                     <span>{isCopied ? '✓' : '✂️'}</span>
                     <span>{isCopied ? 'Copied!' : item.code}</span>
                   </button>
-                ) : null}
+                ) : (
+                  <span className="hidden sm:inline-flex rounded-lg bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700 border border-blue-200/60">
+                    Card Discount
+                  </span>
+                )}
 
                 <a
-                  href={item.url || affiliateUrl}
+                  href={affiliateUrl}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  onClick={() => trackOutboundClick(product, item.url || affiliateUrl, 'pdp_coupon_apply')}
-                  className="rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-black transition-colors"
+                  onClick={() => trackOutboundClick(product || deal, affiliateUrl, 'pdp_bank_offer_apply')}
+                  className="rounded-xl bg-gray-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-black transition-colors"
                 >
-                  Apply ↗
+                  Avail on {merchantName} ↗
                 </a>
               </div>
             </div>
@@ -251,8 +210,8 @@ export default function ProductCouponsOffers({ product, merchant }) {
         })}
       </div>
 
-      <div className="mt-3.5 flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-dashed border-gray-200">
-        <span>💡 Copy the promo code and paste it on checkout to unlock maximum discount.</span>
+      <div className="mt-3.5 flex items-center justify-between text-[11px] text-gray-500 pt-2.5 border-t border-dashed border-gray-200">
+        <span>💡 Instant bank discounts are automatically applied at checkout when entering an eligible card.</span>
       </div>
     </div>
   );

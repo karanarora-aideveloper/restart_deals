@@ -447,7 +447,7 @@ export default async function ProductDetailPage({ params }) {
 
             {/* Live Verified Coupons & Bank Offers Card (Mobile View) */}
             <div className="lg:hidden">
-              <ProductCouponsOffers product={product} merchant={merchant} />
+              <ProductCouponsOffers product={product} merchant={merchant} deal={latestDeal} className="mt-6" />
             </div>
 
             {/* 5. Product FAQ Accordion */}
@@ -548,9 +548,7 @@ export default async function ProductDetailPage({ params }) {
               <StoreComparison product={product} />
 
               {/* Live Verified Coupons & Bank Offers Card */}
-              <div className="mt-6">
-                <ProductCouponsOffers product={product} merchant={merchant} />
-              </div>
+              <ProductCouponsOffers product={product} merchant={merchant} deal={latestDeal} className="mt-6" />
             </div>
           </div>
 
