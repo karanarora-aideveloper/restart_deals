@@ -11,6 +11,7 @@ import { classifyProduct } from '../utils/categoryClassifier.js';
 
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
+import { recordEngineHeartbeat } from '../utils/engineTracker.js';
 
 let isRefreshing = false;
 let lastCycleStats = {
@@ -155,11 +156,24 @@ async function processSingleProduct(product, stats, todayStr) {
       if (scraped.title && (!product.title || product.title === 'Product Item')) {
         product.title = scraped.title;
       }
-      if (scraped.images && scraped.images.length > 0 && (!product.images || product.images.length === 0)) {
-        product.images = scraped.images;
-        product.imageUrl = scraped.imageUrl || scraped.images[0];
+      // Gallery enrichment: If scraped has multiple gallery images, enrich product gallery
+      if (scraped.images && scraped.images.length > 0) {
+        if (!product.images || product.images.length <= 1 || scraped.images.length > product.images.length) {
+          product.images = scraped.images;
+          product.imageUrl = scraped.imageUrl || scraped.images[0];
+        }
       }
+      if (scraped.brand && !product.brand) product.brand = scraped.brand;
       if (scraped.rating) product.rating = scraped.rating;
+      if (scraped.reviews && scraped.reviews.length > 0 && (!product.reviews || product.reviews.length === 0)) {
+        product.reviews = scraped.reviews;
+      }
+      if (scraped.bankOffers && scraped.bankOffers.length > 0) {
+        product.bankOffers = scraped.bankOffers;
+      }
+      if (scraped.coupon) {
+        product.coupon = scraped.coupon;
+      }
 
       const effectiveTitle = product.title || scraped.title || '';
       const classified = classifyProduct(effectiveTitle, product.merchant, product.category);
@@ -170,11 +184,12 @@ async function processSingleProduct(product, stats, todayStr) {
 
       product.isAvailable = true;
       product.lastStoreSyncAt = now;
+      product.lastPdpSyncAt = now;
       product.lastChecked = now;
       product.updatedAt = now;
       await saveWithRetry(product);
 
-      // 3. Evaluate Attached Deals for Expiration
+      // 3. Evaluate Attached Deals for Expiration & Enrichment
       const matchingDeals = await Deal.find({
         $or: [
           { productId: product.productId },
@@ -183,6 +198,22 @@ async function processSingleProduct(product, stats, todayStr) {
       });
 
       for (const deal of matchingDeals) {
+        // Enrich deal with full gallery and bank offers if available
+        if (scraped.images && scraped.images.length > 1 && (!deal.images || deal.images.length <= 1)) {
+          deal.images = scraped.images;
+          deal.imageUrl = scraped.imageUrl || scraped.images[0];
+        }
+        if (scraped.coupon && !deal.coupon) {
+          deal.coupon = { type: 'code', value: null, code: null, label: scraped.coupon };
+        }
+        if (scraped.bankOffers && scraped.bankOffers.length > 0) {
+          deal.bankOffers = scraped.bankOffers;
+          const lowestEffective = scraped.bankOffers.reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity);
+          if (lowestEffective !== Infinity && lowestEffective < deal.dealPrice) {
+            deal.bankOfferPrice = lowestEffective;
+          }
+        }
+
         if (deal.dealPrice && livePrice > deal.dealPrice) {
           if (!deal.isExpired) {
             deal.isExpired = true;
@@ -263,6 +294,11 @@ async function processSingleProduct(product, stats, todayStr) {
             priceSource: 'price_history',
             category: product.category || 'general',
             subcategory: product.subcategory || '',
+            bankOffers: scraped.bankOffers || [],
+            bankOfferPrice: (scraped.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity) !== Infinity
+              ? (scraped.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity)
+              : null,
+            coupon: scraped.coupon ? { type: 'code', value: null, code: null, label: scraped.coupon } : null,
             isVerified: true,
             isExpired: false,
             lastVerifiedAt: now,
@@ -341,19 +377,15 @@ export async function refreshStaleProductBatch(batchSize = null) {
 
   try {
     const nowTime = Date.now();
-    const fourHoursAgo = new Date(nowTime - 4 * 60 * 60 * 1000);
     const twelveHoursAgo = new Date(nowTime - 12 * 60 * 60 * 1000);
-    const twentyFourHoursAgo = new Date(nowTime - 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(nowTime - 3 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(nowTime - 7 * 24 * 60 * 60 * 1000);
 
     // Compute effective batch size:
-    // Sized so that 100% of the active catalog completes within 22-24 hours with safety margin
-    let effectiveBatchSize = batchSize;
-    if (!effectiveBatchSize) {
-      const activeCatalogCount = await Product.countDocuments({ isActive: { $ne: false } }).catch(() => 28650);
-      effectiveBatchSize = Math.max(20, Math.ceil(activeCatalogCount / 1320));
-    }
+    // Paced at 5 products per minute = ~300/hr = ~7,200/day = ~50,400 per 7-day rolling cycle
+    let effectiveBatchSize = batchSize || 5;
 
-    // 1. TIER 1: User-tracked products and products with active price alerts (4-hour cadence)
+    // 1. TIER 1: User-tracked products and products with active price alerts (3-day cadence)
     const activeAlertProductIds = await PriceAlert.find({ status: 'active' }).distinct('productId');
     const userMonitoredQuery = {
       isActive: { $ne: false },
@@ -368,21 +400,21 @@ export async function refreshStaleProductBatch(batchSize = null) {
         },
         {
           $or: [
-            { lastChecked: { $lt: fourHoursAgo } },
-            { lastChecked: null },
-            { lastChecked: { $exists: false } },
+            { lastPdpSyncAt: { $lt: threeDaysAgo } },
+            { lastPdpSyncAt: null },
+            { lastPdpSyncAt: { $exists: false } },
           ],
         },
       ],
     };
 
     let staleProducts = await Product.find(userMonitoredQuery)
-      .sort({ lastChecked: 1 })
+      .sort({ lastPdpSyncAt: 1, lastChecked: 1 })
       .limit(effectiveBatchSize);
 
     const userMonitoredCount = staleProducts.length;
 
-    // 2. TIER 2: Products backing active public deals on the feed (12h cadence)
+    // 2. TIER 2: Products backing active public deals on the feed (12-hour cadence)
     if (staleProducts.length < effectiveBatchSize) {
       const remainingSlots = effectiveBatchSize - staleProducts.length;
       const existingIds = staleProducts.map((p) => p._id);
@@ -393,20 +425,20 @@ export async function refreshStaleProductBatch(batchSize = null) {
         _id: { $nin: existingIds },
         productId: { $in: activeDealProductIds },
         $or: [
-          { lastChecked: { $lt: twelveHoursAgo } },
-          { lastChecked: null },
-          { lastChecked: { $exists: false } },
+          { lastPdpSyncAt: { $lt: twelveHoursAgo } },
+          { lastPdpSyncAt: null },
+          { lastPdpSyncAt: { $exists: false } },
         ],
       };
 
       const dealProducts = await Product.find(dealMonitoredQuery)
-        .sort({ lastChecked: 1 })
+        .sort({ lastPdpSyncAt: 1, lastChecked: 1 })
         .limit(remainingSlots);
 
       staleProducts = staleProducts.concat(dealProducts);
     }
 
-    // 3. TIER 3: General catalog items across Engine 1 + Engine 2 (strict 24h rolling FIFO cadence)
+    // 3. TIER 3: General catalog items across Engine 1 + Engine 2 (strict 7-day rolling cadence)
     if (staleProducts.length < effectiveBatchSize) {
       const remainingSlots = effectiveBatchSize - staleProducts.length;
       const existingIds = staleProducts.map((p) => p._id);
@@ -415,14 +447,14 @@ export async function refreshStaleProductBatch(batchSize = null) {
         isActive: { $ne: false },
         _id: { $nin: existingIds },
         $or: [
-          { lastChecked: { $lt: twentyFourHoursAgo } },
-          { lastChecked: null },
-          { lastChecked: { $exists: false } },
+          { lastPdpSyncAt: { $lt: sevenDaysAgo } },
+          { lastPdpSyncAt: null },
+          { lastPdpSyncAt: { $exists: false } },
         ],
       };
 
       const catalogProducts = await Product.find(generalCatalogQuery)
-        .sort({ lastChecked: 1 })
+        .sort({ lastPdpSyncAt: 1, lastChecked: 1 })
         .limit(remainingSlots);
 
       staleProducts = staleProducts.concat(catalogProducts);
@@ -435,10 +467,10 @@ export async function refreshStaleProductBatch(batchSize = null) {
     }
 
     const todayStr = getTodayDateString();
-    console.log(`[Daily Refresher] ⚡ Starting 24h refresh batch for ${staleProducts.length} product(s) (User-Monitored: ${userMonitoredCount}, Target Cadence: 24h)...`);
+    console.log(`[Daily Refresher] ⚡ Starting 7-day rolling PDP enrichment batch for ${staleProducts.length} product(s) (User-Monitored: ${userMonitoredCount}, Target Cadence: 7d)...`);
 
-    // Process with bounded parallel concurrency (4 concurrent worker slots)
-    const CONCURRENCY = parseInt(process.env.DAILY_REFRESH_CONCURRENCY || '4', 10);
+    // Process with bounded parallel concurrency (2 concurrent worker slots)
+    const CONCURRENCY = parseInt(process.env.DAILY_REFRESH_CONCURRENCY || '2', 10);
     for (let i = 0; i < staleProducts.length; i += CONCURRENCY) {
       const chunk = staleProducts.slice(i, i + CONCURRENCY);
       await Promise.allSettled(chunk.map((product) => {
@@ -466,14 +498,14 @@ export async function refreshStaleProductBatch(batchSize = null) {
  * Get refresh status & metrics for Admin Dashboard
  */
 export async function getRefresherStatus() {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const totalProducts = await Product.countDocuments({ isActive: { $ne: false } });
-  const refreshedLast24h = await Product.countDocuments({
+  const refreshedLast7d = await Product.countDocuments({
     isActive: { $ne: false },
-    lastChecked: { $gte: twentyFourHoursAgo }
+    lastPdpSyncAt: { $gte: sevenDaysAgo }
   });
-  const pendingRefresh = Math.max(0, totalProducts - refreshedLast24h);
+  const pendingRefresh = Math.max(0, totalProducts - refreshedLast7d);
 
   const totalDeals = await Deal.countDocuments();
   const activeDeals = await Deal.countDocuments({ isExpired: false });
@@ -485,9 +517,10 @@ export async function getRefresherStatus() {
   return {
     isRefreshing,
     totalProducts,
-    refreshedLast24h,
+    refreshedLast7d,
+    refreshedLast24h: refreshedLast7d,
     pendingRefresh,
-    freshnessPercentage: totalProducts > 0 ? Math.round((refreshedLast24h / totalProducts) * 100) : 100,
+    freshnessPercentage: totalProducts > 0 ? Math.round((refreshedLast7d / totalProducts) * 100) : 100,
     deals: {
       total: totalDeals,
       active: activeDeals,
@@ -502,21 +535,23 @@ export async function getRefresherStatus() {
 }
 
 /**
- * Auto-expires deals older than maxAgeDays (default: 5 days) that have not been re-verified in the last 48 hours.
+ * Auto-expires deals that have not been re-verified within their active shelf life:
+ * - Engine 1 (Telegram flash loot): 24 hours max without store re-verification
+ * - Engine 2 / General deals: 48 hours max without store re-verification
  */
-export async function autoExpireStaleDeals(maxAgeDays = 5) {
+export async function autoExpireStaleDeals(maxAgeDays = 2) {
   try {
-    const cutoffDate = new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const query = {
       isExpired: { $ne: true },
-      createdAt: { $lt: cutoffDate },
       $or: [
         { lastVerifiedAt: { $lt: fortyEightHoursAgo } },
+        { sourceEngine: 'engine1', lastVerifiedAt: { $lt: twentyFourHoursAgo } },
         { lastVerifiedAt: null },
-        { lastVerifiedAt: { $exists: false } }
-      ]
+        { lastVerifiedAt: { $exists: false } },
+      ],
     };
 
     const count = await Deal.countDocuments(query);
@@ -525,10 +560,10 @@ export async function autoExpireStaleDeals(maxAgeDays = 5) {
         $set: {
           isExpired: true,
           expiredAt: new Date(),
-          expiryReason: 'stale_timeout'
-        }
+          expiryReason: 'stale_timeout',
+        },
       });
-      console.log(`[Deal Lifecycle] 🧹 Auto-expired ${result.modifiedCount} stale deals (older than ${maxAgeDays} days without recent re-verification).`);
+      console.log(`[Deal Lifecycle] 🧹 Auto-expired ${result.modifiedCount} stale deals (older than 48h or unverified 24h flash drops).`);
       apiCache.invalidatePattern('/api/deals');
       return result.modifiedCount;
     }
@@ -570,4 +605,27 @@ export function startDailyProductRefresher() {
     refreshStaleProductBatch(5).catch(() => {});
     autoExpireStaleDeals(5).catch(() => {});
   }, 10000);
+
+  // Periodically record Engine 4 (Daily Refresher) heartbeat to MongoDB Atlas every 60 seconds
+  const sendRefresherHeartbeat = async () => {
+    try {
+      const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000);
+      const refreshed24h = await Product.countDocuments({ lastStoreSyncAt: { $gte: oneDayAgo } }).catch(() => 0);
+      await recordEngineHeartbeat({
+        engineId: 'engine_4_daily_refresher',
+        name: 'Daily Product Refresher (Engine 4)',
+        service: 'api',
+        status: isRefreshing ? 'healthy' : 'idle',
+        metrics: {
+          isRefreshing,
+          refreshed24h,
+          lastCycleStats,
+          intervalCron: '* * * * *',
+        },
+        lastActivity: lastCycleStats.lastRunAt || new Date(),
+      });
+    } catch (e) {}
+  };
+  sendRefresherHeartbeat();
+  setInterval(sendRefresherHeartbeat, 60 * 1000);
 }

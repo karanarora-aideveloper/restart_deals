@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useCompare } from '@/lib/useCompare';
-import { getAffiliateUrl, getMerchantInfo, formatInr, isUsableImageUrl } from '@/lib/affiliate';
+import { getAffiliateUrl, getMerchantInfo, formatInr, getCrawlFreshness, isUsableImageUrl } from '@/lib/affiliate';
 import { logEvent } from '@/lib/analytics';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 
@@ -19,9 +19,8 @@ export default function ProductCard({ product, onImageUnavailable }) {
   const savings = product.originalPrice && product.price ? product.originalPrice - product.price : null;
   const discountPct = savings && product.originalPrice ? Math.round((savings / product.originalPrice) * 100) : null;
   const isUs = productCountry.toUpperCase() === 'US';
-  const timeDisplay = product.priceUpdatedAt
-    ? `${new Date(product.priceUpdatedAt).toLocaleDateString(isUs ? 'en-US' : 'en-IN', { day: 'numeric', month: 'short', timeZone: isUs ? 'America/New_York' : 'Asia/Kolkata' })} · ${new Date(product.priceUpdatedAt).toLocaleTimeString(isUs ? 'en-US' : 'en-IN', { hour: '2-digit', minute: '2-digit', timeZone: isUs ? 'America/New_York' : 'Asia/Kolkata' })}`
-    : 'Recently checked';
+  const crawlTime = product.lastStoreSyncAt || product.lastChecked || product.priceUpdatedAt || product.updatedAt || product.createdAt;
+  const freshness = getCrawlFreshness(crawlTime);
 
   return (
     <article className="sd-grid-card flex flex-col overflow-hidden rounded-2xl border border-[#efefef] bg-white">
@@ -73,8 +72,18 @@ export default function ProductCard({ product, onImageUnavailable }) {
       </div>
 
       <div className="flex flex-1 flex-col p-[13px]">
-        <div className="mb-1.5 flex items-center shrink-0">
-          {renderStoreLogo(product.merchant || merchant.id || merchant.label, 'h-3.5 w-auto object-contain')}
+        <div className="mb-1.5 flex items-center justify-between gap-1.5 shrink-0">
+          <div className="flex items-center shrink-0">
+            {renderStoreLogo(product.merchant || merchant.id || merchant.label, 'h-3.5 w-auto object-contain')}
+          </div>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold ${freshness.badgeClass}`}
+            title={freshness.tooltip}
+            suppressHydrationWarning
+          >
+            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
+            <span>{freshness.label}</span>
+          </span>
         </div>
 
         <Link href={`/product/${productId}`}>
@@ -115,7 +124,12 @@ export default function ProductCard({ product, onImageUnavailable }) {
           {discountPct > 0 && <span className="text-xs font-extrabold text-[#e11d48]">{discountPct}% off</span>}
         </div>
 
-        <p className="mb-2.5 hidden items-center gap-1 text-[11px] text-[#aaa] sm:flex">🕒 {timeDisplay}</p>
+        {freshness.isStale && (
+          <p className="mb-2 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50/80 border border-amber-200/60 rounded px-1.5 py-0.5">
+            <span>⚠️</span>
+            <span className="truncate">Crawled {freshness.relativeTime} · Verify at store</span>
+          </p>
+        )}
 
         {product.isSeriesCard && product.seriesVariantCount > 1 ? (
           <Link

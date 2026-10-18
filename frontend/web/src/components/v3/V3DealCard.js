@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
+import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, getCrawlFreshness, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { logEvent } from '@/lib/analytics';
 import { isDealSaved, saveDealItem } from '@/lib/savedDeals';
 import { useAuth } from '@/components/AuthProvider';
@@ -92,8 +92,8 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
   const saved = isDealSaved(dealId, savedDeals);
   const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
   const affiliateUrl = getAffiliateUrl(deal.dealUrl || deal.url, dealCountry);
-  const dealTime = deal.createdAt || deal.postedAt || deal.updatedAt || deal.lastVerifiedAt;
-  const verifiedTime = formatRelativeTime(dealTime);
+  const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
+  const freshness = getCrawlFreshness(crawlTime);
 
   let rawImage = deal.imageUrl || (Array.isArray(deal.images) && deal.images[0]) || '';
   if (rawImage.startsWith('http://') && !rawImage.includes('localhost') && !rawImage.includes('127.0.0.1')) {
@@ -156,10 +156,14 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Live Verification Badge */}
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap" suppressHydrationWarning>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span suppressHydrationWarning>{mounted ? verifiedTime : 'Verified'}</span>
+            {/* Live Crawl / Verification Freshness Badge */}
+            <span
+              className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold whitespace-nowrap transition-colors ${freshness.badgeClass}`}
+              title={freshness.tooltip}
+              suppressHydrationWarning
+            >
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
+              <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked'}</span>
             </span>
 
             {/* Wishlist Button */}
@@ -299,6 +303,13 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
               {engineBadgeText}
             </span>
           </div>
+
+          {freshness.isStale && (
+            <div className="mt-1.5 flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[8.5px] font-bold text-amber-900 border border-amber-200/80">
+              <span className="shrink-0">⚠️</span>
+              <span className="truncate">Crawled {freshness.relativeTime} · Verify price on {merchant.name}</span>
+            </div>
+          )}
         </div>
       </div>
 

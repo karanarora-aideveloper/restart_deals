@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { fetchDeals } from '@/lib/api';
 import { SITE_URL } from '@/lib/config';
-import { formatInr, isUsableImageUrl } from '@/lib/affiliate';
+import { formatInr, isUsableImageUrl, getCrawlFreshness } from '@/lib/affiliate';
 
 export const revalidate = 300;
 
@@ -275,6 +275,8 @@ export default async function CategoryPage({ params, searchParams }) {
               {deals.map((deal) => {
                 const dealId = deal._id || deal.id;
                 const href = deal.productId ? `/product/${deal.productId}` : `/deal/${dealId}`;
+                const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
+                const freshness = getCrawlFreshness(crawlTime);
                 return (
                   <Link
                     key={dealId}
@@ -291,6 +293,15 @@ export default async function CategoryPage({ params, searchParams }) {
                       />
                     )}
                     <div className="flex flex-col flex-1 p-3 pt-1">
+                      <div className="mb-1 flex items-center justify-between gap-1">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.2 text-[8px] font-bold ${freshness.badgeClass}`}
+                          title={freshness.tooltip}
+                        >
+                          <span className={`h-1 w-1 rounded-full shrink-0 ${freshness.dotClass}`} />
+                          <span>{freshness.label}</span>
+                        </span>
+                      </div>
                       <p className="line-clamp-2 text-[11px] font-semibold text-[#0f172a] leading-snug">
                         {deal.title}
                       </p>
@@ -311,9 +322,16 @@ export default async function CategoryPage({ params, searchParams }) {
                         </div>
                       )}
                       {deal.discountPercentage && deal.discountPercentage > 0 && (
-                        <span className="mt-1 inline-block rounded-md bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9.5px] font-black">
-                          {deal.discountPercentage}% DROP
-                        </span>
+                        <div className="mt-1 flex items-center justify-between gap-1">
+                          <span className="inline-block rounded-md bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[9.5px] font-black">
+                            {deal.discountPercentage}% DROP
+                          </span>
+                        </div>
+                      )}
+                      {freshness.isStale && (
+                        <p className="mt-1 text-[8.5px] font-bold text-amber-700 truncate">
+                          ⚠️ Crawled {freshness.relativeTime} · Verify at store
+                        </p>
                       )}
                     </div>
                   </Link>

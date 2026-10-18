@@ -138,6 +138,93 @@ export function formatRelativeTime(createdAt) {
   return new Date(createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' });
 }
 
+export function getCrawlFreshness(dateInput) {
+  if (!dateInput) {
+    return {
+      label: 'Checked recently',
+      shortLabel: 'Recently',
+      relativeTime: 'recently',
+      status: 'fresh',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200/80',
+      dotClass: 'bg-emerald-500 animate-pulse',
+      isStale: false,
+      tooltip: 'Verified from store recently',
+    };
+  }
+
+  const now = Date.now();
+  const date = new Date(dateInput).getTime();
+  const diffMs = Math.max(0, now - date);
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  let relativeTime = 'Just now';
+  if (diffMins >= 1 && diffMins < 60) {
+    relativeTime = `${diffMins}m ago`;
+  } else if (diffHours >= 1 && diffHours < 24) {
+    relativeTime = `${diffHours}h ago`;
+  } else if (diffDays >= 1) {
+    relativeTime = diffDays === 1 ? '1d ago' : `${diffDays}d ago`;
+  }
+
+  // < 4 hours: Fresh (Green with pulse)
+  if (diffHours < 4) {
+    return {
+      label: `Checked ${relativeTime}`,
+      shortLabel: relativeTime,
+      relativeTime,
+      status: 'fresh',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200/80',
+      dotClass: 'bg-emerald-500 animate-pulse',
+      isStale: false,
+      tooltip: `Verified from store ${relativeTime}`,
+    };
+  }
+
+  // 4 - 12 hours: Moderate (Slate / Neutral)
+  if (diffHours < 12) {
+    return {
+      label: `Crawled ${relativeTime}`,
+      shortLabel: relativeTime,
+      relativeTime,
+      status: 'moderate',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/90',
+      dotClass: 'bg-slate-400',
+      isStale: false,
+      tooltip: `Last crawled from store ${relativeTime}`,
+    };
+  }
+
+  // 12 - 24 hours: Aging (Amber warning)
+  if (diffHours < 24) {
+    return {
+      label: `Crawled ${relativeTime}`,
+      shortLabel: relativeTime,
+      relativeTime,
+      status: 'aging',
+      badgeClass: 'bg-amber-50 text-amber-800 border-amber-300/90',
+      dotClass: 'bg-amber-500',
+      isStale: true,
+      staleWarning: 'Price may vary',
+      tooltip: `Crawled ${relativeTime} — store price may have updated`,
+    };
+  }
+
+  // > 24 hours: Stale / Likely Expired (Rose / Alert)
+  return {
+    label: `Crawled ${relativeTime} • Check price`,
+    shortLabel: relativeTime,
+    relativeTime,
+    status: 'stale',
+    badgeClass: 'bg-rose-50 text-rose-800 border-rose-300/90',
+    dotClass: 'bg-rose-500',
+    isStale: true,
+    staleWarning: 'May be expired',
+    tooltip: `Crawled ${relativeTime} — deal might be expired or price reverted`,
+  };
+}
+
 export function formatInr(n, country = null) {
   if (n === null || n === undefined) return null;
   const upper = typeof country === 'string' ? country.toUpperCase() : '';

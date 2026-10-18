@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useCompare } from '@/lib/useCompare';
-import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, formatInr, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
+import { getAffiliateUrl, getMerchantInfo, formatRelativeTime, getCrawlFreshness, formatInr, isUsableImageUrl, getOptimizedImageUrl, getImageSrcSet } from '@/lib/affiliate';
 import { categoryLabel, subcategoryLabel } from '@/lib/taxonomy';
 import { logEvent } from '@/lib/analytics';
 import { saveDealItem, isDealSaved } from '@/lib/savedDeals';
@@ -61,13 +61,8 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
   const mrpDiscount = hasMrp ? Math.round(((dealOriginalPrice - deal.dealPrice) / dealOriginalPrice) * 100) : 0;
 
   const saved = isDealSaved(dealId, savedDeals);
-  const couponLabel = deal.coupon?.label || null;
-  const dealTime = formatRelativeTime(deal.createdAt || deal.postedAt || deal.updatedAt);
-
-  // Fix #8: Stale deal indicator — deals > 6h may be expired; 3-6h are ending soon
-  const dealAgeMs = deal.createdAt ? Date.now() - new Date(deal.createdAt).getTime() : 0;
-  const isPossiblyExpired = dealAgeMs > 6 * 60 * 60 * 1000;   // > 6 hours
-  const isEndingSoon    = !isPossiblyExpired && dealAgeMs > 3 * 60 * 60 * 1000; // 3–6 hours
+  const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
+  const freshness = getCrawlFreshness(crawlTime);
 
   const handleToggleSave = async (e) => {
     e.preventDefault();
@@ -197,23 +192,14 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
           <div className="flex items-center shrink-0">
             {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-4 w-auto object-contain')}
           </div>
-          {isPossiblyExpired ? (
-            <span className="flex items-center gap-1 rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]" suppressHydrationWarning>
-              ⏱ Possibly Expired
-            </span>
-          ) : isEndingSoon ? (
-            <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600" suppressHydrationWarning>
-              ⏳ Ending Soon
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#878b94]" suppressHydrationWarning>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-70">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              {mounted ? dealTime : 'Recently'}
-            </span>
-          )}
+          <span
+            className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap transition-colors ${freshness.badgeClass}`}
+            title={freshness.tooltip}
+            suppressHydrationWarning
+          >
+            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
+            <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked'}</span>
+          </span>
         </div>
 
         {deal.category && (

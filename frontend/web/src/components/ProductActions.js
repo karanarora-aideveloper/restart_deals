@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getAffiliateUrl, formatInr, formatRelativeTime } from '@/lib/affiliate';
+import { getAffiliateUrl, formatInr, formatRelativeTime, getCrawlFreshness } from '@/lib/affiliate';
 import {
   logEvent,
   trackOutboundClick,
@@ -174,12 +174,9 @@ export default function ProductActions({ product, merchant }) {
     }
   };
 
-  const lastCheckedDate = product?.lastChecked || product?.priceUpdatedAt || product?.updatedAt;
-
-  // Fix #4: detect stale data so we don't lie to users about "live" price
-  const isStale = lastCheckedDate
-    ? (Date.now() - new Date(lastCheckedDate).getTime()) > 24 * 60 * 60 * 1000
-    : false;
+  const lastCheckedDate = product?.lastStoreSyncAt || product?.lastChecked || product?.priceUpdatedAt || product?.updatedAt;
+  const freshness = getCrawlFreshness(lastCheckedDate);
+  const isStale = freshness.isStale;
 
   // Fix #6: Share this deal via Web Share API (WhatsApp / native share sheet on mobile)
   const handleShare = () => {
