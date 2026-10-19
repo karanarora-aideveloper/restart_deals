@@ -86,7 +86,18 @@ const V3_CATEGORIES = [
   },
 ];
 
-export default function V3CategoriesRail() {
+export default function V3CategoriesRail({ userProfile = null }) {
+  const sortedCategories = React.useMemo(() => {
+    if (!userProfile?.c || Object.keys(userProfile.c).length === 0) {
+      return V3_CATEGORIES;
+    }
+    return [...V3_CATEGORIES].sort((a, b) => {
+      const scoreA = userProfile.c[a.id] || 0;
+      const scoreB = userProfile.c[b.id] || 0;
+      return scoreB - scoreA;
+    });
+  }, [userProfile?.c]);
+
   return (
     <section className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] px-4 sm:px-6 lg:px-8 my-4">
       <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4.5 shadow-xs">
@@ -99,6 +110,11 @@ export default function V3CategoriesRail() {
             <h2 className="text-sm sm:text-base font-black tracking-tight text-slate-900">
               Explore by Top Categories
             </h2>
+            {userProfile?.hasHistory && (
+              <span className="hidden sm:inline-block rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[9.5px] font-bold text-violet-700">
+                ✨ Tailored for You
+              </span>
+            )}
           </div>
           <Link
             href="/categories"
@@ -111,38 +127,48 @@ export default function V3CategoriesRail() {
 
         {/* 8-Item Category Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
-          {V3_CATEGORIES.map((cat) => (
-            <Link
-              key={cat.id}
-              href={cat.href}
-              className="group flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50/50 p-2 sm:p-2.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-sm"
-            >
-              {/* 3D Illustration Container */}
-              <div className="relative mb-2 h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs transition-transform duration-300 group-hover:scale-105">
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="h-full w-full object-cover object-center"
-                  loading="lazy"
-                />
-              </div>
+          {sortedCategories.map((cat) => {
+            const isTopAffinity = Boolean(userProfile?.c && (userProfile.c[cat.id] || 0) >= 3);
+            const badgeText = isTopAffinity ? '⭐ For You' : cat.badge;
+            const badgeClass = isTopAffinity ? 'bg-indigo-50 text-indigo-700 border-indigo-200 font-extrabold' : cat.badgeColor;
 
-              {/* Title */}
-              <span className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                {cat.shortName}
-              </span>
+            return (
+              <Link
+                key={cat.id}
+                href={cat.href}
+                className={`group flex flex-col items-center rounded-xl border p-2 sm:p-2.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${
+                  isTopAffinity
+                    ? 'border-indigo-200 bg-gradient-to-b from-indigo-50/50 to-white shadow-2xs hover:border-indigo-300'
+                    : 'border-slate-100 bg-slate-50/50 hover:border-indigo-200 hover:bg-white'
+                }`}
+              >
+                {/* 3D Illustration Container */}
+                <div className="relative mb-2 h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-2xs transition-transform duration-300 group-hover:scale-105">
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    className="h-full w-full object-cover object-center"
+                    loading="lazy"
+                  />
+                </div>
 
-              {/* Badge */}
-              <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold ${cat.badgeColor}`}>
-                {cat.badge}
-              </span>
+                {/* Title */}
+                <span className="text-xs font-bold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                  {cat.shortName}
+                </span>
 
-              {/* Deals count */}
-              <span className="mt-1 text-[10px] font-semibold text-slate-400">
-                {cat.count}
-              </span>
-            </Link>
-          ))}
+                {/* Badge */}
+                <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold ${badgeClass}`}>
+                  {badgeText}
+                </span>
+
+                {/* Deals count */}
+                <span className="mt-1 text-[10px] font-semibold text-slate-400">
+                  {cat.count}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

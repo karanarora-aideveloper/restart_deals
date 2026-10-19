@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAffiliateUrl } from '@/lib/affiliate';
 import { directFetchDealById, directFetchProductById, directFindAlternativeInStockStore } from '@/lib/dbFallback';
+import {
+  PZN_COOKIE_NAME,
+  PZN_COOKIE_MAX_AGE,
+  parsePersonalizationCookie,
+  recordInteraction,
+  serializePersonalizationCookie,
+} from '@/lib/personalization';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.shoppersdeals.in').replace(/\/+$/, '');
 const CUELINKS_PUB_ID = process.env.NEXT_PUBLIC_CUELINKS_PUB_ID || '325472';
@@ -93,9 +100,62 @@ export async function GET(request, { params }) {
         const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
         const isMobile = isAndroid || isIOS;
 
-        // On desktop, instant 302 redirect
+        // Asynchronously log click to Revenue Analytics engine
+        try {
+          fetch(`${API_BASE}/api/tracking/click`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dealId: target?._id ? String(target._id) : (dealId.length === 24 ? dealId : null),
+              productId: target?.productId || target?.asin || null,
+              title: target?.title || 'Unknown Product',
+              merchant: failoverStore?.merchant || target?.merchant || 'amazon',
+              country,
+              category: target?.category || 'general',
+              subcategory: target?.subcategory || '',
+              dealPrice: target?.dealPrice || target?.price || 0,
+              originalPrice: target?.originalPrice || 0,
+              discountPercentage: target?.discountPercentage || 0,
+              source: src,
+              device: isAndroid ? 'mobile_android' : (isIOS ? 'mobile_ios' : 'desktop'),
+              userAgent,
+              destinationUrl: redirectUrl,
+              isFailover: Boolean(failoverStore),
+              failoverFromMerchant: failoverStore ? target?.merchant : null,
+            }),
+          }).catch(() => {});
+        } catch (trackErr) {
+          // Non-blocking
+        }
+
+        // Update user personalization profile via cookie on outbound checkout click
+        let serializedPzn = '';
+        try {
+          const rawPzn = request.cookies.get(PZN_COOKIE_NAME)?.value;
+          const currentProfile = parsePersonalizationCookie(rawPzn);
+          const updatedProfile = recordInteraction(currentProfile, {
+            type: 'buy_click',
+            category: target?.category,
+            merchant: failoverStore?.merchant || target?.merchant,
+            price: target?.dealPrice || target?.price,
+            productId: target?.productId || target?._id || dealId,
+          });
+          serializedPzn = serializePersonalizationCookie(updatedProfile);
+        } catch (pznErr) {
+          // Non-blocking
+        }
+
+        // On desktop, instant 302 redirect with personalization cookie
         if (!isMobile) {
-          return NextResponse.redirect(redirectUrl, 302);
+          const res = NextResponse.redirect(redirectUrl, 302);
+          if (serializedPzn) {
+            res.cookies.set(PZN_COOKIE_NAME, serializedPzn, {
+              path: '/',
+              maxAge: PZN_COOKIE_MAX_AGE,
+              sameSite: 'lax',
+            });
+          }
+          return res;
         }
 
         // Build native app intent scheme for mobile users to bypass in-app webview login traps
@@ -154,12 +214,17 @@ export async function GET(request, { params }) {
 </body>
 </html>`;
 
+        const mobileHeaders = {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        };
+        if (serializedPzn) {
+          mobileHeaders['Set-Cookie'] = `${PZN_COOKIE_NAME}=${serializedPzn}; Path=/; Max-Age=${PZN_COOKIE_MAX_AGE}; SameSite=Lax`;
+        }
+
         return new Response(html, {
           status: 200,
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-          },
+          headers: mobileHeaders,
         });
       }
     }

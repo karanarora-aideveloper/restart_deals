@@ -1,12 +1,19 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { fetchDeals, findMatchingProductId } from '@/lib/api';
 import { SITE_URL } from '@/lib/config';
+import {
+  PZN_COOKIE_NAME,
+  parsePersonalizationCookie,
+  scoreAndSortDeals,
+} from '@/lib/personalization';
 
 import V3SubHeader from '@/components/v3/V3SubHeader';
 import V3CategoriesRail from '@/components/v3/V3CategoriesRail';
 import V3HeroCarousel from '@/components/v3/V3HeroCarousel';
 import V3Hero from '@/components/v3/V3Hero';
 import V3CompareSection from '@/components/v3/V3CompareSection';
+import V3PersonalizedRecentRail from '@/components/v3/V3PersonalizedRecentRail';
 import V3FeedContainer from '@/components/v3/V3FeedContainer';
 import V3CreditCardTeaser from '@/components/v3/V3CreditCardTeaser';
 import V3SmartBuyersGuides from '@/components/v3/V3SmartBuyersGuides';
@@ -129,6 +136,11 @@ export default async function HomePage({ searchParams }) {
   const sort = sp?.sort || 'newest';
   const minDiscount = sp?.minDiscount ? parseInt(sp.minDiscount, 10) : 0;
 
+  // Read smart personalization profile from cookie (zero-DB overhead)
+  const cookieStore = await cookies();
+  const rawPzn = cookieStore.get(PZN_COOKIE_NAME)?.value;
+  const userProfile = parsePersonalizationCookie(rawPzn);
+
   // Fetch verified authentic price drops (every deal in DB has already passed category-wise dual threshold)
   const { items: rawDeals, hasMore } = await fetchDeals({
     q,
@@ -148,13 +160,20 @@ export default async function HomePage({ searchParams }) {
     })
   );
 
-  // Guarantee strict newest-first sorting only if sort is newest, otherwise preserve API sort (discount, price)
+  // Algorithmic Personalized Sorting:
+  // If user has browsing history and default sort is newest (and no explicit category/merchant filter is selected),
+  // apply intelligent blended scoring with 70/30 serendipity injection.
+  let finalDeals = deals;
   if (sort === 'newest') {
-    deals.sort((a, b) => {
-      const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
-      const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
-      return timeB - timeA;
-    });
+    if (userProfile?.hasHistory && category === 'all' && merchant === 'all') {
+      finalDeals = scoreAndSortDeals(deals, userProfile);
+    } else {
+      finalDeals.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.postedAt || a.updatedAt || a.lastVerifiedAt || 0).getTime();
+        const timeB = new Date(b.createdAt || b.postedAt || b.updatedAt || b.lastVerifiedAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
   }
 
   return (
@@ -184,8 +203,8 @@ export default async function HomePage({ searchParams }) {
         {/* 2. Promotional Hero Carousel with 16:9 3D AI Illustrations */}
         <V3HeroCarousel />
 
-        {/* 3. Top Categories Strip with 3D AI Illustrations */}
-        <V3CategoriesRail />
+        {/* 3. Top Categories Strip with 3D AI Illustrations (Personalized Order) */}
+        <V3CategoriesRail userProfile={userProfile} />
 
         {/* 4. Hero Section with Instant URL Scanner */}
         <V3Hero />
@@ -193,16 +212,20 @@ export default async function HomePage({ searchParams }) {
         {/* 5. Multi-Category Comparison Cards (6-Card Symmetric Grid) */}
         <V3CompareSection />
 
+        {/* 5.5. Personalized Jump Back In Strip (Only renders for returning shoppers who inspected deals) */}
+        <V3PersonalizedRecentRail userProfile={userProfile} />
+
         {/* 6. PRIMARY HERO: Unmissable Verified Deals Feed */}
         <div id="deals">
           <V3FeedContainer
-            initialDeals={deals}
+            initialDeals={finalDeals}
             initialHasMore={hasMore}
             category={category}
             merchant={merchant}
             country={country || 'in'}
             initialSort={sort}
             initialMinDiscount={minDiscount}
+            userProfile={userProfile}
           />
         </div>
 

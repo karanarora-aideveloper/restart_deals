@@ -16,7 +16,10 @@ export async function generateMetadata({ params }) {
     if (product) {
       return { alternates: { canonical: `/product/${product._id || product.productId}` } };
     }
-    return { title: 'Deal Not Found' };
+    return {
+      title: 'Deal Expired or Not Found',
+      robots: { index: false, follow: false },
+    };
   }
 
   // Most deals resolve to a canonical tracked Product (same productId+merchant) — the page

@@ -86,7 +86,10 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
   const product = await fetchProductById(id);
   if (!product) {
-    return { title: 'Product Not Found' };
+    return {
+      title: 'Product Not Found',
+      robots: { index: false, follow: false },
+    };
   }
 
   const productCountry = product.country || 'IN';

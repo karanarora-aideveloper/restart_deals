@@ -16,6 +16,7 @@ import {
   CromaLogo,
   BlinkitLogo,
 } from '@/components/BrandAndStoreLogos';
+import { recordClientInteraction } from '@/lib/personalization';
 
 function sortDealsByDealTime(items) {
   if (!Array.isArray(items)) return [];
@@ -94,12 +95,42 @@ export default function V3FeedContainer({
   country = 'in',
   initialSort = 'newest',
   initialMinDiscount = 0,
+  userProfile = null,
 }) {
-  const [deals, setDeals] = useState(() => (initialSort === 'newest' ? sortDealsByDealTime(initialDeals) : initialDeals));
+  const [deals, setDeals] = useState(() => (userProfile?.hasHistory || initialSort !== 'newest' ? initialDeals : sortDealsByDealTime(initialDeals)));
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Dynamic Category & Store ordering based on personalization cookie
+  const displayCategories = React.useMemo(() => {
+    if (!userProfile?.c || Object.keys(userProfile.c).length === 0) {
+      return CATEGORIES;
+    }
+    const allCat = CATEGORIES.find((c) => c.id === 'all');
+    const otherCats = CATEGORIES.filter((c) => c.id !== 'all');
+    const sorted = [...otherCats].sort((a, b) => {
+      const scoreA = userProfile.c[a.id] || 0;
+      const scoreB = userProfile.c[b.id] || 0;
+      return scoreB - scoreA;
+    });
+    return [allCat, ...sorted];
+  }, [userProfile?.c]);
+
+  const displayStores = React.useMemo(() => {
+    if (!userProfile?.s || Object.keys(userProfile.s).length === 0) {
+      return PRIMARY_STORES;
+    }
+    const allStore = PRIMARY_STORES.find((s) => s.id === 'all');
+    const otherStores = PRIMARY_STORES.filter((s) => s.id !== 'all');
+    const sorted = [...otherStores].sort((a, b) => {
+      const scoreA = userProfile.s[a.id] || 0;
+      const scoreB = userProfile.s[b.id] || 0;
+      return scoreB - scoreA;
+    });
+    return [allStore, ...sorted];
+  }, [userProfile?.s]);
 
   // Filter States
   const [activeCategory, setActiveCategory] = useState(category);
@@ -117,9 +148,9 @@ export default function V3FeedContainer({
   }, []);
 
   useEffect(() => {
-    setDeals(initialSort === 'newest' ? sortDealsByDealTime(initialDeals) : initialDeals);
+    setDeals(userProfile?.hasHistory || initialSort !== 'newest' ? initialDeals : sortDealsByDealTime(initialDeals));
     setHasMore(initialHasMore);
-  }, [initialDeals, initialHasMore, initialSort]);
+  }, [initialDeals, initialHasMore, initialSort, userProfile?.hasHistory]);
 
   // Synchronize when server props change
   const prevMerchantRef = useRef(merchant);
@@ -239,6 +270,9 @@ export default function V3FeedContainer({
 
   const handleCategoryChange = (catId) => {
     setActiveCategory(catId);
+    if (catId && catId !== 'all') {
+      recordClientInteraction({ type: 'filter_click', category: catId });
+    }
     updateUrlParams(catId, activeStore, minDiscount, activeSort, activeEngine, debouncedQuery);
     fetchFilteredDeals(catId, activeStore, minDiscount, activeEngine, activeSort, 1, false, debouncedQuery);
   };
@@ -246,6 +280,9 @@ export default function V3FeedContainer({
   const handleStoreChange = (storeId) => {
     const nextStore = activeStore === storeId && storeId !== 'all' ? 'all' : storeId;
     setActiveStore(nextStore);
+    if (nextStore && nextStore !== 'all') {
+      recordClientInteraction({ type: 'filter_click', merchant: nextStore });
+    }
     updateUrlParams(activeCategory, nextStore, minDiscount, activeSort, activeEngine, debouncedQuery);
     fetchFilteredDeals(activeCategory, nextStore, minDiscount, activeEngine, activeSort, 1, false, debouncedQuery);
   };
@@ -319,6 +356,13 @@ export default function V3FeedContainer({
           <p className="mt-1 text-xs sm:text-sm text-slate-600 max-w-2xl">
             Continuously verified against 90-day selling prices. Filter by category, store, or discount percentage below.
           </p>
+          {userProfile?.hasHistory && activeCategory === 'all' && activeStore === 'all' && activeSort === 'newest' && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200/90 px-2.5 py-0.5 text-[10.5px] font-black text-violet-800 shadow-2xs">
+                <span>✨ Personalized Feed (Curated for You)</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Discovery Engine Selector Dropdown / Pills */}
@@ -346,8 +390,9 @@ export default function V3FeedContainer({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Category Horizontal Rail */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
-            {CATEGORIES.map((cat) => {
+            {displayCategories.map((cat) => {
               const isSelected = activeCategory === cat.id;
+              const isAffinity = Boolean(userProfile?.c && (userProfile.c[cat.id] || 0) >= 3);
               return (
                 <button
                   key={cat.id}
@@ -355,11 +400,16 @@ export default function V3FeedContainer({
                   className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all shrink-0 whitespace-nowrap ${
                     isSelected
                       ? 'bg-[#5855E5] text-white shadow-xs ring-2 ring-indigo-300'
+                      : isAffinity
+                      ? 'bg-indigo-50/70 text-indigo-900 border border-indigo-200/90 hover:bg-indigo-100'
                       : 'bg-slate-50 text-slate-700 border border-slate-200/70 hover:bg-slate-100 hover:border-slate-300'
                   }`}
                 >
                   <span className="text-sm leading-none">{cat.icon}</span>
                   <span>{cat.label}</span>
+                  {isAffinity && cat.id !== 'all' && (
+                    <span className="text-[10px] text-indigo-500 font-bold">★</span>
+                  )}
                 </button>
               );
             })}
@@ -417,7 +467,7 @@ export default function V3FeedContainer({
           {/* Store Logo Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
             <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1 uppercase tracking-wider">Store:</span>
-            {PRIMARY_STORES.map((store) => {
+            {displayStores.map((store) => {
               const isSelected = activeStore === store.id;
               return (
                 <button

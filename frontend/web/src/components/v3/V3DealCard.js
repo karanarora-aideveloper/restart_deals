@@ -8,6 +8,7 @@ import { isDealSaved, saveDealItem } from '@/lib/savedDeals';
 import { useAuth } from '@/components/AuthProvider';
 import { emitSavedChanged } from '@/lib/useSavedCount';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
+import { recordClientInteraction, saveRecentViewedCard } from '@/lib/personalization';
 
 function formatInr(val) {
   if (val === null || val === undefined || isNaN(val)) return 'Special Price';
@@ -117,6 +118,19 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
     verdictBg = 'bg-gradient-to-r from-teal-500/10 via-cyan-500/10 to-teal-500/5 text-teal-950 border-teal-200/90 font-extrabold';
   }
 
+  const saveCurrentCardToRecent = () => {
+    saveRecentViewedCard({
+      id: dealId,
+      title: displayTitle,
+      price: currentPrice,
+      originalPrice: previousTrackedPrice || listMrp,
+      discountPercentage: priceDropPct || mrpDiscountPct,
+      merchant: deal.merchant || merchant.id,
+      imageUrl: rawImage,
+      href: cardHref,
+    });
+  };
+
   const handleToggleSave = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -124,13 +138,43 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
     const authUser = user && token ? { ...user, token } : null;
     const updated = await saveDealItem(deal, authUser);
     setIsSaving(false);
-    if (!saved) logEvent('add_to_wishlist', { item_id: dealId, item_name: deal.title });
+    if (!saved) {
+      logEvent('add_to_wishlist', { item_id: dealId, item_name: deal.title });
+      recordClientInteraction({
+        type: 'wishlist',
+        category: deal.category,
+        merchant: deal.merchant || merchant.id,
+        price: currentPrice,
+        productId: deal.productId || deal.linkedProductId || dealId,
+      });
+      saveCurrentCardToRecent();
+    }
     emitSavedChanged();
     onSavedChange?.(updated);
   };
 
   const handleBuyClick = () => {
     logEvent('click_deal', { item_id: dealId, item_name: deal.title, merchant: merchant.name, source: 'v3_card' });
+    recordClientInteraction({
+      type: 'buy_click',
+      category: deal.category,
+      merchant: deal.merchant || merchant.id,
+      price: currentPrice,
+      productId: deal.productId || deal.linkedProductId || dealId,
+    });
+    saveCurrentCardToRecent();
+  };
+
+  const handleInspectDeal = () => {
+    setNavigatingHistory(true);
+    recordClientInteraction({
+      type: 'graph_view',
+      category: deal.category,
+      merchant: deal.merchant || merchant.id,
+      price: currentPrice,
+      productId: deal.productId || deal.linkedProductId || dealId,
+    });
+    saveCurrentCardToRecent();
   };
 
   const isDeferred = index >= 8;
@@ -190,7 +234,7 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
         {/* Product Image Frame */}
         <Link
           href={cardHref}
-          onClick={() => setNavigatingHistory(true)}
+          onClick={handleInspectDeal}
           className="relative block h-36 sm:h-40 w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-50/90 via-slate-50/40 to-white/90 p-2.5 border border-slate-100"
         >
           {navigatingHistory && (
@@ -342,7 +386,7 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
 
         <Link
           href={cardHref}
-          onClick={() => setNavigatingHistory(true)}
+          onClick={handleInspectDeal}
           className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-[11px] font-extrabold transition-all duration-200 shadow-2xs ${
             navigatingHistory
               ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-inner'

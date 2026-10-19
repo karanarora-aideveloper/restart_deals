@@ -1,0 +1,3019 @@
+{
+  "total": 500,
+  "byStatus": {
+    "200": 499,
+    "TIMEOUT": 1
+  },
+  "workingCount": 499,
+  "brokenCount": 1,
+  "broken": [
+    {
+      "url": "https://www.shoppersdeals.in/",
+      "status": "TIMEOUT",
+      "ok": false,
+      "error": "This operation was aborted"
+    }
+  ],
+  "results": [
+    {
+      "url": "https://www.shoppersdeals.in/product/6a882624b085c6f9a4fb7e3f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8862b4a38b0618ff7a2cef",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89e5715a6fca373e8400b5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8043350a62712267d0d4ec",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe44ae657a8b3375868d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf4ae657a8b33758583",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ac10235cc35ca51776bb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a870f98ef2c41d5f680c427",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a738235cc35ca5177262",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdeeae657a8b33758551",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdfeae657a8b337585b6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc2aae657a8b337584e3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f90997bcd64483c5dac4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8148bd0f0e0d9c1c0c7854",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8183a340b84f6a53982ed6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fec8ae657a8b337586d2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff5eae657a8b337586ec",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a918f294b4b0b0012542496",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8400cdf08fab143aa2f12a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc24ae657a8b337584ad",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a839bbbf08fab143aa2eba3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8305f9f08fab143aa2c76e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f361b0a62712267d0a493",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8031710a62712267d0cd32",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a830056f08fab143aa2c54f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8055c0235cc35ca5176646",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802e5b0a62712267d0caee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a832d65f08fab143aa2d4f3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8704d0ef2c41d5f680bf8a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8702d0ef2c41d5f680beeb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdfdae657a8b337585b2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a85fe3fae657a8b33758664",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a82b681f08fab143aa2ac00",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817c640f0e0d9c1c0c860b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7782f99dd5db0ebefedef6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a5aa235cc35ca51770c3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a898d265a6fca373e83dfe3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86ed3fef2c41d5f680b6bc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf2ae657a8b3375856f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b45297bcd64483c5f5e6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f17497bcd64483c5d76e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74c0f1c1351fb0577c6240",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a803db60a62712267d0d34a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a871c5def2c41d5f680c957",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a918da44b4b0b00125423ee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fbed50a62712267d0bbe7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a806bd0235cc35ca517684d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802aec0a62712267d0c88c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f4c570a62712267d0acde",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a85e235cc35ca5177368",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80aa42235cc35ca5177546",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72fa53b11c59357c9e599d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a77886a9dd5db0ebefee387",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74860010c630cf62af80ea",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b530235cc35ca5177ba9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89aae15a6fca373e83eaa1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff61ae657a8b337586ee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f47997bcd64483c5d870",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85e97297bcd64483c5d505",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a719110b53c455b9c2c6d93",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a73e1ace3569dd2ae60c336",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7722fa4a56ce316554760a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7355fa52834e10ac0bd100",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7198fa16bae827f7cd7728",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a757f41c1351fb0577c7934",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89818f5a6fca373e83dbbf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717c60b53c455b9c2c6401",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a723721a1885e45d4db8c44",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b90c235cc35ca5177cb9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf2ae657a8b3375856d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ae42235cc35ca51778b1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc28ae657a8b337584d1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a9ec235cc35ca5177509",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe03ae657a8b337585e2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a36e235cc35ca5176e89",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a899a795a6fca373e83e450",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7debb75fcf25711c83bd5e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a718257b53c455b9c2c68cf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88260ab085c6f9a4fb7e20",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a87003eef2c41d5f680be00",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe41ae657a8b33758671",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a858601239c38f65679f5eb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdfcae657a8b337585a8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74bc71c1351fb0577c5ff4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8806248dc5252b207d2648",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf1ae657a8b33758565",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717df8b53c455b9c2c6529",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74227ae3569dd2ae60d6e4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717be7b53c455b9c2c639b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a880d235c85c953dcb3018f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717fb3b53c455b9c2c6690",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc23ae657a8b337584a5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff97ae657a8b33758711",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88283c62933a7f51c21a02",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe03ae657a8b337585e8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe00ae657a8b337585c8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74157ce3569dd2ae60d21e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fde9ae657a8b33758521",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff86ae657a8b33758706",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71dd00a1885e45d4db76ce",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89a95c5a6fca373e83e9db",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88258eb085c6f9a4fb7d93",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89779e5a6fca373e83d806",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8987bd5a6fca373e83de44",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a742ee8e3569dd2ae60dc3b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff8897bcd64483c5dd97",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a733f1a52834e10ac0bbcfd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe12ae657a8b3375863a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7dba745fcf25711c83a5a6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86f9e7ef2c41d5f680bb9a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a918d5e4b4b0b00125423d6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc23ae657a8b337584a1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdebae657a8b33758531",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7578f3c1351fb0577c75af",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89bc0d5a6fca373e83f2bf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89dfd25a6fca373e83feff",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a738d11cf9869c5191c9375",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a87111cef2c41d5f680c4d9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a73696152834e10ac0be289",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86cc17ef2c41d5f680a8cc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a897a3b5a6fca373e83d8ee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a882c59b085c6f9a4fb83e1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71907cb53c455b9c2c6d44",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a882979b085c6f9a4fb8203",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85eebb97bcd64483c5d6a1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fde9ae657a8b33758525",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe0cae657a8b33758608",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdefae657a8b33758555",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85e3ee97bcd64483c5d2f3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88282962933a7f51c21970",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8806278dc5252b207d264d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89b2075a6fca373e83ede1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a6a3345fe610355959a5016",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89af395a6fca373e83eca6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ea4297bcd64483c5d53d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89dff55a6fca373e83ff13",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe1497bcd64483c5dcee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a757f75c1351fb0577c797a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89ea815a6fca373e840269",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc26ae657a8b337584bd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7629325330d9f78ad17caf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89bc005a6fca373e83f2b2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717de0b53c455b9c2c6515",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86fe5cef2c41d5f680bd71",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc21ae657a8b33758494",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74cc2cc1351fb0577c68a7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89ac655a6fca373e83eb1e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86e43cef2c41d5f680b23c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89780c5a6fca373e83d82f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86ba4d97bcd64483c5fb61",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe47ae657a8b337586a3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72c0db6c2955ba93d6d97d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85e89f97bcd64483c5d4b5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8806418dc5252b207d266d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ff93ae657a8b3375870f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8810675c85c953dcb30303",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a870efcef2c41d5f680c3b4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b4a397bcd64483c5f643",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a746a88e3569dd2ae60f024",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86ad7697bcd64483c5efcf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74cc3ac1351fb0577c68bd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72c2e06c2955ba93d6dad0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf9ae657a8b33758591",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88282862933a7f51c2195e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88282d62933a7f51c21985",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8809ed5c85c953dcb30031",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85e95597bcd64483c5d4f0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89de0c5a6fca373e83fe40",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8810135c85c953dcb302db",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71ad5da1885e45d4db6866",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdffae657a8b337585c4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a737e5e109c9278f4d83f4f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7355cf52834e10ac0bd0b2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a73556752834e10ac0bd026",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a743e40e3569dd2ae60e12e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc2bae657a8b337584eb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88064a8dc5252b207d267d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7420bde3569dd2ae60d662",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a745b04e3569dd2ae60e7cc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a757f21c1351fb0577c78ff",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a744598e3569dd2ae60e39e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74befcc1351fb0577c6184",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86eb51ef2c41d5f680b583",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86a97497bcd64483c5ec06",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7440b5e3569dd2ae60e1d9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74165ee3569dd2ae60d265",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b44197bcd64483c5f5cd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89c6c55a6fca373e83f6d2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdecae657a8b33758539",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f25f97bcd64483c5d7c9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8806398dc5252b207d265e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81c62740b84f6a539840e1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7485c510c630cf62af80c2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/",
+      "status": "TIMEOUT",
+      "ok": false,
+      "error": "This operation was aborted"
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8806478dc5252b207d2677",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a916bc52f36e36ca00f58fd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe13ae657a8b3375863e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72087da1885e45d4db7e57",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89e1275a6fca373e83ffa4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88064d8dc5252b207d2682",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85ffa4ae657a8b3375871b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a743b41e3569dd2ae60e024",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a732d8f52834e10ac0bae8f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89a2b85a6fca373e83e787",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe0eae657a8b3375861a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b7f097bcd64483c5f90b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89de915a6fca373e83fe65",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a745cd8e3569dd2ae60e9bb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8809ff5c85c953dcb3004a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74875310c630cf62af81e3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8721c2ef2c41d5f680cb9a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85739ff08fab143aa34dcd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85feb4ae657a8b337586c6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f0f497bcd64483c5d746",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a898eb65a6fca373e83e085",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71914bb53c455b9c2c6daf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a718249b53c455b9c2c68bc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe15ae657a8b33758650",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe42ae657a8b3375867d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71cffda1885e45d4db72a3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a870f61ef2c41d5f680c40d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72fd2c3535412142ce9c26",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71d8aca1885e45d4db7581",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89a7ad5a6fca373e83e93e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89b3e55a6fca373e83eec4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89ddae5a6fca373e83fe1d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88283462933a7f51c219b3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7731544a56ce31655481f3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a718b6eb53c455b9c2c6bd6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71d272a1885e45d4db7395",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71844ab53c455b9c2c699c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7180d0b53c455b9c2c67a3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85e7ab97bcd64483c5d460",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89c8605a6fca373e83f75f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89bb2a5a6fca373e83f204",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc22ae657a8b3375849a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7774f8f2335a7bf2e2b57f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b19d97bcd64483c5f365",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8721e9ef2c41d5f680cbbd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf3ae657a8b33758577",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8982c45a6fca373e83dc3b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7451a7e3569dd2ae60e5fb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b22d97bcd64483c5f3f8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86cd5fef2c41d5f680a956",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fe0bae657a8b33758604",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86b56b97bcd64483c5f6ef",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8976305a6fca373e83d793",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a741975e3569dd2ae60d3af",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a73300c52834e10ac0bb0e0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdf8ae657a8b33758587",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71a3a1a1885e45d4db5e88",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a745caae3569dd2ae60e98d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89aeee5a6fca373e83ec69",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85f54e97bcd64483c5d8c2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7401cae3569dd2ae60cbe7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8812085c85c953dcb303b5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86c53e97bcd64483c6014e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fdffae657a8b337585be",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89c6895a6fca373e83f6ab",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a771d994a56ce3165547138",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fc2aae657a8b337584e7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86ba1097bcd64483c5fb31",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a741f17e3569dd2ae60d5b0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89aab75a6fca373e83ea75",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a75313ac1351fb0577c71ca",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88282962933a7f51c21964",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a72c0fd6c2955ba93d6d99b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a89b4055a6fca373e83eede",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71a9b6a1885e45d4db64f0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7312a53535412142ceacfc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7373cf109c9278f4d83cfc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a721ecaa1885e45d4db8498",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71801bb53c455b9c2c66f4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717bcab53c455b9c2c6385",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a86afa697bcd64483c5f1a7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a743d45e3569dd2ae60e0cf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a85fec1ae657a8b337586ce",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a88064f8dc5252b207d2688",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a718882b53c455b9c2c6ade",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a763de0501358d9c59996a2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7e1b6b305b7326464366de",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7e0ca2305b732646436090",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f0a950a62712267d094bb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717edcb53c455b9c2c65d6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f4ecf0a62712267d0adc0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7dce395fcf25711c83b11d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80aa91235cc35ca5177580",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74c259c1351fb0577c632d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7dff565fcf25711c83c44c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f10270a62712267d09716",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a6ef235cc35ca517722b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f45140a62712267d0aa50",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7dd71d5fcf25711c83b47c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f4f840a62712267d0ae58",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a737252109c9278f4d83c20",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7dea075fcf25711c83bca2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7ef1620a62712267d0899e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7ee01c32d665a75cd56e6b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a80b530235cc35ca5177bac",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80aad7235cc35ca51775b1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7ed71e305b73264643712f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f35420a62712267d0a402",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7877a2671ec6425dc23c7e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a87198def2c41d5f680c803",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a871a30ef2c41d5f680c85a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74772ce3569dd2ae60f441",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f48400a62712267d0ab9e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817d2040b84f6a53982ca3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a818e1640b84f6a5398322d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71cc81a1885e45d4db7181",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81834d40b84f6a53982ead",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a717edcb53c455b9c2c65d8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7db8f35fcf25711c83a3e8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f55b60a62712267d0b0fb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81849e40b84f6a53982f8f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a746144e3569dd2ae60ebf6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81840440b84f6a53982f2f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7ffc610a62712267d0bf14",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f51060a62712267d0af0f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f0bcc0a62712267d09540",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f45220a62712267d0aa62",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f45220a62712267d0aa5f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f62080a62712267d0b5d9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f55040a62712267d0b0c0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fb4000a62712267d0bb51",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a773f37bc90740ead8b8486",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a773944bc90740ead8b7f63",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f494a0a62712267d0ac06",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7fcaaf0a62712267d0bc5b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ad6f235cc35ca51777bf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80981a235cc35ca5176b55",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a80a8c4235cc35ca51773dd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7228daa1885e45d4db873a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817c550f0e0d9c1c0c85f3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81f3f340b84f6a5398493d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80238c0a62712267d0c28f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8183ca40b84f6a53982ef8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a814b4e0f0e0d9c1c0c7952",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81814c40b84f6a53982e1d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a1bb235cc35ca5176ce2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f47a70a62712267d0ab6f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fc1490a62712267d0bc01",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a8583417fe75b8b5a308bf8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71804ab53c455b9c2c671f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8163a00f0e0d9c1c0c82ca",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a773ef6bc90740ead8b8443",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81963d40b84f6a539834c4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8141110f0e0d9c1c0c755f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a8197e740b84f6a5398356a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a775713bc90740ead8b992f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ac88235cc35ca517771a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a80ba03235cc35ca5177d41",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81968040b84f6a539834fd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/blog/amazon-great-indian-festival-guide",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71d0cba1885e45d4db72f0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a71fbeba1885e45d4db79ac",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81890740b84f6a539830b3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81957440b84f6a53983481",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81848f40b84f6a53982f7f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81993740b84f6a539835d8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a74cfb2c1351fb0577c6a63",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81894a40b84f6a539830d7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a717c49b53c455b9c2c63ee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a818ce740b84f6a539831e2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f38880a62712267d0a5ca",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f38880a62712267d0a5c7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7ed71e305b732646437132",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f53610a62712267d0b00e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a11b235cc35ca5176c3d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f54310a62712267d0b069",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f533f0a62712267d0afda",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7ef9550a62712267d08d35",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f616b0a62712267d0b579",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f51140a62712267d0af28",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f15fe0a62712267d09929",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fdb980a62712267d0bd21",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f4e390a62712267d0ad7b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ba00235cc35ca5177d35",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f35420a62712267d0a405",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f50930a62712267d0aebc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7f56070a62712267d0b11b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b0ff235cc35ca5177a1c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fe9eb0a62712267d0bddf",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b046235cc35ca517796c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81702e0f0e0d9c1c0c837f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8027f50a62712267d0c651",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81525b0f0e0d9c1c0c7c47",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8023410a62712267d0c23b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8030690a62712267d0cc57",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a80a75c235cc35ca5177298",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a631235cc35ca5177157",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a80a3d4235cc35ca5176edb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a691235cc35ca51771c1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ab4b235cc35ca51775f8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/deal/6a7db8f35fcf25711c83a3eb",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8026900a62712267d0c53f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8025210a62712267d0c40c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a202235cc35ca5176d45",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a7fa235cc35ca5177319",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80927c235cc35ca5176ae3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b0c8235cc35ca51779e0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802d660a62712267d0ca4c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80842c235cc35ca5176a15",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802fa50a62712267d0cbc9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80aa02235cc35ca517752a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b176235cc35ca5177a6f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8034c30a62712267d0cfce",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fc3c50a62712267d0bc20",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ab98235cc35ca517763b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8027630a62712267d0c5de",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8028480a62712267d0c699",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8029d20a62712267d0c7d5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a8d3235cc35ca51773f0",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a721662a1885e45d4db822f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802b240a62712267d0c8ca",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8148e40f0e0d9c1c0c7874",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8027150a62712267d0c5a4",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a64a235cc35ca517717a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8025d40a62712267d0c4b8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80242b0a62712267d0c31e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7ab9cb8d8f10eefc80eccd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f67ac0a62712267d0b7f5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802ee90a62712267d0cb53",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a733c6452834e10ac0bba8a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8144b40f0e0d9c1c0c7685",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ad30235cc35ca517778e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a2f7235cc35ca5176e13",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8153870f0e0d9c1c0c7cc2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ae06235cc35ca5177852",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a0bd235cc35ca5176be2",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a814e860f0e0d9c1c0c7af5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80244f0a62712267d0c33d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8170180f0e0d9c1c0c8364",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f5f1a0a62712267d0b43e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8032b60a62712267d0ce0d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a28b235cc35ca5176db8",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8146310f0e0d9c1c0c771a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8028a10a62712267d0c70c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8144fd0f0e0d9c1c0c76b6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8025a30a62712267d0c499",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8022990a62712267d0c1b9",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80288e0a62712267d0c6f5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f5f920a62712267d0b48f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817e5d40b84f6a53982d11",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b8c1235cc35ca5177c8f",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8022ea0a62712267d0c1ee",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a1ad235cc35ca5176cd1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8026cc0a62712267d0c560",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f6d290a62712267d0b946",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f6a280a62712267d0b889",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8027980a62712267d0c611",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80254e0a62712267d0c434",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a127235cc35ca5176c55",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a76a235cc35ca51772ac",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8030ac0a62712267d0ccb3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7fbca20a62712267d0bbd1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8021b20a62712267d0c13b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80aa71235cc35ca5177564",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a741d86e3569dd2ae60d50a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802fee0a62712267d0cbf7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a358235cc35ca5176e6c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8147ae0f0e0d9c1c0c7800",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a771a774a56ce3165546ea1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8147720f0e0d9c1c0c77dc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8029150a62712267d0c75e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80abaa235cc35ca517764c",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81466c0f0e0d9c1c0c7750",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a318235cc35ca5176e42",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7d925976aacb4f6a1f87b1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ac46235cc35ca51776e7",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80262e0a62712267d0c4fe",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80abe8235cc35ca5177683",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a771d054a56ce31655470af",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802be00a62712267d0c95d",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f66920a62712267d0b797",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80355a0a62712267d0d04b",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8028ff0a62712267d0c746",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817b550f0e0d9c1c0c8515",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a955235cc35ca5177480",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a81638a0f0e0d9c1c0c82b1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7581cdc1351fb0577c7c64",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8024930a62712267d0c373",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f5e020a62712267d0b3c6",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8033d50a62712267d0cf2a",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a4b3235cc35ca5176fb5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80ae14235cc35ca5177868",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80a7a6235cc35ca51772e5",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a813ea60f0e0d9c1c0c7459",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8023f30a62712267d0c2fc",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8023af0a62712267d0c2c3",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80b014235cc35ca5177943",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802b6f0a62712267d0c912",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8032890a62712267d0cdf1",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a802eaf0a62712267d0cb26",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f627e0a62712267d0b630",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a80370c0a62712267d0d102",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a7f60fb0a62712267d0b530",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8032d70a62712267d0ce52",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a817bc10f0e0d9c1c0c857e",
+      "status": 200,
+      "ok": true,
+      "location": null
+    },
+    {
+      "url": "https://www.shoppersdeals.in/product/6a8024db0a62712267d0c3bd",
+      "status": 200,
+      "ok": true,
+      "location": null
+    }
+  ]
+}
