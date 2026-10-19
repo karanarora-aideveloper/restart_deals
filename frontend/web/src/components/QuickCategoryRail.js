@@ -36,11 +36,11 @@ export default function QuickCategoryRail() {
       hoverColor: 'hover:text-[#ea580c]',
     },
     {
-      id: 'products',
+      id: 'price-tracker',
       label: 'Price Tracker',
       icon: '📊',
-      href: getHref('/products'),
-      isActive: pathname === '/products',
+      href: getHref('/price-tracker'),
+      isActive: pathname === '/price-tracker',
       hoverColor: 'hover:text-[#7c3aed]',
     },
     {

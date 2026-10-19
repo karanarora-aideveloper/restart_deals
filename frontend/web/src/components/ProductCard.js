@@ -124,13 +124,6 @@ export default function ProductCard({ product, onImageUnavailable }) {
           {discountPct > 0 && <span className="text-xs font-extrabold text-[#e11d48]">{discountPct}% off</span>}
         </div>
 
-        {freshness.isStale && (
-          <p className="mb-2 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50/80 border border-amber-200/60 rounded px-1.5 py-0.5">
-            <span>⚠️</span>
-            <span className="truncate">Crawled {freshness.relativeTime} · Verify at store</span>
-          </p>
-        )}
-
         {product.isSeriesCard && product.seriesVariantCount > 1 ? (
           <Link
             href={`/product/${productId}`}

@@ -92,6 +92,8 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
   const saved = isDealSaved(dealId, savedDeals);
   const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
   const affiliateUrl = getAffiliateUrl(deal.dealUrl || deal.url, dealCountry);
+  const dealTime = deal.createdAt || deal.postedAt || deal.updatedAt;
+  const verifiedTime = formatRelativeTime(dealTime);
   const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
   const freshness = getCrawlFreshness(crawlTime);
 
@@ -103,26 +105,17 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
 
   // Flipkart-grade Smart Verdict Pill
   let verdictText = 'Verified Deal';
-  let verdictBg = 'bg-blue-50 text-blue-700 border-blue-200/80';
+  let verdictBg = 'bg-slate-50 text-slate-700 border-slate-200/80 font-bold';
   if (deal.isAllTimeLow) {
     verdictText = '🔥 All-Time Low Price';
-    verdictBg = 'bg-amber-50 text-amber-900 border-amber-300';
+    verdictBg = 'bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 text-amber-950 border-amber-300/90 font-black';
   } else if (mrpDiscountPct >= 50 || priceDropPct >= 20) {
     verdictText = '⚡ Steal Deal (Buy Now)';
-    verdictBg = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+    verdictBg = 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 text-emerald-950 border-emerald-300/90 font-black';
   } else if (hasPriceDrop) {
     verdictText = `📉 ₹${priceDropCash.toLocaleString('en-IN')} Price Drop`;
-    verdictBg = 'bg-teal-50 text-teal-800 border-teal-200';
+    verdictBg = 'bg-gradient-to-r from-teal-500/10 via-cyan-500/10 to-teal-500/5 text-teal-950 border-teal-200/90 font-extrabold';
   }
-
-  // Engine Classification & Badging (Consumer-Friendly)
-  const isEngine2 = deal.sourceEngine === 'engine2' ||
-    (deal.sourceChannelId && /catalog|engine|buyhatke|d2c|crawler|bestseller|top20|watcher|amazon_deals/i.test(deal.sourceChannelId));
-  const engineBadgeText = isEngine2 ? '🤖 24/7 Watcher' : '⚡ Flash Loot';
-  const engineBadgeTitle = isEngine2 ? 'Continuously tracked 24/7 by Store Watcher' : 'Live flash drop verified from Deal Radar';
-  const engineBadgeClass = isEngine2
-    ? 'bg-purple-50 text-purple-700 border-purple-200/90'
-    : 'bg-indigo-50 text-indigo-700 border-indigo-200/90';
 
   const handleToggleSave = async (e) => {
     e.preventDefault();
@@ -145,25 +138,28 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
   return (
     <article
       style={isDeferred ? { contentVisibility: 'auto', containIntrinsicSize: 'auto 380px' } : undefined}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 sm:p-3 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.06),0_1px_4px_-1px_rgba(15,23,42,0.02)] transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-[0_12px_24px_-4px_rgba(15,23,42,0.1),0_4px_8px_-2px_rgba(15,23,42,0.04)]"
     >
       <div className="min-w-0">
-        {/* Top Header: Store Logo + Verified Badge + Wishlist */}
-        <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
-          {/* Store Logo */}
-          <div className="flex h-5 items-center shrink-0">
+        {/* Top Header: Store Badge + Deal Age + Wishlist */}
+        <div className="flex items-center justify-between gap-1.5 mb-2 min-w-0">
+          {/* Store Micro-Pill */}
+          <div className="flex h-6 items-center px-1.5 py-0.5 rounded-lg bg-slate-50/90 border border-slate-200/60 shadow-2xs shrink-0">
             {renderStoreLogo(deal.merchant || merchant.id || merchant.label, 'h-3.5 max-h-3.5 w-auto object-contain')}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Live Verification Badge */}
+            {/* Live Deal Age Badge with radar ping */}
             <span
-              className="flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-800 whitespace-nowrap"
-              title="Verified by ShoppersDeals Engine"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-[8.5px] font-bold text-emerald-700 tracking-tight whitespace-nowrap shadow-2xs"
+              title={`Deal verified: ${formatRelativeTime(dealTime)}`}
               suppressHydrationWarning
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span>Verified</span>
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span suppressHydrationWarning>{mounted ? verifiedTime : 'Verified'}</span>
             </span>
 
             {/* Wishlist Button */}
@@ -171,8 +167,10 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
               type="button"
               onClick={handleToggleSave}
               disabled={isSaving}
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors ${
-                saved ? 'bg-rose-50 text-rose-500' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all duration-200 hover:scale-110 active:scale-90 ${
+                saved
+                  ? 'bg-rose-50 text-rose-500 border-rose-200 shadow-2xs'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 border-slate-200/60'
               }`}
               aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'}
             >
@@ -190,9 +188,13 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
         </div>
 
         {/* Product Image Frame */}
-        <Link href={cardHref} onClick={() => setNavigatingHistory(true)} className="relative block h-32 sm:h-36 w-full overflow-hidden rounded-lg bg-slate-50/80 p-2">
+        <Link
+          href={cardHref}
+          onClick={() => setNavigatingHistory(true)}
+          className="relative block h-36 sm:h-40 w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-50/90 via-slate-50/40 to-white/90 p-2.5 border border-slate-100"
+        >
           {navigatingHistory && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 backdrop-blur-2xs rounded-lg animate-in fade-in duration-150">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 backdrop-blur-2xs rounded-xl animate-in fade-in duration-150">
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-1" />
               <span className="text-[9.5px] font-black text-indigo-700 animate-pulse">Loading Chart…</span>
             </div>
@@ -204,7 +206,7 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
               srcSet={getImageSrcSet(rawImage)}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
               alt={displayTitle}
-              className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
               loading="lazy"
               decoding="async"
               referrerPolicy="no-referrer"
@@ -215,21 +217,21 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center text-center p-2">
-              <span className="text-xl mb-1">{merchant.emoji || '🛍️'}</span>
+              <span className="text-2xl mb-1">{merchant.emoji || '🛍️'}</span>
               <span className="text-[10px] font-bold text-slate-500 line-clamp-1">{merchant.name} Deal</span>
             </div>
           )}
 
-          {/* Top-Right Badge: High-Contrast Discount or Cash Drop */}
+          {/* Top-Right Badge: Modern Pill with subtle gradient and micro shadow */}
           {hasPriceDrop && priceDropPct >= 3 ? (
-            <div className="absolute top-1.5 right-1.5 rounded-md bg-emerald-600 px-1.5 py-0.5 text-center shadow-xs">
-              <span className="block text-[9px] font-black uppercase text-white tracking-tight whitespace-nowrap">
+            <div className="absolute top-2 right-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-2 py-0.5 text-center shadow-xs">
+              <span className="block text-[9px] font-black uppercase text-white tracking-wide whitespace-nowrap">
                 📉 {priceDropPct}% DROP
               </span>
             </div>
           ) : mrpDiscountPct > 0 ? (
-            <div className="absolute top-1.5 right-1.5 rounded-md bg-[#5855E5] px-1.5 py-0.5 text-center shadow-xs">
-              <span className="block text-[9px] font-black uppercase text-white tracking-tight whitespace-nowrap">
+            <div className="absolute top-2 right-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-2 py-0.5 text-center shadow-xs">
+              <span className="block text-[9px] font-black uppercase text-white tracking-wide whitespace-nowrap">
                 {mrpDiscountPct}% OFF
               </span>
             </div>
@@ -237,105 +239,100 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
         </Link>
 
         {/* Title: Strict 2-line clamp with min-height */}
-        <h3 className="mt-2 line-clamp-2 min-h-[32px] sm:min-h-[34px] text-xs font-bold leading-snug text-slate-900 group-hover:text-indigo-600 transition-colors">
+        <h3 className="mt-2.5 line-clamp-2 min-h-[34px] sm:min-h-[36px] text-[12.5px] sm:text-[13px] font-bold leading-[1.3] text-slate-900 tracking-[-0.015em] group-hover:text-indigo-600 transition-colors">
           <Link href={cardHref} title={displayTitle}>
             {displayTitle}
           </Link>
         </h3>
 
-        {/* Smart Verdict: Full Width */}
-        <div className="mt-1.5 flex items-center min-w-0">
-          <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-extrabold truncate w-full ${verdictBg}`}>
+        {/* Smart Verdict: Full Width with subtle gradient & icon */}
+        <div className="mt-2 flex items-center min-w-0">
+          <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[9.5px] truncate w-full shadow-2xs ${verdictBg}`}>
             <span className="truncate">{verdictText}</span>
           </span>
         </div>
 
         {/* Clean Pricing Hierarchy — Genuine Price Drop Priority */}
-        <div className="mt-2 rounded-lg bg-slate-50/90 p-2 border border-slate-100 min-w-0">
+        <div className="mt-2.5 rounded-xl bg-gradient-to-b from-slate-50/90 to-slate-100/60 p-2.5 border border-slate-200/70 min-w-0 shadow-2xs">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-base sm:text-lg font-black tracking-tight text-slate-950">
               {formatInr(currentPrice)}
             </span>
             {hasPriceDrop ? (
               <>
-                <span className="text-[10.5px] font-bold text-slate-500 line-through">
+                <span className="text-[10.5px] font-semibold text-slate-400 line-through">
                   {formatInr(previousTrackedPrice)}
                 </span>
-                <span className="text-[9.5px] font-black text-emerald-600 whitespace-nowrap">
-                  ({priceDropPct}% drop)
+                <span className="rounded bg-emerald-100/80 px-1.5 py-0.2 text-[9px] font-black text-emerald-700 whitespace-nowrap">
+                  {priceDropPct}% drop
                 </span>
               </>
             ) : hasMrp ? (
               <>
-                <span className="text-[10px] font-bold text-slate-400 line-through">
+                <span className="text-[10.5px] font-semibold text-slate-400 line-through">
                   {formatInr(listMrp)}
                 </span>
                 {mrpDiscountPct > 0 && (
-                  <span className="text-[9.5px] font-extrabold text-emerald-600 whitespace-nowrap">
-                    ({mrpDiscountPct}% off)
+                  <span className="rounded bg-indigo-100/80 px-1.5 py-0.2 text-[9px] font-black text-indigo-700 whitespace-nowrap">
+                    {mrpDiscountPct}% off
                   </span>
                 )}
               </>
             ) : null}
           </div>
 
-          {/* Genuine Drop or Savings Callout & Discovery Engine Badge */}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-600 min-w-0 gap-1.5 pt-1 border-t border-slate-200/60">
-            <span className="truncate font-bold text-[9.5px]">
+          {/* Genuine Drop or Savings Callout + Checked Timestamp */}
+          <div className="mt-2 pt-1.5 border-t border-slate-200/70 flex flex-col gap-1 min-w-0">
+            <div className="font-extrabold text-[10.5px] leading-tight">
               {hasPriceDrop ? (
-                <span className="text-emerald-700">
-                  📉 ₹{priceDropCash.toLocaleString('en-IN')} True Drop
+                <span className="text-emerald-700 flex items-center gap-1">
+                  <span>📉</span>
+                  <span>₹{priceDropCash.toLocaleString('en-IN')} True Drop</span>
                 </span>
               ) : mrpSavings > 0 ? (
-                <span className="text-slate-600">
-                  💰 Save ₹{mrpSavings.toLocaleString('en-IN')}
+                <span className="text-slate-700 flex items-center gap-1">
+                  <span>💰</span>
+                  <span>Save ₹{mrpSavings.toLocaleString('en-IN')}</span>
                 </span>
               ) : deal.hasPriceHistory ? (
-                <span className="text-indigo-700">📈 History Tracked</span>
+                <span className="text-indigo-700 flex items-center gap-1">
+                  <span>📈</span>
+                  <span>History Tracked</span>
+                </span>
               ) : (
-                'Verified Price'
+                <span className="text-slate-500 flex items-center gap-1">
+                  <span>✓</span>
+                  <span>Verified Price</span>
+                </span>
               )}
-            </span>
-            <div className="flex flex-col items-end shrink-0">
-              <span
-                className={`rounded px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-tight border ${engineBadgeClass}`}
-                title={engineBadgeTitle}
-              >
-                {engineBadgeText}
-              </span>
-              <span
-                className={`text-[8px] font-bold mt-0.5 tracking-tight flex items-center gap-1 ${
-                  freshness.status === 'fresh' ? 'text-emerald-700' :
-                  freshness.status === 'stale' ? 'text-rose-600' :
-                  freshness.status === 'aging' ? 'text-amber-700' :
-                  'text-slate-500'
-                }`}
-                title={freshness.tooltip}
-                suppressHydrationWarning
-              >
-                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
-                <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked'}</span>
-              </span>
+            </div>
+
+            {/* Below this: Last Checked Timestamp */}
+            <div
+              className={`text-[9.5px] font-semibold tracking-tight flex items-center gap-1.5 ${
+                freshness.status === 'fresh' ? 'text-emerald-700' :
+                freshness.status === 'stale' ? 'text-rose-600 font-bold' :
+                freshness.status === 'aging' ? 'text-amber-700' :
+                'text-slate-500'
+              }`}
+              title={freshness.tooltip}
+              suppressHydrationWarning
+            >
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${freshness.dotClass}`} />
+              <span suppressHydrationWarning>{mounted ? freshness.label : 'Checked recently'}</span>
             </div>
           </div>
-
-          {freshness.isStale && (
-            <div className="mt-1.5 flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[8.5px] font-bold text-amber-900 border border-amber-200/80">
-              <span className="shrink-0">⚠️</span>
-              <span className="truncate">Crawled {freshness.relativeTime} · Verify price on {merchant.name}</span>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Dual CTA Actions: Flipkart High-Converting Button Layout */}
-      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 min-w-0">
+      {/* Dual CTA Actions: Modern High-Converting Button Layout */}
+      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2 min-w-0">
         <a
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleBuyClick}
-          className="flex-1 min-w-0 flex items-center justify-center gap-1 rounded-xl bg-[#5855E5] py-2 px-2 text-[11px] font-black text-white shadow-xs transition-all hover:bg-[#4743DE] hover:shadow-md active:scale-[0.98]"
+          className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 py-2.5 px-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_2px_8px_-1px_rgba(79,70,229,0.35)] transition-all duration-200 hover:from-indigo-700 hover:to-violet-700 hover:shadow-[0_4px_14px_-1px_rgba(79,70,229,0.45)] active:scale-[0.98]"
         >
           <span className="truncate">⚡ BUY NOW</span>
           <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -346,16 +343,16 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
         <Link
           href={cardHref}
           onClick={() => setNavigatingHistory(true)}
-          className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl border p-2 text-[11px] font-extrabold transition-all shadow-2xs ${
+          className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-[11px] font-extrabold transition-all duration-200 shadow-2xs ${
             navigatingHistory
               ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-inner'
-              : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:text-indigo-600'
+              : 'border-slate-200/90 bg-white hover:bg-indigo-50/50 hover:border-indigo-300 text-slate-700 hover:text-indigo-600'
           }`}
           title="View 90-day price history graph"
         >
           {navigatingHistory ? (
             <>
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent shrink-0" />
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent shrink-0" />
               <span className="text-[10px] animate-pulse">Loading…</span>
             </>
           ) : (

@@ -185,21 +185,21 @@ export function getCrawlFreshness(dateInput) {
   // 4 - 12 hours: Moderate (Slate / Neutral)
   if (diffHours < 12) {
     return {
-      label: `Crawled ${relativeTime}`,
+      label: `Checked ${relativeTime}`,
       shortLabel: relativeTime,
       relativeTime,
       status: 'moderate',
       badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/90',
       dotClass: 'bg-slate-400',
       isStale: false,
-      tooltip: `Last crawled from store ${relativeTime}`,
+      tooltip: `Last verified from store ${relativeTime}`,
     };
   }
 
   // 12 - 24 hours: Aging (Amber warning)
   if (diffHours < 24) {
     return {
-      label: `Crawled ${relativeTime}`,
+      label: `Checked ${relativeTime}`,
       shortLabel: relativeTime,
       relativeTime,
       status: 'aging',
@@ -207,13 +207,13 @@ export function getCrawlFreshness(dateInput) {
       dotClass: 'bg-amber-500',
       isStale: true,
       staleWarning: 'Price may vary',
-      tooltip: `Crawled ${relativeTime} — store price may have updated`,
+      tooltip: `Verified from store ${relativeTime} — price may have updated`,
     };
   }
 
   // > 24 hours: Stale / Likely Expired (Rose / Alert)
   return {
-    label: `Crawled ${relativeTime} • Check price`,
+    label: `Checked ${relativeTime}`,
     shortLabel: relativeTime,
     relativeTime,
     status: 'stale',
@@ -221,7 +221,7 @@ export function getCrawlFreshness(dateInput) {
     dotClass: 'bg-rose-500',
     isStale: true,
     staleWarning: 'May be expired',
-    tooltip: `Crawled ${relativeTime} — deal might be expired or price reverted`,
+    tooltip: `Verified from store ${relativeTime} — deal may be expired or price changed`,
   };
 }
 

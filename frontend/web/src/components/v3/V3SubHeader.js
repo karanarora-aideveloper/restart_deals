@@ -19,9 +19,9 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
       hoverBg: 'hover:bg-[#EFEFFF] hover:text-[#5855E5]',
     },
     {
-      id: 'products',
+      id: 'price-tracker',
       label: 'Price Tracker',
-      href: '/products',
+      href: '/price-tracker',
       icon: (
         <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="18" y1="20" x2="18" y2="10" />
@@ -31,6 +31,20 @@ export default function V3SubHeader({ activeTab = 'deals' }) {
       ),
       activeBg: 'bg-[#F0FDF4] text-[#15803D]',
       hoverBg: 'hover:bg-[#F0FDF4] hover:text-[#15803D]',
+    },
+    {
+      id: 'products',
+      label: 'All Products',
+      href: '/products',
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      ),
+      activeBg: 'bg-[#F1F5F9] text-[#334155]',
+      hoverBg: 'hover:bg-[#F1F5F9] hover:text-[#334155]',
     },
     {
       id: 'categories',

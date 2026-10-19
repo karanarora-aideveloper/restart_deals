@@ -328,11 +328,6 @@ export default async function CategoryPage({ params, searchParams }) {
                           </span>
                         </div>
                       )}
-                      {freshness.isStale && (
-                        <p className="mt-1 text-[8.5px] font-bold text-amber-700 truncate">
-                          ⚠️ Crawled {freshness.relativeTime} · Verify at store
-                        </p>
-                      )}
                     </div>
                   </Link>
                 );

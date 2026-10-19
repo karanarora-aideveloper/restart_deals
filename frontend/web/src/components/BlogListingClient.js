@@ -34,6 +34,24 @@ function formatDetailLabel(slug) {
     .join(' ');
 }
 
+function formatPriceRange(val) {
+  if (!val) return null;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    const min = Number(val.min);
+    const max = Number(val.max);
+    if (!isNaN(min) && !isNaN(max) && min > 0 && max > 0) {
+      if (min === max) {
+        return `₹${min.toLocaleString('en-IN')}`;
+      }
+      return `₹${min.toLocaleString('en-IN')} – ₹${max.toLocaleString('en-IN')}`;
+    }
+    if (!isNaN(min) && min > 0) return `From ₹${min.toLocaleString('en-IN')}`;
+    if (!isNaN(max) && max > 0) return `Under ₹${max.toLocaleString('en-IN')}`;
+  }
+  return null;
+}
+
 export default function BlogListingClient({ initialPosts = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -474,9 +492,9 @@ export default function BlogListingClient({ initialPosts = [] }) {
                           📊 Price Audit
                         </span>
                       )}
-                      {post.priceRange && (
+                      {formatPriceRange(post.priceRange) && (
                         <span className="rounded-md bg-emerald-500/90 px-2 py-0.5 text-white backdrop-blur-md">
-                          {post.priceRange}
+                          {formatPriceRange(post.priceRange)}
                         </span>
                       )}
                     </div>
