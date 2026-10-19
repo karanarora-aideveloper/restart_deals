@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/config';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
 import { formatInr } from '@/lib/affiliate';
+import { recordClientInteraction, saveRecentViewedCard } from '@/lib/personalization';
 
 export default function PriceTrackerClient({ popularSearches = [] }) {
   const router = useRouter();
@@ -77,6 +78,26 @@ export default function PriceTrackerClient({ popularSearches = [] }) {
             isAllTimeLow: stats.isAllTimeLow || false,
             dropFromHighest: stats.dropFromHighest || 0,
           });
+
+          // Enrich personalization cookie with tracked product intent
+          recordClientInteraction({
+            type: 'scan_check',
+            category: prod.category,
+            merchant: prod.merchant,
+            price: currentP,
+            productId: prod._id || prod.productId,
+          });
+          saveRecentViewedCard({
+            id: prod._id || prod.productId,
+            title: prod.title || 'Tracked Product',
+            price: currentP,
+            originalPrice: originalP,
+            discountPercentage: Math.max(0, Math.round(((originalP - currentP) / (originalP || 1)) * 100)),
+            merchant: prod.merchant || 'amazon',
+            imageUrl: prod.imageUrl || (Array.isArray(prod.images) && prod.images[0]) || '',
+            href: `/product/${prod._id || prod.productId}`,
+          });
+
           setLoading(false);
           return;
         }

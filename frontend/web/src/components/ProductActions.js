@@ -16,6 +16,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { getSavedDeals, saveDealItem, isDealSaved } from '@/lib/savedDeals';
 import { emitSavedChanged, SAVED_CHANGED_EVENT } from '@/lib/useSavedCount';
 import { renderStoreLogo } from '@/components/BrandAndStoreLogos';
+import { recordClientInteraction, saveRecentViewedCard } from '@/lib/personalization';
 
 function getMerchantButtonTheme(merchantId) {
   switch (merchantId) {
@@ -96,8 +97,41 @@ export default function ProductActions({ product, merchant }) {
     };
   }, [prodId, user, token]);
 
+  // Record product view into personalization cookie and recent cards
+  useEffect(() => {
+    if (!product || !prodId) return;
+    const price = currentLivePrice || product?.price;
+    const origPrice = product?.originalPrice || price;
+    recordClientInteraction({
+      type: 'graph_view',
+      category: product.category,
+      merchant: merchant?.id || product.merchant,
+      price: price,
+      productId: prodId,
+    });
+    saveRecentViewedCard({
+      id: prodId,
+      title: product.title || 'Tracked Product',
+      price: price,
+      originalPrice: origPrice,
+      discountPercentage: Math.max(0, Math.round(((origPrice - price) / (origPrice || 1)) * 100)),
+      merchant: merchant?.id || product.merchant,
+      imageUrl: product.imageUrl || (Array.isArray(product.images) && product.images[0]) || '',
+      href: `/product/${prodId}`,
+    });
+  }, [prodId]);
+
   const handleToggleWishlist = async () => {
     const authUser = user && token ? { ...user, token } : null;
+    const price = currentLivePrice || product?.price;
+    const origPrice = product?.originalPrice || price;
+    recordClientInteraction({
+      type: 'wishlist',
+      category: product.category,
+      merchant: merchant?.id || product.merchant,
+      price: price,
+      productId: prodId,
+    });
     const dealObject = {
       _id: prodId,
       id: prodId,
@@ -300,6 +334,13 @@ export default function ProductActions({ product, merchant }) {
           onClick={() => {
             const destUrl = getAffiliateUrl(activeVariant?.cleanUrl || product.cleanUrl, activeVariant?.country || product?.country);
             trackOutboundClick(activeVariant || product, destUrl, 'pdp_hero_buy_btn');
+            recordClientInteraction({
+              type: 'buy_click',
+              category: product.category,
+              merchant: merchant?.id || product.merchant,
+              price: currentLivePrice || product.price,
+              productId: prodId,
+            });
           }}
           className={`group flex w-full items-center justify-between gap-3 rounded-2xl p-3 sm:p-3.5 font-black transition-all duration-200 ${theme.containerClass}`}
         >

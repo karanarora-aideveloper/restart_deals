@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ResetPreferencesButton from './ResetPreferencesButton';
 
 /**
  * Clean, fast server-rendered footer — brand summary, navigation links,
@@ -78,6 +79,7 @@ export default function SiteFooter() {
             <li><Link href="/delete-account" className="text-[#cbd5e1] hover:text-white transition-colors">Delete Account</Link></li>
             <li><Link href="/support" className="text-[#cbd5e1] hover:text-white transition-colors">Support &amp; Feedback</Link></li>
             <li><Link href="/sitemap" className="text-[#cbd5e1] hover:text-white transition-colors">Sitemap &amp; Directory</Link></li>
+            <li><ResetPreferencesButton /></li>
           </ul>
         </div>
       </div>
