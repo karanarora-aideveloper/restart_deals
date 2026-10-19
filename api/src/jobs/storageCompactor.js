@@ -33,13 +33,21 @@ export async function runStorageCompaction() {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // 1. Purge stale expired deals older than 3 days
-    const dealRes = await Deal.deleteMany({
-      isExpired: true,
-      createdAt: { $lt: threeDaysAgo },
-    }).catch(err => {
-      console.warn('[StorageCompactor] Deal prune error:', err.message);
-      return { deletedCount: 0 };
+    // 1. Deals are PERMANENT catalog entities — NEVER hard delete any deal.
+    // Every deal maps to a parent product page. Retaining expired deals guarantees
+    // old deal URLs (/deal/:id) can always resolve and redirect to /product/:id,
+    // preserving 100% of SEO equity and completely eliminating 404/Soft 404 errors.
+    const dealRes = await Deal.updateMany(
+      {
+        isActive: true,
+        expiresAt: { $exists: true, $ne: null, $lt: new Date() },
+      },
+      {
+        $set: { isActive: false, isExpired: true },
+      }
+    ).catch(err => {
+      console.warn('[StorageCompactor] Deal expire update error:', err.message);
+      return { modifiedCount: 0 };
     });
 
     // 2. Purge stale verified_links older than 3 days or missing lastChecked
@@ -100,14 +108,14 @@ export async function runStorageCompaction() {
     const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[StorageCompactor] ✓ Compaction complete in ${durationSec}s:`);
     console.log(`  • Compacted products: ${compactedCount}`);
-    console.log(`  • Purged expired deals: ${dealRes.deletedCount}`);
+    console.log(`  • Expired deals marked inactive (zero hard deletes): ${dealRes?.modifiedCount || 0}`);
     console.log(`  • Purged stale links: ${vlRes.deletedCount}`);
 
     return {
       success: true,
       durationSec,
       compactedCount,
-      purgedDeals: dealRes.deletedCount,
+      expiredDealsUpdated: dealRes?.modifiedCount || 0,
       purgedLinks: vlRes.deletedCount,
     };
   } catch (err) {
