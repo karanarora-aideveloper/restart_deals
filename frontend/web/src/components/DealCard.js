@@ -63,6 +63,7 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
   const saved = isDealSaved(dealId, savedDeals);
   const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
   const freshness = getCrawlFreshness(crawlTime);
+  const couponLabel = deal.coupon?.label || (typeof deal.coupon === 'string' ? deal.coupon : null);
 
   const handleToggleSave = async (e) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 import { fetchDeals, findMatchingProductId } from '@/lib/api';
 import FilterBar from '@/components/FilterBar';
 import DealsFeed from '@/components/DealsFeed';
+import V3SubHeader from '@/components/v3/V3SubHeader';
 
 export const metadata = {
   title: 'Hot Deals — Up to 80% Off',
@@ -38,7 +39,8 @@ export default async function HotDealsPage({ searchParams }) {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] md:px-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
+      <V3SubHeader activeTab="deals" />
       <FilterBar category={category} merchant={merchant} />
       <DealsFeed
         type="hot"
