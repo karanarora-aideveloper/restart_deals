@@ -121,6 +121,8 @@ export default function AdminShell({ children, title }) {
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: 'dashboard' },
+    { href: '/revenue', label: 'Outbound Clicks', icon: 'ads_click' },
+    { href: '/moderation', label: 'Deal Moderation', icon: 'gavel' },
     { href: '/deals', label: 'Deals', icon: 'local_offer' },
     { href: '/products', label: 'Products', icon: 'inventory_2' },
     { href: '/audience', label: 'Audience', icon: 'group' },
