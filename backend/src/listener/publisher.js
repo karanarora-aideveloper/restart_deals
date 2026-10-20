@@ -138,6 +138,10 @@ export async function publishToTelegram(client, deal) {
       }
 
       if (channelDoc.platform === 'telegram') {
+        if (!client || !client.connected) {
+          console.warn(`[Publisher:Telegram Warning] Telegram client not connected. Deferring "${channelDoc.name}".`);
+          continue;
+        }
         success = await publishTelegram(client, deal, channelDoc);
       } else if (channelDoc.platform === 'twitter') {
         success = await publishTwitter(deal, channelDoc);
@@ -155,8 +159,13 @@ export async function publishToTelegram(client, deal) {
 
     // Mark published status in Deal record
     if (anySuccess) {
+      const anyWhatsAppSuccess = publishedKeys.some(k => k.startsWith('whatsapp:'));
+      const anyTwitterSuccess = publishedKeys.some(k => k.startsWith('twitter:'));
+
       await Deal.findByIdAndUpdate(deal._id, {
         ...(anyTelegramSuccess ? { 'publishedStatus.telegram': true } : {}),
+        ...(anyWhatsAppSuccess ? { 'publishedStatus.whatsapp': true } : {}),
+        ...(anyTwitterSuccess ? { 'publishedStatus.twitter': true } : {}),
         $addToSet: {
           'publishedStatus.outputChannels': { $each: publishedChannelIds },
           'publishedStatus.publishedTo': { $each: publishedKeys }

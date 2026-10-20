@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { fetchBuyhatkePriceHistory } from '../services/buyhatkeService.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 import { apiCache } from '../utils/cache.js';
@@ -314,6 +315,7 @@ export async function syncAmazonDeals(options = {}) {
               { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_amazon_crawler' } }
             ).catch(() => {});
             stats.dealsUpdated++;
+            enqueueDealForPublishing(existingDeal._id, { sourceEngine: 'amazon_deals_engine' }).catch(() => {});
           } else {
             const newDeal = new Deal({
               sourceChannelId: 'amazon_deals_engine',
@@ -351,6 +353,7 @@ export async function syncAmazonDeals(options = {}) {
               { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_amazon_crawler' } }
             ).catch(() => {});
             stats.dealsCreated++;
+            enqueueDealForPublishing(newDeal._id, { sourceEngine: 'amazon_deals_engine' }).catch(() => {});
           }
         } else {
           // If not a genuine drop (e.g. price returned to standard, or fake MRP discount),

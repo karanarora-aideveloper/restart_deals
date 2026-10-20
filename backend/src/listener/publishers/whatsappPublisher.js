@@ -10,11 +10,11 @@ export function formatWhatsAppMessage(deal) {
   const discountStr = deal.discountPercentage ? `*${deal.discountPercentage}% OFF*` : '';
 
   let priceLine = `*Price:* ${dealPriceStr}`;
-  if (origPriceStr) {
+  if (origPriceStr && deal.originalPrice > deal.dealPrice) {
     priceLine += ` ~${origPriceStr}~ ${discountStr}`;
   }
   // Extra coupon the shopper applies on the merchant page, on top of the deal price
-  const couponLine = deal.coupon?.label ? `\n🎟️ *${deal.coupon.label}*` : '';
+  const couponLine = deal.coupon?.label ? `\n🎟️ *Coupon:* ${deal.coupon.label}` : '';
   
   const affiliateBuyUrl = deal._id
     ? `https://www.shoppersdeals.in/r/${deal._id}?src=wa`
@@ -22,11 +22,15 @@ export function formatWhatsAppMessage(deal) {
   const webDealUrl = getWebsiteDealUrl(deal);
   const merchantName = (deal.merchant || 'Store').charAt(0).toUpperCase() + (deal.merchant || 'Store').slice(1);
 
-  return `*🔥 ${title} 🔥*
+  return `🔥 *${title}* 🔥
 
 💰 ${priceLine}${couponLine}
-🛒 *Buy on ${merchantName}:* ${affiliateBuyUrl}
-📊 *Price History & Alerts:* ${webDealUrl}
+
+🛒 *Buy on ${merchantName}:*
+${affiliateBuyUrl}
+
+📊 *Price History & Alerts:*
+${webDealUrl}
 
 _Shared via ShoppersDeals_`;
 }
@@ -46,6 +50,9 @@ function toWahaChatId(raw) {
 // heuristics that the account behaves like a human client, not just a bare API caller.
 // Presence is cosmetic — any failure here is swallowed so it never blocks the real send.
 async function simulateTyping(baseUrl, headers, session, chatId, message) {
+  // WhatsApp Newsletters / Channels do not support sendStateTyping
+  if (chatId && chatId.includes('@newsletter')) return;
+
   try {
     await fetch(`${baseUrl}/api/${session}/presence`, {
       method: 'POST',
@@ -79,31 +86,22 @@ async function publishViaWaha(deal, channelDoc) {
   try {
     await simulateTyping(baseUrl, headers, session, chatId, message);
 
-    let res;
-    // Deals with an image go out as a photo + caption (matches how Telegram publishes them);
-    // WAHA requires the image to be reachable over HTTP(S) — it fetches file.url itself.
-    if (deal.imageUrl) {
-      res = await fetch(`${baseUrl}/api/sendImage`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          session,
-          chatId,
-          file: { url: deal.imageUrl, mimetype: 'image/jpeg', filename: 'deal.jpg' },
-          caption: message
-        })
-      });
-    } else {
-      res = await fetch(`${baseUrl}/api/sendText`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ session, chatId, text: message })
-      });
-    }
+    // Send formatted deal text with native WhatsApp link preview.
+    // Avoid sending raw image file attachments which clutter followers' phone storage and cause group member churn.
+    const textRes = await fetch(`${baseUrl}/api/sendText`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        session,
+        chatId,
+        text: message,
+        linkPreview: true
+      })
+    });
 
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`WAHA ${res.status}: ${errBody}`);
+    if (!textRes.ok) {
+      const errBody = await textRes.text().catch(() => '');
+      throw new Error(`WAHA sendText ${textRes.status}: ${errBody}`);
     }
 
     await OutputChannel.findByIdAndUpdate(channelDoc._id, {
@@ -111,7 +109,7 @@ async function publishViaWaha(deal, channelDoc) {
       $set: { 'stats.lastPublishedAt': new Date() }
     });
 
-    console.log(`[Publisher:WhatsApp] ✓ Sent deal via WAHA for "${channelDoc.name}".`);
+    console.log(`[Publisher:WhatsApp] ✓ Sent deal with link preview via WAHA to "${channelDoc.name}".`);
     return true;
   } catch (err) {
     console.error(`[Publisher:WhatsApp Error] WAHA call failed for "${channelDoc.name}":`, err.message);

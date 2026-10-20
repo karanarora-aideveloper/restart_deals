@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { fetchBuyhatkePriceHistory } from '../services/buyhatkeService.js';
 import { computePriceStats } from '../utils/priceAnalytics.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
@@ -198,6 +199,7 @@ export async function backfillCatalogPriceHistory(batchSize = 20) {
                     { $set: { isExpired: true, expiredAt: now, expiryReason: 'superseded_by_backfiller' } }
                   ).catch(() => {});
                   stats.dealsSynthesized++;
+                  enqueueDealForPublishing(newDeal._id, { sourceEngine: 'catalog_engine' }).catch(() => {});
                   console.log(`[PriceHistory Backfill] 🔥 Synthesized Deal: "${prod.title.slice(0, 40)}" (₹${genuinePrevPrice} ➔ ₹${livePrice}, ${genuineDiscountPct}% off)`);
                 }
               }

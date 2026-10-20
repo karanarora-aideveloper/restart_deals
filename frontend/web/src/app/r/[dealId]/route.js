@@ -12,6 +12,16 @@ import {
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.shoppersdeals.in').replace(/\/+$/, '');
 const CUELINKS_PUB_ID = process.env.NEXT_PUBLIC_CUELINKS_PUB_ID || '325472';
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /**
  * Universal Outbound Link Cloaker & Redirector
  * GET /r/:dealId?src=tg|web|alert|social
@@ -94,11 +104,12 @@ export async function GET(request, { params }) {
           } catch (e) {}
         }
 
-        // Detect device type from user-agent
+        // Detect device type & social crawlers from user-agent
         const userAgent = request.headers.get('user-agent') || '';
         const isAndroid = /Android/i.test(userAgent);
         const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
         const isMobile = isAndroid || isIOS;
+        const isSocialCrawler = /facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|LinkedInBot|Pinterest|Slackbot/i.test(userAgent);
 
         // Asynchronously log click to Revenue Analytics engine
         try {
@@ -145,8 +156,20 @@ export async function GET(request, { params }) {
           // Non-blocking
         }
 
-        // On desktop, instant 302 redirect with personalization cookie
-        if (!isMobile) {
+        // Construct rich OpenGraph metadata for preview crawlers (WhatsApp, Telegram, etc.)
+        const rawTitle = target?.title || 'Verified Deal';
+        const displayTitle = rawTitle.slice(0, 70);
+        const price = target?.dealPrice || target?.price;
+        const origPrice = target?.originalPrice || target?.previousPrice;
+        const discount = target?.discountPercentage;
+        const merchantUpper = (failoverStore?.merchant || target?.merchant || 'Store').toUpperCase();
+
+        const ogTitle = price ? `🔥 ${displayTitle} — ₹${price}${discount ? ` (${discount}% OFF)` : ''}` : displayTitle;
+        const ogDescription = `Verified price drop on ${merchantUpper}: ${origPrice && origPrice > price ? `Dropped from ₹${origPrice} to ₹${price}` : `Lowest price ₹${price}`}. Tracked live on ShoppersDeals.`;
+        const ogImage = target?.imageUrl || (Array.isArray(target?.images) && target.images[0]) || '';
+
+        // On desktop (non-social crawler), instant 302 redirect with personalization cookie
+        if (!isMobile && !isSocialCrawler) {
           const res = NextResponse.redirect(redirectUrl, 302);
           if (serializedPzn) {
             res.cookies.set(PZN_COOKIE_NAME, serializedPzn, {
@@ -179,8 +202,19 @@ export async function GET(request, { params }) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Opening Deal | ShoppersDeals</title>
-  <meta http-equiv="refresh" content="1;url=${redirectUrl}">
+  <title>${escapeHtml(ogTitle)} | ShoppersDeals</title>
+  <meta name="description" content="${escapeHtml(ogDescription)}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ShoppersDeals">
+  <meta property="og:title" content="${escapeHtml(ogTitle)}">
+  <meta property="og:description" content="${escapeHtml(ogDescription)}">
+  ${ogImage ? `<meta property="og:image" content="${escapeHtml(ogImage)}">` : ''}
+  <meta property="og:url" content="https://www.shoppersdeals.in/r/${dealId}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(ogTitle)}">
+  <meta name="twitter:description" content="${escapeHtml(ogDescription)}">
+  ${ogImage ? `<meta name="twitter:image" content="${escapeHtml(ogImage)}">` : ''}
+  <meta http-equiv="refresh" content="${isSocialCrawler ? '3' : '1'};url=${redirectUrl}">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #fff; text-align: center; padding: 20px; }
     .loader { width: 44px; height: 44px; border: 4px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
@@ -232,6 +266,6 @@ export async function GET(request, { params }) {
     console.error(`[Redirect /r/${dealId}] Lookup failed:`, err.message);
   }
 
-  // Fallback to deal page on site
-  return NextResponse.redirect(`https://www.shoppersdeals.in/deal/${dealId}`, 302);
+  // Fallback to product page on site (deals are a subset of canonical products)
+  return NextResponse.redirect(`https://www.shoppersdeals.in/product/${dealId}`, 302);
 }

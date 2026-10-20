@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
+import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
@@ -235,6 +236,7 @@ export async function importBuyHatkeDeals(targetUrl, maxItems = 25) {
           });
           await deal.save();
           stats.dealsCreated++;
+          enqueueDealForPublishing(deal._id, { sourceEngine: 'buyhatke_import' }).catch(() => {});
           console.log(` -> 🏷️ Published Verified Deal: [${merchant.toUpperCase()}] ₹${dealPrice} (${genuineDiscount}% TRUE DROP)`);
         } else {
           deal.dealPrice = dealPrice;
