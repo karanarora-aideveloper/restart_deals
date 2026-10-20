@@ -26,6 +26,38 @@ function formatPhoneDisplay(jidOrPhone) {
   return `+${clean}`;
 }
 
+const CATEGORY_EMOJIS = {
+  electronics: '📱',
+  appliances: '🔌',
+  'men-fashion': '👔',
+  'women-fashion': '👗',
+  beauty: '💄',
+  home: '🏠',
+  grocery: '🛒',
+  fitness: '🏋️',
+  'baby-kids': '👶',
+  auto: '🚗',
+  'books-stationery': '📚',
+  travel: '🧳',
+  pets: '🐾',
+  'personal-care': '✨',
+  all: '🌐'
+};
+
+const DEFAULT_MASTER_CATEGORIES = [
+  { value: 'electronics', label: 'Electronics & Tech', emoji: '📱' },
+  { value: 'appliances', label: 'Home Appliances', emoji: '🔌' },
+  { value: 'men-fashion', label: "Men's Fashion", emoji: '👔' },
+  { value: 'women-fashion', label: "Women's Fashion", emoji: '👗' },
+  { value: 'beauty', label: 'Beauty & Makeup', emoji: '💄' },
+  { value: 'home', label: 'Home, Living & Kitchen', emoji: '🏠' },
+  { value: 'grocery', label: 'Groceries & Gourmet', emoji: '🛒' },
+  { value: 'fitness', label: 'Sports & Fitness', emoji: '🏋️' },
+  { value: 'baby-kids', label: 'Baby Care & Toys', emoji: '👶' },
+  { value: 'auto', label: 'Automotive & Riding Gear', emoji: '🚗' },
+  { value: 'books-stationery', label: 'Books & Stationery', emoji: '📚' },
+];
+
 export default function WhatsAppPortalPage() {
   const [apiBase] = useState(process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || 'https://api.shoppersdeals.in');
   const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || '';
@@ -495,6 +527,109 @@ export default function WhatsAppPortalPage() {
   );
 }
 
+function CategoryMultiSelector({ masterCategories = [], selectedCategories = ['all'], onChange, title = "Deal Categories (Multi-Select)" }) {
+  const isAll = !selectedCategories || selectedCategories.length === 0 || selectedCategories.includes('all');
+
+  const handleToggle = (val) => {
+    if (val === 'all') {
+      onChange(['all']);
+      return;
+    }
+    let next = (selectedCategories || []).filter(c => c !== 'all');
+    if (next.includes(val)) {
+      next = next.filter(c => c !== val);
+      if (next.length === 0) next = ['all'];
+    } else {
+      next.push(val);
+    }
+    onChange(next);
+  };
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+          {title}
+        </label>
+        <span style={{ fontSize: '0.74rem', color: isAll ? '#059669' : '#2563eb', fontWeight: 600 }}>
+          {isAll ? '🌐 All Categories Active' : `🎯 ${selectedCategories.length} Selected`}
+        </span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 6,
+        maxHeight: 180,
+        overflowY: 'auto',
+        padding: '10px',
+        background: '#f8fafc',
+        borderRadius: 8,
+        border: '1px solid var(--border)'
+      }}>
+        {/* All Categories Button */}
+        <button
+          type="button"
+          onClick={() => handleToggle('all')}
+          style={{
+            padding: '5px 12px',
+            borderRadius: 20,
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: isAll ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+            background: isAll ? 'rgba(16, 185, 129, 0.15)' : '#ffffff',
+            color: isAll ? '#059669' : '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>🌐</span> All Categories
+          {isAll && <span style={{ fontWeight: 800 }}>✓</span>}
+        </button>
+
+        {/* Master Categories Buttons */}
+        {masterCategories.map(c => {
+          const isSelected = !isAll && selectedCategories.includes(c.value);
+          return (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => handleToggle(c.value)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: 20,
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
+                background: isSelected ? 'rgba(37, 99, 235, 0.12)' : '#ffffff',
+                color: isSelected ? '#2563eb' : '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{c.emoji || '🏷️'}</span>
+              {c.label}
+              {isSelected && <span style={{ fontWeight: 800 }}>✓</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+        {isAll
+          ? '⚡ This destination will receive deals from all categories.'
+          : `🎯 Routing deals matching: ${selectedCategories.map(val => masterCategories.find(mc => mc.value === val)?.label || val).join(', ')}`}
+      </div>
+    </div>
+  );
+}
+
 /* =========================================================================
    TAB 1: 🎯 Destinations (Channels, Groups & Test Users)
    Unified Broadcast & Pipeline Control Center
@@ -504,7 +639,7 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
-  const [masterCategories, setMasterCategories] = useState([]);
+  const [masterCategories, setMasterCategories] = useState(DEFAULT_MASTER_CATEGORIES);
 
   // Filters
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'channel' | 'group' | 'user'
@@ -530,7 +665,7 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
   const [selectedExistingGroupId, setSelectedExistingGroupId] = useState('');
   const [userName, setUserName] = useState('');
   const [userPhone, setUserPhone] = useState('');
-  const [targetCategory, setTargetCategory] = useState('all');
+  const [targetCategories, setTargetCategories] = useState(['all']);
   const [targetRateLimit, setTargetRateLimit] = useState(3);
   const [addingTarget, setAddingTarget] = useState(false);
   const [addError, setAddError] = useState('');
@@ -538,7 +673,7 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
   // Settings Modal
   const [settingsTarget, setSettingsTarget] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editCategory, setEditCategory] = useState('all');
+  const [editCategories, setEditCategories] = useState(['all']);
   const [editRateLimit, setEditRateLimit] = useState(15);
   const [editCountry, setEditCountry] = useState('IN');
   const [editGroupDesc, setEditGroupDesc] = useState('');
@@ -554,11 +689,22 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
   const [importResult, setImportResult] = useState(null);
   const [showLimitsCard, setShowLimitsCard] = useState(true);
 
-  // Load master categories
+  // Load master categories from database Master collection
   useEffect(() => {
     apiFetch('/api/master/category')
       .then(r => r.json())
-      .then(d => { if (d.success) setMasterCategories(d.data || []); })
+      .then(d => {
+        if (d.success && Array.isArray(d.data)) {
+          const list = d.data
+            .filter(c => c.isActive !== false)
+            .map(c => ({
+              value: c.value || c.slug || c.id,
+              label: c.label || c.name || c.value,
+              emoji: CATEGORY_EMOJIS[c.value] || '🏷️'
+            }));
+          if (list.length > 0) setMasterCategories(list);
+        }
+      })
       .catch(() => {});
   }, [apiFetch]);
 
@@ -632,6 +778,9 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
           outputChannel: matchingPipe || null,
           isActive: matchingPipe ? matchingPipe.isActive : false,
           category: matchingPipe?.category || 'all',
+          categories: matchingPipe?.categories && matchingPipe.categories.length
+            ? matchingPipe.categories
+            : (matchingPipe?.category ? matchingPipe.category.split(',').map(s => s.trim()).filter(Boolean) : ['all']),
           rateLimitMinutes: matchingPipe?.rateLimitMinutes || 3,
           country: matchingPipe?.country || 'IN',
           dealsPublished: matchingPipe?.stats?.dealsPublished ?? matchingPipe?.dealsPublished ?? 0,
@@ -660,6 +809,9 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
           outputChannel: matchingPipe || null,
           isActive: matchingPipe ? matchingPipe.isActive : false,
           category: matchingPipe?.category || 'all',
+          categories: matchingPipe?.categories && matchingPipe.categories.length
+            ? matchingPipe.categories
+            : (matchingPipe?.category ? matchingPipe.category.split(',').map(s => s.trim()).filter(Boolean) : ['all']),
           rateLimitMinutes: matchingPipe?.rateLimitMinutes || 15,
           country: matchingPipe?.country || 'IN',
           dealsPublished: matchingPipe?.stats?.dealsPublished ?? matchingPipe?.dealsPublished ?? 0,
@@ -691,6 +843,9 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
           outputChannel: pipe,
           isActive: pipe.isActive,
           category: pipe.category || 'all',
+          categories: pipe.categories && pipe.categories.length
+            ? pipe.categories
+            : (pipe.category ? pipe.category.split(',').map(s => s.trim()).filter(Boolean) : ['all']),
           rateLimitMinutes: pipe.rateLimitMinutes || (detectedType === 'channel' ? 3 : detectedType === 'group' ? 15 : 1),
           country: pipe.country || 'IN',
           dealsPublished: pipe?.stats?.dealsPublished ?? pipe?.dealsPublished ?? 0,
@@ -814,7 +969,12 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
   const openSettings = (dest) => {
     setSettingsTarget(dest);
     setEditName(dest.outputChannel?.name || dest.name);
-    setEditCategory(dest.category || 'all');
+    const existingCats = dest.categories && dest.categories.length
+      ? dest.categories
+      : (dest.outputChannel?.categories && dest.outputChannel.categories.length
+        ? dest.outputChannel.categories
+        : (dest.category ? dest.category.split(',').map(s => s.trim()).filter(Boolean) : ['all']));
+    setEditCategories(existingCats.length ? existingCats : ['all']);
     setEditRateLimit(dest.rateLimitMinutes || (dest.type === 'channel' ? 3 : dest.type === 'group' ? 15 : 1));
     setEditCountry(dest.country || 'IN');
     setEditGroupDesc(dest.description || '');
@@ -827,12 +987,15 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
     setSavingSettings(true);
     try {
       if (settingsTarget.outputChannel?._id) {
+        const catArray = editCategories.length === 0 ? ['all'] : editCategories;
+        const catStr = catArray.length === 1 ? catArray[0] : (catArray.includes('all') ? 'all' : catArray.join(','));
         const res = await apiFetch(`/api/output-channels/${settingsTarget.outputChannel._id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: editName.trim(),
-            category: editCategory,
+            category: catStr,
+            categories: catArray,
             rateLimitMinutes: parseInt(editRateLimit, 10) || 15,
             country: editCountry
           })
@@ -910,6 +1073,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
 
           // 2. Add to output channel pipeline
           if (createdChannel?.id) {
+            const normTargetCats = targetCategories && targetCategories.length > 0 ? targetCategories : ['all'];
+            const normTargetCatStr = normTargetCats.length === 1 ? normTargetCats[0] : (normTargetCats.includes('all') ? 'all' : normTargetCats.join(','));
             await apiFetch('/api/output-channels', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -917,7 +1082,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
                 name: `WhatsApp Channel: ${newChannelName.trim()}`,
                 platform: 'whatsapp',
                 country: 'IN',
-                category: targetCategory,
+                category: normTargetCatStr,
+                categories: normTargetCats,
                 isActive: true,
                 rateLimitMinutes: parseInt(targetRateLimit, 10) || 3,
                 credentials: {
@@ -934,6 +1100,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
           // Link existing channel
           if (!channelJid.trim()) throw new Error('Channel JID or ID is required (e.g. 120363422620024343@newsletter)');
           const cleanJid = channelJid.trim().includes('@') ? channelJid.trim() : `${channelJid.trim()}@newsletter`;
+          const normTargetCats = targetCategories && targetCategories.length > 0 ? targetCategories : ['all'];
+          const normTargetCatStr = normTargetCats.length === 1 ? normTargetCats[0] : (normTargetCats.includes('all') ? 'all' : normTargetCats.join(','));
           await apiFetch('/api/output-channels', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -941,7 +1109,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
               name: channelCustomName.trim() || `WhatsApp Channel (${cleanJid.slice(0, 15)}...)`,
               platform: 'whatsapp',
               country: 'IN',
-              category: targetCategory,
+              category: normTargetCatStr,
+              categories: normTargetCats,
               isActive: true,
               rateLimitMinutes: parseInt(targetRateLimit, 10) || 3,
               credentials: {
@@ -978,6 +1147,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
         if (cleanPhone.length < 10) throw new Error('Please enter a valid phone number (at least 10 digits)');
         const formattedJid = `${cleanPhone}@c.us`;
         const displayName = userName.trim() || `Tester (${formatPhoneDisplay(cleanPhone)})`;
+        const normTargetCats = targetCategories && targetCategories.length > 0 ? targetCategories : ['all'];
+        const normTargetCatStr = normTargetCats.length === 1 ? normTargetCats[0] : (normTargetCats.includes('all') ? 'all' : normTargetCats.join(','));
 
         await apiFetch('/api/output-channels', {
           method: 'POST',
@@ -986,7 +1157,8 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
             name: `WhatsApp Tester: ${displayName}`,
             platform: 'whatsapp',
             country: 'IN',
-            category: targetCategory,
+            category: normTargetCatStr,
+            categories: normTargetCats,
             isActive: true,
             rateLimitMinutes: parseInt(targetRateLimit, 10) || 1,
             credentials: {
@@ -1538,7 +1710,31 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
                     )}
                     {dest.outputChannel && (
                       <>
-                        <span>🏷️ Category: <strong style={{ textTransform: 'capitalize' }}>{dest.category}</strong></span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                          <span>🏷️</span>
+                          {dest.categories && dest.categories.length > 0 && !dest.categories.includes('all') ? (
+                            dest.categories.map(c => {
+                              const found = masterCategories.find(mc => mc.value === c);
+                              const label = found ? found.label : c;
+                              const emoji = found?.emoji || '🏷️';
+                              return (
+                                <span key={c} style={{
+                                  padding: '1px 6px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 600,
+                                  background: 'rgba(37, 99, 235, 0.08)', color: '#2563eb', border: '1px solid rgba(37, 99, 235, 0.2)'
+                                }}>
+                                  {emoji} {label}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span style={{
+                              padding: '1px 6px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 600,
+                              background: 'rgba(16, 185, 129, 0.08)', color: '#059669', border: '1px solid rgba(16, 185, 129, 0.2)'
+                            }}>
+                              🌐 All Categories
+                            </span>
+                          )}
+                        </div>
                         <span>⏱️ Every <strong>{dest.rateLimitMinutes}m</strong></span>
                         <span>📊 <strong>{dest.dealsPublished}</strong> deals sent</span>
                       </>
@@ -1909,37 +2105,25 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
 
               {/* SHARED PIPELINE SETTINGS */}
               <div style={{ paddingTop: 10, borderTop: '1px solid var(--border)', marginTop: 8 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Target Category</label>
-                    <select
-                      className="filter-input"
-                      value={targetCategory}
-                      onChange={e => setTargetCategory(e.target.value)}
-                      style={{ width: '100%' }}
-                    >
-                      <option value="all">All Categories</option>
-                      {masterCategories.map(c => (
-                        <option key={c.slug || c._id} value={c.slug || c.name?.toLowerCase()}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Broadcast Pacing (Minutes)</label>
-                    <input
-                      type="number"
-                      className="filter-input"
-                      min="1"
-                      max="1440"
-                      value={targetRateLimit}
-                      onChange={e => setTargetRateLimit(e.target.value)}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Broadcast Pacing (Minutes)</label>
+                  <input
+                    type="number"
+                    className="filter-input"
+                    min="1"
+                    max="1440"
+                    value={targetRateLimit}
+                    onChange={e => setTargetRateLimit(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
                 </div>
+
+                <CategoryMultiSelector
+                  masterCategories={masterCategories}
+                  selectedCategories={targetCategories}
+                  onChange={setTargetCategories}
+                  title="Target Deal Categories (Multi-Select)"
+                />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -1983,7 +2167,7 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
           justifyContent: 'center',
           padding: 16
         }}>
-          <div className="card glass" style={{ width: '100%', maxWidth: 480, padding: '1.5rem', background: '#fff', borderRadius: 14 }}>
+          <div className="card glass" style={{ width: '100%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', background: '#fff', borderRadius: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Destination Settings</h3>
               <button onClick={() => setSettingsTarget(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
@@ -2000,37 +2184,25 @@ function DestinationsTab({ channelId, isWorking, apiFetch, onBroadcast, onOpenCh
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Filter Category</label>
-                <select
-                  className="filter-input"
-                  value={editCategory}
-                  onChange={e => setEditCategory(e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="all">All Categories</option>
-                  {masterCategories.map(c => (
-                    <option key={c.slug || c._id} value={c.slug || c.name?.toLowerCase()}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Pacing (Minutes)</label>
-                <input
-                  type="number"
-                  className="filter-input"
-                  min="1"
-                  max="1440"
-                  value={editRateLimit}
-                  onChange={e => setEditRateLimit(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Broadcast Pacing (Minutes)</label>
+              <input
+                type="number"
+                className="filter-input"
+                min="1"
+                max="1440"
+                value={editRateLimit}
+                onChange={e => setEditRateLimit(e.target.value)}
+                style={{ width: '100%' }}
+              />
             </div>
+
+            <CategoryMultiSelector
+              masterCategories={masterCategories}
+              selectedCategories={editCategories}
+              onChange={setEditCategories}
+              title="Filtered Deal Categories (Multi-Select)"
+            />
 
             {/* Dynamic Anti-Spam Safety Advice */}
             {settingsTarget.type === 'group' && parseInt(editRateLimit, 10) < 10 && (

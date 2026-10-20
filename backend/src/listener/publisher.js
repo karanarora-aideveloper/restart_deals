@@ -56,11 +56,15 @@ export async function publishToTelegram(client, deal) {
     const dealCountry = deal.country || 'IN';
     const dealCategory = deal.category || 'general';
 
-    // Find all matching active channels
+    // Find all matching active channels (supporting multi-category arrays, legacy single categories, and comma-separated lists)
     const activeOutputChannels = await OutputChannel.find({
       isActive: true,
       country: { $in: [dealCountry, 'all'] },
-      category: { $in: [dealCategory, 'all'] }
+      $or: [
+        { categories: { $in: [dealCategory, 'all'] } },
+        { category: { $in: [dealCategory, 'all'] } },
+        { category: { $regex: new RegExp(`(^|,)${dealCategory}(,|$)`) } }
+      ]
     });
 
     console.log(`[Publisher] Found ${activeOutputChannels.length} active output channels matching Country="${dealCountry}", Category="${dealCategory}".`);

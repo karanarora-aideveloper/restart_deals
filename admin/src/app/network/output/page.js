@@ -48,6 +48,8 @@ export default function OutputChannelsPage() {
   // channel is already logged in (the WhatsApp login is shared account-wide, not per routing row).
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [groupPickerGroups, setGroupPickerGroups] = useState(null);
+  const [wahaChannels, setWahaChannels] = useState([]);
+  const [recipientPickerTab, setRecipientPickerTab] = useState('channels'); // 'channels' | 'groups'
   const [groupPickerLoading, setGroupPickerLoading] = useState(false);
   const [groupPickerError, setGroupPickerError] = useState('');
   const [groupPickerSearch, setGroupPickerSearch] = useState('');
@@ -129,12 +131,20 @@ export default function OutputChannelsPage() {
   // fetch groups for the picker (and to prefill connection fields), even while creating a
   // brand-new routing row that has no id yet.
   const [wahaRepresentative, setWahaRepresentative] = useState(null);
+  const [wahaStatus, setWahaStatus] = useState(null);
+
   useEffect(() => {
     apiFetch('/api/output-channels?platform=whatsapp&country=all&category=all&q=').then(async (res) => {
       if (!res.ok) return;
       const data = await res.json();
       const waha = (data.channels || []).find(c => c.credentials?.provider === 'waha' && c.credentials?.wahaBaseUrl);
       setWahaRepresentative(waha || null);
+      if (waha?._id) {
+        apiFetch(`/api/output-channels/${waha._id}/waha/status`)
+          .then(r => r.json())
+          .then(sData => { if (sData.success) setWahaStatus(sData); })
+          .catch(() => {});
+      }
     }).catch(() => {});
   }, [apiFetch, channels]);
 
@@ -146,15 +156,32 @@ export default function OutputChannelsPage() {
     setGroupPickerError('');
     setGroupPickerSelectedIds(new Set());
     try {
-      const res = await apiFetch(`/api/output-channels/${repId}/waha/groups`);
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to fetch groups');
-      setGroupPickerGroups(data.groups);
+      const [channelsRes, groupsRes] = await Promise.all([
+        apiFetch(`/api/output-channels/${repId}/waha/channels`).catch(() => null),
+        apiFetch(`/api/output-channels/${repId}/waha/groups`).catch(() => null)
+      ]);
+      if (channelsRes && channelsRes.ok) {
+        const cData = await channelsRes.json();
+        if (cData.success) setWahaChannels(cData.channels || []);
+      }
+      if (groupsRes && groupsRes.ok) {
+        const gData = await groupsRes.json();
+        if (gData.success) setGroupPickerGroups(gData.groups || []);
+      }
     } catch (err) {
       setGroupPickerError(err.message);
     } finally {
       setGroupPickerLoading(false);
     }
+  };
+
+  const selectWahaChannel = (ch) => {
+    setForm(prev => ({
+      ...prev,
+      name: prev.name.trim() && prev.name !== 'Shoppers Deals' ? prev.name : ch.name,
+      credentials: { ...prev.credentials, recipientPhoneNumber: ch.id }
+    }));
+    setGroupPickerOpen(false);
   };
 
   // Edit mode: picking a group targets that one existing row, same as before.
@@ -370,6 +397,114 @@ export default function OutputChannelsPage() {
           </div>
         </div>
 
+        {/* Quick Access Featured Networks Panel */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          {/* WhatsApp Channel Card */}
+          <div className="card glass" style={{ padding: '1.25rem', border: '1px solid rgba(34, 197, 94, 0.25)', background: 'linear-gradient(145deg, rgba(34, 197, 94, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.8rem' }}>💬</span>
+                <div>
+                  <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>WhatsApp Channel</h4>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>WAHA Engine · Newsletter Broadcast</div>
+                </div>
+              </div>
+              <div>
+                {wahaStatus?.status === 'WORKING' ? (
+                  <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                    ● Online ({wahaStatus.me?.id ? '+' + wahaStatus.me.id.split('@')[0] : 'Connected'})
+                  </span>
+                ) : wahaStatus?.status === 'SCAN_QR_CODE' ? (
+                  <span style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#2563eb', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                    ● Scan QR Code
+                  </span>
+                ) : (
+                  <span style={{ background: 'rgba(100, 116, 139, 0.15)', color: '#64748b', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                    ● {wahaRepresentative ? 'Configured' : 'Not Connected'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+              Active Channel: <strong>Shoppers Deals (WhatsApp Channel)</strong><br />
+              Recipient: <code style={{ fontSize: '0.75rem' }}>120363422620024343@newsletter</code>
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a
+                href={wahaRepresentative ? `/network/connections/whatsapp?channelId=${wahaRepresentative._id}` : '/network/connections'}
+                className="btn btn-primary"
+                style={{
+                  background: '#16a34a',
+                  color: '#fff',
+                  border: 'none',
+                  textDecoration: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>chat</span>
+                Open WhatsApp Command Center ➜
+              </a>
+              {wahaRepresentative && (
+                <button
+                  className="btn"
+                  style={{ fontSize: '0.82rem', padding: '6px 12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.3)' }}
+                  onClick={() => handleSendTest(wahaRepresentative._id)}
+                  disabled={testSendingId === wahaRepresentative._id}
+                >
+                  {testSendingId === wahaRepresentative._id ? 'Sending...' : '🎯 Test Deal'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Telegram Channel Card */}
+          <div className="card glass" style={{ padding: '1.25rem', border: '1px solid rgba(59, 130, 246, 0.25)', background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.8rem' }}>✈️</span>
+                <div>
+                  <h4 style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>Telegram Deal Network</h4>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>MTProto Daemon · Instant Auto-Publishing</div>
+                </div>
+              </div>
+              <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+                ● MTProto Active
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+              Active Channels: <strong>@amazondeallovers</strong> (General) · <strong>@fitnessdealsindia</strong> (Fitness)<br />
+              Total Broadcasted: <strong>6,530+ deals</strong>
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: '0.82rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={handleOpenAddModal}
+              >
+                + Add Telegram Channel
+              </button>
+              {channels.find(c => c.platform === 'telegram') && (
+                <button
+                  className="btn"
+                  style={{ fontSize: '0.82rem', padding: '6px 12px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                  onClick={() => handleSendTest(channels.find(c => c.platform === 'telegram')._id)}
+                  disabled={testSendingId === channels.find(c => c.platform === 'telegram')._id}
+                >
+                  {testSendingId === channels.find(c => c.platform === 'telegram')._id ? 'Sending...' : '🎯 Test Deal'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Main Content & Table */}
         <div className="card glass">
           <div className="filter-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -469,7 +604,9 @@ export default function OutputChannelsPage() {
                         </TableCell>
                         <TableCell>
                           <span className="badge-cat badge-general" style={{ textTransform: 'capitalize' }}>
-                            {ch.category}
+                            {ch.categories && ch.categories.length > 0 && !ch.categories.includes('all')
+                              ? ch.categories.join(', ')
+                              : (ch.category || 'all')}
                           </span>
                         </TableCell>
                         <TableCell style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>
@@ -499,7 +636,27 @@ export default function OutputChannelsPage() {
                           <Switch checked={ch.isActive} onCheckedChange={() => handleToggleStatus(ch)} />
                         </TableCell>
                         <TableCell style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {ch.platform === 'whatsapp' && (
+                              <a
+                                href={`/network/connections/whatsapp?channelId=${ch._id}`}
+                                className="btn"
+                                style={{
+                                  padding: '4px 10px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  background: 'rgba(34, 197, 94, 0.15)',
+                                  color: '#16a34a',
+                                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                💬 Command Center
+                              </a>
+                            )}
                             <button
                               className="btn"
                               style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(59,130,246,0.1)', color: '#2563eb', border: '1px solid rgba(59,130,246,0.3)' }}
@@ -775,7 +932,7 @@ export default function OutputChannelsPage() {
                               type="text"
                               className="filter-input"
                               style={{ flex: 1, padding: '6px 10px' }}
-                              placeholder="Recipient: phone with country code, or full chatId (e.g. 1203..@g.us for a group)"
+                              placeholder="Recipient: phone with country code, channel (@newsletter), or group (@g.us)"
                               value={form.credentials.recipientPhoneNumber || ''}
                               onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, recipientPhoneNumber: e.target.value } })}
                             />
@@ -787,13 +944,11 @@ export default function OutputChannelsPage() {
                               disabled={!(editingChannel?.credentials?.provider === 'waha' ? editingChannel._id : wahaRepresentative?._id)}
                               title={!(editingChannel?.credentials?.provider === 'waha' ? editingChannel._id : wahaRepresentative?._id) ? 'Connect a WAHA WhatsApp account first from Channel Management' : ''}
                             >
-                              {editingChannel ? '📋 Pick Group' : '📋 Pick Group(s)'}
+                              📋 Pick Channel or Group
                             </button>
                           </div>
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {editingChannel
-                              ? "Only groups you administer are listed. Deals matching this row's country/category route to whichever group or number you set above."
-                              : 'Only groups you administer are listed. Select multiple groups to create one output channel per group — all sharing this country/category.'}
+                            Select a WhatsApp Channel (@newsletter), Group (@g.us), or enter a phone number with country code (e.g. 919999999999).
                           </div>
                         </>
                       )}
@@ -868,30 +1023,55 @@ export default function OutputChannelsPage() {
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
           }}>
-            <div className="card glass" style={{ width: 480, maxWidth: '95%', maxHeight: '85vh', overflow: 'auto', background: '#ffffff', padding: '1.5rem', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+            <div className="card glass" style={{ width: 520, maxWidth: '95%', maxHeight: '85vh', overflow: 'auto', background: '#ffffff', padding: '1.5rem', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{editingChannel ? '📋 Pick a Group' : '📋 Pick Group(s)'}</h3>
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>📋 Pick Channel or Group</h3>
                 <button className="btn" style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid var(--border)', padding: '5px 12px' }} onClick={() => setGroupPickerOpen(false)}>Close</button>
               </div>
-              {!editingChannel && (
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 10, marginTop: -4 }}>
-                  Select every group you want this deal route to reach — one output channel is created per group.
-                </div>
-              )}
+
+              {/* Tabs for Channels vs Groups */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <button
+                  type="button"
+                  onClick={() => setRecipientPickerTab('channels')}
+                  className="btn"
+                  style={{
+                    padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, background: 'none', border: 'none',
+                    borderBottom: recipientPickerTab === 'channels' ? '2px solid var(--accent)' : '2px solid transparent',
+                    color: recipientPickerTab === 'channels' ? 'var(--accent)' : 'var(--text-muted)'
+                  }}
+                >
+                  📢 WhatsApp Channels ({wahaChannels.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecipientPickerTab('groups')}
+                  className="btn"
+                  style={{
+                    padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, background: 'none', border: 'none',
+                    borderBottom: recipientPickerTab === 'groups' ? '2px solid var(--accent)' : '2px solid transparent',
+                    color: recipientPickerTab === 'groups' ? 'var(--accent)' : 'var(--text-muted)'
+                  }}
+                >
+                  👥 Groups ({groupPickerGroups ? groupPickerGroups.length : 0})
+                </button>
+              </div>
 
               <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input
                   type="text"
                   className="filter-input"
-                  placeholder="🔍 Search group name..."
+                  placeholder={recipientPickerTab === 'channels' ? '🔍 Search channel name...' : '🔍 Search group name...'}
                   value={groupPickerSearch}
                   onChange={(e) => setGroupPickerSearch(e.target.value)}
                   style={{ flex: 1, minWidth: 160 }}
                 />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                  <input type="checkbox" checked={groupPickerAdminOnly} onChange={(e) => setGroupPickerAdminOnly(e.target.checked)} />
-                  Admin only
-                </label>
+                {recipientPickerTab === 'groups' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    <input type="checkbox" checked={groupPickerAdminOnly} onChange={(e) => setGroupPickerAdminOnly(e.target.checked)} />
+                    Admin only
+                  </label>
+                )}
               </div>
 
               {groupPickerError && (
@@ -901,7 +1081,46 @@ export default function OutputChannelsPage() {
               )}
 
               {groupPickerLoading ? (
-                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading groups…</div>
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading…</div>
+              ) : recipientPickerTab === 'channels' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 380, overflow: 'auto' }}>
+                  {wahaChannels
+                    .filter(c => !groupPickerSearch.trim() || c.name.toLowerCase().includes(groupPickerSearch.trim().toLowerCase()))
+                    .map(c => {
+                      const selected = form.credentials?.recipientPhoneNumber === c.id;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => selectWahaChannel(c)}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '10px 12px', borderRadius: 8,
+                            border: selected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                            background: selected ? 'rgba(37,99,235,0.08)' : 'rgba(0,0,0,0.02)',
+                            cursor: 'pointer', textAlign: 'left', width: '100%'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>📢 {c.name}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{c.id}</div>
+                            {c.subscribersCount !== null && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.subscribersCount} subscribers</div>
+                            )}
+                          </div>
+                          {c.isAdmin && (
+                            <span style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--accent)', padding: '2px 8px', borderRadius: 14, fontSize: '0.68rem', fontWeight: 700 }}>
+                              Admin
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  {wahaChannels.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      No WhatsApp Channels found. You can follow or create a WhatsApp Channel on your WhatsApp mobile app, or enter a channel ID manually.
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 380, overflow: 'auto' }}>
                   {(groupPickerGroups || [])

@@ -22,7 +22,10 @@ router.get('/', async (req, res) => {
     }
 
     if (req.query.category && req.query.category !== 'all') {
-      query.category = req.query.category;
+      query.$or = [
+        { categories: req.query.category },
+        { category: req.query.category }
+      ];
     }
 
     if (req.query.q) {
@@ -65,17 +68,26 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { name, platform, country, category, credentials, isActive, rateLimitMinutes } = req.body;
+    const { name, platform, country, category, categories, credentials, isActive, rateLimitMinutes } = req.body;
 
     if (!name || !platform) {
       return res.status(400).json({ success: false, error: 'Name and Platform are required.' });
     }
 
+    const normCategories = Array.isArray(categories) && categories.length > 0
+      ? categories
+      : (category ? category.split(',').map(s => s.trim()).filter(Boolean) : ['all']);
+
+    const normCategory = normCategories.length === 1
+      ? normCategories[0]
+      : (normCategories.includes('all') ? 'all' : normCategories.join(','));
+
     const channel = new OutputChannel({
       name,
       platform,
       country: country || 'IN',
-      category: category || 'all',
+      category: normCategory,
+      categories: normCategories,
       isActive: isActive !== undefined ? isActive : true,
       rateLimitMinutes: rateLimitMinutes !== undefined && rateLimitMinutes !== '' ? Number(rateLimitMinutes) : null,
       credentials: credentials || {}
@@ -95,13 +107,24 @@ router.post('/', async (req, res) => {
  */
 router.patch('/:id', async (req, res) => {
   try {
-    const { name, platform, country, category, isActive, credentials, rateLimitMinutes, resetStats } = req.body;
+    const { name, platform, country, category, categories, isActive, credentials, rateLimitMinutes, resetStats } = req.body;
     const update = { updatedAt: new Date() };
 
     if (name !== undefined) update.name = name;
     if (platform !== undefined) update.platform = platform;
     if (country !== undefined) update.country = country;
-    if (category !== undefined) update.category = category;
+    if (categories !== undefined) {
+      const normCategories = Array.isArray(categories) && categories.length > 0
+        ? categories
+        : ['all'];
+      update.categories = normCategories;
+      update.category = normCategories.length === 1
+        ? normCategories[0]
+        : (normCategories.includes('all') ? 'all' : normCategories.join(','));
+    } else if (category !== undefined) {
+      update.category = category;
+      update.categories = category ? category.split(',').map(s => s.trim()).filter(Boolean) : ['all'];
+    }
     if (isActive !== undefined) update.isActive = isActive;
     if (credentials !== undefined) update.credentials = credentials;
     if (rateLimitMinutes !== undefined) update.rateLimitMinutes = rateLimitMinutes === '' ? null : Number(rateLimitMinutes);
@@ -188,16 +211,18 @@ router.post('/:id/test', async (req, res) => {
         };
 
         // Same human-like typing pause the real publisher uses (see whatsappPublisher.js) —
-        // keeps Test Post representative of what a live deal send actually looks like.
-        try {
-          await fetch(`${baseUrl}/api/${session}/presence`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ chatId, presence: 'typing' })
-          });
-          await new Promise((resolve) => setTimeout(resolve, Math.min(4000, Math.max(1200, text.length * 30))));
-        } catch (_typingErr) {
-          // Presence is cosmetic — never let it block the actual test send.
+        // WhatsApp Newsletters (@newsletter) do not support presence typing.
+        if (!chatId.includes('@newsletter')) {
+          try {
+            await fetch(`${baseUrl}/api/${session}/presence`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ chatId, presence: 'typing' })
+            });
+            await new Promise((resolve) => setTimeout(resolve, Math.min(4000, Math.max(1200, text.length * 30))));
+          } catch (_typingErr) {
+            // Presence is cosmetic — never let it block the actual test send.
+          }
         }
 
         const wahaRes = await fetch(`${baseUrl}/api/sendText`, {
@@ -376,7 +401,15 @@ router.post('/:id/waha/start', async (req, res) => {
       return res.status(502).json({ success: false, error: `WAHA responded ${wahaRes.status}: ${body}` });
     }
 
-    const data = await wahaRes.json();
+    let data = await wahaRes.json();
+    if (data.status === 'FAILED') {
+      // WAHA ignores /start on a failed session; use /restart to boot a fresh browser
+      const restartRes = await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}/restart`, { method: 'POST' });
+      if (restartRes.ok) {
+        data = await restartRes.json();
+      }
+    }
+
     res.json({ success: true, status: data.status, me: data.me || null });
   } catch (err) {
     console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/start failed:`, err.message);
@@ -409,6 +442,122 @@ router.get('/:id/waha/qr', async (req, res) => {
   } catch (err) {
     console.error(`[API Error] GET /api/output-channels/${req.params.id}/waha/qr failed:`, err.message);
     res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+async function getWahaSessionStatus(waha) {
+  try {
+    const res = await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}`);
+    if (!res.ok) return { status: 'STOPPED', me: null };
+    const data = await res.json();
+    return { status: data.status, me: data.me || null };
+  } catch {
+    return { status: 'STOPPED', me: null };
+  }
+}
+
+/**
+ * POST /api/output-channels/:id/waha/fresh-qr
+ * Guaranteed atomic QR generation on-demand:
+ * 1. If session is already in SCAN_QR_CODE and not force-restarted, immediately returns active QR.
+ * 2. Otherwise restarts the browser cleanly and waits for the fresh QR.
+ * 3. Returns { success: true, status: 'SCAN_QR_CODE', qr: data, expiresInSeconds: 60 }.
+ */
+router.post('/:id/waha/fresh-qr', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const force = req.query.force === 'true' || req.body?.force === true;
+
+    // Check status
+    const statusRes = await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}`);
+    let sessionStatus = 'STOPPED';
+    if (statusRes.ok) {
+      const sData = await statusRes.json();
+      sessionStatus = sData.status;
+      if (sessionStatus === 'WORKING') {
+        return res.json({ success: true, status: 'WORKING', me: sData.me || null });
+      }
+
+      // If already waiting for scan and not forcing a fresh browser boot, return active QR code immediately!
+      if (sessionStatus === 'SCAN_QR_CODE' && !force) {
+        try {
+          const qrRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/auth/qr`, {
+            headers: { Accept: 'application/json' }
+          });
+          if (qrRes.ok) {
+            const q = await qrRes.json();
+            if (q?.data) {
+              return res.json({
+                success: true,
+                status: 'SCAN_QR_CODE',
+                mimetype: q.mimetype || 'image/png',
+                qr: q.data,
+                expiresInSeconds: 60
+              });
+            }
+          }
+        } catch {
+          // If fetching existing QR fails, continue to restart
+        }
+      }
+    }
+
+    // If session has never been created, create it; otherwise restart it for a clean QR
+    if (statusRes.status === 404) {
+      await wahaFetch(waha, '/api/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ name: waha.session, start: true, config: {} })
+      });
+    } else {
+      await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}/restart`, { method: 'POST' });
+    }
+
+    // Poll for QR code up to 15 seconds (check every 1s)
+    const deadline = Date.now() + 15000;
+    let qrData = null;
+    let finalStatus = 'STARTING';
+
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 1000));
+      const freshStatusRes = await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}`);
+      if (freshStatusRes.ok) {
+        const freshStatus = await freshStatusRes.json();
+        finalStatus = freshStatus.status;
+        if (finalStatus === 'WORKING') {
+          return res.json({ success: true, status: 'WORKING', me: freshStatus.me || null });
+        }
+        if (finalStatus === 'SCAN_QR_CODE') {
+          const qrRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/auth/qr`, {
+            headers: { Accept: 'application/json' }
+          });
+          if (qrRes.ok) {
+            const q = await qrRes.json();
+            if (q?.data) {
+              qrData = q.data;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (qrData) {
+      return res.json({
+        success: true,
+        status: 'SCAN_QR_CODE',
+        mimetype: 'image/png',
+        qr: qrData,
+        expiresInSeconds: 60
+      });
+    }
+
+    res.json({ success: true, status: finalStatus, qr: null, message: 'Browser starting, please scan QR once rendered.' });
+  } catch (err) {
+    console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/fresh-qr failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not generate fresh QR: ${err.message}` });
   }
 });
 
@@ -494,9 +643,12 @@ router.get('/:id/waha/groups', async (req, res) => {
     if (!ctx) return;
     const { waha } = ctx;
 
-    const meRes = await wahaFetch(waha, `/api/sessions/${encodeURIComponent(waha.session)}`);
-    const meData = meRes.ok ? await meRes.json() : null;
-    const myId = idString(meData?.me?.id);
+    const sess = await getWahaSessionStatus(waha);
+    if (sess.status !== 'WORKING') {
+      return res.json({ success: true, groups: [], notConnected: true, status: sess.status, me: null });
+    }
+
+    const myId = idString(sess.me?.id);
 
     const groupsRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/groups`);
     if (!groupsRes.ok) {
@@ -505,23 +657,284 @@ router.get('/:id/waha/groups', async (req, res) => {
     }
     const groups = await groupsRes.json();
 
-    const shaped = (Array.isArray(groups) ? groups : []).map(g => {
+    const shaped = await Promise.all((Array.isArray(groups) ? groups : []).map(async g => {
       // WEBJS nests the real metadata under groupMetadata; fall back to top-level for other engines.
       const meta = g.groupMetadata || g;
       const participants = meta.participants || [];
       const mine = participants.find(p => idString(p.id) === myId);
       const isAdmin = mine ? !!(mine.isAdmin || mine.isSuperAdmin || mine.role === 'admin' || mine.role === 'superadmin') : false;
+      const gid = idString(meta.id) || idString(g.id);
+
+      let pictureUrl = null;
+      try {
+        const picRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/groups/${encodeURIComponent(gid)}/picture`);
+        if (picRes.ok) {
+          const picData = await picRes.json();
+          pictureUrl = picData?.url || null;
+        }
+      } catch {}
+
       return {
-        id: idString(meta.id) || idString(g.id),
+        id: gid,
         subject: meta.subject || meta.name || '(untitled group)',
+        description: meta.desc || g.description || '',
+        pictureUrl,
         participantCount: participants.length || null,
         isAdmin
       };
-    });
+    }));
 
-    res.json({ success: true, groups: shaped, me: myId });
+    // Cross-reference which groups are already added as active OutputChannels in MongoDB
+    const groupIds = shaped.map(g => g.id);
+    const existingOutputChannels = await OutputChannel.find({
+      platform: 'whatsapp',
+      'credentials.recipientPhoneNumber': { $in: groupIds }
+    }).lean();
+
+    const channelMap = new Map();
+    for (const ch of existingOutputChannels) {
+      if (ch.credentials?.recipientPhoneNumber) {
+        channelMap.set(ch.credentials.recipientPhoneNumber, {
+          _id: ch._id,
+          name: ch.name,
+          isActive: ch.isActive,
+          category: ch.category,
+          categories: ch.categories && ch.categories.length ? ch.categories : (ch.category ? ch.category.split(',').map(s => s.trim()).filter(Boolean) : ['all']),
+          country: ch.country,
+          rateLimitMinutes: ch.rateLimitMinutes,
+          dealsPublished: ch.stats?.dealsPublished || 0
+        });
+      }
+    }
+
+    const enriched = shaped.map(g => ({
+      ...g,
+      outputChannel: channelMap.get(g.id) || null
+    }));
+
+    res.json({ success: true, groups: enriched, me: myId });
   } catch (err) {
     console.error(`[API Error] GET /api/output-channels/${req.params.id}/waha/groups failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
+ * POST /api/output-channels/:id/waha/groups/refresh
+ * Forces WAHA to sync groups from WhatsApp servers.
+ */
+router.post('/:id/waha/groups/refresh', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const refreshRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/groups/refresh`, {
+      method: 'POST'
+    });
+    if (!refreshRes.ok) {
+      const body = await refreshRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${refreshRes.status}: ${body}` });
+    }
+    const data = await refreshRes.json().catch(() => ({ success: true }));
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/groups/refresh failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
+ * POST /api/output-channels/:id/waha/groups/join
+ * Join a WhatsApp group via invite link or invite code.
+ */
+router.post('/:id/waha/groups/join', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ success: false, error: 'Invite code or link is required.' });
+    }
+
+    const cleanCode = code.trim();
+    const joinRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/groups/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: cleanCode })
+    });
+    if (!joinRes.ok) {
+      const body = await joinRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${joinRes.status}: ${body}` });
+    }
+    const data = await joinRes.json();
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/groups/join failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
+ * PUT /api/output-channels/:id/waha/groups/:groupId/description
+ * Update group description in WhatsApp
+ */
+router.put('/:id/waha/groups/:groupId/description', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+    const { description } = req.body;
+
+    const descRes = await wahaFetch(
+      waha,
+      `/api/${encodeURIComponent(waha.session)}/groups/${encodeURIComponent(req.params.groupId)}/description`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: description || '' })
+      }
+    );
+    if (!descRes.ok) {
+      const body = await descRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${descRes.status}: ${body}` });
+    }
+
+    res.json({ success: true, message: 'Group description updated successfully' });
+  } catch (err) {
+    console.error(`[API Error] PUT /api/output-channels/${req.params.id}/waha/groups/${req.params.groupId}/description failed:`, err.message);
+    res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * PUT /api/output-channels/:id/waha/groups/:groupId/picture
+ * Update group profile picture (logo) in WhatsApp
+ */
+router.put('/:id/waha/groups/:groupId/picture', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+    const { url, data, mimetype, filename } = req.body;
+
+    const filePayload = url
+      ? { url, mimetype: mimetype || 'image/png', filename: filename || 'logo.png' }
+      : { data, mimetype: mimetype || 'image/png', filename: filename || 'logo.png' };
+
+    const picRes = await wahaFetch(
+      waha,
+      `/api/${encodeURIComponent(waha.session)}/groups/${encodeURIComponent(req.params.groupId)}/picture`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: filePayload })
+      }
+    );
+    if (!picRes.ok) {
+      const body = await picRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${picRes.status}: ${body}` });
+    }
+
+    res.json({ success: true, message: 'Group picture updated successfully' });
+  } catch (err) {
+    console.error(`[API Error] PUT /api/output-channels/${req.params.id}/waha/groups/${req.params.groupId}/picture failed:`, err.message);
+    res.status(502).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/output-channels/:id/waha/groups/:groupId/picture
+ * Get group profile picture URL from WhatsApp
+ */
+router.get('/:id/waha/groups/:groupId/picture', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const picRes = await wahaFetch(
+      waha,
+      `/api/${encodeURIComponent(waha.session)}/groups/${encodeURIComponent(req.params.groupId)}/picture?refresh=true`
+    );
+    if (!picRes.ok) {
+      return res.json({ success: true, url: null });
+    }
+    const picData = await picRes.json();
+    res.json({ success: true, url: picData?.url || null });
+  } catch (err) {
+    res.json({ success: true, url: null });
+  }
+});
+
+/**
+ * GET /api/output-channels/:id/waha/channels
+ * Lists all WhatsApp Channels (newsletters) followed or administered by this account.
+ */
+router.get('/:id/waha/channels', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const sess = await getWahaSessionStatus(waha);
+    if (sess.status !== 'WORKING') {
+      return res.json({ success: true, channels: [], notConnected: true, status: sess.status });
+    }
+
+    const channelsRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/channels`);
+    if (!channelsRes.ok) {
+      const body = await channelsRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${channelsRes.status}: ${body}` });
+    }
+    const channels = await channelsRes.json();
+    const shaped = (Array.isArray(channels) ? channels : []).map(ch => ({
+      id: idString(ch.id),
+      name: ch.name || ch.subject || '(untitled channel)',
+      description: ch.description || '',
+      role: ch.role || (ch.isAdmin ? 'ADMIN' : 'SUBSCRIBER'),
+      isAdmin: ch.role === 'ADMIN' || ch.role === 'OWNER' || ch.isAdmin === true,
+      subscribersCount: ch.subscribersCount ?? null,
+      inviteLink: ch.inviteLink || null
+    }));
+
+    res.json({ success: true, channels: shaped });
+  } catch (err) {
+    console.error(`[API Error] GET /api/output-channels/${req.params.id}/waha/channels failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
+ * POST /api/output-channels/:id/waha/channels
+ * Create a new WhatsApp Channel (newsletter).
+ */
+router.post('/:id/waha/channels', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+    const { name, description } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Channel name is required.' });
+    }
+
+    const createRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/channels`, {
+      method: 'POST',
+      body: JSON.stringify({ name: name.trim(), description: (description || '').trim() })
+    });
+
+    if (!createRes.ok) {
+      const body = await createRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${createRes.status}: ${body}` });
+    }
+
+    const created = await createRes.json();
+    res.json({ success: true, channel: created });
+  } catch (err) {
+    console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/channels failed:`, err.message);
     res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
   }
 });
@@ -706,15 +1119,20 @@ router.get('/:id/waha/profile', async (req, res) => {
     if (!ctx) return;
     const { waha } = ctx;
 
+    const verRes = await wahaFetch(waha, '/api/version');
+    const version = verRes.ok ? await verRes.json() : null;
+
+    const sess = await getWahaSessionStatus(waha);
+    if (sess.status !== 'WORKING') {
+      return res.json({ success: true, profile: { name: 'WhatsApp Account', id: '', picture: null }, version, notConnected: true });
+    }
+
     const profRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/profile`);
     if (!profRes.ok) {
       const body = await profRes.text();
       return res.status(502).json({ success: false, error: `WAHA responded ${profRes.status}: ${body}` });
     }
     const profile = await profRes.json();
-
-    const verRes = await wahaFetch(waha, '/api/version');
-    const version = verRes.ok ? await verRes.json() : null;
 
     res.json({ success: true, profile, version });
   } catch (err) {
@@ -736,6 +1154,11 @@ router.get('/:id/waha/chats', async (req, res) => {
 
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = parseInt(req.query.offset, 10) || 0;
+
+    const sess = await getWahaSessionStatus(waha);
+    if (sess.status !== 'WORKING') {
+      return res.json({ success: true, chats: [], notConnected: true, status: sess.status, limit, offset });
+    }
 
     // WAHA's real validation accepts conversationTimestamp/id/name — not "messageTimestamp" as
     // some docs suggest.
@@ -775,6 +1198,11 @@ router.get('/:id/waha/contacts', async (req, res) => {
 
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     const offset = parseInt(req.query.offset, 10) || 0;
+
+    const sess = await getWahaSessionStatus(waha);
+    if (sess.status !== 'WORKING') {
+      return res.json({ success: true, contacts: [], notConnected: true, status: sess.status, limit, offset });
+    }
 
     const params = new URLSearchParams({ session: waha.session, limit, offset, sortBy: 'name', sortOrder: 'asc' });
     const cRes = await wahaFetch(waha, `/api/contacts/all?${params.toString()}`);
@@ -852,6 +1280,76 @@ router.post('/:id/waha/send-text', async (req, res) => {
 });
 
 /**
+ * POST /api/output-channels/:id/waha/send-image
+ * Body: { chatId, imageUrl, caption }
+ */
+router.post('/:id/waha/send-image', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const { chatId, imageUrl, caption } = req.body;
+    if (!chatId || !imageUrl) {
+      return res.status(400).json({ success: false, error: 'chatId and imageUrl are required.' });
+    }
+    const targetChatId = chatId.includes('@') ? chatId : `${chatId.replace(/[^\d]/g, '')}@c.us`;
+
+    const sendRes = await wahaFetch(waha, '/api/sendImage', {
+      method: 'POST',
+      body: JSON.stringify({
+        session: waha.session,
+        chatId: targetChatId,
+        file: { url: imageUrl, mimetype: 'image/jpeg', filename: 'deal.jpg' },
+        caption: caption || ''
+      })
+    });
+    if (!sendRes.ok) {
+      const body = await sendRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${sendRes.status}: ${body}` });
+    }
+
+    res.json({ success: true, message: `Image sent to ${targetChatId}.` });
+  } catch (err) {
+    console.error(`[API Error] POST /api/output-channels/${req.params.id}/waha/send-image failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
+ * GET /api/output-channels/:id/waha/chats/:chatId/messages
+ * Recent messages for a specific chat.
+ */
+router.get('/:id/waha/chats/:chatId/messages', async (req, res) => {
+  try {
+    const ctx = await loadWahaChannelOr404(req, res);
+    if (!ctx) return;
+    const { waha } = ctx;
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+    const params = new URLSearchParams({ limit, downloadMedia: 'false' });
+    const msgRes = await wahaFetch(waha, `/api/${encodeURIComponent(waha.session)}/chats/${encodeURIComponent(req.params.chatId)}/messages?${params.toString()}`);
+    if (!msgRes.ok) {
+      const body = await msgRes.text();
+      return res.status(502).json({ success: false, error: `WAHA responded ${msgRes.status}: ${body}` });
+    }
+    const messages = await msgRes.json();
+    const shaped = (Array.isArray(messages) ? messages : []).map(m => ({
+      id: m.id,
+      body: m.body,
+      fromMe: !!m.fromMe,
+      timestamp: m.timestamp,
+      hasMedia: !!m.hasMedia,
+      type: m.type
+    }));
+    res.json({ success: true, messages: shaped });
+  } catch (err) {
+    console.error(`[API Error] GET /api/output-channels/${req.params.id}/waha/chats/${req.params.chatId}/messages failed:`, err.message);
+    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+  }
+});
+
+/**
  * GET /api/output-channels/:id/waha/screenshot
  * Base64 screenshot of the live WhatsApp Web session — debug aid for a session stuck in an
  * unexpected state.
@@ -862,18 +1360,43 @@ router.get('/:id/waha/screenshot', async (req, res) => {
     if (!ctx) return;
     const { waha } = ctx;
 
-    const shotRes = await wahaFetch(waha, `/api/screenshot?session=${encodeURIComponent(waha.session)}`, {
-      headers: { Accept: 'application/json' }
-    });
-    if (!shotRes.ok) {
-      const body = await shotRes.text();
-      return res.status(502).json({ success: false, error: `WAHA responded ${shotRes.status}: ${body}` });
+    const status = await getWahaSessionStatus(waha);
+    if (status === 'STOPPED' || status === 'FAILED') {
+      return res.json({
+        success: false,
+        error: `Session is currently ${status}. Please click "Start Session" or generate a fresh QR code first.`,
+        sessionStatus: status
+      });
     }
-    const data = await shotRes.json();
-    res.json({ success: true, mimetype: data.mimetype || 'image/png', data: data.data });
+
+    const shotRes = await wahaFetch(waha, `/api/screenshot?session=${encodeURIComponent(waha.session)}`);
+    if (!shotRes.ok) {
+      const errText = await shotRes.text().catch(() => '');
+      return res.json({
+        success: false,
+        error: `Live screen capture unavailable (${shotRes.status}). Chromium page may be starting or busy.`,
+        sessionStatus: status,
+        details: errText
+      });
+    }
+
+    const contentType = shotRes.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await shotRes.json();
+      return res.json({ success: true, mimetype: data.mimetype || 'image/png', data: data.data });
+    }
+
+    // Binary image returned directly (image/jpeg or image/png)
+    const arrayBuffer = await shotRes.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    res.json({
+      success: true,
+      mimetype: contentType.split(';')[0] || 'image/jpeg',
+      data: base64
+    });
   } catch (err) {
     console.error(`[API Error] GET /api/output-channels/${req.params.id}/waha/screenshot failed:`, err.message);
-    res.status(502).json({ success: false, error: `Could not reach WAHA: ${err.message}` });
+    res.json({ success: false, error: `Could not reach WAHA: ${err.message}` });
   }
 });
 

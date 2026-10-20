@@ -22,6 +22,10 @@ const outputChannelSchema = new mongoose.Schema({
     type: String,
     default: 'all'
   },
+  categories: {
+    type: [String],
+    default: ['all']
+  },
   isActive: {
     type: Boolean,
     default: true
