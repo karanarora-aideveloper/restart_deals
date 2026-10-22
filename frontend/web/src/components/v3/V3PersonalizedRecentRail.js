@@ -90,7 +90,7 @@ export default function V3PersonalizedRecentRail({ userProfile }) {
             return (
               <Link
                 key={item.id}
-                href={item.href || `/deal/${item.id}`}
+                href={item.href || `/product/${item.linkedProductId || item.matchedProductId || item.productId || item.id}`}
                 className="group flex-shrink-0 w-[190px] sm:w-[210px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all duration-200 flex flex-col justify-between"
               >
                 <div>

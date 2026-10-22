@@ -1,6 +1,6 @@
 import blogsData from '@/data/blogs.json';
 import { fetchSitemapProducts, fetchSitemapDeals } from '@/lib/api';
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, getBaseUrl } from '@/lib/config';
 import { TOP_CURATED_BEST_SLUGS } from '@/lib/bestCategories';
 import { CATEGORY_LABELS, SUBCATEGORY_LABELS } from '@/lib/taxonomy';
 
@@ -29,6 +29,7 @@ function toXmlUrlset(urls) {
 }
 
 export async function GET(request, { params }) {
+  const baseUrl = getBaseUrl(request);
   const resolvedParams = params && typeof params.then === 'function' ? await params : params;
   const name = resolvedParams?.name || '';
   const now = new Date().toISOString();
@@ -49,14 +50,14 @@ export async function GET(request, { params }) {
       '/privacy',
       '/affiliate-disclosure',
     ].map((path) => ({
-      url: `${SITE_URL}${path}`,
+      url: `${baseUrl}${path}`,
       lastModified: now,
       changeFrequency: path === '' || path === '/hot' || path === '/compare/grocery' ? 'always' : 'daily',
       priority: path === '' ? 1.0 : path === '/compare/grocery' ? 0.95 : 0.8,
     }));
 
     const categoryRoutes = Object.keys(CATEGORY_LABELS).map((cat) => ({
-      url: `${SITE_URL}/categories/${cat}`,
+      url: `${baseUrl}/categories/${cat}`,
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.85,
@@ -67,14 +68,14 @@ export async function GET(request, { params }) {
     );
 
     const bestRoutes = allBestSlugs.map((slug) => ({
-      url: `${SITE_URL}/best/${slug}`,
+      url: `${baseUrl}/best/${slug}`,
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.9,
     }));
 
     const blogRoutes = (blogsData || []).map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
+      url: `${baseUrl}/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date).toISOString() : now,
       changeFrequency: 'monthly',
       priority: 0.7,
@@ -99,7 +100,7 @@ export async function GET(request, { params }) {
   // 2. Dedicated Blogs sitemap (/sitemaps/blogs.xml)
   if (name === 'blogs.xml') {
     const blogUrls = (blogsData || []).map((post) => ({
-      url: `${SITE_URL}/blog/${post.slug}`,
+      url: `${baseUrl}/blog/${post.slug}`,
       lastModified: post.date ? new Date(post.date).toISOString() : now,
       changeFrequency: 'weekly',
       priority: 0.85,
@@ -115,24 +116,9 @@ export async function GET(request, { params }) {
     });
   }
 
-  // 3. Deals sitemap (/sitemaps/deals.xml)
+  // 3. Deprecated deals sitemap: return 404 so search engines permanently purge stale /deal/ URLs
   if (name === 'deals.xml') {
-    const deals = await fetchSitemapDeals();
-    const dealUrls = deals.map((d) => ({
-      url: `${SITE_URL}/deal/${d.id}`,
-      lastModified: d.lastmod ? new Date(d.lastmod).toISOString() : now,
-      changeFrequency: 'hourly',
-      priority: 0.7,
-    }));
-
-    const xml = toXmlUrlset(dealUrls);
-    return new Response(xml, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/xml; charset=utf-8',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=86400',
-      },
-    });
+    return new Response('Not Found', { status: 404 });
   }
 
   // 3. India Products sitemap (/sitemaps/products-in-[page].xml)
@@ -141,7 +127,7 @@ export async function GET(request, { params }) {
     const page = parseInt(inMatch[1], 10);
     const products = await fetchSitemapProducts({ country: 'IN', page, limit: 5000 });
     const productUrls = products.map((p) => ({
-      url: `${SITE_URL}/product/${p.id}`,
+      url: `${baseUrl}/product/${p.id}`,
       lastModified: p.lastmod ? new Date(p.lastmod).toISOString() : now,
       changeFrequency: 'daily',
       priority: 0.75,
@@ -163,7 +149,7 @@ export async function GET(request, { params }) {
     const page = parseInt(usMatch[1], 10);
     const products = await fetchSitemapProducts({ country: 'US', page, limit: 5000 });
     const productUrls = products.map((p) => ({
-      url: `${SITE_URL}/product/${p.id}`,
+      url: `${baseUrl}/product/${p.id}`,
       lastModified: p.lastmod ? new Date(p.lastmod).toISOString() : now,
       changeFrequency: 'daily',
       priority: 0.75,

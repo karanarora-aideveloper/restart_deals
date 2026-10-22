@@ -1,10 +1,11 @@
 import { fetchSitemapSummary } from '@/lib/api';
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, getBaseUrl } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
-export async function GET() {
+export async function GET(request) {
+  const baseUrl = getBaseUrl(request);
   const summary = await fetchSitemapSummary();
   const inChunks = summary.inChunks || 2;
   const usChunks = summary.usChunks || 2;
@@ -15,26 +16,20 @@ export async function GET() {
 
   // 1. Core pages sitemap (Static, categories, best-of guides - 115 URLs)
   xml += `  <sitemap>\n`;
-  xml += `    <loc>${SITE_URL}/sitemaps/pages.xml</loc>\n`;
+  xml += `    <loc>${baseUrl}/sitemaps/pages.xml</loc>\n`;
   xml += `    <lastmod>${now}</lastmod>\n`;
   xml += `  </sitemap>\n`;
 
   // 2. Dedicated Blogs sitemap (214+ comprehensive buying guides)
   xml += `  <sitemap>\n`;
-  xml += `    <loc>${SITE_URL}/sitemaps/blogs.xml</loc>\n`;
-  xml += `    <lastmod>${now}</lastmod>\n`;
-  xml += `  </sitemap>\n`;
-
-  // 3. Active deals sitemap
-  xml += `  <sitemap>\n`;
-  xml += `    <loc>${SITE_URL}/sitemaps/deals.xml</loc>\n`;
+  xml += `    <loc>${baseUrl}/sitemaps/blogs.xml</loc>\n`;
   xml += `    <lastmod>${now}</lastmod>\n`;
   xml += `  </sitemap>\n`;
 
   // 3. India Products sitemaps (chunked in 5,000s)
   for (let i = 1; i <= inChunks; i++) {
     xml += `  <sitemap>\n`;
-    xml += `    <loc>${SITE_URL}/sitemaps/products-in-${i}.xml</loc>\n`;
+    xml += `    <loc>${baseUrl}/sitemaps/products-in-${i}.xml</loc>\n`;
     xml += `    <lastmod>${now}</lastmod>\n`;
     xml += `  </sitemap>\n`;
   }
@@ -42,7 +37,7 @@ export async function GET() {
   // 4. USA Products sitemaps (chunked in 5,000s)
   for (let i = 1; i <= usChunks; i++) {
     xml += `  <sitemap>\n`;
-    xml += `    <loc>${SITE_URL}/sitemaps/products-us-${i}.xml</loc>\n`;
+    xml += `    <loc>${baseUrl}/sitemaps/products-us-${i}.xml</loc>\n`;
     xml += `    <lastmod>${now}</lastmod>\n`;
     xml += `  </sitemap>\n`;
   }

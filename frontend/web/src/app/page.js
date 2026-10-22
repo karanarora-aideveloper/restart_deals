@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { fetchDeals, findMatchingProductId } from '@/lib/api';
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, getSiteBranding } from '@/lib/config';
 import {
   PZN_COOKIE_NAME,
   parsePersonalizationCookie,
@@ -23,29 +23,36 @@ import V3ExtensionSection from '@/components/v3/V3ExtensionSection';
 import V3StoresSection from '@/components/v3/V3StoresSection';
 import V3FaqSection from '@/components/v3/V3FaqSection';
 
-export const metadata = {
-  title: 'ShoppersDeals: Best Live Deals, Price History & Coupons',
-  description:
-    'Find genuine live price drops and track 90-day price history across Amazon, Flipkart, Myntra, and Meesho. Compare prices side-by-side with zero fake discounts.',
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: 'ShoppersDeals: Best Live Deals, Price History & Coupons',
-    description:
-      'Find genuine live price drops and track 90-day price history across Amazon, Flipkart, Myntra, and Meesho. Compare prices side-by-side with zero fake discounts.',
-    url: `${SITE_URL}/`,
-    siteName: 'ShoppersDeals',
-    images: [
-      {
-        url: `${SITE_URL}/logo.png`,
-        width: 1200,
-        height: 630,
-        alt: 'ShoppersDeals Deal Radar',
-      },
-    ],
-    locale: 'en_IN',
-    type: 'website',
-  },
-};
+export async function generateMetadata() {
+  let host = '';
+  try {
+    const headerList = await headers();
+    host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  } catch (_) {}
+  const branding = getSiteBranding(host);
+
+  return {
+    title: branding.defaultTitle,
+    description: branding.description,
+    alternates: { canonical: '/' },
+    openGraph: {
+      title: branding.defaultTitle,
+      description: branding.description,
+      url: `${branding.siteUrl}/`,
+      siteName: branding.brandName,
+      images: [
+        {
+          url: branding.isDealPanda ? `${branding.siteUrl}/dealpanda-banner.png` : `${branding.siteUrl}/logo.png`,
+          width: branding.isDealPanda ? 1920 : 1200,
+          height: branding.isDealPanda ? 640 : 630,
+          alt: `${branding.brandName} Deal Radar`,
+        },
+      ],
+      locale: 'en_IN',
+      type: 'website',
+    },
+  };
+}
 
 const storeSchema = {
   '@context': 'https://schema.org',

@@ -91,7 +91,8 @@ export default function V3DealCard({ deal, index = 0, savedDeals = [], onSavedCh
   const priceDropPct = hasPriceDrop ? Math.round((priceDropCash / previousTrackedPrice) * 100) : 0;
 
   const saved = isDealSaved(dealId, savedDeals);
-  const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
+  const targetProdId = deal.linkedProductId || deal.matchedProductId || deal.productId || dealId;
+  const cardHref = `/product/${targetProdId}`;
   const affiliateUrl = getAffiliateUrl(deal.dealUrl || deal.url, dealCountry);
   const dealTime = deal.createdAt || deal.postedAt || deal.updatedAt;
   const verifiedTime = formatRelativeTime(dealTime);

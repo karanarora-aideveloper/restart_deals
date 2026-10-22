@@ -56,21 +56,30 @@ const STORE_DOMAINS = [
 
 export function middleware(request) {
   const { pathname, search } = request.nextUrl;
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+  const isDealPanda = host.toLowerCase().includes('dealpanda') || host.toLowerCase().includes('dealspanda');
+  const siteUrl = isDealPanda ? 'https://dealpanda.app' : 'https://www.shoppersdeals.in';
+  const brandName = isDealPanda ? 'DealPanda' : 'ShoppersDeals';
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-site-url', siteUrl);
+  requestHeaders.set('x-site-brand', brandName);
+  requestHeaders.set('x-site-host', host);
 
   // Clean leading slashes
   const cleanPath = pathname.replace(/^\/+/, '');
-  if (!cleanPath) return NextResponse.next();
+  if (!cleanPath) return NextResponse.next({ request: { headers: requestHeaders } });
 
   // If request is for a static asset, bypass middleware completely
   if (/\.(?:png|jpg|jpeg|gif|webp|svg|ico|txt|xml|json|webmanifest|woff2?|css|js)$/i.test(cleanPath)) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const firstSegment = cleanPath.split('/')[0].toLowerCase();
 
   // If first segment matches a known Next.js page or asset, let Next.js handle it
   if (KNOWN_ROUTES.has(firstSegment)) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   let targetUrl = null;
@@ -99,7 +108,7 @@ export function middleware(request) {
     return NextResponse.redirect(scanUrl, 307);
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

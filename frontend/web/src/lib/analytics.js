@@ -207,8 +207,7 @@ export function trackPageView(pathname, extra = {}) {
 
 function getPageType(pathname) {
   if (!pathname || pathname === '/') return 'home';
-  if (pathname.startsWith('/product/')) return 'product_pdp';
-  if (pathname.startsWith('/deal/')) return 'deal_pdp';
+  if (pathname.startsWith('/product/') || pathname.startsWith('/deal/')) return 'product_pdp';
   if (pathname.startsWith('/coupons')) return 'coupons_hub';
   if (pathname.startsWith('/wishlist') || pathname.startsWith('/saved')) return 'wishlist';
   if (pathname.startsWith('/best/')) return 'category_hub';

@@ -26,6 +26,12 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.dealpanda.app' }],
+        destination: 'https://dealpanda.app/:path*',
+        permanent: true,
+      },
+      {
         source: '/deals',
         destination: '/',
         permanent: true,

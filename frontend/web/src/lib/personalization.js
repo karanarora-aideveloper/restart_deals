@@ -280,7 +280,7 @@ export function saveRecentViewedCard(cardData) {
         discountPercentage: cardData.discountPercentage || 0,
         merchant: cardData.merchant || 'amazon',
         imageUrl: cardData.imageUrl || '',
-        href: cardData.href || `/deal/${cardData.id}`,
+        href: cardData.href || `/product/${cardData.id}`,
         timestamp: Date.now(),
       },
       ...filtered,

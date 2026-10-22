@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { href: '/', id: 'deals', label: 'Deals', match: (p) => p === '/' || p.startsWith('/deal/') },
+  { href: '/', id: 'deals', label: 'Deals', match: (p) => p === '/' || p.startsWith('/deal/') || p.startsWith('/product/') },
   { href: '/hot', id: 'hot', label: 'Hot' },
   { href: '/price-tracker', id: 'products', label: 'Tracker', match: (p) => p === '/price-tracker' },
   { href: '/saved', id: 'saved', label: 'Saved', match: (p) => p === '/saved' },

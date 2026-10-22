@@ -36,11 +36,9 @@ export default function DealCard({ deal, savedDeals = [], onSavedChange, onImage
   }, []);
 
   const dealId = deal._id || deal.id;
-  // When the server has resolved a linked product, link straight to /product/[id] so Google
-  // crawls the canonical page directly instead of following a /deal → /product redirect.
-  // Falls back to /deal/[id] for standalone deals (no matching tracked product) and for
-  // client-side polled items that don't carry linkedProductId.
-  const cardHref = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${dealId}`;
+  // All deals link strictly to canonical /product/:id — deals are an ephemeral subset of products.
+  const targetProdId = deal.linkedProductId || deal.matchedProductId || deal.productId || dealId;
+  const cardHref = `/product/${targetProdId}`;
   const dealCountry = deal.country || 'IN';
   const merchant = getMerchantInfo(deal.merchant || deal.dealUrl);
   const dealPriceStr = formatInr(deal.dealPrice, dealCountry) || 'Special Price';

@@ -86,7 +86,7 @@ export default function RecentlyViewed() {
       <div className="flex gap-2.5 overflow-x-auto pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((deal) => {
           const id = deal._id || deal.id;
-          const href = deal.linkedProductId ? `/product/${deal.linkedProductId}` : `/deal/${id}`;
+          const href = `/product/${deal.linkedProductId || deal.matchedProductId || deal.productId || id}`;
           const merchant = getMerchantInfo(deal.dealUrl || '');
           const priceStr = formatInr(deal.dealPrice, deal.country || 'IN');
 

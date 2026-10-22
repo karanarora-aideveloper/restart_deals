@@ -34,9 +34,16 @@ export default function SiteHeader() {
   const [focused, setFocused] = useState(false);
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isDealPanda, setIsDealPanda] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    if (typeof window !== 'undefined') {
+      const h = window.location.hostname.toLowerCase();
+      if (h.includes('dealpanda') || h.includes('dealspanda')) {
+        setIsDealPanda(true);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -237,8 +244,14 @@ export default function SiteHeader() {
       <div className="w-full bg-gradient-to-r from-[#FF6B00] via-[#e05d00] to-[#FF6B00]">
         <div className="mx-auto flex w-full max-w-[1360px] 2xl:max-w-[1400px] items-center justify-center px-4 py-1.5 md:px-8">
           <p className="truncate text-[11px] font-black tracking-wide text-white text-center">
-            <span className="md:hidden">🔥 Amazon GIF &amp; Flipkart BBD LIVE — Real deals tracked in real-time</span>
-            <span className="hidden md:inline">🔥 Amazon Great Indian Festival &amp; Flipkart Big Billion Days are LIVE — Every deal verified against 90-day price history</span>
+            {isDealPanda ? (
+              <>🔥 DealPanda Price Tracker LIVE — Real deals verified against 90-day price history</>
+            ) : (
+              <>
+                <span className="md:hidden">🔥 Amazon GIF &amp; Flipkart BBD LIVE — Real deals tracked in real-time</span>
+                <span className="hidden md:inline">🔥 Amazon Great Indian Festival &amp; Flipkart Big Billion Days are LIVE — Every deal verified against 90-day price history</span>
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -248,9 +261,20 @@ export default function SiteHeader() {
         <div className="mx-auto w-full max-w-[1360px] 2xl:max-w-[1400px] px-4 py-2 md:px-6 md:py-2.5">
           <div className="flex items-center justify-between gap-3 md:gap-6">
             <Link href="/" className="flex shrink-0 flex-row items-center">
-              <Image src="/logo.png" alt="ShoppersDeals Logo" width={32} height={32} className="mr-1.5 h-7 w-7 rounded-md md:mr-2 md:h-8 md:w-8" priority />
+              <Image
+                src={isDealPanda ? "/dealpanda-logo.png" : "/logo.png"}
+                alt={isDealPanda ? "DealPanda Logo" : "ShoppersDeals Logo"}
+                width={32}
+                height={32}
+                className="mr-1.5 h-7 w-7 rounded-md md:mr-2 md:h-8 md:w-8 object-contain"
+                priority
+              />
               <span className="text-[17px] font-black tracking-tight text-[#1a1a1a] md:text-[20px]">
-                Shoppers<span className="text-brand font-black">Deals</span>
+                {isDealPanda ? (
+                  <>Deal<span className="text-brand font-black">Panda</span></>
+                ) : (
+                  <>Shoppers<span className="text-brand font-black">Deals</span></>
+                )}
               </span>
             </Link>
 

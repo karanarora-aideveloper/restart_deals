@@ -10,7 +10,8 @@ import CompareDock from '@/components/CompareDock';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 import PushPromptBanner from '@/components/PushPromptBanner';
 import PostHogProvider from '@/components/PostHogProvider';
-import { SITE_URL, GA_MEASUREMENT_ID } from '@/lib/config';
+import { headers } from 'next/headers';
+import { SITE_URL, GA_MEASUREMENT_ID, getSiteBranding } from '@/lib/config';
 import './globals.css';
 
 
@@ -28,93 +29,100 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
-export const metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: 'ShoppersDeals: Best Live Deals & Shopping Coupons',
-    template: '%s | ShoppersDeals',
-  },
-  description:
-    'Find the hottest live deals and discounts from Amazon, Flipkart, and Myntra. Save big on electronics, fashion, and everyday essentials.',
-  applicationName: 'ShoppersDeals',
-  appleWebApp: { title: 'ShoppersDeals' },
-  manifest: '/site.webmanifest',
-  icons: {
-    icon: [
-      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-    ],
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+export async function generateMetadata() {
+  let host = '';
+  try {
+    const headerList = await headers();
+    host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  } catch (_) {}
+  const branding = getSiteBranding(host);
+
+  return {
+    metadataBase: new URL(branding.siteUrl),
+    title: {
+      default: branding.defaultTitle,
+      template: branding.titleTemplate,
+    },
+    description: branding.description,
+    applicationName: branding.brandName,
+    appleWebApp: { title: branding.brandName },
+    manifest: '/site.webmanifest',
+    icons: {
+      icon: [
+        { url: branding.isDealPanda ? '/dealpanda-logo.png' : '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+        { url: branding.isDealPanda ? '/dealpanda-logo.png' : '/favicon.svg', type: 'image/svg+xml' },
+      ],
+      shortcut: '/favicon.ico',
+      apple: branding.isDealPanda ? '/dealpanda-logo.png' : '/apple-touch-icon.png',
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  openGraph: {
-    type: 'website',
-    url: SITE_URL,
-    title: 'ShoppersDeals - The Best Live Shopping Deals, Coupons & Discounts',
-    description:
-      'Find the hottest live deals and discounts from Amazon, Flipkart, and Myntra. Save big on electronics, fashion, and everyday essentials.',
-    siteName: 'ShoppersDeals',
-    images: [`${SITE_URL}/logo.png`],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'ShoppersDeals - The Best Live Shopping Deals, Coupons & Discounts',
-    description:
-      'Find the hottest live deals, discounts, and offers from Amazon, Flipkart, Myntra, and more. Save big on electronics, fashion, and everyday essentials.',
-    images: [`${SITE_URL}/logo.png`],
-  },
-  other: {
-    'cuelinks-verification': 'VERIFY-CL-MKDHHLCP',
-  },
-};
-
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'ShoppersDeals',
-  url: `${SITE_URL}/`,
-  logo: `${SITE_URL}/logo.png`,
-  sameAs: [
-    'https://www.facebook.com/shoppersdeals',
-    'https://twitter.com/shoppersdeals',
-    'https://www.instagram.com/shoppersdeals',
-    'https://www.linkedin.com/company/shoppersdeals',
-    'https://www.youtube.com/@shoppersdeals',
-  ],
-};
-
-const webSiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'ShoppersDeals',
-  url: `${SITE_URL}/`,
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: `${SITE_URL}/?q={search_term_string}`,
+    openGraph: {
+      type: 'website',
+      url: branding.siteUrl,
+      title: `${branding.brandName} - The Best Live Shopping Deals, Coupons & Discounts`,
+      description: branding.description,
+      siteName: branding.brandName,
+      images: [branding.isDealPanda ? `${branding.siteUrl}/dealpanda-banner.png` : `${branding.siteUrl}/logo.png`],
     },
-    'query-input': 'required name=search_term_string',
-  },
-};
+    twitter: {
+      card: 'summary_large_image',
+      title: `${branding.brandName} - The Best Live Shopping Deals, Coupons & Discounts`,
+      description: branding.description,
+      images: [branding.isDealPanda ? `${branding.siteUrl}/dealpanda-banner.png` : `${branding.siteUrl}/logo.png`],
+    },
+    other: {
+      'cuelinks-verification': 'VERIFY-CL-MKDHHLCP',
+    },
+  };
+}
 
-// storeSchema and faqSchema live in app/page.js (homepage only) — schema markup must
-// only appear on pages where matching HTML content is visible to users. Putting FAQPage
-// on every route (deal, product, blog…) triggers a schema/content mismatch that Google
-// flags as a quality signal against the whole domain.
+export default async function RootLayout({ children }) {
+  let host = '';
+  try {
+    const headerList = await headers();
+    host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  } catch (_) {}
+  const branding = getSiteBranding(host);
 
-export default function RootLayout({ children }) {
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: branding.brandName,
+    url: `${branding.siteUrl}/`,
+    logo: `${branding.siteUrl}${branding.logoUrl}`,
+    sameAs: branding.isDealPanda ? [] : [
+      'https://www.facebook.com/shoppersdeals',
+      'https://twitter.com/shoppersdeals',
+      'https://www.instagram.com/shoppersdeals',
+      'https://www.linkedin.com/company/shoppersdeals',
+      'https://www.youtube.com/@shoppersdeals',
+    ],
+  };
+
+  const webSiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: branding.brandName,
+    url: `${branding.siteUrl}/`,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${branding.siteUrl}/?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
   return (
     <html lang="en" className={`${outfit.variable} ${plusJakarta.variable}`}>
       <head>

@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { fetchProductById, fetchProductVariants, findLatestDealForProduct, fetchTopProductsForSubcategory, fetchProducts } from '@/lib/api';
 import { getMerchantInfo, formatInr, formatRelativeTime, isUsableImageUrl, getAffiliateUrl } from '@/lib/affiliate';
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, getSiteBranding } from '@/lib/config';
 import { categoryLabel, subcategoryLabel } from '@/lib/taxonomy';
 import ProductGallery from '@/components/ProductGallery';
 import PriceHistoryChart from '@/components/PriceHistoryChart';
@@ -106,6 +107,13 @@ export async function generateMetadata({ params }) {
   const description = `Track lowest price & price history for ${displayTitle}. Current price: ${priceStr} on ${product.merchant ? product.merchant.toUpperCase() : 'online stores'}. Real-time drop alerts and verified price tracker.`;
   const hasImage = isUsableImageUrl(product.imageUrl);
 
+  let host = '';
+  try {
+    const headerList = await headers();
+    host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  } catch (_) {}
+  const branding = getSiteBranding(host);
+
   return {
     title: pageTitle,
     description,
@@ -113,9 +121,9 @@ export async function generateMetadata({ params }) {
     ...(hasImage ? {} : { robots: { index: false, follow: true } }),
     openGraph: {
       type: 'website',
-      title: `${pageTitle} | ShoppersDeals`,
+      title: `${pageTitle} | ${branding.brandName}`,
       description,
-      url: `${SITE_URL}/product/${id}`,
+      url: `${branding.siteUrl}/product/${id}`,
       images: isUsableImageUrl(product.imageUrl) ? [product.imageUrl] : undefined,
     },
     twitter: {

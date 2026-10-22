@@ -274,7 +274,7 @@ export default async function CategoryPage({ params, searchParams }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {deals.map((deal) => {
                 const dealId = deal._id || deal.id;
-                const href = deal.productId ? `/product/${deal.productId}` : `/deal/${dealId}`;
+                const href = `/product/${deal.linkedProductId || deal.matchedProductId || deal.productId || dealId}`;
                 const crawlTime = deal.lastVerifiedAt || deal.updatedAt || deal.postedAt || deal.createdAt;
                 const freshness = getCrawlFreshness(crawlTime);
                 return (

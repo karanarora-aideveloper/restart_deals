@@ -1,11 +1,20 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { getSiteBranding } from '@/lib/config';
 import ResetPreferencesButton from './ResetPreferencesButton';
 
 /**
  * Clean, fast server-rendered footer — brand summary, navigation links,
  * legal compliance, and Amazon Associate disclosure.
  */
-export default function SiteFooter() {
+export default async function SiteFooter() {
+  let host = '';
+  try {
+    const headerList = await headers();
+    host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  } catch (_) {}
+  const branding = getSiteBranding(host);
+
   return (
     <footer className="w-full bg-[#0f172a] pt-12 text-[#94a3b8]">
       <div className="mx-auto flex w-full max-w-[1360px] 2xl:max-w-[1400px] flex-wrap justify-between gap-10 px-4 sm:px-6 pb-10">
@@ -13,14 +22,14 @@ export default function SiteFooter() {
         <div className="min-w-[280px] max-w-[420px] flex-1">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white font-black text-lg">
-              SD
+              {branding.shortName}
             </span>
             <h2 className="text-xl font-black text-white">
-              Shoppers<span className="text-brand">Deals</span>
+              {branding.brandPrefix}<span className="text-brand">{branding.brandSuffix}</span>
             </h2>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-[#94a3b8]">
-            ShoppersDeals is India&apos;s premier live deal tracking platform. We monitor Amazon, Flipkart, Myntra, and top stores 24/7 to bring you verified price drops, lightning loot deals, and coupons.
+            {branding.footerSummary}
           </p>
           <div className="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-400">
             <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -87,7 +96,7 @@ export default function SiteFooter() {
       {/* Bottom Copyright & Disclaimer Bar */}
       <div className="w-full border-t border-[#1e293b] px-4 sm:px-6 py-4 sm:py-5 text-center bg-[#090e1a]">
         <p className="mx-auto max-w-[1360px] 2xl:max-w-[1400px] text-[11px] leading-relaxed text-[#64748b]">
-          © {new Date().getFullYear()} ShoppersDeals. All rights reserved. Prices and availability are accurate as of the date/time indicated and are subject to change. As an Amazon Associate and affiliate partner, we earn from qualifying purchases.
+          © {new Date().getFullYear()} {branding.copyrightOwner}. All rights reserved. Prices and availability are accurate as of the date/time indicated and are subject to change. As an Amazon Associate and affiliate partner, we earn from qualifying purchases.
         </p>
       </div>
     </footer>

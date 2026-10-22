@@ -1,6 +1,16 @@
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, getBaseUrl } from '@/lib/config';
+import { headers } from 'next/headers';
 
-export default function robots() {
+export const dynamic = 'force-dynamic';
+
+export default async function robots() {
+  let baseUrl = SITE_URL;
+  try {
+    const headerList = await headers();
+    const host = headerList.get('x-site-host') || headerList.get('x-forwarded-host') || headerList.get('host') || '';
+    baseUrl = getBaseUrl(host);
+  } catch (_) {}
+
   const bots = [
     'GPTBot',
     'OAI-SearchBot',
@@ -43,6 +53,6 @@ export default function robots() {
       },
       ...bots.map((userAgent) => ({ userAgent, allow: '/' })),
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
