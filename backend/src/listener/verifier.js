@@ -12,6 +12,7 @@ import { classifyProduct } from '../utils/categoryClassifier.js';
 import { findD2CStoreByUrl, D2C_STORES } from '../config/d2cStores.js';
 import { classifySourceEngine } from '../utils/engineClassifier.js';
 import { extractBankOffersAndCoupons } from '../utils/bankOffersExtractor.js';
+import { forceEnglishAmazonUrl, hasHindiCharacters, translateHindiToEnglish } from '../utils/languageUtils.js';
 
 const D2C_DOMAINS = D2C_STORES.flatMap(s => s.domains);
 const D2C_MERCHANTS = D2C_STORES.map(s => s.merchant);
@@ -197,8 +198,8 @@ export function cleanAndParseUrl(url) {
 
       if (asin) {
         productId = asin.toUpperCase();
-        // Construct canonical Amazon URL
-        cleanUrl = `https://${urlObj.hostname}/dp/${productId}`;
+        // Construct canonical Amazon URL (enforce English language parameter for Indian domain)
+        cleanUrl = `https://${urlObj.hostname}/dp/${productId}${urlObj.hostname.includes('amazon.in') ? '?language=en_IN' : ''}`;
         isProductUrl = true;
       } else {
         // No ASIN in the path — this is a search/category/storefront page
@@ -880,6 +881,9 @@ export async function scrapeProductDetails(targetUrl) {
 
       // Amazon Title
       title = $('#productTitle').text().trim() || $('meta[name="title"]').attr('content');
+      if (title && hasHindiCharacters(title)) {
+        title = await translateHindiToEnglish(title);
+      }
 
       // Amazon Brand
       brand = $('#bylineInfo').text().replace(/\s+/g, ' ').replace(/^Brand:\s*/i, '').replace(/^Visit the\s*/i, '').replace(/\s*Store$/i, '').trim() || null;
@@ -2042,7 +2046,10 @@ export async function verifyAndProcessMessage(sourceChannelId, sourceMessageId, 
   const messageTitle = extractTitleFromMessage(messageText);
   const urlTitle = extractTitleFromUrl(cleanUrl);
 
-  const actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || urlTitle || null;
+  let actualTitle = validScrapedTitle || validDetailsTitle || validExistingTitle || messageTitle || urlTitle || null;
+  if (actualTitle && hasHindiCharacters(actualTitle)) {
+    actualTitle = await translateHindiToEnglish(actualTitle);
+  }
 
   // STRICT AUTHENTIC TITLE GATE: If no authentic product title could be established, reject verification!
   // Prevents raw placeholders ("Amazon root link", "Master Link :", "Amazon Item (...)") from polluting verified deals feed.

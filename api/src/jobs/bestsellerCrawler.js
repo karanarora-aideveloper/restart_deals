@@ -4,6 +4,7 @@ import Product from '../db/models/product.js';
 import Deal from '../db/models/deal.js';
 import CrawlerSeed from '../db/models/crawlerSeed.js';
 import CrawlerConfig from '../db/models/crawlerConfig.js';
+import CrawlerRunLog from '../db/models/crawlerRunLog.js';
 import { apiCache } from '../utils/cache.js';
 import { scraperQueue, PRIORITY } from '../services/scraperQueue.js';
 import { meetsCategoryThreshold } from '../utils/categoryThresholds.js';
@@ -11,6 +12,9 @@ import { enqueueDealForPublishing } from '../services/dealPublishQueue.js';
 import { evaluateAndTriggerPriceAlerts } from '../utils/priceAlertNotifier.js';
 import { classifyProduct } from '../utils/categoryClassifier.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
+import { recordEngineHeartbeat } from '../utils/engineTracker.js';
+import { scrapeProductUrl } from '../utils/productScraper.js';
+import { forceEnglishAmazonUrl, hasHindiCharacters, translateHindiToEnglish } from '../utils/languageUtils.js';
 
 /**
  * Multi-Store Search URL Builder
@@ -40,7 +44,7 @@ export function buildStoreSearchUrl(store = 'amazon', keywords = '') {
       return `https://www.purplle.com/search?q=${enc}`;
     case 'amazon':
     default:
-      return `https://www.amazon.in/s?k=${enc}&s=exact-aware-popularity-rank`;
+      return `https://www.amazon.in/s?k=${enc}&s=exact-aware-popularity-rank&language=en_IN`;
   }
 }
 
@@ -622,7 +626,7 @@ export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
     const card = $el.is('div[data-id]') ? $el : $el.closest('div[data-id], div[class*="_1AtVbE"], div[class*="cPHDOP"]');
     const scope = card.length ? card : $el;
 
-    let title = scope.find('div.KzDlHZ, a.WKTcLC, div._4rR01T, a.IRpwTa, a._2B099V').first().text().trim();
+    let title = scope.find('div.RG5Slk, div.KzDlHZ, a.WKTcLC, div._4rR01T, a.IRpwTa, a._2B099V, [class*="RG5Slk"]').first().text().trim();
     const brand = scope.find('div._2WkVRV').first().text().trim();
     if (brand && title && !title.toLowerCase().startsWith(brand.toLowerCase())) {
       title = `${brand} ${title}`;
@@ -632,16 +636,16 @@ export function parseFlipkartBestsellerItems(html, categoryInfo, topN = 20) {
     }
     if (!title || title.length < 3) return;
 
-    const priceText = scope.find('div.Nx9bqj, div._30jeq3, div[class*="Nx9bqj"]').first().text().trim();
+    const priceText = scope.find('div.hZ3P6w, div.DeU9vF, div.Nx9bqj, div._30jeq3, [class*="hZ3P6w"], [class*="Nx9bqj"]').first().text().trim();
     const cleanPrice = cleanPriceVal(priceText);
     if (!cleanPrice) return;
 
-    const mrpText = scope.find('div.yRaY8j, div._3I9_R3, div[class*="yRaY8j"]').first().text().trim();
+    const mrpText = scope.find('div.kRYCnD, div.gxR4EY, div.yRaY8j, div._3I9_R3, [class*="kRYCnD"], [class*="yRaY8j"]').first().text().trim();
     const cleanMrp = cleanPriceVal(mrpText);
     const originalPrice = cleanMrp && cleanMrp >= cleanPrice ? cleanMrp : cleanPrice;
 
-    const imageUrl = scope.find('img.DByuf4, img._53G40d, img[src*="flixcart.com"], img[src*="rukminim"], img').first().attr('src');
-    const ratingText = scope.find('div._5OesEi span div, div._3LWZlK, div[class*="_3LWZlK"]').first().text().trim();
+    const imageUrl = scope.find('img.UCc1lI, img.DByuf4, img._53G40d, img[src*="flixcart.com"], img[src*="rukminim"], img').first().attr('src');
+    const ratingText = scope.find('div.MKiFS6, div._5OesEi span div, div._3LWZlK, div[class*="_3LWZlK"]').first().text().trim();
     const ratingNum = parseFloat(ratingText);
     const rating = !isNaN(ratingNum) && ratingNum >= 1 && ratingNum <= 5 ? ratingNum : 4.2;
 
@@ -1286,10 +1290,11 @@ let isCrawling = false;
  * products across supported stores, upsert each into the catalog and synthesize authentic deals.
  */
 async function crawlOneSeed(seed, stats) {
+  const seedStartTime = Date.now();
   const storeName = (seed.store || 'amazon').toUpperCase();
   console.log(`[Shoppers Deals Engine] Crawling ${storeName} ${seed.category}/${seed.subcategory} ("${seed.keywords}")...`);
 
-  const seedResult = { found: 0, enrolled: 0, updated: 0, error: null };
+  const seedResult = { found: 0, enrolled: 0, updated: 0, dealsCreated: 0, error: null, itemsPreview: [] };
   try {
     const html = await fetchCategoryHtml(seed.url);
     if (!html) {
@@ -1305,6 +1310,18 @@ async function crawlOneSeed(seed, stats) {
       const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
       for (const prodData of products) {
+        if (prodData.title && hasHindiCharacters(prodData.title)) {
+          prodData.title = await translateHindiToEnglish(prodData.title);
+        }
+        if (seedResult.itemsPreview.length < 10) {
+          seedResult.itemsPreview.push({
+            title: prodData.title ? prodData.title.slice(0, 140) : null,
+            price: prodData.price || null,
+            originalPrice: prodData.originalPrice || null,
+            productId: prodData.productId,
+            isNewProduct: false, // will update below if enrolled
+          });
+        }
         const existing = await Product.findOne({ productId: prodData.productId });
 
         if (existing) {
@@ -1377,6 +1394,11 @@ async function crawlOneSeed(seed, stats) {
                   priceSource: 'price_history',
                   category: existing.category || 'general',
                   subcategory: existing.subcategory || '',
+                  bankOffers: existing.bankOffers || [],
+                  bankOfferPrice: (existing.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity) !== Infinity
+                    ? (existing.bankOffers || []).reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity)
+                    : null,
+                  coupon: existing.coupon ? { type: 'code', value: null, code: null, label: existing.coupon } : null,
                   isVerified: true,
                   isExpired: false,
                   lastVerifiedAt: now,
@@ -1385,6 +1407,7 @@ async function crawlOneSeed(seed, stats) {
                   updatedAt: now,
                 });
                 await deal.save();
+                seedResult.dealsCreated = (seedResult.dealsCreated || 0) + 1;
                 apiCache.invalidatePattern('/api/deals');
                 enqueueDealForPublishing(deal._id, { sourceEngine: 'shoppers_deals_engine' }).catch(() => {});
                 evaluateAndTriggerPriceAlerts({
@@ -1396,6 +1419,45 @@ async function crawlOneSeed(seed, stats) {
                   merchant: existing.merchant,
                   category: existing.category,
                   subcategory: existing.subcategory,
+                }).catch(() => {});
+
+                // Tier 2 On-Demand PDP Enrichment (Locked Decision #23)
+                // Pull full gallery, live bank offers, and coupons for newly detected deal
+                scrapeProductUrl(existing.cleanUrl, PRIORITY.INTERACTIVE).then(async (scrapedPdp) => {
+                  if (scrapedPdp) {
+                    const updateFields = { lastPdpSyncAt: new Date() };
+                    if (scrapedPdp.images && scrapedPdp.images.length > 1) {
+                      updateFields.images = scrapedPdp.images;
+                      updateFields.imageUrl = scrapedPdp.imageUrl || scrapedPdp.images[0];
+                    }
+                    if (scrapedPdp.bankOffers && scrapedPdp.bankOffers.length > 0) {
+                      updateFields.bankOffers = scrapedPdp.bankOffers;
+                    }
+                    if (scrapedPdp.coupon) {
+                      updateFields.coupon = scrapedPdp.coupon;
+                    }
+                    await Product.updateOne({ _id: existing._id }, { $set: updateFields }).catch(() => {});
+
+                    const dealUpdate = {};
+                    if (scrapedPdp.images && scrapedPdp.images.length > 1) {
+                      dealUpdate.images = scrapedPdp.images;
+                      dealUpdate.imageUrl = scrapedPdp.imageUrl || scrapedPdp.images[0];
+                    }
+                    if (scrapedPdp.bankOffers && scrapedPdp.bankOffers.length > 0) {
+                      dealUpdate.bankOffers = scrapedPdp.bankOffers;
+                      const lowestEffective = scrapedPdp.bankOffers.reduce((min, o) => o.effectivePrice && o.effectivePrice < min ? o.effectivePrice : min, Infinity);
+                      if (lowestEffective !== Infinity && lowestEffective < prodData.price) {
+                        dealUpdate.bankOfferPrice = lowestEffective;
+                      }
+                    }
+                    if (scrapedPdp.coupon) {
+                      dealUpdate.coupon = { type: 'code', value: null, code: null, label: scrapedPdp.coupon };
+                    }
+                    if (Object.keys(dealUpdate).length > 0) {
+                      await Deal.updateOne({ _id: deal._id }, { $set: dealUpdate }).catch(() => {});
+                      apiCache.invalidatePattern('/api/deals');
+                    }
+                  }
                 }).catch(() => {});
               }
             }
@@ -1432,8 +1494,37 @@ async function crawlOneSeed(seed, stats) {
     seedResult.error = err.message;
   }
 
+  const durationMs = Date.now() - seedStartTime;
   stats.seedsCrawled++;
-  await CrawlerSeed.updateOne({ _id: seed._id }, { lastRunAt: new Date(), lastResult: seedResult }).catch(() => {});
+
+  const runDate = new Date();
+  await CrawlerRunLog.create({
+    seedId: seed._id,
+    store: seed.store || 'amazon',
+    category: seed.category,
+    subcategory: seed.subcategory,
+    keywords: seed.keywords,
+    url: seed.url,
+    status: seedResult.error ? 'error' : 'success',
+    found: seedResult.found,
+    enrolled: seedResult.enrolled,
+    updated: seedResult.updated,
+    dealsCreated: seedResult.dealsCreated || 0,
+    durationMs,
+    error: seedResult.error,
+    itemsPreview: seedResult.itemsPreview || [],
+    executedAt: runDate,
+  }).catch(err => console.warn('[CrawlerRunLog Warning] Failed to save run log:', err.message));
+
+  const seedUpdate = {
+    lastRunAt: runDate,
+    lastResult: seedResult,
+    $inc: { totalRuns: 1 },
+  };
+  if (!seed.firstRunAt) {
+    seedUpdate.firstRunAt = runDate;
+  }
+  await CrawlerSeed.updateOne({ _id: seed._id }, seedUpdate).catch(() => {});
 }
 
 /**
@@ -1639,14 +1730,29 @@ export function startBestsellerCrawlerScheduler() {
     }
   }, 15000);
 
-  setTimeout(async () => {
+  // Periodically record Engine 3 (Bestseller Crawler) heartbeat to MongoDB Atlas every 60 seconds
+  const sendCrawlerHeartbeat = async () => {
     try {
-      await ensureCrawlerDefaults();
-      await tickContinuousSearchPipeline();
-    } catch (err) {
-      console.error('[Continuous Pipeline Bootstrap Failed]:', err.message);
-    }
-  }, 5000);
+      const [totalSeeds, activeSeeds] = await Promise.all([
+        CrawlerSeed.countDocuments({}).catch(() => 0),
+        CrawlerSeed.countDocuments({ isEnabled: true }).catch(() => 0),
+      ]);
+      await recordEngineHeartbeat({
+        engineId: 'engine_3_bestseller_crawler',
+        name: 'Bestseller Category Crawler (Engine 3)',
+        service: 'api',
+        status: activeSeeds > 0 ? 'healthy' : 'idle',
+        metrics: {
+          totalSeeds,
+          activeSeeds,
+          tickIntervalSeconds: 15,
+        },
+        lastActivity: new Date(),
+      });
+    } catch (e) {}
+  };
+  sendCrawlerHeartbeat();
+  setInterval(sendCrawlerHeartbeat, 60 * 1000);
 }
 
 /**

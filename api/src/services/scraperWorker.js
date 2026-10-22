@@ -10,9 +10,11 @@ import zlib from 'zlib';
 import { createRedisConnection } from '../utils/redis.js';
 import { installSystemLogger } from '../utils/systemLogger.js';
 import ScrapingAntToken from '../db/models/scrapingAntToken.js';
+import ZenRowsToken from '../db/models/zenRowsToken.js';
 import ScrapingLog from '../db/models/scrapingLog.js';
 import { triggerTokenReplenishmentIfLow } from './tokenReplenisher.js';
 import { checkScrapingAntUsage } from '../utils/scrapingAntUsage.js';
+import { forceEnglishAmazonUrl, hasHindiCharacters, translateHindiToEnglish } from '../utils/languageUtils.js';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../backend/.env') });
@@ -31,10 +33,11 @@ function detectMerchant(url) {
   if (url.includes('ajio.')) return 'ajio';
   if (url.includes('shopsy.')) return 'shopsy';
   if (url.includes('meesho.')) return 'meesho';
+  if (url.includes('croma.')) return 'croma';
   return 'unknown';
 }
 
-function extractBasicMetadata(html) {
+async function extractBasicMetadata(html) {
   if (!html) return {};
   try {
     const $ = cheerio.load(html);
@@ -52,46 +55,230 @@ function extractBasicMetadata(html) {
         rawTitle = $('meta[property="og:title"]').attr('content')?.trim() || $('title').text().trim();
       }
       rawTitle = rawTitle.replace(/^Amazon\.[a-z.]+\s*:\s*/i, '').trim();
+      if (hasHindiCharacters(rawTitle)) {
+        rawTitle = await translateHindiToEnglish(rawTitle);
+      }
     }
 
     let priceText = $(
-      '#apexPriceToPay .a-offscreen, .priceToPay .a-price-whole, .priceToPay .a-offscreen, .priceToPay, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-price-whole, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-offscreen, ._30jeq3, .pdp-price strong, ._cDEzb_p13n-sc-price_3mJ9Z'
+      '#apexPriceToPay .a-offscreen, .priceToPay .a-price-whole, .priceToPay .a-offscreen, .priceToPay, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-price-whole, .a-price:not(.a-text-price):not(.apex-basisprice-value) .a-offscreen, ._30jeq3, .Nx9bqj, .hZ3P6w, .DeU9vF, [class*="hZ3P6w"], [class*="Nx9bqj"], .pdp-price strong, ._cDEzb_p13n-sc-price_3mJ9Z'
     ).first().text().trim();
-    const price = parseFloat(priceText.replace(/[^\d.]/g, ''));
+    let price = parseFloat(priceText.replace(/[^\d.]/g, ''));
+    if (isNaN(price) || price <= 0) {
+      price = null;
+      $('script[type="application/ld+json"]').each((_, el) => {
+        if (price) return;
+        try {
+          const parsed = JSON.parse($(el).contents().text());
+          const roots = Array.isArray(parsed) ? parsed : [parsed];
+          for (const root of roots) {
+            for (const node of (root['@graph'] || [root])) {
+              if (node && node.offers) {
+                const offer = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+                const p = parseFloat(offer?.price ?? offer?.lowPrice);
+                if (!isNaN(p) && p > 0) {
+                  price = p;
+                  return;
+                }
+              }
+            }
+          }
+        } catch {}
+      });
+    }
 
     return {
       title: rawTitle && rawTitle.length > 2 ? rawTitle.slice(0, 160) : null,
-      price: !isNaN(price) && price > 0 ? price : null,
+      price: price && price > 0 ? price : null,
     };
   } catch (e) {
     return {};
   }
 }
 
-function isChallengeOrBlockedHtml(html) {
-  if (!html || html.length < 500) return true;
+function getChallengeReason(html) {
+  if (!html) return 'empty_html';
+  if (html.length < 500) return 'html_too_short';
   const lower = html.toLowerCase();
-  return (
+  if (
+    lower.includes('api-services-support@amazon.com') ||
     lower.includes('robot check') ||
     lower.includes('type the characters you see in this image') ||
-    lower.includes('api-services-support@amazon.com') ||
-    lower.includes('checking your browser before accessing') ||
-    lower.includes('challenge-running') ||
-    lower.includes('cf-browser-verification') ||
-    lower.includes('waf-challenge') ||
-    lower.includes('access denied') ||
-    lower.includes('detected unusual traffic')
-  );
+    (lower.includes('click the button below to continue shopping') && lower.includes('continue shopping'))
+  ) {
+    return 'amazon_bot_interstitial';
+  }
+  if (lower.includes('cf-browser-verification') || lower.includes('challenge-running') || lower.includes('checking your browser before accessing')) {
+    return 'cloudflare_challenge';
+  }
+  if (lower.includes('waf-challenge')) return 'waf_challenge';
+  if (lower.includes('<title>access denied</title>') || lower.includes('<h1>access denied</h1>') || (html.length < 5000 && lower.includes('access denied'))) {
+    return 'access_denied';
+  }
+  if (lower.includes('detected unusual traffic')) return 'unusual_traffic';
+  return null;
+}
+
+function isChallengeOrBlockedHtml(html) {
+  return Boolean(getChallengeReason(html));
 }
 
 function isValidHtmlResult(url, html, extracted) {
   if (!html || isChallengeOrBlockedHtml(html)) return false;
   // If it's a search/listing page:
-  if (url.includes('/s?') || url.includes('/bestsellers') || url.includes('/search')) {
-    return html.includes('data-asin') || html.includes('s-result-item') || html.includes('_1AtVbE');
+  if (url.includes('/s?') || url.includes('/bestsellers') || url.includes('/search') || url.includes('/searchB') || url.includes('croma.com') || url.includes('meesho.com')) {
+    return Boolean(
+      html.includes('data-asin') ||
+      html.includes('s-result-item') ||
+      html.includes('_1AtVbE') ||
+      html.includes('_75nlfW') ||
+      html.includes('cPHDOP') ||
+      html.includes('yKfokO') ||
+      html.includes('data-id') ||
+      html.includes('product-item') ||
+      html.includes('croma') ||
+      html.includes('cp-product') ||
+      html.includes('product-card') ||
+      (url.includes('meesho.com') && (html.includes('__NEXT_DATA__') || html.includes('ProductCard') || html.includes('Card__BaseCard') || html.includes('product-title')))
+    );
   }
   // If it's a product detail page:
-  return Boolean(extracted && extracted.price != null && extracted.price > 0);
+  return Boolean((extracted && extracted.price != null && extracted.price > 0) || (extracted && extracted.title && html.length > 5000));
+}
+
+// STRICT HOST IP PROTECTION:
+// Direct scraping and local browser fallback from the host IP are permanently prohibited.
+// All merchant requests must route through third-party proxy/scraper providers.
+
+/**
+ * Try alternative external scraper proxy APIs if configured in environment.
+ * ABSOLUTELY ZERO HOST IP SCRAPING: Only calls third-party SaaS proxy endpoints.
+ */
+async function tryAlternativeProxyProviders(url, source, startTime) {
+  const isUs = url.includes('amazon.com') || url.includes('.us');
+  const country = isUs ? 'us' : 'in';
+
+  // 1. Paid ScrapingAnt Key (Unrestricted domains)
+  if (process.env.SCRAPINGANT_PAID_KEY) {
+    const key = process.env.SCRAPINGANT_PAID_KEY;
+    const antUrl = `https://api.scrapingant.com/v2/general?x-api-key=${key}&url=${encodeURIComponent(url)}&browser=false&proxy_type=residential&proxy_country=${country.toUpperCase()}`;
+    try {
+      console.log(`[AlternativeProxy] Trying paid ScrapingAnt key for ${url.slice(0, 45)}...`);
+      const res = await fetch(antUrl, { signal: AbortSignal.timeout(20000) });
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await recordScrapingLog({
+            url, source, mode: 'scrapingant_paid', tokenUsed: key,
+            status: 'success_alt_provider', statusCode: 200, durationMs: Date.now() - startTime, extractedData: extracted,
+          });
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        }
+      }
+    } catch (e) {
+      console.warn('[AlternativeProxy] ScrapingAnt paid key error:', e.message);
+    }
+  }
+
+  // 2. ScraperAPI (https://www.scraperapi.com)
+  if (process.env.SCRAPERAPI_KEY) {
+    const key = process.env.SCRAPERAPI_KEY;
+    const sUrl = `https://api.scraperapi.com?api_key=${key}&url=${encodeURIComponent(url)}&country_code=${country}&render=true`;
+    try {
+      console.log(`[AlternativeProxy] Trying ScraperAPI for ${url.slice(0, 45)}...`);
+      const res = await fetch(sUrl, { signal: AbortSignal.timeout(35000) });
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await recordScrapingLog({
+            url, source, mode: 'scraperapi', tokenUsed: key,
+            status: 'success_alt_provider', statusCode: 200, durationMs: Date.now() - startTime, extractedData: extracted,
+          });
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        }
+      }
+    } catch (e) {
+      console.warn('[AlternativeProxy] ScraperAPI error:', e.message);
+    }
+  }
+
+  // 3. ZenRows (https://www.zenrows.com)
+  if (process.env.ZENROWS_API_KEY) {
+    const key = process.env.ZENROWS_API_KEY;
+    const zUrl = `https://api.zenrows.com/v1/?apikey=${key}&url=${encodeURIComponent(url)}&premium_proxy=true&proxy_country=${country}&js_render=true`;
+    try {
+      console.log(`[AlternativeProxy] Trying ZenRows for ${url.slice(0, 45)}...`);
+      const res = await fetch(zUrl, { signal: AbortSignal.timeout(35000) });
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await recordScrapingLog({
+            url, source, mode: 'zenrows', tokenUsed: key,
+            status: 'success_alt_provider', statusCode: 200, durationMs: Date.now() - startTime, extractedData: extracted,
+          });
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        }
+      }
+    } catch (e) {
+      console.warn('[AlternativeProxy] ZenRows error:', e.message);
+    }
+  }
+
+  // 4. WebScrapingAPI (https://www.webscrapingapi.com)
+  if (process.env.WEBSCRAPINGAPI_KEY) {
+    const key = process.env.WEBSCRAPINGAPI_KEY;
+    const wsUrl = `https://api.webscrapingapi.com/v1?api_key=${key}&url=${encodeURIComponent(url)}&country_code=${country}&render_js=1`;
+    try {
+      console.log(`[AlternativeProxy] Trying WebScrapingAPI for ${url.slice(0, 45)}...`);
+      const res = await fetch(wsUrl, { signal: AbortSignal.timeout(35000) });
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await recordScrapingLog({
+            url, source, mode: 'webscrapingapi', tokenUsed: key,
+            status: 'success_alt_provider', statusCode: 200, durationMs: Date.now() - startTime, extractedData: extracted,
+          });
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        }
+      }
+    } catch (e) {
+      console.warn('[AlternativeProxy] WebScrapingAPI error:', e.message);
+    }
+  }
+
+  // 5. ScrapingBee (https://www.scrapingbee.com)
+  if (process.env.SCRAPINGBEE_API_KEY) {
+    const key = process.env.SCRAPINGBEE_API_KEY;
+    const sbUrl = `https://app.scrapingbee.com/api/v1/?api_key=${key}&url=${encodeURIComponent(url)}&country_code=${country}&render_js=true`;
+    try {
+      console.log(`[AlternativeProxy] Trying ScrapingBee for ${url.slice(0, 45)}...`);
+      const res = await fetch(sbUrl, { signal: AbortSignal.timeout(35000) });
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await recordScrapingLog({
+            url, source, mode: 'scrapingbee', tokenUsed: key,
+            status: 'success_alt_provider', statusCode: 200, durationMs: Date.now() - startTime, extractedData: extracted,
+          });
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        }
+      }
+    } catch (e) {
+      console.warn('[AlternativeProxy] ScrapingBee error:', e.message);
+    }
+  }
+
+  return null;
 }
 
 async function recordScrapingLog(data) {
@@ -101,8 +288,12 @@ async function recordScrapingLog(data) {
       domain: new URL(data.url).hostname || '',
       merchant: detectMerchant(data.url),
       source: ['interactive', 'telegram', 'daily_refresh', 'bestseller_crawler', 'shoppers_deals_engine', 'catalog_top20', 'test'].includes(data.source) ? data.source : (data.source?.startsWith('test') ? 'test' : 'other'),
-      mode: 'scrapingant_proxy',
-      tokenUsed: data.tokenUsed ? `${data.tokenUsed.slice(0, 6)}••••${data.tokenUsed.slice(-4)}` : null,
+      mode: data.mode || (data.tokenUsed === 'local_direct' ? 'direct' : 'scrapingant_proxy'),
+      tokenUsed: data.tokenUsed ? (data.tokenUsed === 'local_direct' ? 'local_direct' : `${data.tokenUsed.slice(0, 6)}••••${data.tokenUsed.slice(-4)}`) : null,
+      tierAttempted: data.tierAttempted || null,
+      failReason: data.failReason || null,
+      responseSnippet: data.responseSnippet || null,
+      scrapingAntError: data.scrapingAntError || null,
       status: data.status || 'success',
       statusCode: data.statusCode || 200,
       durationMs: data.durationMs || 0,
@@ -125,9 +316,15 @@ export async function executeScrapingAntJob(url, source = 'other') {
   const MAX_FAILOVER_ATTEMPTS = 5;
   const excludedTokens = new Set();
 
-  const isUs = url.includes('amazon.com') || url.includes('.us');
+  const targetUrl = forceEnglishAmazonUrl(url);
+  const isUs = targetUrl.includes('amazon.com') || targetUrl.includes('.us');
   const countryParam = isUs ? '&proxy_country=US' : '&proxy_country=IN';
-  const proxyType = url.includes('amazon.in') ? 'datacenter' : 'residential';
+  const proxyType = targetUrl.includes('amazon.in') ? 'datacenter' : 'residential';
+  const amazonCookies = targetUrl.includes('amazon.') ? `&cookies=${encodeURIComponent('lc-acbin=en_IN; i18n-prefs=INR')}` : '';
+  const antHeaders = {
+    'Ant-Accept-Language': 'en-US,en;q=0.9',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+  };
 
   let lastError = null;
 
@@ -172,18 +369,18 @@ export async function executeScrapingAntJob(url, source = 'other') {
     const token = leased.token;
     excludedTokens.add(token);
 
-    const fastApiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=false&proxy_type=${proxyType}${countryParam}`;
+    const fastApiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(targetUrl)}&browser=false&proxy_type=${proxyType}${countryParam}${amazonCookies}`;
 
     // TIER 1: Fast Raw HTML Request (1 API credit, ~1-3s response)
     // Most Amazon India PDPs & search listing pages return full price and metadata in raw HTML.
     try {
       const fastStartTime = Date.now();
-      const fastRes = await fetch(fastApiUrl, { signal: AbortSignal.timeout(15000) });
+      const fastRes = await fetch(fastApiUrl, { headers: antHeaders, signal: AbortSignal.timeout(15000) });
       const fastDurationMs = Date.now() - fastStartTime;
 
       if (fastRes.ok) {
         const html = await fastRes.text();
-        const extracted = extractBasicMetadata(html);
+        const extracted = await extractBasicMetadata(html);
 
         if (isValidHtmlResult(url, html, extracted)) {
           await ScrapingAntToken.updateOne({ token }, { lastUsedAt: new Date(), $inc: { usageCount: 1 }, $set: { leasedUntil: null } }).catch(() => {});
@@ -202,6 +399,12 @@ export async function executeScrapingAntJob(url, source = 'other') {
         } else {
           console.log(`[ScraperWorker] Fast Tier HTML did not contain valid price/listing for ${url.slice(0, 45)}. Escalating to Headless Browser Tier...`);
         }
+      } else if (fastRes.status === 422) {
+        const fastErrText = await fastRes.text().catch(() => '');
+        console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... received HTTP 422 (Free plan domain restriction). Free token cannot scrape ${url.slice(0, 45)}.`);
+        await ScrapingAntToken.updateOne({ token }, { $set: { leasedUntil: null, cooldownUntil: new Date(Date.now() + 6 * 3600 * 1000) } }).catch(() => {});
+        lastError = new Error(`ScrapingAnt HTTP 422: Free plan domain restriction`);
+        continue;
       } else if (fastRes.status === 403) {
         console.warn(`[ScraperWorker] Token ${token.slice(0, 8)}... received HTTP 403 on fast tier. Rotating token...`);
         await recordScrapingLog({
@@ -287,7 +490,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
 
     // TIER 2: Full Headless Browser with Anti-Detect (10 credits, 30-70s)
     // Used when fast tier encounters JS rendering requirement or anti-bot challenge.
-    const apiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(url)}&browser=true&proxy_type=${proxyType}${countryParam}`;
+    const apiUrl = `https://api.scrapingant.com/v2/general?x-api-key=${token}&url=${encodeURIComponent(targetUrl)}&browser=true&proxy_type=${proxyType}${countryParam}${amazonCookies}`;
 
     let response = null;
     let durationMs = 0;
@@ -300,7 +503,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
     ).catch(() => {});
 
     try {
-      response = await fetch(apiUrl, { signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
+      response = await fetch(apiUrl, { headers: antHeaders, signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS) });
       durationMs = Date.now() - attemptStartTime;
     } catch (fetchErr) {
       durationMs = Date.now() - attemptStartTime;
@@ -456,7 +659,7 @@ export async function executeScrapingAntJob(url, source = 'other') {
         }
       ).catch(() => {});
 
-      const extracted = extractBasicMetadata(html);
+      const extracted = await extractBasicMetadata(html);
       await recordScrapingLog({
         url,
         source,
@@ -469,6 +672,24 @@ export async function executeScrapingAntJob(url, source = 'other') {
 
       const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
       return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+    }
+
+    // 422 Free plan domain restriction on headless tier
+    if (response.status === 422) {
+      const errText = await response.text().catch(() => '');
+      console.warn(`[ScraperWorker] ScrapingAnt 422 on ${url.slice(0, 45)} with token ${token.slice(0, 8)}... Free plan restricted domain.`);
+      await ScrapingAntToken.updateOne({ token }, { $set: { leasedUntil: null, cooldownUntil: new Date(Date.now() + 6 * 3600 * 1000) } }).catch(() => {});
+      await recordScrapingLog({
+        url,
+        source,
+        tokenUsed: token,
+        status: 'error',
+        statusCode: 422,
+        durationMs,
+        errorMessage: 'ScrapingAnt HTTP 422: Free plan domain restriction',
+      });
+      lastError = new Error('ScrapingAnt HTTP 422: Domain restricted on free plan');
+      continue;
     }
 
     // Other HTTP error (e.g. 500, 502, 504 from gateway)
@@ -487,8 +708,138 @@ export async function executeScrapingAntJob(url, source = 'other') {
     continue;
   }
 
-  // All failover attempts exhausted or pool empty
-  throw (lastError || new Error(`No active ScrapingAnt tokens available after ${MAX_FAILOVER_ATTEMPTS} attempts for ${url}`));
+  // Check alternative proxy providers (ScraperAPI, ZenRows, WebScrapingAPI, ScrapingBee, paid keys) if configured
+  const altResult = await tryAlternativeProxyProviders(url, source, startTime);
+  if (altResult) return altResult;
+
+  // All failover attempts exhausted or pool empty. Direct scraping is STRICTLY PROHIBITED to protect host IP.
+  console.warn(`[ScraperWorker] All proxy scrapers exhausted for ${url.slice(0, 45)}. Direct scraping is strictly prohibited to protect host IP.`);
+  await recordScrapingLog({
+    url,
+    source,
+    mode: 'proxy_exhausted',
+    tokenUsed: null,
+    status: 'error',
+    statusCode: 503,
+    durationMs: Date.now() - startTime,
+    failReason: 'all_proxies_exhausted',
+    errorMessage: lastError?.message || 'All proxy scrapers exhausted. Direct scraping strictly prohibited.',
+  });
+  throw (lastError || new Error(`All proxy scrapers exhausted for ${url}. Direct IP scraping strictly prohibited.`));
+}
+
+/**
+ * Execute ZenRows Scrape with Token Lease & Backoff
+ */
+export async function executeZenRowsJob(url, source = 'other') {
+  const startTime = Date.now();
+  const MAX_ATTEMPTS = 3;
+  const excludedTokens = new Set();
+  const isUs = url.includes('amazon.com') || url.includes('.us');
+  const country = isUs ? 'us' : 'in';
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const now = new Date();
+    const leased = await ZenRowsToken.findOneAndUpdate(
+      {
+        status: 'active',
+        token: { $nin: Array.from(excludedTokens) },
+        $and: [
+          { $or: [{ cooldownUntil: { $exists: false } }, { cooldownUntil: null }, { cooldownUntil: { $lte: now } }] },
+          { $or: [{ leasedUntil: { $exists: false } }, { leasedUntil: null }, { leasedUntil: { $lte: now } }] },
+        ]
+      },
+      { $set: { lastUsedAt: now, leasedUntil: new Date(Date.now() + 60000) } },
+      { sort: { lastUsedAt: 1 }, new: true }
+    ).lean();
+
+    if (!leased) {
+      if (attempt < MAX_ATTEMPTS) {
+        // Active tokens are currently in flight or brief cooldown; wait for release
+        await new Promise(r => setTimeout(r, 1800));
+        continue;
+      }
+      break;
+    }
+
+    const token = leased.token;
+    excludedTokens.add(token);
+
+    const targetUrl = forceEnglishAmazonUrl(url);
+    const zenrowsHeaders = {
+      'Accept-Language': 'en-US,en;q=0.9',
+      ...(targetUrl.includes('amazon.') ? { 'Cookie': 'lc-acbin=en_IN; i18n-prefs=INR' } : {})
+    };
+    const zenrowsApiUrl = `https://api.zenrows.com/v1/?apikey=${token}&url=${encodeURIComponent(targetUrl)}&js_render=true&premium_proxy=true&proxy_country=${country}&custom_headers=true`;
+    const attemptStart = Date.now();
+
+    try {
+      const res = await fetch(zenrowsApiUrl, { headers: zenrowsHeaders, signal: AbortSignal.timeout(45000) });
+      const durationMs = Date.now() - attemptStart;
+
+      if (res.ok) {
+        const html = await res.text();
+        const extracted = await extractBasicMetadata(html);
+        if (isValidHtmlResult(url, html, extracted)) {
+          await ZenRowsToken.updateOne(
+            { token },
+            {
+              lastUsedAt: new Date(),
+              $inc: { usageCount: 1, remainedCredits: -25 },
+              $set: { leasedUntil: null, cooldownUntil: new Date(Date.now() + 1500) }
+            }
+          ).catch(() => {});
+
+          await recordScrapingLog({
+            url,
+            source,
+            tokenUsed: token,
+            mode: 'zenrows_proxy',
+            status: 'success_zenrows',
+            statusCode: 200,
+            durationMs,
+            extractedData: extracted,
+          });
+
+          console.log(`[ScraperWorker] ⚡ ZenRows Success in ${durationMs}ms: "${extracted.title?.slice(0, 40) || url.slice(0, 40)}" (₹${extracted.price || 0})`);
+          const htmlGzip = zlib.gzipSync(Buffer.from(html, 'utf-8')).toString('base64');
+          return { htmlGzip, extractedData: extracted, durationMs: Date.now() - startTime };
+        } else {
+          console.log(`[ScraperWorker] ZenRows HTML did not contain valid price/listing for ${url.slice(0, 45)}.`);
+          await ZenRowsToken.updateOne({ token }, { $set: { leasedUntil: null } }).catch(() => {});
+        }
+      } else if (res.status === 402 || res.status === 403) {
+        console.warn(`[ScraperWorker] ZenRows token ${token.slice(0, 8)}... quota exhausted (${res.status}). Marking parked.`);
+        await ZenRowsToken.updateOne({ token }, { status: 'exhausted', exhaustedAt: new Date(), leasedUntil: null }).catch(() => {});
+      } else {
+        await ZenRowsToken.updateOne({ token }, { $set: { leasedUntil: null, cooldownUntil: new Date(Date.now() + 10000) } }).catch(() => {});
+      }
+    } catch (err) {
+      await ZenRowsToken.updateOne({ token }, { $set: { leasedUntil: null } }).catch(() => {});
+      console.warn(`[ScraperWorker] ZenRows request failed for ${url.slice(0, 45)}:`, err.message);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Unified Multi-Provider Scrape Dispatcher:
+ * 1. Tries ZenRows proxy pool first (especially effective on Amazon/Flipkart/Nykaa)
+ * 2. Tries ScrapingAnt proxy pool
+ * 3. Never touches host IP
+ */
+export async function executeMultiProviderScrapeJob(url, source = 'other') {
+  // Try ZenRows pool first
+  try {
+    const zenrowsResult = await executeZenRowsJob(url, source);
+    if (zenrowsResult) return zenrowsResult;
+  } catch (err) {
+    console.warn('[ScraperWorker] ZenRows scrape pass error:', err.message);
+  }
+
+  // Fall back to ScrapingAnt pool
+  return await executeScrapingAntJob(url, source);
 }
 
 let workerInstance = null;
@@ -507,7 +858,7 @@ export function initScraperWorker(workerIndex = '1') {
     async (job) => {
       const { url, source } = job.data;
       console.log(`[Scraper Worker #${workerIndex}] Processing Job #${job.id} [Priority ${job.opts.priority || 3}]: ${url.slice(0, 50)}...`);
-      const result = await executeScrapingAntJob(url, source);
+      const result = await executeMultiProviderScrapeJob(url, source);
       return result;
     },
     {

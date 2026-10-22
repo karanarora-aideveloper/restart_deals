@@ -1,8 +1,12 @@
 import OutputChannel from '../../db/models/outputChannel.js';
 import { buildAffiliateUrl, getWebsiteDealUrl, formatPriceCurrency } from '../../utils/affiliate.js';
+import { hasHindiCharacters, translateHindiToEnglish } from '../../utils/languageUtils.js';
 
-export function formatWhatsAppMessage(deal) {
-  const title = deal.title || 'Special Deal';
+export async function formatWhatsAppMessage(deal) {
+  let title = deal.title || 'Special Deal';
+  if (hasHindiCharacters(title)) {
+    title = await translateHindiToEnglish(title);
+  }
   const country = deal.country || 'IN';
   const dealPriceFormatted = formatPriceCurrency(deal.dealPrice, country);
   const dealPriceStr = dealPriceFormatted || 'Special Price';
@@ -77,11 +81,12 @@ async function publishViaWaha(deal, channelDoc) {
 
   const baseUrl = wahaBaseUrl.replace(/\/+$/, '');
   const session = wahaSession || 'default';
+  const apiKey = wahaApiKey || process.env.WAHA_API_KEY || 'shoppersdeals_waha_key_2026';
   const headers = {
     'Content-Type': 'application/json',
-    ...(wahaApiKey ? { 'X-Api-Key': wahaApiKey } : {})
+    ...(apiKey ? { 'X-Api-Key': apiKey } : {})
   };
-  const message = formatWhatsAppMessage(deal);
+  const message = await formatWhatsAppMessage(deal);
 
   try {
     await simulateTyping(baseUrl, headers, session, chatId, message);
@@ -121,10 +126,11 @@ async function publishViaWebhook(deal, channelDoc) {
   const { webhookUrl } = channelDoc.credentials || {};
   try {
     console.log(`[Publisher:WhatsApp] Sending deal to webhook for "${channelDoc.name}"...`);
+    const formattedText = await formatWhatsAppMessage(deal);
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: formatWhatsAppMessage(deal), deal })
+      body: JSON.stringify({ message: formattedText, deal })
     });
     // Unlike the WAHA/Meta paths below, this never checked res.ok — a webhook returning
     // 4xx/5xx, or unreachable behind a since-changed URL, still reported success and
@@ -153,7 +159,7 @@ async function publishViaMetaCloudApi(deal, channelDoc) {
 
   try {
     const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-    const text = formatWhatsAppMessage(deal);
+    const text = await formatWhatsAppMessage(deal);
 
     const res = await fetch(url, {
       method: 'POST',
