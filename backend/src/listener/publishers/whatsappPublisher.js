@@ -99,11 +99,11 @@ export async function formatWhatsAppMessage(deal) {
 
 ${priceLines.join('\n')}
 
+📊 *View Deal & Price History:*
+${webDealUrl}
+
 🛒 *Buy on ${merchantName}:*
 ${affiliateBuyUrl}
-
-📊 *Price History & Alerts:*
-${webDealUrl}
 
 _Shared via ShoppersDeals_`;
 }

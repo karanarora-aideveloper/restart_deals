@@ -109,8 +109,9 @@ export async function GET(request, { params }) {
         const isAndroid = /Android/i.test(userAgent);
         const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
         const isMobile = isAndroid || isIOS;
-        const isSocialCrawler = /facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|LinkedInBot|Pinterest|Slackbot|HeadlessChrome|bot|crawler|spider/i.test(userAgent) ||
-          src === 'wa' || src === 'tg' || searchParams.has('preview');
+        // Crawlers and preview fetchers (including WAHA Chromium on Linux server) must receive static OG HTML without navigation
+        const isSocialCrawler = /facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|LinkedInBot|Pinterest|Slackbot|HeadlessChrome|bot|crawler|spider|Linux x86_64/i.test(userAgent) ||
+          searchParams.has('preview');
 
         // Asynchronously log click to Revenue Analytics engine
         try {
@@ -215,7 +216,7 @@ export async function GET(request, { params }) {
   <meta name="twitter:title" content="${escapeHtml(ogTitle)}">
   <meta name="twitter:description" content="${escapeHtml(ogDescription)}">
   ${ogImage ? `<meta name="twitter:image" content="${escapeHtml(ogImage)}">` : ''}
-  <meta http-equiv="refresh" content="${isSocialCrawler ? '3' : '1'};url=${redirectUrl}">
+  ${isSocialCrawler ? '' : `<meta http-equiv="refresh" content="1;url=${redirectUrl}">`}
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #fff; text-align: center; padding: 20px; }
     .loader { width: 44px; height: 44px; border: 4px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
@@ -232,6 +233,7 @@ export async function GET(request, { params }) {
     ${failoverStore ? `Original deal on ${(target?.merchant || 'store').toUpperCase()} is out of stock. Automatically routed to verified stock!` : 'Redirecting you to the best verified price...'}
   </p>
   <a class="btn" href="${redirectUrl}">Click here if not redirected</a>
+  ${isSocialCrawler ? '' : `
   <script>
     (function() {
       var affUrl = ${JSON.stringify(redirectUrl)};
@@ -246,6 +248,7 @@ export async function GET(request, { params }) {
       }
     })();
   </script>
+  `}
 </body>
 </html>`;
 

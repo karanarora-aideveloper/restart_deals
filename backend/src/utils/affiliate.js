@@ -72,14 +72,18 @@ export function buildAffiliateUrl(urlStr, country = 'IN', merchant = 'generic') 
 }
 
 /**
- * Returns the deep-link to the deal/product page on ShoppersDeals website.
+ * Returns the deep-link to the canonical product page on ShoppersDeals website.
+ * Deals are an ephemeral subset of canonical Products — all outbound broadcast
+ * channels and SEO links point strictly to /product/:id so Google and shoppers
+ * always land on a permanent indexed product page with price history and active deal badges.
  *
  * @param {object} deal - Deal document
- * @returns {string} Web deal URL
+ * @returns {string} Web product URL
  */
 export function getWebsiteDealUrl(deal) {
-  if (!deal || !deal._id) return WEBSITE_BASE_URL;
-  return `${WEBSITE_BASE_URL}/deal/${deal._id}`;
+  if (!deal) return WEBSITE_BASE_URL;
+  const targetId = deal.matchedProductId || deal.productId || deal._id;
+  return `${WEBSITE_BASE_URL}/product/${targetId}`;
 }
 
 export function formatPriceCurrency(amount, country = 'IN') {
