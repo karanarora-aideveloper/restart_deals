@@ -13,17 +13,8 @@ export async function formatWhatsAppMessage(deal) {
   const dealPriceStr = dealPriceFormatted || 'Special Price';
 
   const priceLines = [];
-  priceLines.push(`💥 *Deal Price:* ${dealPriceStr}`);
 
-  // 1. Previous tracked price before the drop (if distinct and greater than dealPrice)
-  if (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice && deal.previousPrice !== deal.originalPrice) {
-    const prevPriceStr = formatPriceCurrency(deal.previousPrice, country);
-    if (prevPriceStr) {
-      priceLines.push(`📉 *Previous Price:* ~${prevPriceStr}~`);
-    }
-  }
-
-  // 2. Maximum Retail Price (MRP / List price)
+  // 1. Maximum Retail Price (MRP / List price) on top
   if (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice) {
     const origPriceStr = formatPriceCurrency(deal.originalPrice, country);
     if (origPriceStr) {
@@ -31,7 +22,18 @@ export async function formatWhatsAppMessage(deal) {
     }
   }
 
-  // 3. Price Drop percentage and total savings
+  // 2. Previous tracked price before the drop (if distinct and greater than dealPrice)
+  if (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice && deal.previousPrice !== deal.originalPrice) {
+    const prevPriceStr = formatPriceCurrency(deal.previousPrice, country);
+    if (prevPriceStr) {
+      priceLines.push(`📉 *Previous Price:* ~${prevPriceStr}~`);
+    }
+  }
+
+  // 3. Deal Price
+  priceLines.push(`💥 *Deal Price:* ${dealPriceStr}`);
+
+  // 4. Price Drop percentage and total savings
   let baselinePrice = null;
   const prevDiff = (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice)
     ? Math.abs((deal.discountPercentage || 0) - Math.round(((deal.previousPrice - deal.dealPrice) / deal.previousPrice) * 100))
@@ -68,7 +70,7 @@ export async function formatWhatsAppMessage(deal) {
     priceLines.push(`🏷️ *Price Drop:* *${discountPercent}% OFF*${savingsStr}`);
   }
 
-  // 4. Extra Perks (Coupon, Bank Offer, Rating, Urgency)
+  // 5. Extra Perks (Coupon, Bank Offer, Urgency) - Rating omitted per user request
   if (deal.coupon?.label) {
     priceLines.push(`🎟️ *Coupon:* ${deal.coupon.label}`);
   }
@@ -78,10 +80,6 @@ export async function formatWhatsAppMessage(deal) {
     if (bankPriceStr) {
       priceLines.push(`💳 *Bank Offer:* ${bankPriceStr} with select cards`);
     }
-  }
-
-  if (deal.rating) {
-    priceLines.push(`⭐ *Rating:* ${deal.rating}/5`);
   }
 
   if (deal.stockScarcity?.rawText) {
