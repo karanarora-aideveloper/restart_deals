@@ -109,7 +109,8 @@ export async function GET(request, { params }) {
         const isAndroid = /Android/i.test(userAgent);
         const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
         const isMobile = isAndroid || isIOS;
-        const isSocialCrawler = /facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|LinkedInBot|Pinterest|Slackbot/i.test(userAgent);
+        const isSocialCrawler = /facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|LinkedInBot|Pinterest|Slackbot|HeadlessChrome|bot|crawler|spider/i.test(userAgent) ||
+          src === 'wa' || src === 'tg' || searchParams.has('preview');
 
         // Asynchronously log click to Revenue Analytics engine
         try {
