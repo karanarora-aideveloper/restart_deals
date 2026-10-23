@@ -3,32 +3,103 @@ import { buildAffiliateUrl, getWebsiteDealUrl, formatPriceCurrency } from '../..
 import { hasHindiCharacters, translateHindiToEnglish } from '../../utils/languageUtils.js';
 
 export async function formatWhatsAppMessage(deal) {
-  let title = deal.title || 'Special Deal';
+  let title = (deal.title || 'Special Deal').replace(/[\*\_\~]/g, '').replace(/\s+/g, ' ').trim();
   if (hasHindiCharacters(title)) {
     title = await translateHindiToEnglish(title);
+    title = title.replace(/[\*\_\~]/g, '').replace(/\s+/g, ' ').trim();
   }
   const country = deal.country || 'IN';
   const dealPriceFormatted = formatPriceCurrency(deal.dealPrice, country);
   const dealPriceStr = dealPriceFormatted || 'Special Price';
-  const origPriceStr = deal.originalPrice ? formatPriceCurrency(deal.originalPrice, country) : null;
-  const discountStr = deal.discountPercentage ? `*${deal.discountPercentage}% OFF*` : '';
 
-  let priceLine = `*Price:* ${dealPriceStr}`;
-  if (origPriceStr && deal.originalPrice > deal.dealPrice) {
-    priceLine += ` ~${origPriceStr}~ ${discountStr}`;
+  const priceLines = [];
+  priceLines.push(`💥 *Deal Price:* ${dealPriceStr}`);
+
+  // 1. Previous tracked price before the drop (if distinct and greater than dealPrice)
+  if (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice && deal.previousPrice !== deal.originalPrice) {
+    const prevPriceStr = formatPriceCurrency(deal.previousPrice, country);
+    if (prevPriceStr) {
+      priceLines.push(`📉 *Previous Price:* ~${prevPriceStr}~`);
+    }
   }
-  // Extra coupon the shopper applies on the merchant page, on top of the deal price
-  const couponLine = deal.coupon?.label ? `\n🎟️ *Coupon:* ${deal.coupon.label}` : '';
-  
+
+  // 2. Maximum Retail Price (MRP / List price)
+  if (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice) {
+    const origPriceStr = formatPriceCurrency(deal.originalPrice, country);
+    if (origPriceStr) {
+      priceLines.push(`❌ *MRP:* ~${origPriceStr}~`);
+    }
+  }
+
+  // 3. Price Drop percentage and total savings
+  let baselinePrice = null;
+  const prevDiff = (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice)
+    ? Math.abs((deal.discountPercentage || 0) - Math.round(((deal.previousPrice - deal.dealPrice) / deal.previousPrice) * 100))
+    : 999;
+  const origDiff = (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice)
+    ? Math.abs((deal.discountPercentage || 0) - Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100))
+    : 999;
+
+  if (prevDiff <= 1) {
+    baselinePrice = deal.previousPrice;
+  } else if (origDiff <= 1) {
+    baselinePrice = deal.originalPrice;
+  } else if (deal.originalPrice && deal.dealPrice && deal.originalPrice > deal.dealPrice) {
+    baselinePrice = deal.originalPrice;
+  } else if (deal.previousPrice && deal.dealPrice && deal.previousPrice > deal.dealPrice) {
+    baselinePrice = deal.previousPrice;
+  }
+
+  let discountPercent = deal.discountPercentage;
+  if ((!discountPercent || discountPercent <= 0) && baselinePrice && deal.dealPrice && baselinePrice > deal.dealPrice) {
+    discountPercent = Math.round(((baselinePrice - deal.dealPrice) / baselinePrice) * 100);
+  }
+
+  let savingsStr = '';
+  if (baselinePrice && deal.dealPrice && baselinePrice > deal.dealPrice) {
+    const savingsAmount = baselinePrice - deal.dealPrice;
+    const formattedSavings = formatPriceCurrency(savingsAmount, country);
+    if (formattedSavings) {
+      savingsStr = ` (Save ${formattedSavings})`;
+    }
+  }
+
+  if (discountPercent && discountPercent > 0) {
+    priceLines.push(`🏷️ *Price Drop:* *${discountPercent}% OFF*${savingsStr}`);
+  }
+
+  // 4. Extra Perks (Coupon, Bank Offer, Rating, Urgency)
+  if (deal.coupon?.label) {
+    priceLines.push(`🎟️ *Coupon:* ${deal.coupon.label}`);
+  }
+
+  if (deal.bankOfferPrice && deal.dealPrice && deal.bankOfferPrice < deal.dealPrice) {
+    const bankPriceStr = formatPriceCurrency(deal.bankOfferPrice, country);
+    if (bankPriceStr) {
+      priceLines.push(`💳 *Bank Offer:* ${bankPriceStr} with select cards`);
+    }
+  }
+
+  if (deal.rating) {
+    priceLines.push(`⭐ *Rating:* ${deal.rating}/5`);
+  }
+
+  if (deal.stockScarcity?.rawText) {
+    priceLines.push(`⚡ *Stock:* ${deal.stockScarcity.rawText}`);
+  } else if (deal.stockScarcity?.unitsLeft) {
+    priceLines.push(`⚡ *Stock:* Only ${deal.stockScarcity.unitsLeft} left in stock!`);
+  }
+
   const affiliateBuyUrl = deal._id
     ? `https://www.shoppersdeals.in/r/${deal._id}?src=wa`
     : buildAffiliateUrl(deal.dealUrl, country, deal.merchant);
   const webDealUrl = getWebsiteDealUrl(deal);
-  const merchantName = (deal.merchant || 'Store').charAt(0).toUpperCase() + (deal.merchant || 'Store').slice(1);
+  const rawMerchant = (deal.merchant || 'Store');
+  const merchantName = rawMerchant.charAt(0).toUpperCase() + rawMerchant.slice(1);
 
   return `🔥 *${title}* 🔥
 
-💰 ${priceLine}${couponLine}
+${priceLines.join('\n')}
 
 🛒 *Buy on ${merchantName}:*
 ${affiliateBuyUrl}
